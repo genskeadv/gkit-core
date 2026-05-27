@@ -1,0 +1,2 @@
+carteira,nome_fantasia,razao_social,cnpj,administradora,email,telefone,cidade,estado,sindico_nome,sindico_email,sindico_telefone,gerente_adm_nome,gerente_adm_email,gerente_adm_telefone,observacoes
+Genske Advogados,Condominio Exemplo,Condominio Exemplo LTDA,00.000.000/0001-00,Administradora Exemplo,contato@exemplo.com.br,11999999999,Sao Paulo,SP,Sindico Exemplo,sindico@exemplo.com.br,11988888888,Gerente Exemplo,gerente@adm.com.br,11977777777,Cliente importado para o Ciclo
