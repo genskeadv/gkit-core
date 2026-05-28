@@ -535,6 +535,19 @@ export async function getIntrFechamento(id: string): Promise<IntrFechamentoRecor
   }
 }
 
+export async function countIntrFechamentoDivergencias(competencia: string) {
+  const { data, error } = await admin()
+    .schema('gkli_intr')
+    .from('pagamentos')
+    .select('id')
+    .eq('competencia', competencia)
+    .eq('status', 'pago')
+    .ilike('observacao', '%VALOR_DIVERGENTE_OFX%')
+
+  if (error) return 0
+  return (data ?? []).length
+}
+
 export async function getIntrTime(id: string): Promise<IntrTimeRecord> {
   const { data, error } = await admin().schema('gkli_intr').from('times').select('id,nome,descricao,ativo').eq('id', id).single()
   if (error || !data) throw new Error(error?.message ?? 'Time nao encontrado.')

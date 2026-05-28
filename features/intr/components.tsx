@@ -26,6 +26,7 @@ type IntrTab =
   | 'documentos'
   | 'comunicados'
   | 'pagamentos'
+  | 'conciliarExtrato'
   | 'comissoes'
   | 'tiposComissao'
   | 'receitas'
@@ -42,6 +43,7 @@ const activeHref: Record<IntrTab, string> = {
   documentos: '/modulos/intr/documentos',
   comunicados: '/modulos/intr/comunicados',
   pagamentos: '/modulos/intr/pagamentos',
+  conciliarExtrato: '/modulos/intr/pagamentos/conciliar-extrato',
   comissoes: '/modulos/intr/comissoes',
   tiposComissao: '/modulos/intr/cadastros/tipos-comissao',
   receitas: '/modulos/intr/receitas',

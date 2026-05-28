@@ -12,7 +12,7 @@ export default async function IntrConciliarExtratoPage() {
 
   return (
     <IntrShell
-      active="pagamentos"
+      active="conciliarExtrato"
       title="Conciliar extrato"
       description="Importe um OFX para bater saidas bancarias por colaborador contra pagamentos previstos."
       usuario={context.usuario}

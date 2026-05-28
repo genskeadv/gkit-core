@@ -103,12 +103,22 @@ type OfxTransaction = {
 
 type OfxPaymentMatch = {
   dataExtrato: string
+  diferenca: number
   descricaoExtrato: string
   fitId: string
   pagamentoColaborador: string
   pagamentoDescricao: string
   pagamentoId: string
   pagamentoTipo: string
+  valor: number
+  valorPrevisto: number
+}
+
+type OfxConciliationItem = {
+  data: string
+  descricao: string
+  fitId: string
+  sugestoes: OfxPaymentMatch[]
   valor: number
 }
 
@@ -159,6 +169,10 @@ function moneyEquals(a: number, b: number) {
   return Math.abs(a - b) < 0.01
 }
 
+function roundDifference(value: number) {
+  return Math.round(value * 100) / 100
+}
+
 function textIncludesName(source: unknown, name: unknown) {
   const normalizedSource = normalizeName(String(source ?? ''))
   const normalizedName = normalizeName(String(name ?? ''))
@@ -176,56 +190,61 @@ async function buildOfxPaymentConciliationPreview(formData: FormData) {
   if (error) throw new Error(error.message)
 
   const pagamentos = ((data ?? []) as Array<Record<string, unknown>>)
-  const usados = new Set<string>()
-  const conciliados: OfxPaymentMatch[] = []
+  const lancamentos: OfxConciliationItem[] = []
   const semCorrespondencia: Array<{ data: string; descricao: string; valor: number }> = []
 
   transactions.forEach((transaction) => {
     const valor = Math.abs(transaction.amount)
+    const descricao = transaction.memo || transaction.name || 'Lancamento do extrato'
     const candidates = pagamentos
-      .filter((pagamento) => !usados.has(String(pagamento.id)))
-      .filter((pagamento) => moneyEquals(Number(pagamento.valor_liquido ?? 0), valor) || moneyEquals(Math.max(Number(pagamento.valor_bruto ?? 0) - Number(pagamento.valor_descontos ?? 0), 0), valor))
       .map((pagamento) => ({
         pagamento,
         distance: dateDistanceInDays(transaction.date, String(pagamento.data_prevista ?? pagamento.competencia ?? '') || null),
         nameMatch: textIncludesName(`${transaction.name} ${transaction.memo}`, pagamento.colaborador_nome),
+        valueDifference: Math.abs(Number(pagamento.valor_liquido ?? 0) - valor),
       }))
-      .sort((a, b) => Number(b.nameMatch) - Number(a.nameMatch) || a.distance - b.distance)
+      .filter((candidate) => candidate.nameMatch || candidate.distance <= 7 || candidate.valueDifference <= 100)
+      .sort((a, b) => Number(b.nameMatch) - Number(a.nameMatch) || a.distance - b.distance || a.valueDifference - b.valueDifference)
+      .slice(0, 5)
 
-    const best = candidates.find((candidate) => candidate.nameMatch && candidate.distance <= 7)
-      ?? candidates.find((candidate) => candidate.nameMatch && String(candidate.pagamento.competencia ?? '').slice(0, 7) === transaction.date.slice(0, 7))
-      ?? candidates.find((candidate) => candidate.distance <= 3)
-
-    if (!best) {
+    if (!candidates.length) {
       semCorrespondencia.push({
         data: transaction.date,
-        descricao: transaction.memo || transaction.name || 'Lancamento do extrato',
+        descricao,
         valor,
       })
       return
     }
 
-    const pagamentoId = String(best.pagamento.id)
-    usados.add(pagamentoId)
-    conciliados.push({
-      dataExtrato: transaction.date,
-      descricaoExtrato: transaction.memo || transaction.name || 'Lancamento do extrato',
+    lancamentos.push({
+      data: transaction.date,
+      descricao,
       fitId: transaction.fitId,
-      pagamentoColaborador: String(best.pagamento.colaborador_nome ?? 'Colaborador'),
-      pagamentoDescricao: String(best.pagamento.descricao ?? 'Pagamento previsto'),
-      pagamentoId,
-      pagamentoTipo: String(best.pagamento.tipo ?? 'Pagamento'),
+      sugestoes: candidates.map((candidate) => {
+        const valorPrevisto = Number(candidate.pagamento.valor_liquido ?? 0)
+        return {
+          dataExtrato: transaction.date,
+          descricaoExtrato: descricao,
+          diferenca: roundDifference(valor - valorPrevisto),
+          fitId: transaction.fitId,
+          pagamentoColaborador: String(candidate.pagamento.colaborador_nome ?? 'Colaborador'),
+          pagamentoDescricao: String(candidate.pagamento.descricao ?? 'Pagamento previsto'),
+          pagamentoId: String(candidate.pagamento.id),
+          pagamentoTipo: String(candidate.pagamento.tipo ?? 'Pagamento'),
+          valor,
+          valorPrevisto,
+        }
+      }),
       valor,
     })
   })
 
   return {
     arquivo,
-    conciliados,
+    lancamentos,
     semCorrespondencia,
     totalExtrato: transactions.length,
     totalPagamentosPrevistos: pagamentos.length,
-    valorConciliado: conciliados.reduce((sum, item) => sum + item.valor, 0),
   }
 }
 
@@ -1005,7 +1024,7 @@ async function computeFechamento(competencia: string) {
   const [receitasResult, comissoesResult, pagamentosResult] = await Promise.all([
     admin().schema('gkli_intr').from('receitas').select('valor_recebido,status').eq('competencia', competencia),
     admin().schema('gkli_intr').from('comissoes').select('id,valor_comissao,status').eq('competencia', competencia),
-    admin().schema('gkli_intr').from('pagamentos').select('id,valor_liquido,status').eq('competencia', competencia),
+    admin().schema('gkli_intr').from('pagamentos').select('id,valor_liquido,status,observacao').eq('competencia', competencia),
   ])
   if (receitasResult.error) throw new Error(receitasResult.error.message)
   if (comissoesResult.error) throw new Error(comissoesResult.error.message)
@@ -1015,6 +1034,7 @@ async function computeFechamento(competencia: string) {
   const comissoes = ((comissoesResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status !== 'cancelada')
   const comissoesAprovadas = comissoes.filter((row) => row.status === 'aprovada')
   const pagamentos = ((pagamentosResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status !== 'cancelado')
+  const pagamentosDivergentes = pagamentos.filter((row) => String(row.observacao ?? '').includes('VALOR_DIVERGENTE_OFX'))
   const receitaTotal = sumRows(receitas, 'valor_recebido')
   const pagamentosPrevistosTotal = sumRows(pagamentos, 'valor_liquido')
 
@@ -1026,8 +1046,22 @@ async function computeFechamento(competencia: string) {
     saldo_operacional: receitaTotal - pagamentosPrevistosTotal,
     pendencias_total:
       comissoes.filter((row) => ['calculada', 'em_conferencia'].includes(String(row.status))).length +
-      pagamentos.filter((row) => ['previsto', 'em_processamento'].includes(String(row.status))).length,
+      pagamentos.filter((row) => ['previsto', 'em_processamento'].includes(String(row.status))).length +
+      pagamentosDivergentes.length,
   }
+}
+
+async function countFechamentoDivergencias(competencia: string) {
+  const { data, error } = await admin()
+    .schema('gkli_intr')
+    .from('pagamentos')
+    .select('id')
+    .eq('competencia', competencia)
+    .eq('status', 'pago')
+    .ilike('observacao', '%VALOR_DIVERGENTE_OFX%')
+
+  if (error) throw new Error(error.message)
+  return (data ?? []).length
 }
 
 export async function createIntrTimeAction(formData: FormData) {
@@ -1322,8 +1356,12 @@ export async function fecharIntrFechamentoAction(formData: FormData) {
   const { data, error: getError } = await admin().schema('gkli_intr').from('fechamentos').select('competencia').eq('id', id).single()
   if (getError || !data) throw new Error(getError?.message ?? 'Fechamento nao encontrado.')
   const metrics = await computeFechamento(String(data.competencia))
-  if (metrics.pendencias_total > 0) throw new Error('Nao e possivel fechar competencia com pendencias.')
-  const { error } = await admin().schema('gkli_intr').from('fechamentos').update({ ...metrics, status: 'fechado', fechado_em: new Date().toISOString() }).eq('id', id)
+  const divergencias = await countFechamentoDivergencias(String(data.competencia))
+  const aceitarDivergencias = formData.get('aceitar_divergencias') === 'on'
+  if (divergencias > 0 && !aceitarDivergencias) throw new Error('Existem pagamentos conciliados com valores divergentes. Corrija antes de fechar ou marque a opcao para lancar como valores divergentes.')
+  const adjustedMetrics = aceitarDivergencias ? { ...metrics, pendencias_total: Math.max(metrics.pendencias_total - divergencias, 0) } : metrics
+  if (adjustedMetrics.pendencias_total > 0) throw new Error('Nao e possivel fechar competencia com pendencias.')
+  const { error } = await admin().schema('gkli_intr').from('fechamentos').update({ ...adjustedMetrics, status: 'fechado', fechado_em: new Date().toISOString() }).eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath('/modulos/intr/fechamentos')
   redirect('/modulos/intr/fechamentos')
@@ -1446,10 +1484,21 @@ export async function previewConciliacaoExtratoOfx(formData: FormData) {
 export async function confirmarConciliacaoExtratoOfx(formData: FormData) {
   await requireIntrWrite('intr.pagamentos.write')
   const preview = await buildOfxPaymentConciliationPreview(formData)
+  const selected = JSON.parse(text(formData, 'selecoes') || '[]') as Array<{ fitId: string; pagamentoId: string }>
+  const selectedKeys = new Set(selected.map((item) => `${item.fitId}:${item.pagamentoId}`))
   let conciliados = 0
+  let divergentes = 0
+  let valorConciliado = 0
 
-  for (const item of preview.conciliados) {
-    const observacao = `Conciliado pelo extrato OFX ${preview.arquivo}; FITID ${item.fitId}; descricao: ${item.descricaoExtrato}.`
+  const matches = preview.lancamentos
+    .flatMap((item) => item.sugestoes)
+    .filter((item) => selectedKeys.has(`${item.fitId}:${item.pagamentoId}`))
+
+  for (const item of matches) {
+    const divergence = moneyEquals(item.valor, item.valorPrevisto)
+      ? ''
+      : ` VALOR_DIVERGENTE_OFX previsto ${item.valorPrevisto.toFixed(2)} pago ${item.valor.toFixed(2)} diferenca ${item.diferenca.toFixed(2)}.`
+    const observacao = `Conciliado pelo extrato OFX ${preview.arquivo}; FITID ${item.fitId}; descricao: ${item.descricaoExtrato}.${divergence}`
     const { error } = await admin()
       .schema('gkli_intr')
       .from('pagamentos')
@@ -1464,6 +1513,8 @@ export async function confirmarConciliacaoExtratoOfx(formData: FormData) {
 
     if (error) throw new Error(error.message)
     conciliados += 1
+    valorConciliado += item.valor
+    if (divergence) divergentes += 1
   }
 
   revalidatePath('/modulos/intr')
@@ -1475,8 +1526,9 @@ export async function confirmarConciliacaoExtratoOfx(formData: FormData) {
   return {
     arquivo: preview.arquivo,
     conciliados,
+    divergentes,
     semCorrespondencia: preview.semCorrespondencia,
-    valorConciliado: preview.valorConciliado,
+    valorConciliado,
   }
 }
 
