@@ -99,6 +99,20 @@ function comissaoTipoPayload(formData: FormData) {
   }
 }
 
+function isMissingComissaoDeTimeColumn(error: { message?: string; code?: string } | null) {
+  const message = String(error?.message ?? '').toLowerCase()
+  return message.includes('comissao_de_time') || message.includes('schema cache') || error?.code === 'PGRST204'
+}
+
+function withoutComissaoDeTime(payload: ReturnType<typeof comissaoTipoPayload>) {
+  const { comissao_de_time: _comissaoDeTime, ...rest } = payload
+  return rest
+}
+
+function comissaoDeTimeMigrationError() {
+  return new Error('Para usar "Comissao de time", execute primeiro o SQL 16_intr_comissao_tipos_time.sql no Supabase.')
+}
+
 async function colaboradorPayload(formData: FormData) {
   const usuarioId = uuidOrNull(text(formData, 'usuario_id'))
   let coreUsuario: Record<string, unknown> | null = null
@@ -922,7 +936,14 @@ export async function updateIntrComissaoStatusAction(formData: FormData) {
 
 export async function createIntrComissaoTipoAction(formData: FormData) {
   await requireIntrWrite('intr.comissoes.write')
-  const { data, error } = await admin().schema('gkli_intr').from('comissao_tipos').insert(comissaoTipoPayload(formData)).select('id').single()
+  const payload = comissaoTipoPayload(formData)
+  let { data, error } = await admin().schema('gkli_intr').from('comissao_tipos').insert(payload).select('id').single()
+  if (error && isMissingComissaoDeTimeColumn(error)) {
+    if (payload.comissao_de_time) throw comissaoDeTimeMigrationError()
+    const retry = await admin().schema('gkli_intr').from('comissao_tipos').insert(withoutComissaoDeTime(payload)).select('id').single()
+    data = retry.data
+    error = retry.error
+  }
   if (error) throw new Error(error.message)
   revalidatePath('/modulos/intr/cadastros')
   revalidatePath('/modulos/intr/cadastros/tipos-comissao')
@@ -932,7 +953,13 @@ export async function createIntrComissaoTipoAction(formData: FormData) {
 export async function updateIntrComissaoTipoAction(formData: FormData) {
   const id = required(text(formData, 'id'), 'Tipo de comissao')
   await requireIntrWrite('intr.comissoes.write')
-  const { error } = await admin().schema('gkli_intr').from('comissao_tipos').update(comissaoTipoPayload(formData)).eq('id', id)
+  const payload = comissaoTipoPayload(formData)
+  let { error } = await admin().schema('gkli_intr').from('comissao_tipos').update(payload).eq('id', id)
+  if (error && isMissingComissaoDeTimeColumn(error)) {
+    if (payload.comissao_de_time) throw comissaoDeTimeMigrationError()
+    const retry = await admin().schema('gkli_intr').from('comissao_tipos').update(withoutComissaoDeTime(payload)).eq('id', id)
+    error = retry.error
+  }
   if (error) throw new Error(error.message)
   revalidatePath('/modulos/intr/cadastros')
   revalidatePath('/modulos/intr/cadastros/tipos-comissao')

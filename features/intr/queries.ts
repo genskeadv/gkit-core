@@ -379,7 +379,7 @@ export async function listIntrComissaoTipoRows(): Promise<IntrListRow[]> {
   const { data, error } = await admin()
     .schema('gkli_intr')
     .from('comissao_tipos')
-    .select('id,nome,categoria,percentual,comissao_de_time,ativo,atualizado_em')
+    .select('*')
     .order('nome', { ascending: true })
     .limit(300)
 
@@ -628,7 +628,7 @@ export async function getIntrComissaoTipo(id: string): Promise<IntrComissaoTipoR
   const { data, error } = await admin()
     .schema('gkli_intr')
     .from('comissao_tipos')
-    .select('id,nome,categoria,percentual,comissao_de_time,ativo,observacao')
+    .select('*')
     .eq('id', id)
     .single()
 
