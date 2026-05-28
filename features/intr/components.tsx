@@ -309,6 +309,10 @@ function moneyInput(value?: number | null) {
   return value ? String(value) : '0'
 }
 
+function monthInput(value?: string | null) {
+  return value ? value.slice(0, 7) : ''
+}
+
 export function IntrTimeForm({
   action,
   time,
@@ -910,7 +914,7 @@ export function IntrConfirmarPagamentosTipoForm({
       <form action={action} className="module-form-grid">
         <div>
           <label className="label" htmlFor="competencia_confirmacao">Competencia</label>
-          <input className="input" id="competencia_confirmacao" name="competencia" type="date" required />
+          <input className="input" id="competencia_confirmacao" name="competencia" type="month" required />
         </div>
         <div>
           <label className="label" htmlFor="tipo_confirmacao">Tipo de pagamento</label>
@@ -969,11 +973,11 @@ export function IntrPagamentoAgendaForm({
       </div>
       <div>
         <label className="label" htmlFor="inicio_competencia">Inicio</label>
-        <input className="input" id="inicio_competencia" name="inicio_competencia" type="date" required defaultValue={agenda?.inicio_competencia ?? ''} />
+        <input className="input" id="inicio_competencia" name="inicio_competencia" type="month" required defaultValue={monthInput(agenda?.inicio_competencia)} />
       </div>
       <div>
         <label className="label" htmlFor="fim_competencia">Fim</label>
-        <input className="input" id="fim_competencia" name="fim_competencia" type="date" defaultValue={agenda?.fim_competencia ?? ''} />
+        <input className="input" id="fim_competencia" name="fim_competencia" type="month" defaultValue={monthInput(agenda?.fim_competencia)} />
       </div>
       <div>
         <label className="label" htmlFor="valor_bruto">Valor bruto</label>
@@ -1012,7 +1016,7 @@ export function IntrGerarPagamentosForm({ action }: { action: (formData: FormDat
     <form action={action} className="card suite-panel module-form-grid">
       <div>
         <label className="label" htmlFor="competencia">Competencia</label>
-        <input className="input" id="competencia" name="competencia" type="date" required />
+        <input className="input" id="competencia" name="competencia" type="month" required />
       </div>
       <div className="form-actions">
         <button className="button" type="submit">Gerar previstos</button>

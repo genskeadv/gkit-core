@@ -55,6 +55,19 @@ function integerInRange(formData: FormData, key: string, min: number, max: numbe
   return parsed
 }
 
+function competenciaMonth(formData: FormData, key: string, label: string) {
+  const value = required(text(formData, key), label)
+  if (/^\d{4}-\d{2}$/.test(value)) return `${value}-01`
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return `${value.slice(0, 7)}-01`
+  throw new Error(`${label} deve ser informado em mes/ano.`)
+}
+
+function optionalCompetenciaMonth(formData: FormData, key: string, label: string) {
+  const value = text(formData, key)
+  if (!value) return null
+  return competenciaMonth(formData, key, label)
+}
+
 function calculateCommission(base: number, commissionPercent: number) {
   return Math.round(base * (commissionPercent / 100) * 100) / 100
 }
@@ -115,7 +128,13 @@ function comissaoDeTimeMigrationError() {
 
 function isMissingAgendaPorTipoMigration(error: { message?: string; code?: string } | null) {
   const message = String(error?.message ?? '').toLowerCase()
-  return message.includes('colaborador_id') || message.includes('no unique') || message.includes('unique or exclusion constraint')
+  return (
+    message.includes('colaborador_id') ||
+    message.includes('no unique') ||
+    message.includes('unique or exclusion constraint') ||
+    message.includes('pagamentos_agenda_competencia_uidx') ||
+    message.includes('duplicate key')
+  )
 }
 
 function agendaPorTipoMigrationError() {
@@ -265,8 +284,8 @@ function agendaPagamentoPayload(formData: FormData) {
     percentual: percent(formData, 'percentual'),
     valor_bruto: money(formData, 'valor_bruto'),
     valor_descontos: money(formData, 'valor_descontos'),
-    inicio_competencia: required(text(formData, 'inicio_competencia'), 'Inicio da competencia'),
-    fim_competencia: nullableText(formData, 'fim_competencia'),
+    inicio_competencia: competenciaMonth(formData, 'inicio_competencia', 'Inicio da competencia'),
+    fim_competencia: optionalCompetenciaMonth(formData, 'fim_competencia', 'Fim da competencia'),
     ativo: formData.get('ativo') !== 'off',
     origem: nullableText(formData, 'origem'),
     observacao: nullableText(formData, 'observacao'),
@@ -1291,7 +1310,7 @@ export async function updateIntrPagamentoAction(formData: FormData) {
 
 export async function confirmarPagamentosPorTipoAction(formData: FormData) {
   await requireIntrWrite('intr.pagamentos.write')
-  const competencia = required(text(formData, 'competencia'), 'Competencia')
+  const competencia = competenciaMonth(formData, 'competencia', 'Competencia')
   const tipo = required(text(formData, 'tipo'), 'Tipo de pagamento')
   const dataPagamento = nullableText(formData, 'data_pagamento') ?? new Date().toISOString().slice(0, 10)
 
@@ -1342,7 +1361,7 @@ export async function updateIntrPagamentoAgendaAction(formData: FormData) {
 
 export async function gerarPagamentosPrevistosAction(formData: FormData) {
   await requireIntrWrite('intr.agenda_pagamentos.write')
-  const competencia = required(text(formData, 'competencia'), 'Competencia')
+  const competencia = competenciaMonth(formData, 'competencia', 'Competencia')
   const [agendasResult, colaboradoresResult, comissoesResult] = await Promise.all([
     admin()
       .schema('gkli_intr')
@@ -1367,7 +1386,7 @@ export async function gerarPagamentosPrevistosAction(formData: FormData) {
   if (comissoesResult.error) throw new Error(comissoesResult.error.message)
 
   const colaboradores = activeRows((colaboradoresResult.data ?? []) as Array<Record<string, unknown>>, 'status')
-  const comissoes = ((comissoesResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status !== 'cancelada')
+  const comissoes = ((comissoesResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status === 'aprovada')
   const colaboradoresById = new Map(colaboradores.map((row) => [String(row.id), row]))
 
   const rows = ((agendasResult.data ?? []) as Array<Record<string, unknown>>).flatMap((agenda) => {
