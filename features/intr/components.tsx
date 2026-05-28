@@ -69,6 +69,7 @@ const navGroups: ModuleNavGroup[] = [
     title: 'Base operacional',
     items: [
       { href: '/modulos/intr/pagamentos', label: 'Pagamentos' },
+      { href: '/modulos/intr/pagamentos/conciliar-extrato', label: 'Conciliar extrato' },
       { href: '/modulos/intr/comissoes', label: 'Comissoes' },
       { href: '/modulos/intr/receitas', label: 'Receitas' },
       { href: '/modulos/intr/fechamentos', label: 'Fechamentos' },
@@ -1014,6 +1015,10 @@ export function IntrPagamentoAgendaForm({
 export function IntrGerarPagamentosForm({ action }: { action: (formData: FormData) => Promise<void> }) {
   return (
     <form action={action} className="card suite-panel module-form-grid">
+      <div className="module-form-wide">
+        <h2>Gerar pagamentos individuais</h2>
+        <p>As agendas por tipo geram um pagamento separado para cada colaborador ativo.</p>
+      </div>
       <div>
         <label className="label" htmlFor="competencia">Competencia</label>
         <input className="input" id="competencia" name="competencia" type="month" required />

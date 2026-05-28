@@ -93,6 +93,142 @@ async function requireIntrWrite(permission: IntrWritePermission) {
   return context
 }
 
+type OfxTransaction = {
+  amount: number
+  date: string
+  fitId: string
+  memo: string
+  name: string
+}
+
+type OfxPaymentMatch = {
+  dataExtrato: string
+  descricaoExtrato: string
+  fitId: string
+  pagamentoColaborador: string
+  pagamentoDescricao: string
+  pagamentoId: string
+  pagamentoTipo: string
+  valor: number
+}
+
+function ofxTag(block: string, tag: string) {
+  const match = block.match(new RegExp(`<${tag}>([^<\\r\\n]+)`, 'i'))
+  return match?.[1]?.trim() ?? ''
+}
+
+function ofxDate(value: string) {
+  const match = value.match(/^(\d{4})(\d{2})(\d{2})/)
+  if (!match) return ''
+  return `${match[1]}-${match[2]}-${match[3]}`
+}
+
+function parseOfxAmount(value: string) {
+  const parsed = Number(value.replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function dateDistanceInDays(a: string, b: string | null) {
+  if (!a || !b) return 9999
+  const first = new Date(`${a}T00:00:00.000Z`).getTime()
+  const second = new Date(`${b}T00:00:00.000Z`).getTime()
+  if (Number.isNaN(first) || Number.isNaN(second)) return 9999
+  return Math.abs(first - second) / 86400000
+}
+
+async function parseOfxFile(formData: FormData) {
+  const file = formData.get('arquivo')
+  if (!(file instanceof File) || file.size === 0) throw new Error('Selecione um arquivo OFX.')
+  const content = await file.text()
+  const blocks = content.match(/<STMTTRN>[\s\S]*?(?=<STMTTRN>|<\/BANKTRANLIST>|<\/STMTTRN>)/gi) ?? []
+  const transactions = blocks.map((block) => ({
+    amount: parseOfxAmount(ofxTag(block, 'TRNAMT')),
+    date: ofxDate(ofxTag(block, 'DTPOSTED')),
+    fitId: ofxTag(block, 'FITID') || createHash('sha1').update(block).digest('hex'),
+    memo: ofxTag(block, 'MEMO'),
+    name: ofxTag(block, 'NAME'),
+  })).filter((item) => item.date && item.amount < 0)
+
+  return {
+    arquivo: file.name,
+    transactions,
+  }
+}
+
+function moneyEquals(a: number, b: number) {
+  return Math.abs(a - b) < 0.01
+}
+
+function textIncludesName(source: unknown, name: unknown) {
+  const normalizedSource = normalizeName(String(source ?? ''))
+  const normalizedName = normalizeName(String(name ?? ''))
+  return Boolean(normalizedName && normalizedSource.includes(normalizedName))
+}
+
+async function buildOfxPaymentConciliationPreview(formData: FormData) {
+  const { arquivo, transactions } = await parseOfxFile(formData)
+  const { data, error } = await admin()
+    .from('gkli_intr_pagamentos_resumo')
+    .select('id,colaborador_nome,tipo,descricao,competencia,data_prevista,valor_bruto,valor_descontos,valor_liquido,status')
+    .in('status', ['previsto', 'em_processamento'])
+    .limit(2000)
+
+  if (error) throw new Error(error.message)
+
+  const pagamentos = ((data ?? []) as Array<Record<string, unknown>>)
+  const usados = new Set<string>()
+  const conciliados: OfxPaymentMatch[] = []
+  const semCorrespondencia: Array<{ data: string; descricao: string; valor: number }> = []
+
+  transactions.forEach((transaction) => {
+    const valor = Math.abs(transaction.amount)
+    const candidates = pagamentos
+      .filter((pagamento) => !usados.has(String(pagamento.id)))
+      .filter((pagamento) => moneyEquals(Number(pagamento.valor_liquido ?? 0), valor) || moneyEquals(Math.max(Number(pagamento.valor_bruto ?? 0) - Number(pagamento.valor_descontos ?? 0), 0), valor))
+      .map((pagamento) => ({
+        pagamento,
+        distance: dateDistanceInDays(transaction.date, String(pagamento.data_prevista ?? pagamento.competencia ?? '') || null),
+        nameMatch: textIncludesName(`${transaction.name} ${transaction.memo}`, pagamento.colaborador_nome),
+      }))
+      .sort((a, b) => Number(b.nameMatch) - Number(a.nameMatch) || a.distance - b.distance)
+
+    const best = candidates.find((candidate) => candidate.nameMatch && candidate.distance <= 7)
+      ?? candidates.find((candidate) => candidate.nameMatch && String(candidate.pagamento.competencia ?? '').slice(0, 7) === transaction.date.slice(0, 7))
+      ?? candidates.find((candidate) => candidate.distance <= 3)
+
+    if (!best) {
+      semCorrespondencia.push({
+        data: transaction.date,
+        descricao: transaction.memo || transaction.name || 'Lancamento do extrato',
+        valor,
+      })
+      return
+    }
+
+    const pagamentoId = String(best.pagamento.id)
+    usados.add(pagamentoId)
+    conciliados.push({
+      dataExtrato: transaction.date,
+      descricaoExtrato: transaction.memo || transaction.name || 'Lancamento do extrato',
+      fitId: transaction.fitId,
+      pagamentoColaborador: String(best.pagamento.colaborador_nome ?? 'Colaborador'),
+      pagamentoDescricao: String(best.pagamento.descricao ?? 'Pagamento previsto'),
+      pagamentoId,
+      pagamentoTipo: String(best.pagamento.tipo ?? 'Pagamento'),
+      valor,
+    })
+  })
+
+  return {
+    arquivo,
+    conciliados,
+    semCorrespondencia,
+    totalExtrato: transactions.length,
+    totalPagamentosPrevistos: pagamentos.length,
+    valorConciliado: conciliados.reduce((sum, item) => sum + item.valor, 0),
+  }
+}
+
 function timePayload(formData: FormData) {
   return {
     nome: required(text(formData, 'nome'), 'Nome'),
@@ -834,6 +970,10 @@ function normalizePaymentType(value: unknown) {
   return normalizeName(String(value ?? ''))
 }
 
+function isCommissionPaymentType(value: unknown) {
+  return normalizePaymentType(value).includes('comiss')
+}
+
 function agendaPaymentBase({
   agenda,
   colaborador,
@@ -846,7 +986,7 @@ function agendaPaymentBase({
   const tipo = normalizePaymentType(agenda.tipo)
   const colaboradorId = String(colaborador.id ?? '')
 
-  if (tipo.includes('comissao')) {
+  if (isCommissionPaymentType(agenda.tipo)) {
     const colaboradorComissoes = comissoes.filter((row) => String(row.colaborador_id ?? '') === colaboradorId)
     return { base: sumRows(colaboradorComissoes, 'valor_comissao'), baseLabel: 'comissoes do colaborador na competencia' }
   }
@@ -872,14 +1012,15 @@ async function computeFechamento(competencia: string) {
   if (pagamentosResult.error) throw new Error(pagamentosResult.error.message)
 
   const receitas = ((receitasResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status !== 'cancelada')
-  const comissoes = ((comissoesResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status === 'aprovada')
+  const comissoes = ((comissoesResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status !== 'cancelada')
+  const comissoesAprovadas = comissoes.filter((row) => row.status === 'aprovada')
   const pagamentos = ((pagamentosResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status !== 'cancelado')
   const receitaTotal = sumRows(receitas, 'valor_recebido')
   const pagamentosPrevistosTotal = sumRows(pagamentos, 'valor_liquido')
 
   return {
     receita_total: receitaTotal,
-    comissao_total: sumRows(comissoes, 'valor_comissao'),
+    comissao_total: sumRows(comissoesAprovadas, 'valor_comissao'),
     pagamentos_previstos_total: pagamentosPrevistosTotal,
     pagamentos_pagos_total: sumRows(pagamentos.filter((row) => row.status === 'pago'), 'valor_liquido'),
     saldo_operacional: receitaTotal - pagamentosPrevistosTotal,
@@ -1297,6 +1438,48 @@ export async function importarIntrRecibosPagamentoPdf(formData: FormData) {
   }
 }
 
+export async function previewConciliacaoExtratoOfx(formData: FormData) {
+  await requireIntrWrite('intr.pagamentos.write')
+  return buildOfxPaymentConciliationPreview(formData)
+}
+
+export async function confirmarConciliacaoExtratoOfx(formData: FormData) {
+  await requireIntrWrite('intr.pagamentos.write')
+  const preview = await buildOfxPaymentConciliationPreview(formData)
+  let conciliados = 0
+
+  for (const item of preview.conciliados) {
+    const observacao = `Conciliado pelo extrato OFX ${preview.arquivo}; FITID ${item.fitId}; descricao: ${item.descricaoExtrato}.`
+    const { error } = await admin()
+      .schema('gkli_intr')
+      .from('pagamentos')
+      .update({
+        data_pagamento: item.dataExtrato,
+        observacao,
+        origem: 'extrato_ofx',
+        status: 'pago',
+      })
+      .eq('id', item.pagamentoId)
+      .in('status', ['previsto', 'em_processamento'])
+
+    if (error) throw new Error(error.message)
+    conciliados += 1
+  }
+
+  revalidatePath('/modulos/intr')
+  revalidatePath('/modulos/intr/pagamentos')
+  revalidatePath('/modulos/intr/pagamentos/conciliar-extrato')
+  revalidatePath('/modulos/colab')
+  revalidatePath('/modulos/colab/pagamentos')
+
+  return {
+    arquivo: preview.arquivo,
+    conciliados,
+    semCorrespondencia: preview.semCorrespondencia,
+    valorConciliado: preview.valorConciliado,
+  }
+}
+
 export async function updateIntrPagamentoAction(formData: FormData) {
   const id = required(text(formData, 'id'), 'Pagamento')
   await requireIntrWrite('intr.pagamentos.write')
@@ -1391,8 +1574,7 @@ export async function gerarPagamentosPrevistosAction(formData: FormData) {
 
   const rows = ((agendasResult.data ?? []) as Array<Record<string, unknown>>).flatMap((agenda) => {
     const percentualAgenda = Number(agenda.percentual ?? 0)
-    const tipoNormalizado = normalizePaymentType(agenda.tipo)
-    const shouldApplyPercentual = percentualAgenda > 0 && tipoNormalizado.includes('comissao')
+    const shouldApplyPercentual = percentualAgenda > 0 && isCommissionPaymentType(agenda.tipo)
     const agendaColaboradorId = String(agenda.colaborador_id ?? '')
     const alvoColaboradores = agendaColaboradorId
       ? [colaboradoresById.get(agendaColaboradorId)].filter(Boolean) as Array<Record<string, unknown>>
