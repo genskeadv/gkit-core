@@ -13,7 +13,7 @@ export default async function IntrPagamentoAgendaPage() {
     <IntrShell
       active="pagamentos"
       title="Agenda de pagamentos"
-      description="Regras recorrentes que geram pagamentos previstos por competencia."
+      description="Regras recorrentes por tipo de pagamento que geram pagamentos previstos por competencia."
       usuario={context.usuario}
       actions={canWrite ? (
         <>
@@ -26,7 +26,7 @@ export default async function IntrPagamentoAgendaPage() {
       <IntrListKpis rows={rows} totalLabel="Agendas" />
       <IntrGenericList
         title="Regras recorrentes"
-        description="Agendas ativas podem gerar pagamentos previstos sem duplicar a mesma competencia."
+        description="Cada agenda define um tipo de pagamento e pode valer para todos os colaboradores ou para uma excecao individual."
         editHrefBase={canWrite ? '/modulos/intr/pagamentos/agenda' : undefined}
         empty="Nenhuma agenda de pagamento cadastrada."
         rows={rows}

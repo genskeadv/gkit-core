@@ -1,11 +1,15 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { IntrGenericList, IntrListKpis, IntrShell } from '@/features/intr/components'
-import { listIntrPagamentoRows, requireIntrContext } from '@/features/intr/queries'
+import { confirmarPagamentosPorTipoAction } from '@/features/intr/actions'
+import { IntrConfirmarPagamentosTipoForm, IntrGenericList, IntrListKpis, IntrShell } from '@/features/intr/components'
+import { getIntrFormData, listIntrPagamentoRows, requireIntrContext } from '@/features/intr/queries'
 
 export default async function IntrPagamentosPage() {
   const context = await requireIntrContext()
-  const rows = await listIntrPagamentoRows()
+  const [rows, formData] = await Promise.all([
+    listIntrPagamentoRows(),
+    getIntrFormData(),
+  ])
   const canWrite = canAccess(context.permissions, 'intr.pagamentos.write')
   const canManageAgenda = canAccess(context.permissions, 'intr.agenda_pagamentos.write')
 
@@ -23,6 +27,7 @@ export default async function IntrPagamentosPage() {
         </>
       ) : null}
     >
+      {canWrite ? <IntrConfirmarPagamentosTipoForm action={confirmarPagamentosPorTipoAction} formData={formData} /> : null}
       <IntrListKpis rows={rows} totalLabel="Pagamentos" />
       <IntrGenericList
         title="Pagamentos recentes"

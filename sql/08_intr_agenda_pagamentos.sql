@@ -6,7 +6,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists gkli_intr.pagamento_agendas (
   id uuid default gen_random_uuid() not null,
-  colaborador_id uuid not null,
+  colaborador_id uuid,
   tipo text not null,
   descricao text,
   dia_previsto integer not null,
@@ -53,7 +53,7 @@ exception when duplicate_object then null;
 end $$;
 
 create unique index if not exists pagamentos_agenda_competencia_uidx
-  on gkli_intr.pagamentos (agenda_id, competencia)
+  on gkli_intr.pagamentos (agenda_id, colaborador_id, competencia)
   where agenda_id is not null;
 
 drop trigger if exists trg_pagamento_agendas_updated_at on gkli_intr.pagamento_agendas;
@@ -89,7 +89,7 @@ select
   a.criado_em,
   a.atualizado_em
 from gkli_intr.pagamento_agendas a
-join gkli_intr.colaboradores c on c.id = a.colaborador_id
+left join gkli_intr.colaboradores c on c.id = a.colaborador_id
 left join gkli_intr.times t on t.id = c.time_id;
 
 create view public.gkli_intr_pagamentos_resumo

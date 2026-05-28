@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRef, useState, useTransition } from 'react'
 import { importarIntrReceitasXlsx, previewIntrReceitasXlsx } from '@/features/intr/actions'
 
@@ -86,6 +87,46 @@ export function ImportarReceitasForm() {
 
       {error ? <div className="suite-empty-block danger">{error}</div> : null}
 
+      {result ? (
+        <section className="card ciclo-panel">
+          <div className="ciclo-panel-heading">
+            <div>
+              <h2>Importação concluída</h2>
+              <p>Arquivo {result.arquivo} processado e gravado no Intr.</p>
+            </div>
+          </div>
+
+          <div className="suite-import-stats">
+            <span>Receitas <strong>{result.processadas}</strong></span>
+            <span>Criadas <strong>{result.criadas}</strong></span>
+            <span>Atualizadas <strong>{result.atualizadas}</strong></span>
+            <span>Comissões <strong>{result.comissoes}</strong></span>
+            <span>Total recebido <strong>{moneyFormatter.format(result.valorRecebidoTotal)}</strong></span>
+            <span>Total comissões <strong>{moneyFormatter.format(result.valorComissaoTotal)}</strong></span>
+          </div>
+
+          {result.ignoradas.length ? (
+            <div className="suite-empty-block warning">
+              <strong>{result.ignoradas.length} linha(s) ignorada(s)</strong>
+              <ul>
+                {result.ignoradas.slice(0, 12).map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            </div>
+          ) : (
+            <div className="suite-empty-block success">
+              <strong>Importação sem linhas ignoradas.</strong>
+              <span>Receitas e comissões foram atualizadas com sucesso.</span>
+            </div>
+          )}
+
+          <div className="form-actions">
+            <Link className="button" href="/modulos/intr/receitas">Ver receitas</Link>
+            <Link className="button secondary" href="/modulos/intr/comissoes">Ver comissões</Link>
+            <Link className="button secondary" href="/modulos/intr/importacoes">Histórico de importações</Link>
+          </div>
+        </section>
+      ) : null}
+
       {preview ? (
         <section className="card ciclo-panel">
           <div className="ciclo-panel-heading">
@@ -130,15 +171,6 @@ export function ImportarReceitasForm() {
         </section>
       ) : null}
 
-      {result ? (
-        <section className="suite-empty-block success">
-          <strong>{result.processadas} receita(s) processada(s)</strong>
-          <span>
-            {result.criadas} criada(s), {result.atualizadas} atualizada(s), {result.comissoes} comissao(oes).
-            Total recebido: {moneyFormatter.format(result.valorRecebidoTotal)}; comissoes: {moneyFormatter.format(result.valorComissaoTotal)}.
-          </span>
-        </section>
-      ) : null}
     </div>
   )
 }

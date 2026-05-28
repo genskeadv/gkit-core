@@ -41,6 +41,7 @@ export type IntrFormData = {
   colaboradores: IntrFormOption[]
   comissoes: IntrFormOption[]
   coreUsuarios: IntrFormOption[]
+  pagamentoTipos: IntrFormOption[]
   receitas: IntrFormOption[]
   times: IntrFormOption[]
 }
@@ -141,7 +142,7 @@ export type IntrPagamentoRecord = {
 
 export type IntrPagamentoAgendaRecord = {
   id: string
-  colaborador_id: string
+  colaborador_id: string | null
   tipo: string
   descricao: string | null
   dia_previsto: number

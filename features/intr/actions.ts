@@ -113,6 +113,15 @@ function comissaoDeTimeMigrationError() {
   return new Error('Para usar "Comissao de time", execute primeiro o SQL 16_intr_comissao_tipos_time.sql no Supabase.')
 }
 
+function isMissingAgendaPorTipoMigration(error: { message?: string; code?: string } | null) {
+  const message = String(error?.message ?? '').toLowerCase()
+  return message.includes('colaborador_id') || message.includes('no unique') || message.includes('unique or exclusion constraint')
+}
+
+function agendaPorTipoMigrationError() {
+  return new Error('Para usar agenda por tipo de pagamento, execute primeiro o SQL 17_intr_agenda_por_tipo_pagamento.sql no Supabase.')
+}
+
 async function colaboradorPayload(formData: FormData) {
   const usuarioId = uuidOrNull(text(formData, 'usuario_id'))
   let coreUsuario: Record<string, unknown> | null = null
@@ -249,7 +258,7 @@ function pagamentoPayload(formData: FormData) {
 
 function agendaPagamentoPayload(formData: FormData) {
   return {
-    colaborador_id: required(text(formData, 'colaborador_id'), 'Colaborador'),
+    colaborador_id: uuidOrNull(text(formData, 'colaborador_id')),
     tipo: required(text(formData, 'tipo'), 'Tipo de pagamento'),
     descricao: nullableText(formData, 'descricao'),
     dia_previsto: integerInRange(formData, 'dia_previsto', 1, 31),
@@ -808,20 +817,27 @@ function normalizePaymentType(value: unknown) {
 
 function agendaPaymentBase({
   agenda,
+  colaborador,
   comissoes,
-  receitaTotal,
 }: {
   agenda: Record<string, unknown>
+  colaborador: Record<string, unknown>
   comissoes: Array<Record<string, unknown>>
-  receitaTotal: number
 }) {
   const tipo = normalizePaymentType(agenda.tipo)
-  const colaboradorId = String(agenda.colaborador_id ?? '')
+  const colaboradorId = String(colaborador.id ?? '')
 
   if (tipo.includes('comissao')) {
     const colaboradorComissoes = comissoes.filter((row) => String(row.colaborador_id ?? '') === colaboradorId)
     return { base: sumRows(colaboradorComissoes, 'valor_comissao'), baseLabel: 'comissoes do colaborador na competencia' }
   }
+
+  if (tipo.includes('salario')) return { base: Number(colaborador.salario ?? 0), baseLabel: 'salario do colaborador' }
+  if (tipo.includes('pro labore')) return { base: Number(colaborador.pro_labore ?? 0), baseLabel: 'pro-labore do colaborador' }
+  if (tipo.includes('participacao') && tipo.includes('honorarios')) return { base: Number(colaborador.participacao_honorarios ?? 0), baseLabel: 'participacao em honorarios fixos do colaborador' }
+  if (tipo.includes('beneficio')) return { base: Number(colaborador.beneficio_valor ?? 0), baseLabel: 'beneficios do colaborador' }
+  if (tipo.includes('ajuda') && tipo.includes('custo')) return { base: Number(colaborador.ajuda_custo ?? 0), baseLabel: 'ajuda de custo do colaborador' }
+  if (tipo.includes('outro')) return { base: Number(colaborador.outros_vencimentos ?? 0), baseLabel: 'outros vencimentos do colaborador' }
 
   return { base: Number(agenda.valor_bruto ?? 0), baseLabel: 'valor fixo da agenda' }
 }
@@ -837,7 +853,7 @@ async function computeFechamento(competencia: string) {
   if (pagamentosResult.error) throw new Error(pagamentosResult.error.message)
 
   const receitas = ((receitasResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status !== 'cancelada')
-  const comissoes = ((comissoesResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status !== 'cancelada')
+  const comissoes = ((comissoesResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status === 'aprovada')
   const pagamentos = ((pagamentosResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status !== 'cancelado')
   const receitaTotal = sumRows(receitas, 'valor_recebido')
   const pagamentosPrevistosTotal = sumRows(pagamentos, 'valor_liquido')
@@ -1273,10 +1289,38 @@ export async function updateIntrPagamentoAction(formData: FormData) {
   redirect('/modulos/intr/pagamentos')
 }
 
+export async function confirmarPagamentosPorTipoAction(formData: FormData) {
+  await requireIntrWrite('intr.pagamentos.write')
+  const competencia = required(text(formData, 'competencia'), 'Competencia')
+  const tipo = required(text(formData, 'tipo'), 'Tipo de pagamento')
+  const dataPagamento = nullableText(formData, 'data_pagamento') ?? new Date().toISOString().slice(0, 10)
+
+  const { error } = await admin()
+    .schema('gkli_intr')
+    .from('pagamentos')
+    .update({
+      data_pagamento: dataPagamento,
+      status: 'pago',
+    })
+    .eq('competencia', competencia)
+    .eq('tipo', tipo)
+    .in('status', ['previsto', 'em_processamento'])
+
+  if (error) throw new Error(error.message)
+  revalidatePath('/modulos/intr')
+  revalidatePath('/modulos/intr/pagamentos')
+  revalidatePath('/modulos/colab')
+  revalidatePath('/modulos/colab/pagamentos')
+  redirect('/modulos/intr/pagamentos')
+}
+
 export async function createIntrPagamentoAgendaAction(formData: FormData) {
   await requireIntrWrite('intr.agenda_pagamentos.write')
   const { data, error } = await admin().schema('gkli_intr').from('pagamento_agendas').insert(agendaPagamentoPayload(formData)).select('id').single()
-  if (error) throw new Error(error.message)
+  if (error) {
+    if (isMissingAgendaPorTipoMigration(error)) throw agendaPorTipoMigrationError()
+    throw new Error(error.message)
+  }
   revalidatePath('/modulos/intr/pagamentos')
   revalidatePath('/modulos/intr/pagamentos/agenda')
   redirect(`/modulos/intr/pagamentos/agenda/${data.id}`)
@@ -1286,7 +1330,10 @@ export async function updateIntrPagamentoAgendaAction(formData: FormData) {
   const id = required(text(formData, 'id'), 'Agenda')
   await requireIntrWrite('intr.agenda_pagamentos.write')
   const { error } = await admin().schema('gkli_intr').from('pagamento_agendas').update(agendaPagamentoPayload(formData)).eq('id', id)
-  if (error) throw new Error(error.message)
+  if (error) {
+    if (isMissingAgendaPorTipoMigration(error)) throw agendaPorTipoMigrationError()
+    throw new Error(error.message)
+  }
   revalidatePath('/modulos/intr/pagamentos')
   revalidatePath('/modulos/intr/pagamentos/agenda')
   revalidatePath(`/modulos/intr/pagamentos/agenda/${id}`)
@@ -1296,7 +1343,7 @@ export async function updateIntrPagamentoAgendaAction(formData: FormData) {
 export async function gerarPagamentosPrevistosAction(formData: FormData) {
   await requireIntrWrite('intr.agenda_pagamentos.write')
   const competencia = required(text(formData, 'competencia'), 'Competencia')
-  const [agendasResult, receitasResult, comissoesResult] = await Promise.all([
+  const [agendasResult, colaboradoresResult, comissoesResult] = await Promise.all([
     admin()
       .schema('gkli_intr')
       .from('pagamento_agendas')
@@ -1306,9 +1353,8 @@ export async function gerarPagamentosPrevistosAction(formData: FormData) {
       .or(`fim_competencia.is.null,fim_competencia.gte.${competencia}`),
     admin()
       .schema('gkli_intr')
-      .from('receitas')
-      .select('valor_recebido,status')
-      .eq('competencia', competencia),
+      .from('colaboradores')
+      .select('id,nome,status,salario,pro_labore,ajuda_custo,participacao_honorarios,outros_vencimentos,beneficio_valor'),
     admin()
       .schema('gkli_intr')
       .from('comissoes')
@@ -1317,48 +1363,60 @@ export async function gerarPagamentosPrevistosAction(formData: FormData) {
   ])
 
   if (agendasResult.error) throw new Error(agendasResult.error.message)
-  if (receitasResult.error) throw new Error(receitasResult.error.message)
+  if (colaboradoresResult.error) throw new Error(colaboradoresResult.error.message)
   if (comissoesResult.error) throw new Error(comissoesResult.error.message)
 
-  const receitas = ((receitasResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status !== 'cancelada')
+  const colaboradores = activeRows((colaboradoresResult.data ?? []) as Array<Record<string, unknown>>, 'status')
   const comissoes = ((comissoesResult.data ?? []) as Array<Record<string, unknown>>).filter((row) => row.status !== 'cancelada')
-  const receitaTotal = sumRows(receitas, 'valor_recebido')
+  const colaboradoresById = new Map(colaboradores.map((row) => [String(row.id), row]))
 
-  const rows = ((agendasResult.data ?? []) as Array<Record<string, unknown>>).map((agenda) => {
+  const rows = ((agendasResult.data ?? []) as Array<Record<string, unknown>>).flatMap((agenda) => {
     const percentualAgenda = Number(agenda.percentual ?? 0)
-    const { base, baseLabel } = agendaPaymentBase({ agenda, comissoes, receitaTotal })
-    const valorBruto = percentualAgenda > 0
-      ? calculateCommission(base, percentualAgenda)
-      : roundMoney(Number(agenda.valor_bruto ?? 0))
-    const observacoes = [
-      agenda.observacao ? String(agenda.observacao) : null,
-      percentualAgenda > 0
-        ? `Percentual da agenda: ${percentualAgenda.toLocaleString('pt-BR')}% sobre ${baseLabel} (${base.toLocaleString('pt-BR', { currency: 'BRL', style: 'currency' })}).`
-        : null,
-    ].filter(Boolean).join(' ')
+    const tipoNormalizado = normalizePaymentType(agenda.tipo)
+    const shouldApplyPercentual = percentualAgenda > 0 && tipoNormalizado.includes('comissao')
+    const agendaColaboradorId = String(agenda.colaborador_id ?? '')
+    const alvoColaboradores = agendaColaboradorId
+      ? [colaboradoresById.get(agendaColaboradorId)].filter(Boolean) as Array<Record<string, unknown>>
+      : colaboradores
 
-    return {
-      colaborador_id: String(agenda.colaborador_id),
-      agenda_id: String(agenda.id),
-      tipo: String(agenda.tipo ?? 'Pagamento recorrente'),
-      descricao: agenda.descricao ? String(agenda.descricao) : 'Pagamento previsto pela agenda do Intr.',
-      competencia,
-      data_prevista: scheduledDate(competencia, Number(agenda.dia_previsto ?? 1)),
-      valor_bruto: valorBruto,
-      valor_descontos: Number(agenda.valor_descontos ?? 0),
-      status: 'previsto',
-      origem: agenda.origem ? String(agenda.origem) : 'agenda_pagamento',
-      origem_id: String(agenda.id),
-      observacao: observacoes || null,
-    }
+    return alvoColaboradores.map((colaborador) => {
+      const { base, baseLabel } = agendaPaymentBase({ agenda, colaborador, comissoes })
+      const valorBruto = shouldApplyPercentual
+      ? calculateCommission(base, percentualAgenda)
+      : roundMoney(base)
+      const observacoes = [
+        agenda.observacao ? String(agenda.observacao) : null,
+        shouldApplyPercentual
+          ? `Percentual da agenda: ${percentualAgenda.toLocaleString('pt-BR')}% sobre ${baseLabel} (${base.toLocaleString('pt-BR', { currency: 'BRL', style: 'currency' })}).`
+          : `Valor gerado por ${baseLabel}.`,
+      ].filter(Boolean).join(' ')
+
+      return {
+        colaborador_id: String(colaborador.id),
+        agenda_id: String(agenda.id),
+        tipo: String(agenda.tipo ?? 'Pagamento recorrente'),
+        descricao: agenda.descricao ? String(agenda.descricao) : 'Pagamento previsto pela agenda do Intr.',
+        competencia,
+        data_prevista: scheduledDate(competencia, Number(agenda.dia_previsto ?? 1)),
+        valor_bruto: valorBruto,
+        valor_descontos: Number(agenda.valor_descontos ?? 0),
+        status: 'previsto',
+        origem: agenda.origem ? String(agenda.origem) : 'agenda_pagamento',
+        origem_id: String(agenda.id),
+        observacao: observacoes || null,
+      }
+    })
   })
 
   if (rows.length) {
     const { error: insertError } = await admin()
       .schema('gkli_intr')
       .from('pagamentos')
-      .upsert(rows, { ignoreDuplicates: true, onConflict: 'agenda_id,competencia' })
-    if (insertError) throw new Error(insertError.message)
+      .upsert(rows, { ignoreDuplicates: true, onConflict: 'agenda_id,colaborador_id,competencia' })
+    if (insertError) {
+      if (isMissingAgendaPorTipoMigration(insertError)) throw agendaPorTipoMigrationError()
+      throw new Error(insertError.message)
+    }
   }
 
   revalidatePath('/modulos/intr/pagamentos')

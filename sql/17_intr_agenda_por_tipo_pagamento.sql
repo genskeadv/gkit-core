@@ -1,14 +1,15 @@
--- GKLI Core - adiciona percentual e tipo padronizado para agenda de pagamentos.
--- Execute depois do sql/14_fix_intr_atualizado_em_triggers.sql em bases existentes.
+-- GKLI Core - Intr agenda por tipo de pagamento
+-- Execute depois de 15_intr_agenda_pagamento_percentual.sql.
 
 alter table gkli_intr.pagamento_agendas
-  add column if not exists percentual numeric(8,4) default 0 not null;
+  alter column colaborador_id drop not null;
 
-do $$ begin
-  alter table gkli_intr.pagamento_agendas
-    add constraint pagamento_agendas_percentual_check check (percentual >= 0 and percentual <= 100);
-exception when duplicate_object then null;
-end $$;
+drop index if exists gkli_intr.pagamentos_agenda_competencia_uidx;
+drop index if exists pagamentos_agenda_competencia_uidx;
+
+create unique index if not exists pagamentos_agenda_colaborador_competencia_uidx
+  on gkli_intr.pagamentos (agenda_id, colaborador_id, competencia)
+  where agenda_id is not null;
 
 drop view if exists public.gkli_intr_pagamento_agendas_resumo cascade;
 

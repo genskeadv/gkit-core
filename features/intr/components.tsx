@@ -309,17 +309,6 @@ function moneyInput(value?: number | null) {
   return value ? String(value) : '0'
 }
 
-const pagamentoTipos = [
-  'Salarios',
-  'Pro-labore',
-  'Participacao em honorarios fixos',
-  'Beneficios',
-  'Comissoes',
-  'Ajuda de custo',
-  'Reembolso',
-  'Outros',
-]
-
 export function IntrTimeForm({
   action,
   time,
@@ -903,6 +892,44 @@ export function IntrPagamentoForm({
   )
 }
 
+export function IntrConfirmarPagamentosTipoForm({
+  action,
+  formData,
+}: {
+  action: (formData: FormData) => Promise<void>
+  formData: IntrFormData
+}) {
+  return (
+    <section className="card suite-panel">
+      <div className="suite-panel-heading">
+        <div>
+          <h2>Confirmar pagamentos por tipo</h2>
+          <p>Marque como pago todos os pagamentos previstos de uma competencia e tipo.</p>
+        </div>
+      </div>
+      <form action={action} className="module-form-grid">
+        <div>
+          <label className="label" htmlFor="competencia_confirmacao">Competencia</label>
+          <input className="input" id="competencia_confirmacao" name="competencia" type="date" required />
+        </div>
+        <div>
+          <label className="label" htmlFor="tipo_confirmacao">Tipo de pagamento</label>
+          <select className="select" id="tipo_confirmacao" name="tipo" required defaultValue={formData.pagamentoTipos[0]?.id ?? ''}>
+            {formData.pagamentoTipos.map((tipo) => <option key={tipo.id} value={tipo.id}>{tipo.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label" htmlFor="data_pagamento_confirmacao">Data de pagamento</label>
+          <input className="input" id="data_pagamento_confirmacao" name="data_pagamento" type="date" />
+        </div>
+        <div className="form-actions module-form-wide">
+          <button className="button" type="submit">Confirmar pagamentos</button>
+        </div>
+      </form>
+    </section>
+  )
+}
+
 export function IntrPagamentoAgendaForm({
   action,
   agenda,
@@ -915,22 +942,26 @@ export function IntrPagamentoAgendaForm({
   return (
     <form action={action} className="card suite-panel module-form-grid">
       {agenda ? <input type="hidden" name="id" value={agenda.id} /> : null}
-      <div className="module-form-wide">
-        <label className="label" htmlFor="colaborador_id">Colaborador</label>
-        <select className="select" id="colaborador_id" name="colaborador_id" required defaultValue={agenda?.colaborador_id ?? ''}>
-          <option value="">Selecione</option>
-          {formData.colaboradores.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-        </select>
-      </div>
+      {agenda ? (
+        <div className="module-form-wide">
+          <label className="label" htmlFor="colaborador_id">Colaborador opcional</label>
+          <select className="select" id="colaborador_id" name="colaborador_id" defaultValue={agenda.colaborador_id ?? ''}>
+            <option value="">Todos os colaboradores</option>
+            {formData.colaboradores.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+          </select>
+        </div>
+      ) : (
+        <input type="hidden" name="colaborador_id" value="" />
+      )}
       <div>
         <label className="label" htmlFor="tipo">Tipo de pagamento</label>
         <select className="select" id="tipo" name="tipo" required defaultValue={agenda?.tipo ?? 'Salarios'}>
-          {pagamentoTipos.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}
+          {formData.pagamentoTipos.map((tipo) => <option key={tipo.id} value={tipo.id}>{tipo.label}</option>)}
         </select>
       </div>
       <div>
         <label className="label" htmlFor="dia_previsto">Dia previsto</label>
-        <input className="input" id="dia_previsto" name="dia_previsto" type="number" min={1} max={31} required defaultValue={agenda?.dia_previsto ?? 5} />
+        <input className="input" id="dia_previsto" name="dia_previsto" type="number" min={1} max={31} step={1} required defaultValue={agenda?.dia_previsto ?? 5} />
       </div>
       <div>
         <label className="label" htmlFor="percentual">Percentual</label>

@@ -66,6 +66,33 @@ function sortByNome<T extends { nome: string }>(items: T[]) {
   return items.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }))
 }
 
+const defaultPagamentoTipos = [
+  'Salarios',
+  'Pro-labore',
+  'Participacao em honorarios fixos',
+  'Beneficios',
+  'Comissoes',
+  'Ajuda de custo',
+  'Reembolso',
+  'Outros',
+]
+
+async function listPagamentoTipoOptions(): Promise<Array<{ id: string; label: string }>> {
+  const { data, error } = await admin()
+    .schema('gkli_intr')
+    .from('pagamento_tipos')
+    .select('codigo,nome,ativo')
+    .eq('ativo', true)
+    .order('nome', { ascending: true })
+    .limit(100)
+
+  if (error) return defaultPagamentoTipos.map((tipo) => ({ id: tipo, label: tipo }))
+  return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    id: text(row.nome ?? row.codigo, 'Pagamento'),
+    label: text(row.nome ?? row.codigo, 'Pagamento'),
+  }))
+}
+
 async function safeList(table: string, limit = 200) {
   const { data, error } = await admin().from(table).select('*').limit(limit)
   if (error) return { rows: [] as Array<Record<string, unknown>>, ok: false }
@@ -155,8 +182,8 @@ export async function listIntrPagamentoAgendaRows(): Promise<IntrListRow[]> {
     const status = text(row.ativo === false ? 'inativa' : 'ativa', 'ativa')
     return {
       id: text(row.id, `agenda-${index}`),
-      title: text(row.colaborador_nome ?? row.nome_colaborador, 'Agenda'),
-      subtitle: `${text(row.tipo, 'Pagamento')} - dia ${text(row.dia_previsto, '-')}`,
+      title: text(row.tipo, 'Pagamento'),
+      subtitle: `${text(row.colaborador_nome ?? row.nome_colaborador, 'Todos os colaboradores')} - dia ${text(row.dia_previsto, '-')}`,
       status,
       value: formatBRL(row.valor_liquido ?? row.valor_bruto),
       meta: numberValue(row.percentual) > 0
@@ -407,7 +434,7 @@ export async function getIntrFormData(): Promise<IntrFormData> {
     .eq('codigo', 'colaborador')
     .maybeSingle()
 
-  const [colaboradores, coreUsuarios, times, comissoes, receitas] = await Promise.all([
+  const [colaboradores, coreUsuarios, times, comissoes, receitas, pagamentoTipos] = await Promise.all([
     supabase.schema('gkli_intr').from('colaboradores').select('id,nome,email,status').order('nome', { ascending: true }).limit(500),
     colaboradorTipo?.id
       ? supabase.schema('security').from('usuarios').select('id,nome,email,status,tipo_id').eq('tipo_id', colaboradorTipo.id).order('nome', { ascending: true }).limit(500)
@@ -415,6 +442,7 @@ export async function getIntrFormData(): Promise<IntrFormData> {
     admin().schema('gkli_intr').from('times').select('id,nome,ativo').order('nome', { ascending: true }).limit(200),
     admin().schema('gkli_intr').from('comissoes').select('id,cliente,valor_comissao,status,competencia').order('criado_em', { ascending: false }).limit(500),
     admin().schema('gkli_intr').from('receitas').select('id,cliente,categoria,valor_recebido,status,competencia').order('competencia', { ascending: false }).limit(500),
+    listPagamentoTipoOptions(),
   ])
 
   return {
@@ -428,6 +456,7 @@ export async function getIntrFormData(): Promise<IntrFormData> {
       label: `${text(row.nome, 'Usuario')} - ${text(row.email, 'sem e-mail')}`,
       nome: text(row.nome),
     })),
+    pagamentoTipos,
     times: ((times.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
       id: text(row.id),
       label: text(row.nome, 'Time'),
@@ -553,7 +582,7 @@ export async function getIntrReceita(id: string): Promise<IntrReceitaRecord> {
   const row = data as Record<string, unknown>
   return {
     id: text(row.id),
-    colaborador_id: text(row.colaborador_id) || null,
+    colaborador_id: text(row.colaborador_id),
     vendedor_nome: text(row.vendedor_nome) || null,
     cliente: text(row.cliente),
     categoria: text(row.categoria) || null,
@@ -609,7 +638,7 @@ export async function getIntrPagamentoAgenda(id: string): Promise<IntrPagamentoA
   const row = data as Record<string, unknown>
   return {
     id: text(row.id),
-    colaborador_id: text(row.colaborador_id),
+    colaborador_id: text(row.colaborador_id) || null,
     tipo: text(row.tipo),
     descricao: text(row.descricao) || null,
     dia_previsto: numberValue(row.dia_previsto),

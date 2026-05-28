@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRef, useState, useTransition } from 'react'
 import { importarIntrRecibosPagamentoPdf, previewIntrRecibosPagamentoPdf } from '@/features/intr/actions'
 
@@ -92,6 +93,43 @@ export function ImportarRecibosPagamentoForm() {
 
       {error ? <div className="suite-empty-block danger">{error}</div> : null}
 
+      {result ? (
+        <section className="card ciclo-panel">
+          <div className="ciclo-panel-heading">
+            <div>
+              <h2>Importação concluída</h2>
+              <p>Arquivo {result.arquivo} processado e gravado nos pagamentos do Intr.</p>
+            </div>
+          </div>
+
+          <div className="suite-import-stats">
+            <span>Recibos <strong>{result.processados}</strong></span>
+            <span>Criados <strong>{result.criados}</strong></span>
+            <span>Atualizados <strong>{result.atualizados}</strong></span>
+            <span>Ignorados <strong>{result.ignorados.length}</strong></span>
+          </div>
+
+          {result.ignorados.length ? (
+            <div className="suite-empty-block warning">
+              <strong>{result.ignorados.length} recibo(s) ignorado(s)</strong>
+              <ul>
+                {result.ignorados.slice(0, 12).map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            </div>
+          ) : (
+            <div className="suite-empty-block success">
+              <strong>Importação sem recibos ignorados.</strong>
+              <span>Pagamentos foram atualizados com sucesso.</span>
+            </div>
+          )}
+
+          <div className="form-actions">
+            <Link className="button" href="/modulos/intr/pagamentos">Ver pagamentos</Link>
+            <Link className="button secondary" href="/modulos/intr/pagamentos/importacoes">Importar novo PDF</Link>
+          </div>
+        </section>
+      ) : null}
+
       {preview ? (
         <section className="card ciclo-panel">
           <div className="ciclo-panel-heading">
@@ -134,12 +172,6 @@ export function ImportarRecibosPagamentoForm() {
         </section>
       ) : null}
 
-      {result ? (
-        <section className="suite-empty-block success">
-          <strong>{result.processados} recibo(s) processado(s)</strong>
-          <span>{result.criados} criado(s), {result.atualizados} atualizado(s), {result.ignorados.length} ignorado(s).</span>
-        </section>
-      ) : null}
     </div>
   )
 }
