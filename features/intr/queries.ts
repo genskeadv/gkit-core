@@ -48,6 +48,37 @@ function listTone(status: string): IntrListRow['tone'] {
   return 'primary'
 }
 
+function normalizePaymentType(value: unknown) {
+  return text(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+}
+
+function activeRows<T extends Record<string, unknown>>(rows: T[], activeField = 'ativo') {
+  return rows.filter((row) => row[activeField] !== false && row.status !== 'inativo' && row.status !== 'desligado')
+}
+
+function agendaValuePreview(agenda: Record<string, unknown>, colaboradores: Array<Record<string, unknown>>) {
+  const tipo = normalizePaymentType(agenda.tipo)
+  const agendaColaboradorId = text(agenda.colaborador_id)
+  const alvoColaboradores = agendaColaboradorId
+    ? colaboradores.filter((colaborador) => text(colaborador.id) === agendaColaboradorId)
+    : colaboradores
+
+  if (tipo.includes('salario')) return alvoColaboradores.reduce((sum, row) => sum + numberValue(row.salario), 0)
+  if (tipo.includes('pro labore')) return alvoColaboradores.reduce((sum, row) => sum + numberValue(row.pro_labore), 0)
+  if (tipo.includes('participacao') && tipo.includes('honorarios')) return alvoColaboradores.reduce((sum, row) => sum + numberValue(row.participacao_honorarios), 0)
+  if (tipo.includes('beneficio')) return alvoColaboradores.reduce((sum, row) => sum + numberValue(row.beneficio_valor), 0)
+  if (tipo.includes('ajuda') && tipo.includes('custo')) return alvoColaboradores.reduce((sum, row) => sum + numberValue(row.ajuda_custo), 0)
+  if (tipo.includes('outro')) return alvoColaboradores.reduce((sum, row) => sum + numberValue(row.outros_vencimentos), 0)
+
+  return numberValue(agenda.valor_liquido ?? agenda.valor_bruto)
+}
+
 function mapColaborador(row: Record<string, unknown>): IntrColaborador {
   return {
     id: text(row.id),
@@ -177,7 +208,15 @@ export async function listIntrPagamentoRows(): Promise<IntrListRow[]> {
 }
 
 export async function listIntrPagamentoAgendaRows(): Promise<IntrListRow[]> {
-  const { rows } = await safeList('gkli_intr_pagamento_agendas_resumo', 300)
+  const [{ rows }, colaboradoresResult] = await Promise.all([
+    safeList('gkli_intr_pagamento_agendas_resumo', 300),
+    admin()
+      .schema('gkli_intr')
+      .from('colaboradores')
+      .select('id,status,salario,pro_labore,ajuda_custo,participacao_honorarios,outros_vencimentos,beneficio_valor')
+      .limit(1000),
+  ])
+  const colaboradores = activeRows((colaboradoresResult.data ?? []) as Array<Record<string, unknown>>, 'status')
   return rows.map((row, index) => {
     const status = text(row.ativo === false ? 'inativa' : 'ativa', 'ativa')
     return {
@@ -185,7 +224,7 @@ export async function listIntrPagamentoAgendaRows(): Promise<IntrListRow[]> {
       title: text(row.tipo, 'Pagamento'),
       subtitle: `${text(row.colaborador_nome ?? row.nome_colaborador, 'Todos os colaboradores')} - dia ${text(row.dia_previsto, '-')}`,
       status,
-      value: formatBRL(row.valor_liquido ?? row.valor_bruto),
+      value: formatBRL(agendaValuePreview(row, colaboradores)),
       meta: numberValue(row.percentual) > 0
         ? `${numberValue(row.percentual).toLocaleString('pt-BR')}% desde ${dateLabel(row.inicio_competencia)}`
         : `desde ${dateLabel(row.inicio_competencia)}`,
