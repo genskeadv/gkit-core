@@ -8,15 +8,15 @@ export default async function NovoTipoUsuarioPage() {
 
   return (
     <>
-      <PageHeader title="Novo tipo de usuario" subtitle="Cria uma classificacao operacional para o cadastro de usuarios." />
+      <PageHeader title="Novo tipo de usuário" subtitle="Cria uma classificação operacional para o cadastro de usuários." />
 
       <form action={createUsuarioTipoAction} className="card grid">
         <div className="grid cols-2">
           <Field label="Nome" name="nome" required />
-          <Field label="Codigo" name="codigo" required />
+          <Field label="Código" name="codigo" required />
         </div>
 
-        <Field label="Descricao" name="descricao" />
+        <Field label="Descrição" name="descricao" />
 
         <SelectField label="Status" name="ativo" defaultValue="true">
           <option value="true">Ativo</option>

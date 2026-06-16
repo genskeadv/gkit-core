@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CicloAlertList, CicloKpis, CicloShell } from '@/features/ciclo/components'
+import { CicloAlertList, CicloKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function CicloAlertasPage() {
@@ -17,8 +17,20 @@ export default async function CicloAlertasPage() {
       usuario={context.usuario}
       actions={canWrite ? <Link className="button" href="/modulos/ciclo/alertas/novo">Novo alerta</Link> : null}
     >
-      <CicloKpis data={data} />
-      <CicloAlertList alertas={data.alertas} canWrite={canWrite} />
+      <CicloSection
+        eyebrow="Resumo"
+        title="Fila de risco"
+        description="Contexto geral da carteira antes de tratar os alertas abertos."
+      >
+        <CicloKpis data={data} />
+      </CicloSection>
+      <CicloSection
+        eyebrow="Operação"
+        title="Alertas recentes"
+        description="Riscos operacionais, documentação e acompanhamentos em aberto."
+      >
+        <CicloAlertList alertas={data.alertas} canWrite={canWrite} />
+      </CicloSection>
     </CicloShell>
   )
 }

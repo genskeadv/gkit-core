@@ -14,9 +14,9 @@ export default async function AdminPage() {
 
   return (
     <>
-      <PageHeader title="Visão geral" subtitle="Administração central da plataforma GKLI." />
+      <PageHeader title="Visão geral" subtitle="Administração central da plataforma GKIT." />
 
-      <div className="grid cols-4 dashboard-grid">
+      <div className="dashboard-grid">
         {cards.map(([label, value]) => (
           <div className="card metric-card" key={label}>
             <div className="metric-label">{label}</div>

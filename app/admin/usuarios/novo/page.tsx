@@ -26,7 +26,7 @@ export default async function NovoUsuarioPage() {
           <Field label="Avatar URL" name="avatar_url" />
         </div>
 
-        <SelectField label="Tipo de usuario" name="tipo_id" defaultValue={tiposAtivos.find((tipo: any) => tipo.codigo === 'colaborador')?.id ?? ''}>
+        <SelectField label="Tipo de usuário" name="tipo_id" defaultValue={tiposAtivos.find((tipo: any) => tipo.codigo === 'colaborador')?.id ?? ''}>
           <option value="">Selecionar tipo</option>
           {tiposAtivos.map((tipo: any) => (
             <option key={tipo.id} value={tipo.id}>{tipo.nome}</option>

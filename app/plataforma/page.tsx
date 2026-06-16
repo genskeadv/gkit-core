@@ -4,7 +4,7 @@ import { canAccess } from '@/lib/auth/permissions'
 import { requirePlatformContext } from '@/lib/auth/platform'
 import type { PlatformModule } from '@/lib/auth/platform'
 
-type IconName = 'core' | 'intr' | 'crm' | 'ciclo' | 'cobranca' | 'grid' | 'shield' | 'clock'
+type IconName = 'core' | 'fix' | 'intr' | 'flex' | 'crm' | 'ciclo' | 'grid' | 'shield' | 'clock'
 
 type ModuleCard = PlatformModule & {
   area: string
@@ -15,7 +15,7 @@ type ModuleCard = PlatformModule & {
 const adminModule: ModuleCard = {
   id: 'admin-core',
   codigo: 'core',
-  nome: 'GKLI Core',
+  nome: 'GKIT Core',
   descricao: 'Usuários, carteiras, perfis, módulos e auditoria.',
   status: 'ativo',
   href: '/admin',
@@ -23,26 +23,56 @@ const adminModule: ModuleCard = {
   icon: 'core',
 }
 
-const cobrancaLink: ModuleCard = {
-  id: 'external-cobranca',
-  codigo: 'cobranca',
-  nome: 'GKLI Cobrança',
-  descricao: 'Acesso ao ambiente independente de cobrança.',
-  status: 'link',
-  href: 'https://gkli-cob.vercel.app',
-  area: 'Link externo',
-  icon: 'cobranca',
-  external: true,
-}
-
 const moduleMeta: Record<string, Pick<ModuleCard, 'area' | 'icon'>> = {
   core: { area: 'Administração', icon: 'core' },
   ciclo: { area: 'Governança', icon: 'ciclo' },
-  crm: { area: 'Novos negócios', icon: 'crm' },
-  intr: { area: 'Operação interna', icon: 'intr' },
+  'gkit-new': { area: 'Novos negocios', icon: 'crm' },
+  intr: { area: 'Financial Xperience', icon: 'fix' },
+  fix: { area: 'Financial Xperience', icon: 'fix' },
+  flex: { area: 'Financial Xperience', icon: 'flex' },
   colab: { area: 'Portal do colaborador', icon: 'grid' },
   painel: { area: 'Entrada unificada', icon: 'grid' },
   sind: { area: 'Portal do síndico', icon: 'ciclo' },
+}
+
+const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'area' | 'icon'> & { href?: string }> = {
+  ciclo: {
+    nome: 'GKIT Ciclo',
+    descricao: 'Lifecycle, onboarding, documentos e cadastro mestre.',
+    area: 'Governança',
+    icon: 'ciclo',
+  },
+  'gkit-new': {
+    nome: 'GKIT New',
+    descricao: 'CRM 2.0 enxuto: clientes, contatos, oportunidades e workflow.',
+    area: 'Novos negocios',
+    icon: 'crm',
+    href: '/modulos/gkit-new',
+  },
+  colab: {
+    nome: 'GKIT Colab',
+    descricao: 'Portal individual de colaboradores, pagamentos, comissões e documentos.',
+    area: 'Portal do colaborador',
+    icon: 'grid',
+  },
+  fix: {
+    nome: 'GKIT FIX',
+    descricao: 'Financial Xperience: pagamentos, extratos, conciliação e inteligência financeira.',
+    area: 'Financial Xperience',
+    icon: 'fix',
+    href: '/modulos/fix',
+  },
+  flex: {
+    nome: 'GKLI Flex',
+    descricao: 'Operação financeira interna, comissões, pagamentos e fechamento.',
+    area: 'Financial Xperience',
+    icon: 'flex',
+    href: '/modulos/flex',
+  },
+}
+
+function canonicalCode(codigo: string) {
+  return codigo === 'intr' ? 'fix' : codigo
 }
 
 function Icon({ name }: { name: IconName }) {
@@ -78,15 +108,15 @@ function Icon({ name }: { name: IconName }) {
     )
   }
 
-  if (name === 'cobranca') {
+  if (name === 'fix' || name === 'intr' || name === 'flex') {
     return (
       <svg {...common}>
-        <path d="M7 3.5h7l4 4V20.5H7Z" />
-        <path d="M14 3.5V8h4" />
-        <path d="M9.5 12h5" />
-        <path d="M9.5 15h3" />
-        <circle cx="16.5" cy="16.5" r="3.2" />
-        <path d="M16.5 14.8v3.4" />
+        <path d="M4 19.5h16" />
+        <path d="M7 16.5V11" />
+        <path d="M12 16.5V7.5" />
+        <path d="M17 16.5v-4" />
+        <path d="M5.5 7.5 10 4l4 3 4.5-3.5" />
+        <path d="M18.5 3.5V8h-4.5" />
       </svg>
     )
   }
@@ -130,8 +160,38 @@ function Icon({ name }: { name: IconName }) {
 }
 
 function toModuleCard(modulo: PlatformModule): ModuleCard {
-  const meta = moduleMeta[modulo.codigo] ?? { area: 'Módulo integrado', icon: 'grid' as IconName }
-  return { ...modulo, ...meta }
+  const codigo = canonicalCode(modulo.codigo)
+  const display = moduleDisplay[codigo]
+  const meta = moduleMeta[codigo] ?? { area: 'Módulo integrado', icon: 'grid' as IconName }
+
+  return {
+    ...modulo,
+    codigo,
+    area: display?.area ?? meta.area,
+    icon: display?.icon ?? meta.icon,
+    nome: display?.nome ?? modulo.nome.replace(/^GKLI\b/, 'GKIT'),
+    descricao: display?.descricao ?? modulo.descricao,
+    href: display?.href ?? modulo.href,
+  }
+}
+
+function uniqueModules(modules: PlatformModule[]) {
+  const ordered = modules.map(toModuleCard)
+  const byCode = new Map<string, ModuleCard>()
+
+  for (const item of ordered) {
+    const existing = byCode.get(item.codigo)
+    if (!existing) {
+      byCode.set(item.codigo, item)
+      continue
+    }
+
+    if (item.codigo === 'fix' && existing.id !== 'fix') {
+      byCode.set(item.codigo, item)
+    }
+  }
+
+  return Array.from(byCode.values())
 }
 
 function SummaryCard({
@@ -150,7 +210,7 @@ function SummaryCard({
       <div className="platform-summary-icon"><Icon name={icon} /></div>
       <div>
         <p>{label}</p>
-        <strong>{value}</strong>
+        <span className="platform-summary-value">{value}</span>
         <span>{detail}</span>
       </div>
     </div>
@@ -161,12 +221,16 @@ function ModuleTile({ module }: { module: ModuleCard }) {
   const content = (
     <>
       <div className="module-top-line" />
-      <div className="module-icon"><Icon name={module.icon} /></div>
+      <img
+        src="/GKIT_ico.png"
+        alt={module.nome}
+        className="module-app-mark"
+      />
       <h3>{module.nome}</h3>
       <p>{module.descricao}</p>
       <div className="module-divider" />
       <span className="module-area-label">Área</span>
-      <strong className="module-area">{module.area}</strong>
+      <span className="module-area">{module.area}</span>
       <div className="module-footer">
         <span className={module.external ? 'module-status external' : 'module-status'}>
           {module.external ? 'Link externo' : 'Operacional'}
@@ -194,27 +258,45 @@ function ModuleTile({ module }: { module: ModuleCard }) {
 export default async function PlataformaPage() {
   const { usuario, permissions, modules } = await requirePlatformContext()
   const hasAdmin = canAccess(permissions, 'admin.dashboard.read')
-  const integratedModules = modules.map(toModuleCard)
+  const integratedModules = uniqueModules(modules).filter((module) => (
+    module.codigo !== 'cobranca' && module.codigo !== 'fix' && module.codigo !== 'intr' && module.codigo !== 'crm'
+  ))
   const visibleModules: ModuleCard[] = hasAdmin
-    ? [adminModule, ...integratedModules, cobrancaLink]
-    : [...integratedModules, cobrancaLink]
+    ? [adminModule, ...integratedModules]
+    : [...integratedModules]
+  const moduleSummary = integratedModules.map((module) => module.nome.replace('GKIT ', '')).join(', ')
 
   return (
     <main className="platform-page">
+      <style>{`
+        .platform-page h1,
+        .platform-page h2,
+        .platform-page h3,
+        .platform-page strong,
+        .platform-page .platform-summary-value,
+        .platform-page .module-area,
+        .platform-page .module-action,
+        .platform-page .module-status,
+        .platform-page .platform-user-name,
+        .platform-page .platform-brand-name,
+        .platform-page .platform-environment-name {
+          font-weight: 400 !important;
+        }
+      `}</style>
       <div className="platform-bg" />
       <div className="platform-wrap">
         <header className="platform-entry-header">
           <div className="platform-brand">
-            <BrandLogo className="platform-brand-mark" label="GKLI Suite" />
+            <BrandLogo className="platform-brand-mark" label="GKIT Suite" />
             <div>
-              <strong>GKLI Suite</strong>
+              <span className="platform-brand-name">GKIT Suite</span>
               <span>Genske Advogados</span>
             </div>
           </div>
 
           <div className="platform-user-panel">
             <span className="platform-user-status">Sessão ativa</span>
-            <strong>{usuario.nome}</strong>
+            <span className="platform-user-name">{usuario.nome}</span>
             <span>{usuario.email}</span>
             <Link className="button secondary" href="/logout">Sair</Link>
           </div>
@@ -229,7 +311,7 @@ export default async function PlataformaPage() {
             </h1>
             <div className="platform-rule" />
             <p className="platform-hero-copy">
-              Acesso centralizado aos módulos integrados da GKLI, com controle único de usuários, perfis e permissões.
+              Acesso centralizado aos módulos integrados da GKIT, com controle único de usuários, perfis e permissões.
             </p>
           </div>
 
@@ -237,14 +319,14 @@ export default async function PlataformaPage() {
             <div className="platform-environment-icon"><Icon name="shield" /></div>
             <div>
               <span>Ambiente</span>
-              <strong>Core</strong>
+              <span className="platform-environment-name">Core</span>
               <p>Banco único em implantação limpa</p>
             </div>
           </div>
         </section>
 
         <section className="platform-summary-grid">
-          <SummaryCard icon="grid" label="Módulos integrados" value={`${modules.length}`} detail={modules.map((module) => module.nome.replace('GKLI ', '')).join(', ')} />
+          <SummaryCard icon="grid" label="Módulos integrados" value={`${integratedModules.length}`} detail={moduleSummary} />
           <SummaryCard icon="shield" label="Acesso" value={usuario.tipo.replace('_', ' ')} detail="Perfil ativo no core" />
           <SummaryCard icon="clock" label="Entrada" value="Única" detail="Login centralizado" />
         </section>

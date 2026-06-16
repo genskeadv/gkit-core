@@ -1,5 +1,5 @@
 import { updateCicloOcorrenciaAction } from '@/features/ciclo/actions'
-import { CicloOcorrenciaForm, CicloShell } from '@/features/ciclo/components'
+import { CicloOcorrenciaForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloDocumentoFormData, getCicloOcorrencia, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function EditarOcorrenciaPage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,12 +13,18 @@ export default async function EditarOcorrenciaPage({ params }: { params: Promise
   return (
     <CicloShell
       active="ocorrencias"
-      eyebrow="Operacao"
+      eyebrow="Operação"
       title={ocorrencia.titulo}
-      description="Edicao de ocorrencia, impacto, responsavel e status operacional."
+      description="Edição de ocorrência, impacto, responsável e status operacional."
       usuario={context.usuario}
     >
-      <CicloOcorrenciaForm action={updateCicloOcorrenciaAction} formData={formData} ocorrencia={ocorrencia} />
+      <CicloSection
+        eyebrow="Edição"
+        title="Dados da ocorrência"
+        description="Atualize impacto, status, responsável e acompanhamento operacional."
+      >
+        <CicloOcorrenciaForm action={updateCicloOcorrenciaAction} formData={formData} ocorrencia={ocorrencia} />
+      </CicloSection>
     </CicloShell>
   )
 }

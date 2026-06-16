@@ -662,14 +662,17 @@ function revenueStatus(value: unknown, amountOpen: number): ParsedRevenueRow['st
 function buildRevenueObservation(row: Record<string, unknown>, chave: string) {
   const pieces = [
     `Chave: ${chave}`,
-    `CNPJ/CPF: ${textValue(getRowValue(row, 'Cliente (CNPJ/CPF)')) || '-'}`,
-    `Boleto: ${textValue(getRowValue(row, 'Numero do Boleto', 'Número do Boleto')) || '-'}`,
+    `CNPJ/CPF: ${textValue(getRowValue(row, 'Cliente (CNPJ/CPF)', 'Cliente ou Fornecedor (CNPJ/CPF)')) || '-'}`,
+    `Boleto: ${textValue(getRowValue(row, 'Numero do Boleto', 'Número do Boleto', 'Nosso Número')) || '-'}`,
+    `Documento: ${textValue(getRowValue(row, 'Documento')) || '-'}`,
+    `Parcela: ${textValue(getRowValue(row, 'Parcela')) || '-'}`,
     `Contrato: ${textValue(getRowValue(row, 'Nº do Contrato de Venda', 'No do Contrato de Venda')) || '-'}`,
     `Conta: ${textValue(getRowValue(row, 'Conta Corrente')) || '-'}`,
+    `Origem Omie: ${textValue(getRowValue(row, 'Origem')) || '-'}`,
     `Juros/Multa: ${spreadsheetMoney(getRowValue(row, 'Juros e Multa')).toFixed(2)}`,
     `Valor a receber: ${spreadsheetMoney(getRowValue(row, 'Valor a Receber')).toFixed(2)}`,
   ]
-  const note = textValue(getRowValue(row, 'Observacao', 'Observação'))
+  const note = textValue(getRowValue(row, 'Observacao', 'Observação', 'Observações'))
   if (note) pieces.push(`Obs origem: ${note}`)
   return pieces.join('; ')
 }
@@ -708,9 +711,59 @@ async function parseRevenueXlsx(formData: FormData) {
   }
   const parsed: ParsedRevenueRow[] = []
   const ignored: string[] = []
+  const fileLooksLikeOmieMovimento = rows.some((row) => textValue(getRowValue(row, 'Cliente ou Fornecedor')) || textValue(getRowValue(row, 'Valor (R$)')) || textValue(getRowValue(row, 'Origem')))
 
   rows.forEach((row, index) => {
     const linha = index + 4
+    const origem = textValue(getRowValue(row, 'Origem'))
+    const valorMovimento = spreadsheetMoney(getRowValue(row, 'Valor (R$)'))
+    const isSaldoRow = ['saldo', 'saldo anterior'].includes(normalizeName(textValue(getRowValue(row, 'Cliente ou Fornecedor', 'Cliente (Nome Fantasia)'))))
+
+    if (fileLooksLikeOmieMovimento) {
+      const isContaRecebida = normalizeName(origem) === 'conta recebida'
+      if (isSaldoRow || valorMovimento <= 0 || !isContaRecebida) return
+
+      const cliente = textValue(getRowValue(row, 'Cliente ou Fornecedor', 'Cliente ou Fornecedor (Razão Social)'))
+      const categoria = textValue(getRowValue(row, 'Categoria'))
+      const dataMovimento = xlsxDate(getRowValue(row, 'Data'))
+      const documento = textValue(getRowValue(row, 'Documento'))
+      const notaFiscal = textValue(getRowValue(row, 'Nota Fiscal'))
+      const parcela = textValue(getRowValue(row, 'Parcela'))
+      const nossoNumero = textValue(getRowValue(row, 'Nosso Número', 'Nosso Numero'))
+      const pedido = textValue(getRowValue(row, 'Pedido'))
+      const vendedorNome = textValue(getRowValue(row, 'Vendedor'))
+      const cnpj = textValue(getRowValue(row, 'Cliente ou Fornecedor (CNPJ/CPF)'))
+      const tipoDocumento = textValue(getRowValue(row, 'Tipo de Documento'))
+
+      if (!cliente || !dataMovimento) {
+        ignored.push(`Linha ${linha}: cliente ou data ausente no movimento Omie.`)
+        return
+      }
+
+      const chave = [documento || notaFiscal || nossoNumero || pedido || 'sem-documento', parcela, cnpj, dataMovimento, valorMovimento].filter(Boolean).join('|')
+      if (!chave) {
+        ignored.push(`Linha ${linha}: sem chave de origem suficiente no movimento Omie.`)
+        return
+      }
+
+      parsed.push({
+        linha,
+        chave,
+        origemId: stableUuid(`omie-movimento-conta:${chave}`),
+        vendedorNome: vendedorNome || null,
+        cliente,
+        categoria: categoria || null,
+        descricao: [tipoDocumento, documento || notaFiscal || pedido].filter(Boolean).join(' - ') || origem || null,
+        competencia: dataMovimento,
+        dataRecebimento: dataMovimento,
+        valorBase: valorMovimento,
+        valorRecebido: valorMovimento,
+        status: revenueStatus(getRowValue(row, 'Situacao', 'Situação'), 0),
+        observacao: buildRevenueObservation(row, chave),
+      })
+      return
+    }
+
     const cliente = textValue(getRowValue(row, 'Cliente (Nome Fantasia)'))
     const categoria = textValue(getRowValue(row, 'Categoria'))
     const previsao = xlsxDate(getRowValue(row, 'Previsao de Recebimento', 'Previsão de Recebimento'))
@@ -753,7 +806,7 @@ async function parseRevenueXlsx(formData: FormData) {
     })
   })
 
-  if (!parsed.length) throw new Error('Nenhuma receita valida encontrada no XLSX.')
+  if (!parsed.length) throw new Error(fileLooksLikeOmieMovimento ? 'Nenhuma entrada de receita Conta Recebida foi encontrada no XLSX de movimentação Omie.' : 'Nenhuma receita valida encontrada no XLSX.')
   return { arquivo: file.name, parsed, ignored }
 }
 
@@ -1068,8 +1121,8 @@ export async function createIntrTimeAction(formData: FormData) {
   await requireIntrWrite('intr.times.write')
   const { data, error } = await admin().schema('gkli_intr').from('times').insert(timePayload(formData)).select('id').single()
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr/times')
-  redirect(`/modulos/intr/times/${data.id}`)
+  revalidatePath('/modulos/fix/times')
+  redirect(`/modulos/fix/times/${data.id}`)
 }
 
 export async function updateIntrTimeAction(formData: FormData) {
@@ -1077,9 +1130,9 @@ export async function updateIntrTimeAction(formData: FormData) {
   await requireIntrWrite('intr.times.write')
   const { error } = await admin().schema('gkli_intr').from('times').update(timePayload(formData)).eq('id', id)
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr/times')
-  revalidatePath(`/modulos/intr/times/${id}`)
-  redirect('/modulos/intr/times')
+  revalidatePath('/modulos/fix/times')
+  revalidatePath(`/modulos/fix/times/${id}`)
+  redirect('/modulos/fix/times')
 }
 
 export async function createIntrColaboradorAction(formData: FormData) {
@@ -1095,17 +1148,17 @@ export async function createIntrColaboradorAction(formData: FormData) {
 
     const { error } = await admin().schema('gkli_intr').from('colaboradores').update(payload).eq('id', existing.id)
     if (error) throw new Error(error.message)
-    revalidatePath('/modulos/intr')
-    revalidatePath('/modulos/intr/colaboradores')
-    revalidatePath(`/modulos/intr/colaboradores/${existing.id}`)
-    redirect(`/modulos/intr/colaboradores/${existing.id}`)
+    revalidatePath('/modulos/fix')
+    revalidatePath('/modulos/fix/colaboradores')
+    revalidatePath(`/modulos/fix/colaboradores/${existing.id}`)
+    redirect(`/modulos/fix/colaboradores/${existing.id}`)
   }
 
   const { data, error } = await admin().schema('gkli_intr').from('colaboradores').insert(payload).select('id').single()
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/colaboradores')
-  redirect(`/modulos/intr/colaboradores/${data.id}`)
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/colaboradores')
+  redirect(`/modulos/fix/colaboradores/${data.id}`)
 }
 
 export async function updateIntrColaboradorAction(formData: FormData) {
@@ -1113,19 +1166,19 @@ export async function updateIntrColaboradorAction(formData: FormData) {
   await requireIntrWrite('intr.colaboradores.write')
   const { error } = await admin().schema('gkli_intr').from('colaboradores').update(await colaboradorPayload(formData)).eq('id', id)
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/colaboradores')
-  revalidatePath(`/modulos/intr/colaboradores/${id}`)
-  redirect('/modulos/intr/colaboradores')
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/colaboradores')
+  revalidatePath(`/modulos/fix/colaboradores/${id}`)
+  redirect('/modulos/fix/colaboradores')
 }
 
 export async function createIntrComissaoAction(formData: FormData) {
   await requireIntrWrite('intr.comissoes.write')
   const { data, error } = await admin().schema('gkli_intr').from('comissoes').insert(comissaoPayload(formData)).select('id').single()
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/comissoes')
-  redirect(`/modulos/intr/comissoes/${data.id}`)
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/comissoes')
+  redirect(`/modulos/fix/comissoes/${data.id}`)
 }
 
 export async function updateIntrComissaoStatusAction(formData: FormData) {
@@ -1138,10 +1191,10 @@ export async function updateIntrComissaoStatusAction(formData: FormData) {
 
   const { error } = await admin().schema('gkli_intr').from('comissoes').update(payload).eq('id', id)
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/comissoes')
-  revalidatePath(`/modulos/intr/comissoes/${id}`)
-  redirect('/modulos/intr/comissoes')
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/comissoes')
+  revalidatePath(`/modulos/fix/comissoes/${id}`)
+  redirect('/modulos/fix/comissoes')
 }
 
 export async function createIntrComissaoTipoAction(formData: FormData) {
@@ -1155,9 +1208,9 @@ export async function createIntrComissaoTipoAction(formData: FormData) {
     error = retry.error
   }
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr/cadastros')
-  revalidatePath('/modulos/intr/cadastros/tipos-comissao')
-  redirect(`/modulos/intr/cadastros/tipos-comissao/${data.id}`)
+  revalidatePath('/modulos/fix/tipos-comissao')
+  revalidatePath('/modulos/fix/tipos-comissao')
+  redirect(`/modulos/fix/tipos-comissao/${data.id}`)
 }
 
 export async function updateIntrComissaoTipoAction(formData: FormData) {
@@ -1171,19 +1224,19 @@ export async function updateIntrComissaoTipoAction(formData: FormData) {
     error = retry.error
   }
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr/cadastros')
-  revalidatePath('/modulos/intr/cadastros/tipos-comissao')
-  revalidatePath(`/modulos/intr/cadastros/tipos-comissao/${id}`)
-  redirect('/modulos/intr/cadastros/tipos-comissao')
+  revalidatePath('/modulos/fix/tipos-comissao')
+  revalidatePath('/modulos/fix/tipos-comissao')
+  revalidatePath(`/modulos/fix/tipos-comissao/${id}`)
+  redirect('/modulos/fix/tipos-comissao')
 }
 
 export async function createIntrReceitaAction(formData: FormData) {
   await requireIntrWrite('intr.receitas.write')
   const { data, error } = await admin().schema('gkli_intr').from('receitas').insert(receitaPayload(formData)).select('id').single()
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/receitas')
-  redirect(`/modulos/intr/receitas/${data.id}`)
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/importacoes')
+  redirect(`/modulos/fix/importacoes/${data.id}`)
 }
 
 export async function updateIntrReceitaAction(formData: FormData) {
@@ -1191,10 +1244,10 @@ export async function updateIntrReceitaAction(formData: FormData) {
   await requireIntrWrite('intr.receitas.write')
   const { error } = await admin().schema('gkli_intr').from('receitas').update(receitaPayload(formData)).eq('id', id)
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/receitas')
-  revalidatePath(`/modulos/intr/receitas/${id}`)
-  redirect('/modulos/intr/receitas')
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/importacoes')
+  revalidatePath(`/modulos/fix/importacoes/${id}`)
+  redirect('/modulos/fix/importacoes')
 }
 
 export async function previewIntrReceitasXlsx(formData: FormData) {
@@ -1288,12 +1341,12 @@ export async function importarIntrReceitasXlsx(formData: FormData) {
     // Historico depende da migration de importações; a carga de receitas nao deve falhar por isso.
   }
 
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/painel')
-  revalidatePath('/modulos/intr/receitas')
-  revalidatePath('/modulos/intr/comissoes')
-  revalidatePath('/modulos/intr/importacoes')
-  revalidatePath('/modulos/intr/fechamentos')
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/importacoes')
+  revalidatePath('/modulos/fix/comissoes')
+  revalidatePath('/modulos/fix/importacoes')
+  revalidatePath('/modulos/fix/fechamentos')
 
   return {
     arquivo: preview.arquivo,
@@ -1312,10 +1365,10 @@ export async function updateIntrComissaoAction(formData: FormData) {
   await requireIntrWrite('intr.comissoes.write')
   const { error } = await admin().schema('gkli_intr').from('comissoes').update(comissaoPayload(formData)).eq('id', id)
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/comissoes')
-  revalidatePath(`/modulos/intr/comissoes/${id}`)
-  redirect('/modulos/intr/comissoes')
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/comissoes')
+  revalidatePath(`/modulos/fix/comissoes/${id}`)
+  redirect('/modulos/fix/comissoes')
 }
 
 export async function recalcularIntrFechamentoAction(formData: FormData) {
@@ -1345,9 +1398,9 @@ export async function recalcularIntrFechamentoAction(formData: FormData) {
     admin().schema('gkli_intr').from('pagamentos').update({ fechamento_id: data.id }).eq('competencia', competencia),
   ])
 
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/fechamentos')
-  redirect('/modulos/intr/fechamentos')
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/fechamentos')
+  redirect('/modulos/fix/fechamentos')
 }
 
 export async function fecharIntrFechamentoAction(formData: FormData) {
@@ -1363,8 +1416,8 @@ export async function fecharIntrFechamentoAction(formData: FormData) {
   if (adjustedMetrics.pendencias_total > 0) throw new Error('Nao e possivel fechar competencia com pendencias.')
   const { error } = await admin().schema('gkli_intr').from('fechamentos').update({ ...adjustedMetrics, status: 'fechado', fechado_em: new Date().toISOString() }).eq('id', id)
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr/fechamentos')
-  redirect('/modulos/intr/fechamentos')
+  revalidatePath('/modulos/fix/fechamentos')
+  redirect('/modulos/fix/fechamentos')
 }
 
 export async function gerarPagamentosComissoesAprovadasAction(formData: FormData) {
@@ -1407,19 +1460,19 @@ export async function gerarPagamentosComissoesAprovadasAction(formData: FormData
     if (insertError) throw new Error(insertError.message)
   }
 
-  revalidatePath('/modulos/intr/pagamentos')
-  revalidatePath('/modulos/intr/comissoes')
+  revalidatePath('/modulos/fix/pagamentos')
+  revalidatePath('/modulos/fix/comissoes')
   revalidatePath('/modulos/colab/pagamentos')
-  redirect('/modulos/intr/pagamentos')
+  redirect('/modulos/fix/pagamentos')
 }
 
 export async function createIntrPagamentoAction(formData: FormData) {
   await requireIntrWrite('intr.pagamentos.write')
   const { data, error } = await admin().schema('gkli_intr').from('pagamentos').insert(pagamentoPayload(formData)).select('id').single()
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/pagamentos')
-  redirect(`/modulos/intr/pagamentos/${data.id}`)
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/pagamentos')
+  redirect(`/modulos/fix/pagamentos/${data.id}`)
 }
 
 export async function previewIntrRecibosPagamentoPdf(formData: FormData) {
@@ -1461,9 +1514,9 @@ export async function importarIntrRecibosPagamentoPdf(formData: FormData) {
     }
   }
 
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/pagamentos')
-  revalidatePath('/modulos/intr/pagamentos/importacoes')
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/pagamentos')
+  revalidatePath('/modulos/fix/pagamentos/importacoes')
   revalidatePath('/modulos/colab')
   revalidatePath('/modulos/colab/pagamentos')
 
@@ -1517,9 +1570,9 @@ export async function confirmarConciliacaoExtratoOfx(formData: FormData) {
     if (divergence) divergentes += 1
   }
 
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/pagamentos')
-  revalidatePath('/modulos/intr/pagamentos/conciliar-extrato')
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/pagamentos')
+  revalidatePath('/modulos/fix/pagamentos/conciliar-extrato')
   revalidatePath('/modulos/colab')
   revalidatePath('/modulos/colab/pagamentos')
 
@@ -1537,10 +1590,10 @@ export async function updateIntrPagamentoAction(formData: FormData) {
   await requireIntrWrite('intr.pagamentos.write')
   const { error } = await admin().schema('gkli_intr').from('pagamentos').update(pagamentoPayload(formData)).eq('id', id)
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/pagamentos')
-  revalidatePath(`/modulos/intr/pagamentos/${id}`)
-  redirect('/modulos/intr/pagamentos')
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/pagamentos')
+  revalidatePath(`/modulos/fix/pagamentos/${id}`)
+  redirect('/modulos/fix/pagamentos')
 }
 
 export async function confirmarPagamentosPorTipoAction(formData: FormData) {
@@ -1561,11 +1614,11 @@ export async function confirmarPagamentosPorTipoAction(formData: FormData) {
     .in('status', ['previsto', 'em_processamento'])
 
   if (error) throw new Error(error.message)
-  revalidatePath('/modulos/intr')
-  revalidatePath('/modulos/intr/pagamentos')
+  revalidatePath('/modulos/fix')
+  revalidatePath('/modulos/fix/pagamentos')
   revalidatePath('/modulos/colab')
   revalidatePath('/modulos/colab/pagamentos')
-  redirect('/modulos/intr/pagamentos')
+  redirect('/modulos/fix/pagamentos')
 }
 
 export async function createIntrPagamentoAgendaAction(formData: FormData) {
@@ -1575,9 +1628,9 @@ export async function createIntrPagamentoAgendaAction(formData: FormData) {
     if (isMissingAgendaPorTipoMigration(error)) throw agendaPorTipoMigrationError()
     throw new Error(error.message)
   }
-  revalidatePath('/modulos/intr/pagamentos')
-  revalidatePath('/modulos/intr/pagamentos/agenda')
-  redirect(`/modulos/intr/pagamentos/agenda/${data.id}`)
+  revalidatePath('/modulos/fix/pagamentos')
+  revalidatePath('/modulos/fix/pagamentos/agenda')
+  redirect(`/modulos/fix/pagamentos/agenda/${data.id}`)
 }
 
 export async function updateIntrPagamentoAgendaAction(formData: FormData) {
@@ -1588,10 +1641,10 @@ export async function updateIntrPagamentoAgendaAction(formData: FormData) {
     if (isMissingAgendaPorTipoMigration(error)) throw agendaPorTipoMigrationError()
     throw new Error(error.message)
   }
-  revalidatePath('/modulos/intr/pagamentos')
-  revalidatePath('/modulos/intr/pagamentos/agenda')
-  revalidatePath(`/modulos/intr/pagamentos/agenda/${id}`)
-  redirect('/modulos/intr/pagamentos/agenda')
+  revalidatePath('/modulos/fix/pagamentos')
+  revalidatePath('/modulos/fix/pagamentos/agenda')
+  revalidatePath(`/modulos/fix/pagamentos/agenda/${id}`)
+  redirect('/modulos/fix/pagamentos/agenda')
 }
 
 export async function gerarPagamentosPrevistosAction(formData: FormData) {
@@ -1672,9 +1725,422 @@ export async function gerarPagamentosPrevistosAction(formData: FormData) {
     }
   }
 
-  revalidatePath('/modulos/intr/pagamentos')
-  revalidatePath('/modulos/intr/pagamentos/agenda')
+  revalidatePath('/modulos/fix/pagamentos')
+  revalidatePath('/modulos/fix/pagamentos/agenda')
   revalidatePath('/modulos/colab')
   revalidatePath('/modulos/colab/pagamentos')
-  redirect('/modulos/intr/pagamentos')
+  redirect('/modulos/fix/pagamentos')
+}
+
+type FixCsvLancamento = {
+  data: string
+  historico: string
+  descricao: string
+  valor: number
+  saldo: number
+  hash: string
+}
+
+function splitCsvLine(line: string) {
+  const separator = line.includes(';') ? ';' : ','
+  const cells: string[] = []
+  let current = ''
+  let quoted = false
+  for (const char of line) {
+    if (char === '"') {
+      quoted = !quoted
+      continue
+    }
+    if (char === separator && !quoted) {
+      cells.push(current.trim())
+      current = ''
+      continue
+    }
+    current += char
+  }
+  cells.push(current.trim())
+  return cells
+}
+
+function parseFixDate(value: string) {
+  const raw = value.trim()
+  const br = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (br) return `${br[3]}-${br[2]}-${br[1]}`
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (iso) return raw
+  return ''
+}
+
+function detectFixPeriod(lines: string[]) {
+  const periodoLine = lines.find((line) => normalizeName(line).includes('periodo')) ?? ''
+  const dates = [...periodoLine.matchAll(/(\d{2}\/\d{2}\/\d{4})/g)].map((match) => parseFixDate(match[1]))
+  return {
+    inicio: dates[0] || null,
+    fim: dates[1] || dates[0] || null,
+  }
+}
+
+function classifyFixLancamento(lancamento: Pick<FixCsvLancamento, 'historico' | 'descricao'>) {
+  const source = normalizeName(`${lancamento.historico} ${lancamento.descricao}`)
+
+  const rules = [
+    { terms: ['telefonica', 'vivo'], macrogrupo: 'infraestrutura', categoria: 'telefonia_internet', label: 'Telefonia / Internet', confidence: 92 },
+    { terms: ['enel'], macrogrupo: 'infraestrutura', categoria: 'energia', label: 'Energia', confidence: 92 },
+    { terms: ['aurum', 'software'], macrogrupo: 'infraestrutura', categoria: 'sistemas_softwares', label: 'Sistemas / Softwares', confidence: 85 },
+    { terms: ['ponto br', 'registro br', 'hospedagem', 'dominio'], macrogrupo: 'infraestrutura', categoria: 'dominio_hospedagem', label: 'Domínio / Hospedagem', confidence: 82 },
+    { terms: ['simples nacional', 'receita federal', 'darf', 'pmsp', 'sf'], macrogrupo: 'operacional', categoria: 'tributos', label: 'Tributos', confidence: 94 },
+    { terms: ['aasp', 'cef matriz', 'junta comercial'], macrogrupo: 'operacional', categoria: 'custas_taxas', label: 'Custas / Taxas', confidence: 84 },
+    { terms: ['assessoria contabil', 'contabil', 'consultoria'], macrogrupo: 'operacional', categoria: 'servicos_profissionais', label: 'Serviços profissionais', confidence: 86 },
+    { terms: ['pix enviado'], macrogrupo: 'pessoal', categoria: 'outros_vencimentos', label: 'Outros vencimentos', confidence: 60 },
+  ]
+
+  const matched = rules.find((rule) => rule.terms.some((term) => source.includes(term)))
+  if (matched) return matched
+  return { macrogrupo: 'nao_classificado', categoria: null, label: 'Não classificado', confidence: 0 }
+}
+
+async function parseFixExtratoCsv(formData: FormData) {
+  const file = formData.get('arquivo')
+  if (!(file instanceof File) || file.size === 0) throw new Error('Selecione um arquivo CSV.')
+  const content = await file.text()
+  const lines = content.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  const headerIndex = lines.findIndex((line) => normalizeName(line).includes('data lancamento') && normalizeName(line).includes('valor'))
+  if (headerIndex < 0) throw new Error('Cabeçalho do extrato não encontrado. Esperado: Data Lançamento;Histórico;Descrição;Valor;Saldo.')
+
+  const period = detectFixPeriod(lines.slice(0, headerIndex))
+  const headerCells = splitCsvLine(lines[headerIndex]).map((cell) => normalizeName(cell))
+  const dataIndex = headerCells.findIndex((cell) => cell.includes('data lancamento') || cell === 'data')
+  const historicoIndex = headerCells.findIndex((cell) => cell.includes('historico'))
+  const descricaoIndex = headerCells.findIndex((cell) => cell.includes('descricao'))
+  const valorIndex = headerCells.findIndex((cell) => cell === 'valor' || cell.includes('valor'))
+  const saldoIndex = headerCells.findIndex((cell) => cell === 'saldo' || cell.includes('saldo'))
+
+  const lancamentos = lines.slice(headerIndex + 1).map((line, index) => {
+    const cells = splitCsvLine(line)
+    const dataRaw = cells[dataIndex >= 0 ? dataIndex : 0] ?? ''
+    const historico = historicoIndex >= 0 ? (cells[historicoIndex] ?? '') : ''
+    const descricao = descricaoIndex >= 0
+      ? (cells[descricaoIndex] ?? '')
+      : historicoIndex >= 0
+        ? ''
+        : (cells[1] ?? '')
+    const valorRaw = cells[valorIndex >= 0 ? valorIndex : Math.max(cells.length - 2, 0)] ?? '0'
+    const saldoRaw = cells[saldoIndex >= 0 ? saldoIndex : Math.max(cells.length - 1, 0)] ?? '0'
+    const data = parseFixDate(dataRaw)
+    if (!data) return null
+    const valor = parseBrazilianMoney(valorRaw)
+    const saldo = parseBrazilianMoney(saldoRaw)
+    const hash = createHash('sha1').update(`${data}|${historico}|${descricao}|${valor}|${saldo}|${index}`).digest('hex')
+    return { data, historico, descricao, valor, saldo, hash }
+  }).filter(Boolean) as FixCsvLancamento[]
+
+  if (!lancamentos.length) throw new Error('Nenhum lançamento válido encontrado no CSV.')
+
+  return {
+    arquivoNome: file.name,
+    arquivoHash: createHash('sha1').update(content).digest('hex'),
+    periodoInicio: period.inicio ?? lancamentos[0]?.data ?? null,
+    periodoFim: period.fim ?? lancamentos[lancamentos.length - 1]?.data ?? null,
+    lancamentos,
+  }
+}
+
+
+
+async function classifyFixLancamentoFromDb(lancamento: Pick<FixCsvLancamento, 'historico' | 'descricao'>) {
+  const source = normalizeName(`${lancamento.historico} ${lancamento.descricao}`)
+  const { data, error } = await admin()
+    .schema('gkli_intr')
+    .from('financeiro_regras_classificacao')
+    .select('termo,macrogrupo,categoria_id,prioridade,nome')
+    .eq('ativo', true)
+    .order('prioridade', { ascending: true })
+    .limit(500)
+
+  if (!error) {
+    const matched = ((data ?? []) as Array<Record<string, unknown>>).find((rule) => {
+      const termo = normalizeName(String(rule.termo ?? ''))
+      return termo && source.includes(termo)
+    })
+
+    if (matched) {
+      return {
+        macrogrupo: String(matched.macrogrupo ?? 'nao_classificado'),
+        categoria: null as string | null,
+        categoriaId: String(matched.categoria_id ?? '') || null,
+        label: String(matched.nome ?? 'Classificado por regra'),
+        confidence: 90,
+      }
+    }
+  }
+
+  const fallback = classifyFixLancamento(lancamento)
+  return { ...fallback, categoriaId: null as string | null }
+}
+
+async function findFixCategoriaId(codigo: string | null) {
+  if (!codigo) return null
+  const { data } = await admin()
+    .schema('gkli_intr')
+    .from('financeiro_categorias')
+    .select('id')
+    .eq('codigo', codigo)
+    .maybeSingle()
+  return data?.id ?? null
+}
+
+async function findFixColaborador(descricao: string) {
+  const { data, error } = await admin()
+    .schema('gkli_intr')
+    .from('colaboradores')
+    .select('id,nome,status')
+    .neq('status', 'desligado')
+    .limit(1000)
+
+  if (error) return null
+  const source = normalizeName(descricao)
+  return ((data ?? []) as Array<Record<string, unknown>>).find((row) => {
+    const nome = normalizeName(String(row.nome ?? ''))
+    return nome && source.includes(nome)
+  }) ?? null
+}
+
+async function findFixPagamentoPrevisto(colaboradorId: string, valor: number, dataLancamento: string) {
+  const { data, error } = await admin()
+    .schema('gkli_intr')
+    .from('pagamentos')
+    .select('id,valor_liquido,valor_bruto,data_prevista,status')
+    .eq('colaborador_id', colaboradorId)
+    .in('status', ['previsto', 'em_processamento', 'aprovado'])
+    .limit(100)
+
+  if (error) return null
+  const candidates = ((data ?? []) as Array<Record<string, unknown>>)
+    .map((row) => ({
+      row,
+      valueDistance: Math.abs(Number(row.valor_liquido ?? row.valor_bruto ?? 0) - valor),
+      dateDistance: dateDistanceInDays(dataLancamento, String(row.data_prevista ?? '') || null),
+    }))
+    .filter((candidate) => candidate.valueDistance <= Math.max(100, valor * 0.08) || candidate.dateDistance <= 7)
+    .sort((a, b) => a.valueDistance - b.valueDistance || a.dateDistance - b.dateDistance)
+  return candidates[0]?.row ?? null
+}
+
+export async function importarFixExtratoCsvAction(formData: FormData) {
+  await requireIntrWrite('intr.pagamentos.write')
+  const parsed = await parseFixExtratoCsv(formData)
+  const banco = text(formData, 'banco') || 'Banco'
+  const saidas = parsed.lancamentos.filter((item) => item.valor < 0)
+  const entradas = parsed.lancamentos.filter((item) => item.valor > 0)
+
+  const { data: importacao, error: importError } = await admin()
+    .schema('gkli_intr')
+    .from('extrato_importacoes')
+    .upsert({
+      arquivo_hash: parsed.arquivoHash,
+      arquivo_nome: parsed.arquivoNome,
+      banco,
+      periodo_inicio: parsed.periodoInicio,
+      periodo_fim: parsed.periodoFim,
+      status: 'processado',
+      total_lancamentos: parsed.lancamentos.length,
+      total_entradas: entradas.length,
+      total_saidas: saidas.length,
+      valor_entradas: roundMoney(entradas.reduce((sum, item) => sum + item.valor, 0)),
+      valor_saidas: roundMoney(Math.abs(saidas.reduce((sum, item) => sum + item.valor, 0))),
+      processado_em: new Date().toISOString(),
+    }, { onConflict: 'arquivo_hash' })
+    .select('id')
+    .single()
+
+  if (importError || !importacao) throw new Error(importError?.message ?? 'Não foi possível registrar a importação.')
+
+  for (const lancamento of parsed.lancamentos) {
+    const tipoMovimento = lancamento.valor < 0 ? 'saida' : 'entrada'
+    const valorAbsoluto = Math.abs(lancamento.valor)
+    const classification = tipoMovimento === 'saida' ? await classifyFixLancamentoFromDb(lancamento) : { macrogrupo: null, categoria: null, categoriaId: null, label: '', confidence: 0 }
+    const categoriaId = classification.categoriaId ?? await findFixCategoriaId(classification.categoria)
+    const colaborador = tipoMovimento === 'saida' ? await findFixColaborador(`${lancamento.historico} ${lancamento.descricao}`) : null
+    const pagamento = colaborador ? await findFixPagamentoPrevisto(String(colaborador.id), valorAbsoluto, lancamento.data) : null
+    const confianca = pagamento ? 88 : colaborador ? 72 : classification.confidence
+
+    const { data: inserted, error: lancamentoError } = await admin()
+      .schema('gkli_intr')
+      .from('extrato_lancamentos')
+      .upsert({
+        importacao_id: importacao.id,
+        data_lancamento: lancamento.data,
+        historico: lancamento.historico,
+        descricao: lancamento.descricao,
+        valor: lancamento.valor,
+        saldo: lancamento.saldo,
+        tipo_movimento: tipoMovimento,
+        macrogrupo: colaborador ? 'pessoal' : classification.macrogrupo,
+        categoria_id: colaborador ? await findFixCategoriaId('outros_vencimentos') : categoriaId,
+        colaborador_id: colaborador?.id ?? null,
+        pagamento_id: pagamento?.id ?? null,
+        conciliado: Boolean(pagamento),
+        tipo_conciliacao: pagamento ? 'colaborador' : colaborador ? 'colaborador_sugerido' : 'nao_conciliado',
+        confianca,
+        hash_lancamento: lancamento.hash,
+      }, { onConflict: 'hash_lancamento' })
+      .select('id')
+      .single()
+
+    if (lancamentoError) throw new Error(lancamentoError.message)
+
+    if (tipoMovimento === 'saida' && !pagamento) {
+      const mensagem = colaborador
+        ? `Pagamento de colaborador identificado no extrato. Conferir previsão/agenda para ${String(colaborador.nome ?? 'colaborador')}.`
+        : categoriaId
+          ? `Criar ou ajustar recorrência em ${classification.macrogrupo} > ${classification.label}?`
+          : 'Lançamento de saída sem classificação. Classificar e decidir se vira recorrência?'
+
+      await admin()
+        .schema('gkli_intr')
+        .from('financeiro_sugestoes')
+        .insert({
+          competencia: parsed.periodoInicio ? `${parsed.periodoInicio.slice(0, 7)}-01` : lancamento.data.slice(0, 7) + '-01',
+          tipo: colaborador ? 'revisar_pagamento_colaborador' : categoriaId ? 'criar_recorrencia' : 'classificar_lancamento',
+          macrogrupo: colaborador ? 'pessoal' : classification.macrogrupo,
+          categoria_id: colaborador ? await findFixCategoriaId('outros_vencimentos') : categoriaId,
+          referencia_nome: colaborador ? String(colaborador.nome ?? '') : lancamento.descricao || lancamento.historico,
+          colaborador_id: colaborador?.id ?? null,
+          extrato_lancamento_id: inserted?.id ?? null,
+          valor_atual: valorAbsoluto,
+          valor_sugerido: valorAbsoluto,
+          diferenca: 0,
+          mensagem,
+          status: 'pendente',
+          confianca,
+        })
+    }
+  }
+
+  revalidatePath('/modulos/fix/financeiro')
+  revalidatePath('/modulos/fix/financeiro/extratos')
+  revalidatePath('/modulos/fix/financeiro/sugestoes')
+  revalidatePath('/modulos/fix/financeiro')
+  revalidatePath('/modulos/fix/financeiro/extratos')
+  revalidatePath('/modulos/fix/financeiro/conciliacao')
+  revalidatePath('/modulos/fix/financeiro/sugestoes')
+
+  await admin()
+    .schema('gkli_intr')
+    .rpc('fix_recalcular_importacao', { p_importacao_id: importacao.id })
+
+  const competenciaBase = parsed.periodoInicio ? `${parsed.periodoInicio.slice(0, 7)}-01` : new Date().toISOString().slice(0, 7) + '-01'
+  await admin()
+    .schema('gkli_intr')
+    .rpc('fix_gerar_despesas_recorrentes_por_historico', { p_competencia_base: competenciaBase, p_meses_previsao: 3 })
+
+  const base = new Date(`${competenciaBase}T00:00:00`)
+  for (let offset = 1; offset <= 3; offset += 1) {
+    const competencia = new Date(base.getFullYear(), base.getMonth() + offset, 1).toISOString().slice(0, 10)
+    await admin()
+      .schema('gkli_intr')
+      .rpc('fix_gerar_previsao_mensal', { p_competencia: competencia })
+  }
+
+  revalidatePath('/modulos/fix/financeiro/contas-pagar')
+  revalidatePath('/modulos/fix/financeiro/previsao')
+
+  redirect('/modulos/fix/financeiro/extratos')
+}
+
+export async function gerarFixPrevisaoMensalAction(formData: FormData) {
+  await requireIntrWrite('intr.pagamentos.write')
+  const competencia = competenciaMonth(formData, 'competencia', 'Competencia')
+  const { error } = await admin()
+    .schema('gkli_intr')
+    .rpc('fix_gerar_previsao_mensal', { p_competencia: competencia })
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/modulos/fix/financeiro')
+  revalidatePath('/modulos/fix/financeiro/previsao')
+  revalidatePath('/modulos/fix/financeiro')
+  revalidatePath('/modulos/fix/financeiro/previsao')
+  redirect('/modulos/fix/financeiro/previsao')
+}
+
+export async function gerarFixSugestoesInteligentesAction(formData: FormData) {
+  await requireIntrWrite('intr.pagamentos.write')
+  const competencia = competenciaMonth(formData, 'competencia', 'Competencia')
+  const { error } = await admin()
+    .schema('gkli_intr')
+    .rpc('fix_gerar_sugestoes_competencia', { p_competencia: competencia })
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/modulos/fix/financeiro')
+  revalidatePath('/modulos/fix/financeiro/sugestoes')
+  revalidatePath('/modulos/fix/financeiro')
+  revalidatePath('/modulos/fix/financeiro/sugestoes')
+  redirect('/modulos/fix/financeiro/sugestoes')
+}
+
+export async function aceitarFixSugestaoAction(formData: FormData) {
+  await requireIntrWrite('intr.pagamentos.write')
+  const id = required(text(formData, 'id'), 'Sugestao')
+  const { data: sugestao, error: loadError } = await admin()
+    .schema('gkli_intr')
+    .from('financeiro_sugestoes')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (loadError || !sugestao) throw new Error(loadError?.message ?? 'Sugestao nao encontrada.')
+
+  if (sugestao.tipo === 'criar_recorrencia' && sugestao.macrogrupo !== 'pessoal') {
+    const competencia = String(sugestao.competencia)
+    const { error: contaError } = await admin()
+      .schema('gkli_intr')
+      .from('contas_pagar_operacionais')
+      .insert({
+        descricao: sugestao.mensagem ?? 'Conta operacional criada por sugestao FIX',
+        favorecido_nome: sugestao.referencia_nome,
+        categoria_id: sugestao.categoria_id,
+        macrogrupo: sugestao.macrogrupo === 'infraestrutura' ? 'infraestrutura' : 'operacional',
+        competencia,
+        data_prevista: competencia,
+        valor_previsto: Number(sugestao.valor_sugerido ?? sugestao.valor_atual ?? 0),
+        status: 'prevista',
+        recorrente: true,
+        recorrencia_tipo: 'mensal',
+        origem: 'fix_sugestao_inteligente',
+        extrato_lancamento_id: sugestao.extrato_lancamento_id,
+        observacao: 'Criada a partir da camada de inteligencia do FIX.',
+      })
+    if (contaError) throw new Error(contaError.message)
+  }
+
+  const { error } = await admin()
+    .schema('gkli_intr')
+    .from('financeiro_sugestoes')
+    .update({ status: 'aceita', resolvido_em: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/modulos/fix/financeiro')
+  revalidatePath('/modulos/fix/financeiro/sugestoes')
+  revalidatePath('/modulos/fix/financeiro/contas-pagar')
+  redirect('/modulos/fix/financeiro/sugestoes')
+}
+
+export async function rejeitarFixSugestaoAction(formData: FormData) {
+  await requireIntrWrite('intr.pagamentos.write')
+  const id = required(text(formData, 'id'), 'Sugestao')
+  const { error } = await admin()
+    .schema('gkli_intr')
+    .from('financeiro_sugestoes')
+    .update({ status: 'rejeitada', resolvido_em: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/modulos/fix/financeiro')
+  revalidatePath('/modulos/fix/financeiro/sugestoes')
+  redirect('/modulos/fix/financeiro/sugestoes')
 }

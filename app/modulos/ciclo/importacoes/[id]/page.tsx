@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { CicloImportacaoDetalhe, CicloShell } from '@/features/ciclo/components'
+import { CicloImportacaoDetalhe, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloImportacaoLote, listCicloImportacaoItens, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function CicloImportacaoDetalhePage({ params }: { params: Promise<{ id: string }> }) {
@@ -20,7 +20,13 @@ export default async function CicloImportacaoDetalhePage({ params }: { params: P
       description={`Carga ${lote.status} em ${lote.finalizado_em ? new Date(lote.finalizado_em).toLocaleString('pt-BR') : 'processamento'}.`}
       usuario={context.usuario}
     >
-      <CicloImportacaoDetalhe itens={itens} lote={lote} />
+      <CicloSection
+        eyebrow="Carga"
+        title="Detalhe da importacao"
+        description="Resultado do lote, linhas processadas, clientes criados e erros de carga."
+      >
+        <CicloImportacaoDetalhe itens={itens} lote={lote} />
+      </CicloSection>
     </CicloShell>
   )
 }

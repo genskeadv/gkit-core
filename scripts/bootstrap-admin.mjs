@@ -12,7 +12,7 @@ function fail(message) {
 const env = readLocalEnv()
 const authId = readArg('auth-id')
 const email = readArg('email').toLowerCase()
-const name = readArg('name') || 'Administrador GKLI'
+const name = readArg('name') || 'Administrador GKIT'
 const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY
 

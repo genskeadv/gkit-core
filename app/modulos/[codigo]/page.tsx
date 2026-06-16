@@ -6,7 +6,9 @@ import { requireModuleAccess } from '@/lib/auth/platform'
 const moduleArea: Record<string, string> = {
   ciclo: 'Governança',
   crm: 'Novos negócios',
-  intr: 'Operação interna',
+  intr: 'Financial Xperience',
+  fix: 'Financial Xperience',
+  flex: 'Financial Xperience',
   colab: 'Portal do colaborador',
   sind: 'Portal do síndico',
 }
@@ -17,8 +19,9 @@ export default async function ModuloPage({
   params: Promise<{ codigo: string }>
 }) {
   const { codigo } = await params
-  const context = await requireModuleAccess(codigo)
-  const modulo = context.modules.find((item) => item.codigo === codigo)
+  const context = await requireModuleAccess(codigo === 'fix' ? 'intr' : codigo)
+  const lookupCodigo = codigo === 'fix' ? 'intr' : codigo
+  const modulo = context.modules.find((item) => item.codigo === lookupCodigo)
 
   if (!modulo) {
     notFound()
@@ -30,14 +33,6 @@ export default async function ModuloPage({
     <main className="module-page">
       <div className="platform-bg" />
       <div className="module-wrap">
-        <header className="module-header">
-          <Link className="button secondary" href="/plataforma">Voltar ao painel</Link>
-          <div className="module-user">
-            <strong>{context.usuario.nome}</strong>
-            <span>{context.usuario.email}</span>
-          </div>
-        </header>
-
         <section className="module-entry">
           <p className="platform-kicker">Módulo integrado</p>
           <h1>{modulo.nome}</h1>
@@ -46,7 +41,7 @@ export default async function ModuloPage({
           <dl className="module-facts">
             <div>
               <dt>Área</dt>
-              <dd>{moduleArea[modulo.codigo] ?? 'Módulo GKLI'}</dd>
+              <dd>{moduleArea[modulo.codigo] ?? 'Módulo GKIT'}</dd>
             </div>
             <div>
               <dt>Status</dt>

@@ -1,5 +1,5 @@
 import { createCicloOcorrenciaAction } from '@/features/ciclo/actions'
-import { CicloOcorrenciaForm, CicloShell } from '@/features/ciclo/components'
+import { CicloOcorrenciaForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloDocumentoFormData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function NovaOcorrenciaPage() {
@@ -9,12 +9,18 @@ export default async function NovaOcorrenciaPage() {
   return (
     <CicloShell
       active="ocorrencias"
-      eyebrow="Operacao"
-      title="Nova ocorrencia"
-      description="Registro do dia a dia com impacto, responsavel, prazo e alerta de acompanhamento."
+      eyebrow="Operação"
+      title="Nova ocorrência"
+      description="Registro do dia a dia com impacto, responsável, prazo e alerta de acompanhamento."
       usuario={context.usuario}
     >
-      <CicloOcorrenciaForm action={createCicloOcorrenciaAction} formData={formData} />
+      <CicloSection
+        eyebrow="Cadastro"
+        title="Dados da ocorrência"
+        description="Registre cliente, tipo, impacto, responsável, prazo e alerta associado."
+      >
+        <CicloOcorrenciaForm action={createCicloOcorrenciaAction} formData={formData} />
+      </CicloSection>
     </CicloShell>
   )
 }

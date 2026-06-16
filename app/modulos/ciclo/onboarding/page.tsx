@@ -1,4 +1,5 @@
-import { CicloGenericList, CicloListKpis, CicloShell } from '@/features/ciclo/components'
+import Link from 'next/link'
+import { CicloOnboardingOverview, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloOnboardingRows, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function CicloOnboardingPage() {
@@ -11,16 +12,16 @@ export default async function CicloOnboardingPage() {
       eyebrow="Operacao"
       title="Onboarding"
       description="Fila de implantacao de clientes, progresso e checklist operacional."
+      actions={<Link className="button secondary" href="/modulos/ciclo/onboarding/workflow">Workflow</Link>}
       usuario={context.usuario}
     >
-      <CicloListKpis rows={rows} secondaryLabel="Concluidos" />
-      <CicloGenericList
-        title="Fila de onboarding"
-        description="Clientes em implantacao e status do checklist."
-        detailHrefBase="/modulos/ciclo/onboarding"
-        emptyLabel="Nenhum onboarding encontrado."
-        rows={rows}
-      />
+      <CicloSection
+        eyebrow="Resumo"
+        title="Implantacoes"
+        description="Status dos clientes em onboarding e pontos que exigem acompanhamento."
+      >
+        <CicloOnboardingOverview rows={rows} />
+      </CicloSection>
     </CicloShell>
   )
 }

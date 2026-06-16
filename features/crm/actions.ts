@@ -51,6 +51,94 @@ function onlyDigits(value: string | null | undefined) {
   return String(value ?? '').replace(/\D/g, '')
 }
 
+function selectedIds(formData: FormData, key: string) {
+  return formData
+    .getAll(key)
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .filter(Boolean)
+}
+
+async function ensureUniqueClienteCnpj(cnpj: string, currentId?: string) {
+  const { data, error } = await admin()
+    .schema('crm')
+    .from('empresas')
+    .select('id,documento')
+    .limit(1000)
+
+  if (error) throw new Error(error.message)
+
+  const duplicate = ((data ?? []) as Array<Record<string, any>>).find((row) => {
+    return onlyDigits(String(row.documento ?? '')) === cnpj && String(row.id) !== currentId
+  })
+
+  if (duplicate) throw new Error('Ja existe cliente cadastrado com este CNPJ.')
+}
+
+async function replaceContatoClientes(contatoId: string, empresaIds: string[]) {
+  const supabase = admin()
+  const { error: deleteError } = await supabase
+    .schema('crm')
+    .from('empresas_contatos')
+    .delete()
+    .eq('contato_id', contatoId)
+
+  if (deleteError) throw new Error(deleteError.message)
+  if (!empresaIds.length) return
+
+  const rows = [...new Set(empresaIds)].map((empresaId) => ({
+    contato_id: contatoId,
+    empresa_id: empresaId,
+  }))
+
+  const { error } = await supabase.schema('crm').from('empresas_contatos').insert(rows)
+  if (error) throw new Error(error.message)
+}
+
+async function syncClienteStatusForOpportunity(oportunidadeId: string | null) {
+  if (!oportunidadeId) return
+
+  const supabase = admin()
+  const oportunidadeResult = await supabase
+    .schema('crm')
+    .from('oportunidades')
+    .select('empresa_id')
+    .eq('id', oportunidadeId)
+    .maybeSingle()
+
+  if (oportunidadeResult.error) throw new Error(oportunidadeResult.error.message)
+
+  const empresaId = String(oportunidadeResult.data?.empresa_id ?? '')
+  if (!empresaId) return
+
+  const oportunidadesResult = await supabase
+    .schema('crm')
+    .from('oportunidades')
+    .select('id')
+    .eq('empresa_id', empresaId)
+
+  if (oportunidadesResult.error) throw new Error(oportunidadesResult.error.message)
+
+  const oportunidadeIds = ((oportunidadesResult.data ?? []) as Array<Record<string, any>>)
+    .map((row) => String(row.id ?? ''))
+    .filter(Boolean)
+
+  const propostasResult = oportunidadeIds.length
+    ? await supabase
+      .schema('crm')
+      .from('propostas')
+      .select('id')
+      .eq('status', 'aprovada')
+      .in('oportunidade_id', oportunidadeIds)
+      .limit(1)
+    : { data: [], error: null }
+
+  if (propostasResult.error) throw new Error(propostasResult.error.message)
+
+  const status = propostasResult.data?.length ? 'ativo' : 'prospecto'
+  const { error } = await supabase.schema('crm').from('empresas').update({ status }).eq('id', empresaId)
+  if (error) throw new Error(error.message)
+}
+
 async function requireCrmWrite(carteiraId: string | null) {
   const context = await requireModuleAccess('crm')
   if (!canAccess(context.permissions, 'crm.oportunidades.write')) {
@@ -162,7 +250,7 @@ function opportunityPayload(formData: FormData) {
     carteiraId,
     payload: {
       carteira_id: carteiraId,
-      empresa_id: required(text(formData, 'empresa_id'), 'Empresa'),
+      empresa_id: required(text(formData, 'empresa_id'), 'Cliente'),
       contato_id: uuidOrNull(text(formData, 'contato_id')),
       titulo: required(text(formData, 'titulo'), 'Titulo'),
       descricao: nullableText(formData, 'descricao'),
@@ -250,7 +338,7 @@ export async function sendCrmOpportunityToCicloAction(formData: FormData) {
   ])
 
   if (empresaResult.error || !empresaResult.data) {
-    throw new Error(empresaResult.error?.message ?? 'Empresa nao encontrada.')
+    throw new Error(empresaResult.error?.message ?? 'Cliente nao encontrado.')
   }
 
   const empresa = empresaResult.data as Record<string, any>
@@ -344,17 +432,22 @@ export async function sendCrmOpportunityToCicloAction(formData: FormData) {
 
 function empresaPayload(formData: FormData) {
   const carteiraId = uuidOrNull(text(formData, 'carteira_id'))
+  const cnpj = onlyDigits(required(text(formData, 'documento'), 'CNPJ'))
+
+  if (cnpj.length !== 14) {
+    throw new Error('CNPJ deve conter 14 digitos.')
+  }
 
   return {
     carteiraId,
     payload: {
       carteira_id: carteiraId,
-      nome: required(text(formData, 'nome'), 'Nome'),
-      documento: nullableText(formData, 'documento'),
-      tipo: text(formData, 'tipo') || 'PJ',
+      nome: required(text(formData, 'nome'), 'Cliente'),
+      documento: cnpj,
+      tipo: 'PJ',
       segmento: nullableText(formData, 'segmento'),
       origem: nullableText(formData, 'origem'),
-      status: text(formData, 'status') || 'prospecto',
+      status: 'prospecto',
       observacoes: nullableText(formData, 'observacoes'),
     },
   }
@@ -374,6 +467,7 @@ function contatoPayload(formData: FormData) {
 export async function createCrmEmpresaAction(formData: FormData) {
   const { carteiraId, payload } = empresaPayload(formData)
   const context = await requireCrmWrite(carteiraId)
+  await ensureUniqueClienteCnpj(payload.documento)
 
   const { error } = await admin()
     .schema('crm')
@@ -388,13 +482,14 @@ export async function createCrmEmpresaAction(formData: FormData) {
   revalidatePath('/modulos/crm')
   revalidatePath('/modulos/crm/empresas')
   revalidatePath('/modulos/crm/clientes')
-  redirect('/modulos/crm/empresas')
+  redirect('/modulos/crm/clientes')
 }
 
 export async function updateCrmEmpresaAction(formData: FormData) {
-  const id = required(text(formData, 'id'), 'Empresa')
+  const id = required(text(formData, 'id'), 'Cliente')
   const { carteiraId, payload } = empresaPayload(formData)
   await requireCrmWrite(carteiraId)
+  await ensureUniqueClienteCnpj(payload.documento, id)
 
   const { error } = await admin()
     .schema('crm')
@@ -408,19 +503,25 @@ export async function updateCrmEmpresaAction(formData: FormData) {
   revalidatePath('/modulos/crm/empresas')
   revalidatePath('/modulos/crm/clientes')
   revalidatePath(`/modulos/crm/empresas/${id}`)
-  redirect('/modulos/crm/empresas')
+  redirect('/modulos/crm/clientes')
 }
 
 export async function createCrmContatoAction(formData: FormData) {
   await requireCrmWrite(null)
+  const empresaIds = selectedIds(formData, 'empresa_ids')
 
-  const { error } = await admin()
+  const { data, error } = await admin()
     .schema('crm')
     .from('contatos')
     .insert(contatoPayload(formData))
+    .select('id')
+    .single()
 
   if (error) throw new Error(error.message)
+  await replaceContatoClientes(String(data.id), empresaIds)
 
+  revalidatePath('/modulos/crm')
+  revalidatePath('/modulos/crm/clientes')
   revalidatePath('/modulos/crm/contatos')
   redirect('/modulos/crm/contatos')
 }
@@ -428,6 +529,7 @@ export async function createCrmContatoAction(formData: FormData) {
 export async function updateCrmContatoAction(formData: FormData) {
   const id = required(text(formData, 'id'), 'Contato')
   await requireCrmWrite(null)
+  const empresaIds = selectedIds(formData, 'empresa_ids')
 
   const { error } = await admin()
     .schema('crm')
@@ -436,7 +538,10 @@ export async function updateCrmContatoAction(formData: FormData) {
     .eq('id', id)
 
   if (error) throw new Error(error.message)
+  await replaceContatoClientes(id, empresaIds)
 
+  revalidatePath('/modulos/crm')
+  revalidatePath('/modulos/crm/clientes')
   revalidatePath('/modulos/crm/contatos')
   revalidatePath(`/modulos/crm/contatos/${id}`)
   redirect('/modulos/crm/contatos')
@@ -487,9 +592,11 @@ export async function createCrmPropostaAction(formData: FormData) {
 
   const { error } = await admin().schema('crm').from('propostas').insert(payload)
   if (error) throw new Error(error.message)
+  await syncClienteStatusForOpportunity(payload.oportunidade_id)
 
   revalidatePath('/modulos/crm')
   revalidatePath('/modulos/crm/propostas')
+  revalidatePath('/modulos/crm/clientes')
   redirect('/modulos/crm/propostas')
 }
 
@@ -497,12 +604,23 @@ export async function updateCrmPropostaAction(formData: FormData) {
   const id = required(text(formData, 'id'), 'Proposta')
   const { carteiraId, payload } = proposalPayload(formData)
   await requireCrmProposalWrite(carteiraId)
+  const beforeResult = await admin()
+    .schema('crm')
+    .from('propostas')
+    .select('oportunidade_id')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (beforeResult.error) throw new Error(beforeResult.error.message)
 
   const { error } = await admin().schema('crm').from('propostas').update(payload).eq('id', id)
   if (error) throw new Error(error.message)
+  await syncClienteStatusForOpportunity(String(beforeResult.data?.oportunidade_id ?? '') || null)
+  await syncClienteStatusForOpportunity(payload.oportunidade_id)
 
   revalidatePath('/modulos/crm')
   revalidatePath('/modulos/crm/propostas')
+  revalidatePath('/modulos/crm/clientes')
   revalidatePath(`/modulos/crm/propostas/${id}`)
   redirect('/modulos/crm/propostas')
 }

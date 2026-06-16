@@ -285,7 +285,7 @@ export async function listIntrComissaoRows(): Promise<IntrListRow[]> {
         status,
         value: formatBRL(group.total),
         meta: `${group.count} lancamento(s)${group.competencia.size ? ` - ${Array.from(group.competencia).slice(0, 3).join(', ')}` : ''}`,
-        detailHref: `/modulos/intr/comissoes/conferir?colaborador=${encodeURIComponent(group.colaboradorKey)}&tipo=${encodeURIComponent(group.tipo)}`,
+        detailHref: `/modulos/fix/comissoes/conferir?colaborador=${encodeURIComponent(group.colaboradorKey)}&tipo=${encodeURIComponent(group.tipo)}`,
         tone: listTone(status),
       }
     })
@@ -756,4 +756,190 @@ export async function listIntrIntegridadeRows(): Promise<IntrListRow[]> {
     meta: 'Cockpit',
     tone: 'warning',
   }))
+}
+
+function formatPercent(value: number) {
+  return `${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
+}
+
+export async function getFixFinanceiroResumo() {
+  const [extratos, macrogrupos, sugestoes, contasPagar, previsao] = await Promise.all([
+    listFixExtratoRows(),
+    listFixMacrogrupoRows(),
+    listFixSugestaoRows(),
+    listFixContaPagarRows(),
+    listFixPrevisaoRows(),
+  ])
+
+  const totalExtratos = extratos.length
+  const sugestoesPendentes = sugestoes.filter((row) => row.status === 'pendente').length
+  const totalPrevisto = previsao.reduce((sum, row) => {
+    const parsed = Number(row.value.replace(/[^0-9,-]/g, '').replace(',', '.'))
+    return sum + (Number.isFinite(parsed) ? parsed : 0)
+  }, 0)
+
+  return {
+    cards: [
+      { label: 'Extratos', value: String(totalExtratos), hint: 'importações processadas', tone: 'primary' as const },
+      { label: 'Macrogrupos', value: String(macrogrupos.length), hint: 'pessoal, infraestrutura e operacional', tone: 'success' as const },
+      { label: 'Sugestões', value: String(sugestoesPendentes), hint: 'ajustes pendentes', tone: sugestoesPendentes ? 'warning' as const : 'success' as const },
+      { label: 'Previsão', value: formatBRL(totalPrevisto), hint: 'próxima competência', tone: 'primary' as const },
+    ],
+    macrogrupos,
+    sugestoes,
+    extratos,
+    contasPagar,
+    previsao,
+  }
+}
+
+export async function listFixExtratoRows(): Promise<IntrListRow[]> {
+  const { rows } = await safeList('gkli_intr_fix_extrato_importacoes_resumo', 200)
+  return rows.map((row, index) => {
+    const status = text(row.status, 'processado')
+    return {
+      id: text(row.id, `extrato-${index}`),
+      title: text(row.arquivo_nome ?? row.banco, 'Extrato importado'),
+      subtitle: `${dateLabel(row.periodo_inicio)} a ${dateLabel(row.periodo_fim)} - ${numberValue(row.total_lancamentos)} lançamentos`,
+      status,
+      value: formatBRL(row.valor_saidas ?? row.total_saidas_valor ?? row.valor_total),
+      meta: `${formatBRL(row.valor_entradas)} entradas`,
+      tone: listTone(status),
+    }
+  })
+}
+
+export async function listFixMacrogrupoRows(): Promise<IntrListRow[]> {
+  const { rows } = await safeList('gkli_intr_fix_macrogrupos_resumo', 20)
+  return rows.map((row, index) => {
+    const macrogrupo = text(row.macrogrupo, 'nao_classificado')
+    const total = numberValue(row.valor_total)
+    const percentual = numberValue(row.percentual)
+    return {
+      id: text(row.macrogrupo, `macrogrupo-${index}`),
+      title: macrogrupo.replace('_', ' '),
+      subtitle: `${numberValue(row.total_lancamentos)} lançamentos classificados`,
+      status: text(row.status, 'classificado'),
+      value: formatBRL(total),
+      meta: percentual ? formatPercent(percentual) : text(row.categoria_destaque, 'Sem percentual calculado'),
+      tone: macrogrupo === 'nao_classificado' ? 'warning' : macrogrupo === 'pessoal' ? 'success' : 'primary',
+    }
+  })
+}
+
+export async function listFixSugestaoRows(): Promise<IntrListRow[]> {
+  const { rows } = await safeList('gkli_intr_fix_sugestoes_resumo', 200)
+  return rows.map((row, index) => {
+    const status = text(row.status, 'pendente')
+    return {
+      id: text(row.id, `sugestao-${index}`),
+      title: text(row.referencia_nome ?? row.tipo, 'Sugestão financeira'),
+      subtitle: text(row.mensagem, 'Ajuste sugerido pelo FIX'),
+      status,
+      value: formatBRL(row.valor_sugerido ?? row.valor_atual ?? row.diferenca),
+      meta: `${text(row.macrogrupo, 'sem macrogrupo')} - confiança ${numberValue(row.confianca)}%`,
+      tone: listTone(status),
+    }
+  })
+}
+
+export async function listFixContaPagarRows(): Promise<IntrListRow[]> {
+  const { rows } = await safeList('gkli_intr_fix_contas_pagar_resumo', 300)
+  return rows.map((row, index) => {
+    const status = text(row.status, 'prevista')
+    return {
+      id: text(row.id, `conta-${index}`),
+      title: text(row.favorecido_nome ?? row.descricao, 'Conta operacional'),
+      subtitle: `${text(row.macrogrupo, 'operacional')} - ${text(row.categoria_nome, 'Sem categoria')}`,
+      status,
+      value: formatBRL(row.valor_pago ?? row.valor_previsto),
+      meta: dateLabel(row.data_prevista ?? row.data_pagamento ?? row.competencia),
+      tone: listTone(status),
+    }
+  })
+}
+
+export async function listFixPrevisaoRows(): Promise<IntrListRow[]> {
+  const { rows } = await safeList('gkli_intr_fix_previsao_resumo', 300)
+  return rows.map((row, index) => {
+    const status = text(row.status, 'previsto')
+    return {
+      id: text(row.id, `previsao-${index}`),
+      title: text(row.referencia_nome ?? row.categoria_nome, 'Previsão'),
+      subtitle: `${text(row.macrogrupo, 'operacional')} - ${text(row.origem_previsao, 'histórico')}`,
+      status,
+      value: formatBRL(row.valor_previsto),
+      meta: `${dateLabel(row.competencia)} - confiança ${numberValue(row.confianca)}%`,
+      tone: listTone(status),
+    }
+  })
+}
+
+export async function listFixInteligenciaRows(): Promise<IntrListRow[]> {
+  const { rows } = await safeList('gkli_intr_fix_inteligencia_resumo', 24)
+  return rows.map((row, index) => {
+    const competencia = dateLabel(row.competencia)
+    return {
+      id: text(row.competencia, `inteligencia-${index}`),
+      title: `Competência ${competencia}`,
+      subtitle: `${numberValue(row.total_itens)} itens previstos · ${numberValue(row.sugestoes_pendentes)} sugestões pendentes`,
+      status: numberValue(row.sugestoes_pendentes) > 0 ? 'alerta' : 'ok',
+      value: formatBRL(row.total_previsto),
+      meta: `Pessoal ${formatBRL(row.pagamentos_colaboradores)} · Comissões ${formatBRL(row.comissoes_aprovadas)}`,
+      tone: numberValue(row.sugestoes_pendentes) > 0 ? 'warning' : 'success',
+    }
+  })
+}
+
+export async function listFixPrevisaoMacrogrupoRows(): Promise<IntrListRow[]> {
+  const { rows } = await safeList('gkli_intr_fix_previsao_macrogrupo_resumo', 200)
+  return rows.map((row, index) => {
+    const macrogrupo = text(row.macrogrupo, 'nao_classificado')
+    return {
+      id: `${text(row.competencia, 'competencia')}-${macrogrupo}-${index}`,
+      title: `${macrogrupo.replace('_', ' ')} · ${text(row.categoria_nome, 'Sem categoria')}`,
+      subtitle: `${numberValue(row.total_itens)} itens previstos na competência ${dateLabel(row.competencia)}`,
+      status: 'previsto',
+      value: formatBRL(row.valor_previsto),
+      meta: `confiança média ${numberValue(row.confianca_media).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}%`,
+      tone: macrogrupo === 'pessoal' ? 'success' : macrogrupo === 'infraestrutura' ? 'primary' : macrogrupo === 'operacional' ? 'warning' : 'danger',
+    }
+  })
+}
+
+
+export async function listFixExtratoLancamentoRows(importacaoId?: string): Promise<IntrListRow[]> {
+  let query = admin().from('gkli_intr_fix_extrato_lancamentos_resumo').select('*').limit(500)
+  if (importacaoId) query = query.eq('importacao_id', importacaoId)
+  const { data, error } = await query
+  if (error) return []
+  return ((data ?? []) as Array<Record<string, unknown>>).map((row, index) => {
+    const conciliado = row.conciliado === true
+    const macrogrupo = text(row.macrogrupo, 'nao_classificado')
+    return {
+      id: text(row.id, `lancamento-${index}`),
+      title: text(row.descricao ?? row.historico, 'Lançamento'),
+      subtitle: `${dateLabel(row.data_lancamento)} · ${text(row.historico, 'Sem histórico')} · ${text(row.categoria_nome, 'Sem categoria')}`,
+      status: conciliado ? 'conciliado' : text(row.tipo_conciliacao, 'pendente'),
+      value: formatBRL(row.valor_absoluto ?? row.valor),
+      meta: `${macrogrupo.replace('_', ' ')} · confiança ${numberValue(row.confianca).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}%`,
+      tone: conciliado ? 'success' : macrogrupo === 'nao_classificado' ? 'warning' : 'primary',
+    }
+  })
+}
+
+export async function listFixConciliacaoRows(): Promise<IntrListRow[]> {
+  const { rows } = await safeList('gkli_intr_fix_conciliacao_resumo', 500)
+  return rows.map((row, index) => {
+    const status = text(row.status, 'pendente')
+    return {
+      id: text(row.id, `conciliacao-${index}`),
+      title: text(row.referencia_nome, 'Lançamento'),
+      subtitle: `${dateLabel(row.data_lancamento)} · ${text(row.categoria_nome, 'Sem categoria')} ${row.colaborador_nome ? '· ' + text(row.colaborador_nome) : ''}`,
+      status,
+      value: formatBRL(row.valor),
+      meta: `${text(row.macrogrupo, 'nao_classificado')} · ${text(row.tipo_conciliacao, 'nao_conciliado')} · ${numberValue(row.confianca)}%`,
+      tone: status === 'conciliado' ? 'success' : status === 'pendente' ? 'warning' : 'primary',
+    }
+  })
 }

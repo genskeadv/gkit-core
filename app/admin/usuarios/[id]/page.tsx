@@ -42,7 +42,7 @@ export default async function EditarUsuarioPage({
           <Field label="Avatar URL" name="avatar_url" defaultValue={usuario.avatar_url} />
         </div>
 
-        <SelectField label="Tipo de usuario" name="tipo_id" defaultValue={usuario.tipo_id ?? ''}>
+        <SelectField label="Tipo de usuário" name="tipo_id" defaultValue={usuario.tipo_id ?? ''}>
           <option value="">Selecionar tipo</option>
           {tiposDisponiveis.map((tipo: any) => (
             <option key={tipo.id} value={tipo.id}>{tipo.nome}</option>

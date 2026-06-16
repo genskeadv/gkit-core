@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
-export default function IntrPainelPage() {
-  redirect('/modulos/intr')
+export default function LegacyIntrRedirectPage() {
+  redirect('/modulos/fix')
 }

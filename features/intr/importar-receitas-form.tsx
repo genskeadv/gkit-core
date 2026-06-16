@@ -92,7 +92,7 @@ export function ImportarReceitasForm() {
           <div className="ciclo-panel-heading">
             <div>
               <h2>Importação concluída</h2>
-              <p>Arquivo {result.arquivo} processado e gravado no Intr.</p>
+              <p>Arquivo {result.arquivo} processado e gravado no FIX.</p>
             </div>
           </div>
 
@@ -120,9 +120,9 @@ export function ImportarReceitasForm() {
           )}
 
           <div className="form-actions">
-            <Link className="button" href="/modulos/intr/receitas">Ver receitas</Link>
-            <Link className="button secondary" href="/modulos/intr/comissoes">Ver comissões</Link>
-            <Link className="button secondary" href="/modulos/intr/importacoes">Histórico de importações</Link>
+            <Link className="button" href="/modulos/fix/importacoes">Ver receitas</Link>
+            <Link className="button secondary" href="/modulos/fix/comissoes">Ver comissões</Link>
+            <Link className="button secondary" href="/modulos/fix/importacoes">Histórico de importações</Link>
           </div>
         </section>
       ) : null}
@@ -132,7 +132,7 @@ export function ImportarReceitasForm() {
           <div className="ciclo-panel-heading">
             <div>
               <h2>Preview das receitas</h2>
-              <p>Confira receitas, recebedores e comissoes antes de gravar no Intr.</p>
+              <p>Confira receitas por categoria, recebedores e comissoes antes de gravar no FIX.</p>
             </div>
           </div>
 
@@ -140,6 +140,7 @@ export function ImportarReceitasForm() {
             <span>Linhas <strong>{preview.total}</strong></span>
             <span>Validas <strong>{preview.validas}</strong></span>
             <span>Criar <strong>{preview.criar}</strong></span>
+            <span>Categorias <strong>{preview.categorias}</strong></span>
             <span>Comissoes <strong>{preview.comissoesTotal}</strong></span>
             <span>Comissao <strong>{moneyFormatter.format(preview.valorComissaoTotal)}</strong></span>
           </div>

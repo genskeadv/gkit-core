@@ -27,6 +27,12 @@ type IntrTab =
   | 'comunicados'
   | 'pagamentos'
   | 'conciliarExtrato'
+  | 'financeiro'
+  | 'inteligencia'
+  | 'contasPagar'
+  | 'extratos'
+  | 'previsao'
+  | 'sugestoes'
   | 'comissoes'
   | 'tiposComissao'
   | 'receitas'
@@ -36,45 +42,59 @@ type IntrTab =
   | 'integridade'
 
 const activeHref: Record<IntrTab, string> = {
-  cockpit: '/modulos/intr',
-  colaboradores: '/modulos/intr/colaboradores',
-  times: '/modulos/intr/times',
+  cockpit: '/modulos/fix',
+  colaboradores: '/modulos/fix/colaboradores',
+  times: '/modulos/fix/times',
   reembolsos: '/modulos/intr/reembolsos',
   documentos: '/modulos/intr/documentos',
   comunicados: '/modulos/intr/comunicados',
-  pagamentos: '/modulos/intr/pagamentos',
-  conciliarExtrato: '/modulos/intr/pagamentos/conciliar-extrato',
-  comissoes: '/modulos/intr/comissoes',
-  tiposComissao: '/modulos/intr/cadastros/tipos-comissao',
-  receitas: '/modulos/intr/receitas',
-  fechamentos: '/modulos/intr/fechamentos',
+  pagamentos: '/modulos/fix/pagamentos',
+  conciliarExtrato: '/modulos/fix/pagamentos/conciliar-extrato',
+  financeiro: '/modulos/fix/financeiro',
+  inteligencia: '/modulos/fix/financeiro/inteligencia',
+  contasPagar: '/modulos/fix/financeiro/contas-pagar',
+  extratos: '/modulos/fix/financeiro/extratos',
+  previsao: '/modulos/fix/financeiro/previsao',
+  sugestoes: '/modulos/fix/financeiro/sugestoes',
+  comissoes: '/modulos/fix/comissoes',
+  tiposComissao: '/modulos/fix/tipos-comissao',
+  receitas: '/modulos/fix/importacoes',
+  fechamentos: '/modulos/fix/fechamentos',
   cadastros: '/modulos/intr/cadastros',
-  importacoes: '/modulos/intr/importacoes',
+  importacoes: '/modulos/fix/importacoes',
   integridade: '/modulos/intr/integridade',
 }
 
 const navGroups: ModuleNavGroup[] = [
   {
     title: 'Cockpit',
-    href: '/modulos/intr',
+    href: '/modulos/fix',
+  },
+  {
+    title: 'Importações',
+    href: '/modulos/fix/importacoes',
   },
   {
     title: 'Base cadastral',
     items: [
-      { href: '/modulos/intr/colaboradores', label: 'Colaboradores' },
-      { href: '/modulos/intr/times', label: 'Times' },
-      { href: '/modulos/intr/cadastros/tipos-comissao', label: 'Tipos de comissao' },
-      { href: '/modulos/intr/importacoes', label: 'Importações' },
+      { href: '/modulos/fix/colaboradores', label: 'Colaboradores' },
+      { href: '/modulos/fix/times', label: 'Times' },
+      { href: '/modulos/fix/tipos-comissao', label: 'Tipos de comissao' },
     ],
   },
   {
     title: 'Base operacional',
     items: [
-      { href: '/modulos/intr/pagamentos', label: 'Pagamentos' },
-      { href: '/modulos/intr/pagamentos/conciliar-extrato', label: 'Conciliar extrato' },
-      { href: '/modulos/intr/comissoes', label: 'Comissoes' },
-      { href: '/modulos/intr/receitas', label: 'Receitas' },
-      { href: '/modulos/intr/fechamentos', label: 'Fechamentos' },
+      { href: '/modulos/fix/financeiro', label: 'Cockpit financeiro' },
+      { href: '/modulos/fix/financeiro/inteligencia', label: 'Inteligência financeira' },
+      { href: '/modulos/fix/financeiro/extratos', label: 'Extratos' },
+      { href: '/modulos/fix/financeiro/contas-pagar', label: 'Contas a pagar' },
+      { href: '/modulos/fix/financeiro/previsao', label: 'Previsão' },
+      { href: '/modulos/fix/financeiro/sugestoes', label: 'Sugestões' },
+      { href: '/modulos/fix/pagamentos', label: 'Pagamentos de colaboradores' },
+      { href: '/modulos/fix/pagamentos/conciliar-extrato', label: 'Conciliar extrato OFX' },
+      { href: '/modulos/fix/comissoes', label: 'Comissoes' },
+      { href: '/modulos/fix/fechamentos', label: 'Fechamentos' },
     ],
   },
 ]
@@ -102,11 +122,11 @@ export function IntrShell({
     <ModuleShell
       activeHref={activeHref[active]}
       actions={actions}
-      brand="IN"
+      brand="FX"
       description={description}
-      eyebrow="GKLI Intr"
+      eyebrow="FIX — Financial Xperience"
       navGroups={navGroups}
-      product="GKLI Intr"
+      product="FIX"
       title={title}
       usuario={usuario}
     >
@@ -122,7 +142,7 @@ export function IntrKpis({ data }: { data: IntrData }) {
   const times = new Set(data.colaboradores.map((item) => item.time).filter(Boolean)).size
 
   const cards = [
-    { label: 'Colaboradores', value: String(data.colaboradores.length), hint: 'base do Intr' },
+    { label: 'Colaboradores', value: String(data.colaboradores.length), hint: 'base operacional FIX' },
     { label: 'Ativos', value: String(ativos), hint: 'status ativo' },
     { label: 'Afastados', value: String(afastados), hint: 'acompanhamento de RH' },
     { label: 'Times', value: String(times), hint: 'areas cadastradas' },
@@ -149,7 +169,7 @@ export function IntrSignals({ data }: { data: IntrData }) {
         <div className="suite-panel-heading">
           <div>
             <h2>Receitas por categoria</h2>
-            <p>Leitura executiva do schema da intranet.</p>
+            <p>Leitura executiva do motor financeiro do FIX.</p>
           </div>
         </div>
         <SimpleRows rows={data.receitasCategoria} primary="categoria" secondary="descricao" value="valor_total" />
@@ -159,7 +179,7 @@ export function IntrSignals({ data }: { data: IntrData }) {
         <div className="suite-panel-heading">
           <div>
             <h2>Ranking comercial</h2>
-            <p>Vendedores e resultados vinculados ao Intr.</p>
+            <p>Vendedores e resultados vinculados ao FIX.</p>
           </div>
         </div>
         <SimpleRows rows={data.rankingVendedores} primary="vendedor_nome" secondary="time_nome" value="valor_total" />
@@ -190,7 +210,7 @@ export function IntrColaboradorList({ canWrite = false, colaboradores }: { canWr
               <strong>{currency(colaborador.vencimentos + colaborador.beneficios)}</strong>
               <small>
                 {colaborador.gestor}
-                {canWrite ? <Link className="button secondary" href={`/modulos/intr/colaboradores/${colaborador.id}`}>Editar</Link> : null}
+                {canWrite ? <Link className="button secondary" href={`/modulos/fix/colaboradores/${colaborador.id}`}>Editar</Link> : null}
               </small>
             </article>
           ))}
@@ -340,7 +360,7 @@ export function IntrTimeForm({
       </label>
       <div className="form-actions module-form-wide">
         <button className="button" type="submit">Salvar time</button>
-        <Link className="button secondary" href="/modulos/intr/times">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/fix/times">Cancelar</Link>
       </div>
     </form>
   )
@@ -421,7 +441,7 @@ export function IntrColaboradorForm({
       </div>
       <div className="form-actions module-form-wide">
         <button className="button" type="submit">Salvar colaborador</button>
-        <Link className="button secondary" href="/modulos/intr/colaboradores">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/fix/colaboradores">Cancelar</Link>
       </div>
     </form>
   )
@@ -507,7 +527,7 @@ export function IntrComissaoForm({
       </div>
       <div className="form-actions module-form-wide">
         <button className="button" type="submit">Salvar comissao</button>
-        <Link className="button secondary" href="/modulos/intr/comissoes">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/fix/comissoes">Cancelar</Link>
       </div>
     </form>
   )
@@ -549,7 +569,7 @@ export function IntrComissaoTipoForm({
       </div>
       <div className="form-actions module-form-wide">
         <button className="button" type="submit">Salvar tipo</button>
-        <Link className="button secondary" href="/modulos/intr/cadastros/tipos-comissao">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/fix/tipos-comissao">Cancelar</Link>
       </div>
     </form>
   )
@@ -625,7 +645,7 @@ export function IntrReceitaForm({
       </div>
       <div className="form-actions module-form-wide">
         <button className="button" type="submit">Salvar receita</button>
-        <Link className="button secondary" href="/modulos/intr/receitas">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/fix/importacoes">Cancelar</Link>
       </div>
     </form>
   )
@@ -685,7 +705,7 @@ export function IntrFechamentoForm({
       ) : null}
       <div className="form-actions module-form-wide">
         <button className="button" type="submit">Recalcular fechamento</button>
-        <Link className="button secondary" href="/modulos/intr/fechamentos">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/fix/fechamentos">Cancelar</Link>
       </div>
     </form>
   )
@@ -795,7 +815,7 @@ export function IntrComissaoDetailList({
               <strong>{row.value}</strong>
               <small>
                 {row.meta}
-                {canWrite ? <Link className="button secondary" href={`/modulos/intr/comissoes/${row.id}`}>Editar</Link> : null}
+                {canWrite ? <Link className="button secondary" href={`/modulos/fix/comissoes/${row.id}`}>Editar</Link> : null}
               </small>
               {canWrite ? (
                 <div className="module-inline-actions">
@@ -893,7 +913,7 @@ export function IntrPagamentoForm({
       </div>
       <div className="form-actions module-form-wide">
         <button className="button" type="submit">Salvar pagamento</button>
-        <Link className="button secondary" href="/modulos/intr/pagamentos">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/fix/pagamentos">Cancelar</Link>
       </div>
     </form>
   )
@@ -1008,7 +1028,7 @@ export function IntrPagamentoAgendaForm({
       </div>
       <div className="form-actions module-form-wide">
         <button className="button" type="submit">Salvar agenda</button>
-        <Link className="button secondary" href="/modulos/intr/pagamentos/agenda">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/fix/pagamentos/agenda">Cancelar</Link>
       </div>
     </form>
   )
@@ -1034,4 +1054,161 @@ export function IntrGerarPagamentosForm({ action }: { action: (formData: FormDat
 
 export function EmptyBlock({ label }: { label: string }) {
   return <div className="suite-empty-block">{label}</div>
+}
+
+
+export type FixResumoItem = {
+  label: string
+  value: string
+  hint: string
+  tone?: 'primary' | 'success' | 'warning' | 'danger'
+}
+
+export function FixResumoCards({ cards }: { cards: FixResumoItem[] }) {
+  return (
+    <section className="suite-kpi-grid">
+      {cards.map((card) => (
+        <article className={`card metric-card ${card.tone ?? ''}`} key={card.label}>
+          <p className="metric-label">{card.label}</p>
+          <p className="metric-value">{card.value}</p>
+          <p className="metric-hint">{card.hint}</p>
+        </article>
+      ))}
+    </section>
+  )
+}
+
+export function FixImportarExtratoCsvForm({ action }: { action: (formData: FormData) => void }) {
+  return (
+    <form action={action} className="card suite-panel stack-form">
+      <div className="suite-panel-heading">
+        <div>
+          <h2>Importar extrato mensal</h2>
+          <p>CSV do Banco Inter com data, descrição, valor e saldo. Saídas são classificadas, conciliadas, transformadas em geradores de despesas recorrentes e alimentam a previsão dos próximos meses.</p>
+        </div>
+      </div>
+      <label>
+        Banco
+        <input name="banco" placeholder="Inter, Itaú, Cora..." defaultValue="Inter" />
+      </label>
+      <label>
+        Arquivo CSV
+        <input name="arquivo" type="file" accept=".csv,text/csv" required />
+      </label>
+      <button className="button" type="submit">Importar, classificar e gerar previsão</button>
+    </form>
+  )
+}
+
+export function FixMacrogrupoResumo({ rows }: { rows: IntrListRow[] }) {
+  return (
+    <section className="card suite-panel">
+      <div className="suite-panel-heading">
+        <div>
+          <h2>Saídas por macrogrupo</h2>
+          <p>Pessoal, infraestrutura e operacional, já separando o que veio do extrato.</p>
+        </div>
+      </div>
+      <div className="suite-table-list">
+        {rows.length ? rows.map((row) => (
+          <article key={row.id}>
+            <div>
+              <h3>{row.title}</h3>
+              <p>{row.subtitle}</p>
+            </div>
+            <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+            <strong>{row.value}</strong>
+            <small>{row.meta}</small>
+          </article>
+        )) : <EmptyBlock label="Nenhum lançamento classificado ainda." />}
+      </div>
+    </section>
+  )
+}
+
+export function FixGerarInteligenciaForm({
+  gerarPrevisaoAction,
+  gerarSugestoesAction,
+}: {
+  gerarPrevisaoAction: (formData: FormData) => Promise<void>
+  gerarSugestoesAction: (formData: FormData) => Promise<void>
+}) {
+  const defaultMonth = new Date().toISOString().slice(0, 7)
+  return (
+    <section className="suite-split-grid">
+      <form action={gerarPrevisaoAction} className="card suite-panel module-form-grid">
+        <div className="module-form-wide">
+          <h2>Gerar previsão mensal</h2>
+          <p>Usa o motor existente de pagamentos, agendas e comissões, mais recorrências operacionais e média histórica dos extratos.</p>
+        </div>
+        <div>
+          <label className="label" htmlFor="competencia_previsao">Competência</label>
+          <input className="input" id="competencia_previsao" name="competencia" type="month" defaultValue={defaultMonth} required />
+        </div>
+        <div className="form-actions">
+          <button className="button" type="submit">Gerar previsão</button>
+        </div>
+      </form>
+
+      <form action={gerarSugestoesAction} className="card suite-panel module-form-grid">
+        <div className="module-form-wide">
+          <h2>Gerar sugestões inteligentes</h2>
+          <p>Procura comissões sem pagamento, divergências de colaboradores, recorrências detectadas e despesas fora da curva.</p>
+        </div>
+        <div>
+          <label className="label" htmlFor="competencia_sugestoes">Competência</label>
+          <input className="input" id="competencia_sugestoes" name="competencia" type="month" defaultValue={defaultMonth} required />
+        </div>
+        <div className="form-actions">
+          <button className="button" type="submit">Gerar sugestões</button>
+        </div>
+      </form>
+    </section>
+  )
+}
+
+export function FixSugestoesAcionaveis({
+  aceitarAction,
+  rejeitarAction,
+  rows,
+}: {
+  aceitarAction: (formData: FormData) => Promise<void>
+  rejeitarAction: (formData: FormData) => Promise<void>
+  rows: IntrListRow[]
+}) {
+  return (
+    <section className="card suite-panel">
+      <div className="suite-panel-heading">
+        <div>
+          <h2>Fila de decisões</h2>
+          <p>Aceitar cria recorrência operacional quando aplicável; rejeitar tira a sugestão da fila.</p>
+        </div>
+      </div>
+      <div className="suite-table-list">
+        {rows.length ? rows.map((row) => (
+          <article key={row.id}>
+            <div>
+              <h3>{row.title}</h3>
+              <p>{row.subtitle}</p>
+            </div>
+            <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+            <strong>{row.value}</strong>
+            <small>{row.meta}</small>
+            {row.status === 'pendente' ? (
+              <div className="form-actions">
+                <form action={aceitarAction}>
+                  <input type="hidden" name="id" value={row.id} />
+                  <button className="button" type="submit">Aceitar</button>
+                </form>
+                <form action={rejeitarAction}>
+                  <input type="hidden" name="id" value={row.id} />
+                  <button className="button secondary" type="submit">Rejeitar</button>
+                </form>
+              </div>
+            ) : null}
+          </article>
+        )) : <EmptyBlock label="Nenhuma sugestão encontrada." />}
+      </div>
+    </section>
+  )
 }

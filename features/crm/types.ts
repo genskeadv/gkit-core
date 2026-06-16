@@ -6,7 +6,7 @@ export type CrmEmpresa = {
   documento: string
   tipo: 'PF' | 'PJ'
   segmento: string
-  status: 'prospecto' | 'ativo' | 'inativo'
+  status: 'prospecto' | 'ativo'
   carteira: string
   contatos: number
   oportunidades: number
@@ -100,12 +100,13 @@ export type CrmEmpresaRecord = {
   tipo: 'PF' | 'PJ'
   segmento: string | null
   origem: string | null
-  status: 'prospecto' | 'ativo' | 'inativo'
+  status: 'prospecto' | 'ativo'
   observacoes: string | null
 }
 
 export type CrmContatoRecord = {
   id: string
+  empresa_ids: string[]
   nome: string
   email: string | null
   telefone: string | null

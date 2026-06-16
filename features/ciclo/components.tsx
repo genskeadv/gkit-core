@@ -1,12 +1,16 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ModuleShell, type ModuleNavGroup } from '@/features/shared/module-shell'
+import { OperationalKpiGrid, OperationalQuickLinks, OperationalSection } from '@/features/shared/operational-ui'
+import { CicloSubmitButton } from '@/features/ciclo/submit-button'
 import { formatDate, priorityLabel, priorityScore, riskTone } from '@/features/ciclo/scoring'
 import type {
   CicloAlerta,
   CicloAlertaRecord,
   CicloAdministradoraRecord,
   CicloAtaRecord,
+  CicloAtendimentoDashboard,
+  CicloAtendimentoTab,
   CicloCliente,
   CicloClienteFormData,
   CicloClienteIntegral,
@@ -20,13 +24,18 @@ import type {
   CicloImportacaoLote,
   CicloListRow,
   CicloOnboardingDetail,
+  CicloOnboardingWorkflowAtividade,
   CicloOcorrenciaRecord,
+  CicloTipoCliente,
 } from '@/features/ciclo/types'
 import {
   completeCicloOnboardingAction,
+  createCicloOnboardingWorkflowAtividadeAction,
   resolveCicloAlertaAction,
   startCicloOnboardingAction,
+  updateCicloOnboardingAtividadeAction,
   updateCicloOnboardingDocumentoAction,
+  updateCicloOnboardingWorkflowAtividadeAction,
 } from '@/features/ciclo/actions'
 
 const cicloDocumentoTipos = [
@@ -43,7 +52,7 @@ const cicloDocumentoTipos = [
 
 const cicloAlertaSeveridades = [
   ['baixa', 'Baixa'],
-  ['media', 'Media'],
+  ['media', 'Média'],
   ['alta', 'Alta'],
   ['critica', 'Critica'],
 ]
@@ -54,12 +63,19 @@ function impactoTone(value: string) {
   if (value === 'baixo') return 'success'
   return 'primary'
 }
+
+function tipoClienteLabel(value: string) {
+  if (value === 'pontual') return 'Pontual'
+  if (value === 'cobranca') return 'Cobrança'
+  return 'Mensal'
+}
 import type { PlatformUsuario } from '@/lib/auth/platform'
 
 type CicloTab =
   | 'cockpit'
   | 'dashboard'
   | 'clientes'
+  | 'atendimento'
   | 'administradoras'
   | 'importacoes'
   | 'documentos'
@@ -68,13 +84,12 @@ type CicloTab =
   | 'regularidade'
   | 'timeline'
   | 'ocorrencias'
-  | 'contratos'
-  | 'atas'
 
 const activeHref: Record<CicloTab, string> = {
   cockpit: '/modulos/ciclo',
   dashboard: '/modulos/ciclo/dashboard',
   clientes: '/modulos/ciclo/clientes',
+  atendimento: '/modulos/ciclo/atendimento',
   administradoras: '/modulos/ciclo/administradoras',
   importacoes: '/modulos/ciclo/importacoes',
   documentos: '/modulos/ciclo/documentos',
@@ -83,8 +98,6 @@ const activeHref: Record<CicloTab, string> = {
   regularidade: '/modulos/ciclo/regularidade',
   timeline: '/modulos/ciclo/timeline',
   ocorrencias: '/modulos/ciclo/ocorrencias',
-  contratos: '/modulos/ciclo/contratos',
-  atas: '/modulos/ciclo/atas',
 }
 
 const navGroups: ModuleNavGroup[] = [
@@ -99,29 +112,59 @@ const navGroups: ModuleNavGroup[] = [
     title: 'Base cadastral',
     items: [
       { href: '/modulos/ciclo/clientes', label: 'Clientes' },
+      { href: '/modulos/ciclo/atendimento', label: 'Atendimento' },
       { href: '/modulos/ciclo/administradoras', label: 'Administradoras' },
       { href: '/modulos/ciclo/importacoes', label: 'Importações' },
     ],
   },
   {
-    title: 'Operacao',
+    title: 'Operação',
     items: [
       { href: '/modulos/ciclo/documentos', label: 'Documentos' },
       { href: '/modulos/ciclo/alertas', label: 'Alertas' },
       { href: '/modulos/ciclo/onboarding', label: 'Onboarding' },
       { href: '/modulos/ciclo/regularidade', label: 'Regularidade' },
       { href: '/modulos/ciclo/timeline', label: 'Timeline' },
-      { href: '/modulos/ciclo/ocorrencias', label: 'Ocorrencias' },
-    ],
-  },
-  {
-    title: 'Documentos juridicos',
-    items: [
-      { href: '/modulos/ciclo/contratos', label: 'Contratos' },
-      { href: '/modulos/ciclo/atas', label: 'Atas' },
+      { href: '/modulos/ciclo/ocorrencias', label: 'Ocorrências' },
     ],
   },
 ]
+
+const navTitleByHref: Record<string, string> = {
+  '/modulos/ciclo': 'Cockpit',
+  '/modulos/ciclo/dashboard': 'Gestão',
+  '/modulos/ciclo/clientes': 'Clientes',
+  '/modulos/ciclo/atendimento': 'Atendimento',
+  '/modulos/ciclo/documentos': 'Documentos',
+  '/modulos/ciclo/alertas': 'Alertas',
+  '/modulos/ciclo/onboarding': 'Onboarding',
+  '/modulos/ciclo/regularidade': 'Regularidade',
+  '/modulos/ciclo/ocorrencias': 'Ocorrências',
+  '/modulos/ciclo/administradoras': 'Administradoras',
+  '/modulos/ciclo/importacoes': 'Importações',
+}
+
+const navOrder = [
+  '/modulos/ciclo',
+  '/modulos/ciclo/importacoes',
+  '/modulos/ciclo/clientes',
+  '/modulos/ciclo/atendimento',
+  '/modulos/ciclo/documentos',
+  '/modulos/ciclo/alertas',
+  '/modulos/ciclo/onboarding',
+  '/modulos/ciclo/regularidade',
+  '/modulos/ciclo/ocorrencias',
+  '/modulos/ciclo/administradoras',
+  '/modulos/ciclo/dashboard',
+]
+
+const availableNavHrefs = new Set(navGroups.flatMap((group) => (group.items ?? []).map((item) => item.href)))
+const flatNavGroups: ModuleNavGroup[] = navOrder
+  .filter((href) => availableNavHrefs.has(href))
+  .map((href) => ({
+    href,
+    title: navTitleByHref[href],
+  }))
 
 export function CicloShell({
   active,
@@ -144,17 +187,48 @@ export function CicloShell({
     <ModuleShell
       activeHref={activeHref[active]}
       actions={actions}
-      brand="CI"
+      brand="Gestão condominial"
       description={description}
       eyebrow={eyebrow}
-      navGroups={navGroups}
-      product="GKLI Ciclo"
+      navGroups={flatNavGroups}
+      product="GKIT Ciclo"
       title={title}
       usuario={usuario}
+      variantClassName={active === 'cockpit' ? 'ciclo-shell ciclo-cockpit-page' : 'ciclo-shell'}
     >
       {children}
     </ModuleShell>
   )
+}
+
+export function CicloSection({
+  action,
+  children,
+  className,
+  description,
+  eyebrow,
+  title,
+}: {
+  action?: ReactNode
+  children: ReactNode
+  className?: string
+  description?: string
+  eyebrow?: string
+  title: string
+}) {
+  return (
+    <OperationalSection action={action} className={className} classPrefix="ciclo" description={description} eyebrow={eyebrow} title={title}>
+      {children}
+    </OperationalSection>
+  )
+}
+
+export function CicloQuickLinks({
+  items,
+}: {
+  items: Array<{ href: string; title: string; description: string; label?: string; meta?: string }>
+}) {
+  return <OperationalQuickLinks classPrefix="ciclo" defaultLabel="Ciclo" items={items} />
 }
 
 export function CicloReadinessCard({ data }: { data: CicloData }) {
@@ -189,17 +263,7 @@ export function CicloKpis({ data }: { data: CicloData }) {
     { label: 'Regularidade', value: `${regularidadeMedia}%`, hint: 'documental média' },
   ]
 
-  return (
-    <section className="ciclo-kpi-grid">
-      {items.map((item) => (
-        <article className="card metric-card" key={item.label}>
-          <p className="metric-label">{item.label}</p>
-          <p className="metric-value">{item.value}</p>
-          <p className="metric-hint">{item.hint}</p>
-        </article>
-      ))}
-    </section>
-  )
+  return <OperationalKpiGrid className="ciclo-kpi-grid" items={items} />
 }
 
 export function CicloPriorityList({ clientes }: { clientes: CicloCliente[] }) {
@@ -220,7 +284,7 @@ export function CicloPriorityList({ clientes }: { clientes: CicloCliente[] }) {
           {rows.map((cliente, index) => (
             <article key={cliente.id}>
               <span className="ciclo-rank-number">{index + 1}</span>
-              <div>
+              <div className="ciclo-clientes-main">
                 <h3>{cliente.nome}</h3>
                 <p>{cliente.documento} · {cliente.carteira} · {cliente.administradora}</p>
               </div>
@@ -280,7 +344,7 @@ export function CicloAlertList({ alertas, canWrite = false }: { alertas: CicloAl
           {rows.map((alerta) => (
             <article key={alerta.id}>
               <span className={`ciclo-pill ${riskTone(alerta.severidade)}`}>{alerta.severidade}</span>
-              <div>
+              <div className="ciclo-clientes-main">
                 <h3>{alerta.titulo}</h3>
                 <p>{alerta.cliente} · {alerta.descricao || alerta.tipo}</p>
               </div>
@@ -302,38 +366,364 @@ export function CicloAlertList({ alertas, canWrite = false }: { alertas: CicloAl
   )
 }
 
-export function CicloClienteList({ canWrite = false, clientes }: { canWrite?: boolean; clientes: CicloCliente[] }) {
+export function CicloClienteList({
+  canWrite = false,
+  carteiraOptions,
+  clientes,
+  filters,
+  totalClientes,
+}: {
+  canWrite?: boolean
+  carteiraOptions: string[]
+  clientes: CicloCliente[]
+  filters: { carteira: string; dir: 'asc' | 'desc'; q: string; sort: 'cliente' | 'tipo' | 'carteira' | 'regularidade' | 'risco'; tipo: CicloTipoCliente | '' }
+  totalClientes: number
+}) {
+  const hasFilters = Boolean(filters.carteira || filters.tipo || filters.q)
+  const sortHref = (sort: typeof filters.sort) => {
+    const params = new URLSearchParams()
+    if (filters.q) params.set('q', filters.q)
+    if (filters.tipo) params.set('tipo', filters.tipo)
+    if (filters.carteira) params.set('carteira', filters.carteira)
+    params.set('sort', sort)
+    params.set('dir', filters.sort === sort && filters.dir === 'asc' ? 'desc' : 'asc')
+    return `/modulos/ciclo/clientes?${params.toString()}`
+  }
+  const sortLabel = (sort: typeof filters.sort) => (filters.sort === sort ? (filters.dir === 'asc' ? '↑' : '↓') : '')
+
   return (
-    <section className="card ciclo-panel">
-      <div className="ciclo-panel-heading">
-        <div>
-          <h2>Lista de clientes</h2>
-          <p>Cadastro mestre com carteira, administradora, risco e regularidade.</p>
-        </div>
-      </div>
+    <div className="ciclo-clientes-surface">
+      <form className="ciclo-clientes-filter-bar" method="get">
+        <input name="sort" type="hidden" value={filters.sort} />
+        <input name="dir" type="hidden" value={filters.dir} />
+        <label className="ciclo-clientes-search">
+          <span>Busca</span>
+          <input className="input" name="q" placeholder="Nome, CNPJ, carteira..." defaultValue={filters.q} />
+        </label>
+        <label>
+          <span>Tipo</span>
+          <select className="select" name="tipo" defaultValue={filters.tipo}>
+            <option value="">Todos</option>
+            <option value="mensal">Mensal</option>
+            <option value="pontual">Pontual</option>
+            <option value="cobranca">Cobrança</option>
+          </select>
+        </label>
+        <label>
+          <span>Carteira</span>
+          <select className="select" name="carteira" defaultValue={filters.carteira}>
+            <option value="">Todas</option>
+            {carteiraOptions.map((carteira) => <option key={carteira} value={carteira}>{carteira}</option>)}
+          </select>
+        </label>
+        <button className="button secondary" type="submit">Filtrar</button>
+        {hasFilters ? <Link className="button secondary" href="/modulos/ciclo/clientes">Limpar</Link> : null}
+        <span className="ciclo-clientes-count">{clientes.length} de {totalClientes}</span>
+      </form>
 
       {clientes.length ? (
-        <div className="ciclo-table-list">
+        <div className="ciclo-table-list ciclo-clientes-list">
+          <div className="ciclo-clientes-head">
+            <Link href={sortHref('cliente')}>Cliente {sortLabel('cliente')}</Link>
+            <Link href={sortHref('tipo')}>Tipo {sortLabel('tipo')}</Link>
+            <Link href={sortHref('carteira')}>Carteira {sortLabel('carteira')}</Link>
+            <Link href={sortHref('regularidade')}>Regularidade {sortLabel('regularidade')}</Link>
+            <Link href={sortHref('risco')}>Risco {sortLabel('risco')}</Link>
+            <span>Ações</span>
+          </div>
           {clientes.map((cliente) => (
             <article key={cliente.id}>
-              <div>
+              <div className="ciclo-clientes-main">
                 <h3>{cliente.nome}</h3>
                 <p>{cliente.documento} · {cliente.razaoSocial || 'Cadastro mestre'}</p>
               </div>
-              <span className={`ciclo-pill ${riskTone(cliente.risco)}`}>{cliente.risco}</span>
-              <strong>{cliente.regularidade}%</strong>
-              <small>
-                {cliente.carteira} - {cliente.administradora}
+              <div className="ciclo-clientes-type">
+                <span className="ciclo-pill primary">{tipoClienteLabel(cliente.tipoCliente)}</span>
+              </div>
+              <div className="ciclo-clientes-meta">
+                <strong>{cliente.carteira}</strong>
+                <span>{cliente.administradora}</span>
+              </div>
+              <div className="ciclo-clientes-score">
+                <strong>{cliente.regularidade}%</strong>
+              </div>
+              <div className="ciclo-clientes-risk">
+                <span className={`ciclo-pill ${riskTone(cliente.risco)}`}>{cliente.risco}</span>
+              </div>
+              <div className="ciclo-clientes-actions">
                 <Link className="button secondary" href={`/modulos/ciclo/clientes/${cliente.id}/cockpit`}>Cockpit</Link>
                 {canWrite ? <Link className="button secondary" href={`/modulos/ciclo/clientes/${cliente.id}`}>Editar</Link> : null}
-              </small>
+              </div>
             </article>
           ))}
         </div>
       ) : (
-        <EmptyBlock label="Nenhum cliente cadastrado." />
+        <EmptyBlock label="Nenhum cliente encontrado com os filtros atuais." />
       )}
-    </section>
+    </div>
+  )
+}
+
+function atendimentoTabLabel(tab: CicloAtendimentoTab) {
+  if (tab === 'responsavel') return 'Responsável'
+  if (tab === 'carteira') return 'Carteira'
+  if (tab === 'tipo') return 'Tipo de atendimento'
+  return 'Cliente'
+}
+
+function atendimentoHref(tab: CicloAtendimentoTab, filters: { dataDe?: string; dataAte?: string; status?: string }) {
+  const params = new URLSearchParams()
+  params.set('aba', tab)
+  if (filters.dataDe) params.set('de', filters.dataDe)
+  if (filters.dataAte) params.set('ate', filters.dataAte)
+  if (filters.status) params.set('status', filters.status)
+  return `/modulos/ciclo/atendimento?${params.toString()}`
+}
+
+function onboardingPercent(value: string) {
+  const parsed = Number(String(value).replace('%', '').trim())
+  return Number.isFinite(parsed) ? Math.max(0, Math.min(100, parsed)) : 0
+}
+
+function onboardingMeta(meta: string) {
+  const [carteira, risco] = meta.split(' - risco ')
+  return {
+    carteira: carteira || 'Sem carteira',
+    risco: risco || 'medio',
+  }
+}
+
+function workflowStatusLabel(status: CicloOnboardingDetail['atividades'][number]['status']) {
+  if (status === 'em_andamento') return 'Em andamento'
+  if (status === 'concluido') return 'Concluido'
+  if (status === 'dispensado') return 'Dispensado'
+  return 'Pendente'
+}
+
+function workflowTone(status: CicloOnboardingDetail['atividades'][number]['status']) {
+  if (status === 'concluido') return 'success'
+  if (status === 'dispensado') return 'primary'
+  if (status === 'em_andamento') return 'warning'
+  return 'danger'
+}
+
+export function CicloOnboardingOverview({ rows }: { rows: CicloListRow[] }) {
+  const novos = rows.filter((row) => row.status === 'novo').length
+  const implantacao = rows.filter((row) => row.status === 'implantacao').length
+  const concluidos = rows.filter((row) => onboardingPercent(row.value) >= 100).length
+  const semChecklist = rows.filter((row) => onboardingPercent(row.value) === 0).length
+  const progressoMedio = rows.length
+    ? Math.round(rows.reduce((total, row) => total + onboardingPercent(row.value), 0) / rows.length)
+    : 0
+
+  return (
+    <div className="ciclo-onboarding-dashboard">
+      <section className="ciclo-atendimento-kpis ciclo-onboarding-kpis">
+        <article>
+          <span>Total</span>
+          <strong>{rows.length}</strong>
+          <small>clientes na fila</small>
+        </article>
+        <article>
+          <span>Novos</span>
+          <strong>{novos}</strong>
+          <small>aguardando inicio</small>
+        </article>
+        <article>
+          <span>Em implantacao</span>
+          <strong>{implantacao}</strong>
+          <small>checklist em curso</small>
+        </article>
+        <article>
+          <span>Concluidos</span>
+          <strong>{concluidos}</strong>
+          <small>100% documental</small>
+        </article>
+        <article>
+          <span>Sem checklist</span>
+          <strong>{semChecklist}</strong>
+          <small>sem documentos iniciados</small>
+        </article>
+        <article>
+          <span>Progresso medio</span>
+          <strong>{progressoMedio}%</strong>
+          <small>documental</small>
+        </article>
+      </section>
+
+      <section className="ciclo-clientes-surface">
+        {rows.length ? (
+          <div className="ciclo-table-list ciclo-onboarding-list">
+            <div className="ciclo-onboarding-head">
+              <span>Cliente</span>
+              <span>Etapa</span>
+              <span>Progresso</span>
+              <span>Carteira</span>
+              <span>Acoes</span>
+            </div>
+            {rows.map((row) => {
+              const progress = onboardingPercent(row.value)
+              const meta = onboardingMeta(row.meta)
+              return (
+                <article key={row.id}>
+                  <div className="ciclo-clientes-main">
+                    <h3>{row.title}</h3>
+                    <p>{row.subtitle}</p>
+                  </div>
+                  <div className="ciclo-clientes-type">
+                    <span className={`ciclo-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+                  </div>
+                  <div className="ciclo-onboarding-progress">
+                    <strong>{row.value}</strong>
+                    <div aria-hidden="true"><span style={{ width: `${Math.max(4, progress)}%` }} /></div>
+                  </div>
+                  <div className="ciclo-clientes-meta">
+                    <strong>{meta.carteira}</strong>
+                    <span>risco {meta.risco}</span>
+                  </div>
+                  <div className="ciclo-clientes-actions">
+                    <Link className="button secondary" href={`/modulos/ciclo/onboarding/${row.id}`}>Checklist</Link>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        ) : (
+          <EmptyBlock label="Nenhum onboarding encontrado." />
+        )}
+      </section>
+    </div>
+  )
+}
+
+export function CicloAtendimentoDashboardView({
+  activeTab,
+  data,
+  filters,
+}: {
+  activeTab: CicloAtendimentoTab
+  data: CicloAtendimentoDashboard
+  filters: { dataDe?: string; dataAte?: string; status?: string }
+}) {
+  const groups = data.groups[activeTab] ?? []
+  const topGroups = groups.slice(0, 10)
+  const maxGroup = Math.max(...topGroups.map((item) => item.total), 1)
+  const maxMonth = Math.max(...data.months.map((item) => item.total), 1)
+
+  if (!data.databaseReady) {
+    return <EmptyBlock label="A base de atendimentos ainda não está disponível. Execute a carga ASTREA para iniciar o dashboard." />
+  }
+
+  return (
+    <div className="ciclo-atendimento-dashboard">
+      <form className="ciclo-atendimento-filters" method="get">
+        <input name="aba" type="hidden" value={activeTab} />
+        <label>
+          <span>Criação de</span>
+          <input className="input" name="de" type="date" defaultValue={filters.dataDe ?? ''} />
+        </label>
+        <label>
+          <span>Criação até</span>
+          <input className="input" name="ate" type="date" defaultValue={filters.dataAte ?? ''} />
+        </label>
+        <label>
+          <span>Status</span>
+          <select className="select" name="status" defaultValue={filters.status ?? ''}>
+            <option value="">Todos</option>
+            <option value="aberto">Aberto</option>
+            <option value="encerrado">Encerrado</option>
+          </select>
+        </label>
+        <button className="button secondary" type="submit">Filtrar</button>
+        <Link className="button secondary" href="/modulos/ciclo/atendimento">Limpar</Link>
+      </form>
+
+      <section className="ciclo-atendimento-kpis">
+        <article>
+          <span>Total</span>
+          <strong>{data.kpis.total}</strong>
+          <small>atendimentos ASTREA</small>
+        </article>
+        <article>
+          <span>Abertos</span>
+          <strong>{data.kpis.abertos}</strong>
+          <small>em acompanhamento</small>
+        </article>
+        <article>
+          <span>Encerrados</span>
+          <strong>{data.kpis.encerrados}</strong>
+          <small>finalizados</small>
+        </article>
+        <article>
+          <span>Clientes</span>
+          <strong>{data.kpis.clientes}</strong>
+          <small>com atendimento</small>
+        </article>
+        <article>
+          <span>Responsáveis</span>
+          <strong>{data.kpis.responsaveis}</strong>
+          <small>na operação</small>
+        </article>
+        <article>
+          <span>Tipos</span>
+          <strong>{data.kpis.tipos}</strong>
+          <small>por etiqueta</small>
+        </article>
+      </section>
+
+      <nav className="suite-tabs ciclo-atendimento-tabs" aria-label="Visões de atendimento">
+        {(['cliente', 'responsavel', 'carteira', 'tipo'] as CicloAtendimentoTab[]).map((tab) => (
+          <Link className={activeTab === tab ? 'active' : ''} href={atendimentoHref(tab, filters)} key={tab}>
+            {atendimentoTabLabel(tab)}
+          </Link>
+        ))}
+      </nav>
+
+      <section className="ciclo-atendimento-grid">
+        <article className="ciclo-atendimento-panel">
+          <div className="ciclo-panel-heading">
+            <div>
+              <h2>Top 10 por {atendimentoTabLabel(activeTab).toLowerCase()}</h2>
+              <p>Volume, abertos e encerrados dentro do filtro atual.</p>
+            </div>
+          </div>
+          <div className="ciclo-atendimento-ranking">
+            {topGroups.map((item) => (
+              <div key={item.label}>
+                <div>
+                  <strong>{item.label}</strong>
+                  <span>{item.abertos} abertos · {item.encerrados} encerrados</span>
+                </div>
+                <div className="ciclo-atendimento-bar" aria-hidden="true">
+                  <span style={{ width: `${Math.max(6, Math.round((item.total / maxGroup) * 100))}%` }} />
+                </div>
+                <b>{item.total}</b>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="ciclo-atendimento-panel">
+          <div className="ciclo-panel-heading">
+            <div>
+              <h2>Mês a mês</h2>
+              <p>Atendimentos por data de criação.</p>
+            </div>
+          </div>
+          <div className="ciclo-atendimento-months">
+            {data.months.map((item) => (
+              <div key={item.label}>
+                <span>{item.label}</span>
+                <div className="ciclo-atendimento-column" title={`${item.total} atendimentos`}>
+                  <i style={{ height: `${Math.max(8, Math.round((item.total / maxMonth) * 100))}%` }} />
+                </div>
+                <strong>{item.total}</strong>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+    </div>
   )
 }
 
@@ -425,10 +815,19 @@ export function CicloClienteForm({
       </div>
 
       <div>
+        <label className="label" htmlFor="tipo_cliente">Tipo de cliente</label>
+        <select className="select" id="tipo_cliente" name="tipo_cliente" defaultValue={cliente?.tipo_cliente ?? 'mensal'}>
+          <option value="mensal">Mensal</option>
+          <option value="pontual">Pontual</option>
+          <option value="cobranca">Cobrança</option>
+        </select>
+      </div>
+
+      <div>
         <label className="label" htmlFor="status_operacional">Status operacional</label>
         <select className="select" id="status_operacional" name="status_operacional" defaultValue={cliente?.status_operacional ?? 'novo'}>
           <option value="novo">Novo</option>
-          <option value="implantacao">Implantacao</option>
+          <option value="implantacao">Implantação</option>
           <option value="ativo">Ativo</option>
           <option value="pausado">Pausado</option>
           <option value="encerrado">Encerrado</option>
@@ -444,7 +843,7 @@ export function CicloClienteForm({
         <label className="label" htmlFor="risco_atual">Risco</label>
         <select className="select" id="risco_atual" name="risco_atual" defaultValue={cliente?.risco_atual ?? 'medio'}>
           <option value="baixo">Baixo</option>
-          <option value="medio">Medio</option>
+          <option value="medio">Médio</option>
           <option value="alto">Alto</option>
           <option value="critico">Critico</option>
         </select>
@@ -485,7 +884,7 @@ export function CicloClienteForm({
       </div>
 
       <div className="module-form-wide">
-        <label className="label" htmlFor="observacoes">Observacoes</label>
+        <label className="label" htmlFor="observacoes">Observações</label>
         <textarea className="textarea" id="observacoes" name="observacoes" defaultValue={cliente?.observacoes ?? ''} />
       </div>
 
@@ -495,7 +894,7 @@ export function CicloClienteForm({
       </label>
 
       <div className="form-actions module-form-wide">
-        <button className="button" type="submit">Salvar cliente</button>
+        <CicloSubmitButton>Salvar cliente</CicloSubmitButton>
         <Link className="button secondary" href="/modulos/ciclo/clientes">Cancelar</Link>
       </div>
     </form>
@@ -539,7 +938,7 @@ export function CicloAdministradoraForm({
       </div>
 
       <div className="module-form-wide">
-        <label className="label" htmlFor="observacoes">Observacoes</label>
+        <label className="label" htmlFor="observacoes">Observações</label>
         <textarea className="textarea" id="observacoes" name="observacoes" defaultValue={administradora?.observacoes ?? ''} />
       </div>
 
@@ -549,7 +948,7 @@ export function CicloAdministradoraForm({
       </label>
 
       <div className="form-actions module-form-wide">
-        <button className="button" type="submit">Salvar administradora</button>
+        <CicloSubmitButton>Salvar administradora</CicloSubmitButton>
         <Link className="button secondary" href="/modulos/ciclo/administradoras">Cancelar</Link>
       </div>
     </form>
@@ -626,7 +1025,7 @@ export function CicloDocumentoForm({
       </div>
 
       <div className="module-form-wide">
-        <label className="label" htmlFor="observacoes">Observacoes</label>
+        <label className="label" htmlFor="observacoes">Observações</label>
         <textarea className="textarea" id="observacoes" name="observacoes" defaultValue={documento?.observacoes ?? ''} />
       </div>
 
@@ -646,7 +1045,7 @@ export function CicloDocumentoForm({
       </label>
 
       <div className="form-actions module-form-wide">
-        <button className="button" type="submit">Salvar documento</button>
+        <CicloSubmitButton>Salvar documento</CicloSubmitButton>
         <Link className="button secondary" href="/modulos/ciclo/documentos">Cancelar</Link>
       </div>
     </form>
@@ -718,12 +1117,12 @@ export function CicloAlertaForm({
       </div>
 
       <div className="module-form-wide">
-        <label className="label" htmlFor="descricao">Descricao</label>
+        <label className="label" htmlFor="descricao">Descrição</label>
         <textarea className="textarea" id="descricao" name="descricao" defaultValue={alerta?.descricao ?? ''} />
       </div>
 
       <div className="form-actions module-form-wide">
-        <button className="button" type="submit">Salvar alerta</button>
+        <CicloSubmitButton>Salvar alerta</CicloSubmitButton>
         <Link className="button secondary" href="/modulos/ciclo/alertas">Cancelar</Link>
       </div>
     </form>
@@ -768,7 +1167,7 @@ export function CicloOcorrenciaForm({
         <select className="select" id="impacto" name="impacto" defaultValue={ocorrencia?.impacto ?? 'neutro'}>
           <option value="baixo">Baixo</option>
           <option value="neutro">Neutro</option>
-          <option value="medio">Medio</option>
+          <option value="medio">Médio</option>
           <option value="alto">Alto</option>
           <option value="critico">Critico</option>
         </select>
@@ -795,7 +1194,7 @@ export function CicloOcorrenciaForm({
       </div>
 
       <div>
-        <label className="label" htmlFor="responsavel">Responsavel</label>
+        <label className="label" htmlFor="responsavel">Responsável</label>
         <input className="input" id="responsavel" name="responsavel" defaultValue={ocorrencia?.responsavel ?? ''} />
       </div>
 
@@ -815,7 +1214,7 @@ export function CicloOcorrenciaForm({
       </div>
 
       <div className="module-form-wide">
-        <label className="label" htmlFor="descricao">Descricao</label>
+        <label className="label" htmlFor="descricao">Descrição</label>
         <textarea className="textarea" id="descricao" name="descricao" defaultValue={ocorrencia?.descricao ?? ''} />
       </div>
 
@@ -827,7 +1226,7 @@ export function CicloOcorrenciaForm({
       ) : null}
 
       <div className="form-actions module-form-wide">
-        <button className="button" type="submit">Salvar ocorrencia</button>
+        <CicloSubmitButton>Salvar ocorrência</CicloSubmitButton>
         <Link className="button secondary" href="/modulos/ciclo/ocorrencias">Cancelar</Link>
       </div>
     </form>
@@ -904,7 +1303,7 @@ export function CicloContratoForm({
       </div>
 
       <div className="module-form-wide">
-        <label className="label" htmlFor="observacoes">Observacoes</label>
+        <label className="label" htmlFor="observacoes">Observações</label>
         <textarea className="textarea" id="observacoes" name="observacoes" defaultValue={contrato?.observacoes ?? ''} />
       </div>
 
@@ -914,7 +1313,7 @@ export function CicloContratoForm({
       </label>
 
       <div className="form-actions module-form-wide">
-        <button className="button" type="submit">Salvar contrato</button>
+        <CicloSubmitButton>Salvar contrato</CicloSubmitButton>
         <Link className="button secondary" href="/modulos/ciclo/contratos">Cancelar</Link>
       </div>
     </form>
@@ -977,7 +1376,7 @@ export function CicloAtaForm({
       </div>
 
       <div className="module-form-wide">
-        <label className="label" htmlFor="observacoes">Observacoes</label>
+        <label className="label" htmlFor="observacoes">Observações</label>
         <textarea className="textarea" id="observacoes" name="observacoes" defaultValue={ata?.observacoes ?? ''} />
       </div>
 
@@ -987,7 +1386,7 @@ export function CicloAtaForm({
       </label>
 
       <div className="form-actions module-form-wide">
-        <button className="button" type="submit">Salvar ata</button>
+        <CicloSubmitButton>Salvar ata</CicloSubmitButton>
         <Link className="button secondary" href="/modulos/ciclo/atas">Cancelar</Link>
       </div>
     </form>
@@ -995,20 +1394,18 @@ export function CicloAtaForm({
 }
 
 export function CicloClienteIntegralCockpit({ detail }: { detail: CicloClienteIntegral }) {
-  const { alertas, atas, cliente, contratos, documentos, ocorrencias, pendencias, regularidade, timeline } = detail
+  const { alertas, cliente, documentos, ocorrencias, pendencias, regularidade, timeline } = detail
   const alertasAbertos = alertas.filter((alerta) => alerta.status !== 'resolvido' && alerta.status !== 'cancelado')
   const ocorrenciasAbertas = ocorrencias.filter((ocorrencia) => !['resolvida', 'cancelada'].includes(ocorrencia.status))
   const documentosPendentes = documentos.filter((documento) => documento.status === 'pendente' || documento.status === 'vencido')
-  const contratosAtivos = contratos.filter((contrato) => contrato.ativo && !['encerrado', 'suspenso'].includes(contrato.status))
-  const atasVigentes = atas.filter((ata) => ata.ativo && ata.status === 'vigente')
+  const documentosVencidos = documentosPendentes.filter((documento) => documento.status === 'vencido').length
 
   const kpis = [
-    { label: 'Regularidade', value: `${regularidade}%`, hint: `${pendencias.length} pendencia(s)` },
+    { label: 'Regularidade', value: `${regularidade}%`, hint: `${pendencias.length} pendência(s)` },
+    { label: 'Docs pendentes', value: String(documentosPendentes.length), hint: `${documentosVencidos} vencido(s)` },
     { label: 'Score', value: String(cliente.score_atual), hint: `risco ${cliente.risco_atual}` },
     { label: 'Alertas', value: String(alertasAbertos.length), hint: 'em aberto' },
-    { label: 'Ocorrencias', value: String(ocorrenciasAbertas.length), hint: 'em acompanhamento' },
-    { label: 'Contratos', value: String(contratosAtivos.length), hint: 'ativos' },
-    { label: 'Atas', value: String(atasVigentes.length), hint: 'vigentes' },
+    { label: 'Ocorrências', value: String(ocorrenciasAbertas.length), hint: 'em acompanhamento' },
   ]
 
   return (
@@ -1022,20 +1419,12 @@ export function CicloClienteIntegralCockpit({ detail }: { detail: CicloClienteIn
         <div className="ciclo-quick-actions">
           <Link className="button secondary" href={`/modulos/ciclo/clientes/${cliente.id}`}>Editar cliente</Link>
           <Link className="button secondary" href="/modulos/ciclo/documentos/novo">Novo documento</Link>
-          <Link className="button secondary" href="/modulos/ciclo/ocorrencias/nova">Nova ocorrencia</Link>
+          <Link className="button secondary" href="/modulos/ciclo/ocorrencias/nova">Nova ocorrência</Link>
           <Link className="button secondary" href="/modulos/ciclo/alertas/novo">Novo alerta</Link>
         </div>
       </section>
 
-      <section className="ciclo-kpi-grid">
-        {kpis.map((item) => (
-          <article className="card metric-card" key={item.label}>
-            <p className="metric-label">{item.label}</p>
-            <p className="metric-value">{item.value}</p>
-            <p className="metric-hint">{item.hint}</p>
-          </article>
-        ))}
-      </section>
+      <OperationalKpiGrid className="ciclo-kpi-grid" items={kpis} />
 
       <section className="ciclo-split-grid">
         <section className="card ciclo-panel">
@@ -1116,40 +1505,16 @@ export function CicloClienteIntegralCockpit({ detail }: { detail: CicloClienteIn
           title="Documentos"
         />
         <CicloIntegralList
-          empty="Nenhuma ocorrencia registrada."
+          empty="Nenhuma ocorrência registrada."
           items={ocorrencias.slice(0, 8).map((ocorrencia) => ({
             href: `/modulos/ciclo/ocorrencias/${ocorrencia.id}`,
-            meta: ocorrencia.responsavel ?? 'Sem responsavel',
+            meta: ocorrencia.responsavel ?? 'Sem responsável',
             status: ocorrencia.status,
             title: ocorrencia.titulo,
             tone: impactoTone(ocorrencia.impacto),
             value: formatDate(ocorrencia.data_ocorrencia),
           }))}
           title="Ocorrencias"
-        />
-        <CicloIntegralList
-          empty="Nenhum contrato cadastrado."
-          items={contratos.slice(0, 8).map((contrato) => ({
-            href: `/modulos/ciclo/contratos/${contrato.id}`,
-            meta: `Reajuste ${formatDate(contrato.proximo_reajuste ?? '')}`,
-            status: contrato.status,
-            title: contrato.numero_contrato ?? 'Contrato',
-            tone: contrato.ativo ? 'success' : 'warning',
-            value: formatDate(contrato.data_fim ?? ''),
-          }))}
-          title="Contratos"
-        />
-        <CicloIntegralList
-          empty="Nenhuma ata cadastrada."
-          items={atas.slice(0, 8).map((ata) => ({
-            href: `/modulos/ciclo/atas/${ata.id}`,
-            meta: formatDate(ata.data_ata ?? ''),
-            status: ata.status,
-            title: ata.tipo ?? 'Ata',
-            tone: ata.status === 'vigente' ? 'success' : 'warning',
-            value: formatDate(ata.data_validade ?? ''),
-          }))}
-          title="Atas"
         />
       </section>
     </>
@@ -1194,50 +1559,183 @@ function CicloIntegralList({
   )
 }
 
+export function CicloOnboardingWorkflowConfig({ atividades }: { atividades: CicloOnboardingWorkflowAtividade[] }) {
+  return (
+    <div className="ciclo-workflow-config">
+      <section className="card ciclo-panel">
+        <div className="ciclo-panel-heading">
+          <div>
+            <h2>Nova atividade</h2>
+            <p>Cadastre a etapa padrao do fluxo de recepcao.</p>
+          </div>
+        </div>
+        <form action={createCicloOnboardingWorkflowAtividadeAction} className="ciclo-workflow-config-form">
+          <label>
+            <span>Ordem</span>
+            <input className="input" min="1" name="ordem" required type="number" />
+          </label>
+          <label>
+            <span>Descricao</span>
+            <input className="input" name="descricao" required />
+          </label>
+          <label>
+            <span>Responsavel padrao</span>
+            <input className="input" name="responsavel_padrao" placeholder="Nome ou area" />
+          </label>
+          <label className="checkbox-row ciclo-workflow-check">
+            <input name="obrigatoria" type="checkbox" value="on" defaultChecked />
+            <span>Obrigatoria</span>
+          </label>
+          <CicloSubmitButton>Criar atividade</CicloSubmitButton>
+        </form>
+      </section>
+
+      <section className="card ciclo-panel">
+        <div className="ciclo-panel-heading">
+          <div>
+            <h2>Atividades do workflow</h2>
+            <p>Ordem, descricao e responsavel usados ao iniciar o onboarding.</p>
+          </div>
+          <Link className="button secondary" href="/modulos/ciclo/onboarding">Voltar</Link>
+        </div>
+
+        {atividades.length ? (
+          <div className="ciclo-workflow-config-list">
+            {atividades.map((atividade) => (
+              <form action={updateCicloOnboardingWorkflowAtividadeAction} className="ciclo-workflow-config-row" key={atividade.id}>
+                <input type="hidden" name="id" value={atividade.id} />
+                <label>
+                  <span>Ordem</span>
+                  <input className="input" name="ordem" type="number" defaultValue={atividade.ordem} />
+                </label>
+                <label>
+                  <span>Descricao</span>
+                  <input className="input" name="descricao" defaultValue={atividade.descricao} required />
+                </label>
+                <label>
+                  <span>Responsavel</span>
+                  <input className="input" name="responsavel_padrao" defaultValue={atividade.responsavel_padrao ?? ''} />
+                </label>
+                <label className="checkbox-row">
+                  <input name="obrigatoria" type="checkbox" value="on" defaultChecked={atividade.obrigatoria} />
+                  <span>Obrigatoria</span>
+                </label>
+                <label className="checkbox-row">
+                  <input name="ativo" type="checkbox" value="on" defaultChecked={atividade.ativo} />
+                  <span>Ativa</span>
+                </label>
+                <button className="button secondary" type="submit">Salvar</button>
+              </form>
+            ))}
+          </div>
+        ) : (
+          <EmptyBlock label="Nenhuma atividade cadastrada." />
+        )}
+      </section>
+    </div>
+  )
+}
+
 export function CicloOnboardingDetalhe({ detail }: { detail: CicloOnboardingDetail }) {
-  const { cliente, documentos, progresso, timeline } = detail
-  const canConcluir = progresso.total > 0 && progresso.pendentes === 0
+  const { atividades, cliente, documentos, progresso, timeline, workflow } = detail
+  const canConcluir = progresso.total > 0 && workflow.total > 0 && progresso.pendentes === 0 && workflow.pendentes === 0
 
   return (
     <>
-      <section className="ciclo-kpi-grid">
-        <article className="card metric-card">
-          <p className="metric-label">Progresso</p>
-          <p className="metric-value">{progresso.percentual}%</p>
-          <p className="metric-hint">{progresso.concluidos}/{progresso.total} documentos</p>
+      <section className="ciclo-atendimento-kpis ciclo-onboarding-kpis">
+        <article>
+          <span>Documentos</span>
+          <strong>{progresso.percentual}%</strong>
+          <small>{progresso.concluidos}/{progresso.total} documentos</small>
         </article>
-        <article className="card metric-card">
-          <p className="metric-label">Status</p>
-          <p className="metric-value">{cliente.status_operacional}</p>
-          <p className="metric-hint">etapa operacional</p>
+        <article>
+          <span>Workflow</span>
+          <strong>{workflow.percentual}%</strong>
+          <small>{workflow.concluidas}/{workflow.total} atividades</small>
         </article>
-        <article className="card metric-card">
-          <p className="metric-label">Pendencias</p>
-          <p className="metric-value">{progresso.pendentes}</p>
-          <p className="metric-hint">obrigatorias abertas</p>
+        <article>
+          <span>Status</span>
+          <strong>{cliente.status_operacional}</strong>
+          <small>etapa operacional</small>
         </article>
-        <article className="card metric-card">
-          <p className="metric-label">Risco</p>
-          <p className="metric-value">{cliente.risco_atual}</p>
-          <p className="metric-hint">score {cliente.score_atual}</p>
+        <article>
+          <span>Pend. docs</span>
+          <strong>{progresso.pendentes}</strong>
+          <small>documentos obrigatorios</small>
+        </article>
+        <article>
+          <span>Pend. fluxo</span>
+          <strong>{workflow.pendentes}</strong>
+          <small>atividades obrigatorias</small>
+        </article>
+        <article>
+          <span>Risco</span>
+          <strong>{cliente.risco_atual}</strong>
+          <small>score {cliente.score_atual}</small>
         </article>
       </section>
 
       <section className="card ciclo-panel">
         <div className="ciclo-panel-heading">
           <div>
-            <h2>Checklist operacional</h2>
-            <p>{cliente.nome} - {cliente.documento ?? 'sem documento'}</p>
+            <h2>Workflow de recepcao</h2>
+            <p>Atividades operacionais com responsavel e status.</p>
           </div>
           <div className="form-actions">
             <form action={startCicloOnboardingAction}>
               <input type="hidden" name="cliente_id" value={cliente.id} />
-              <button className="button secondary" type="submit">Iniciar checklist</button>
+              <button className="button secondary" type="submit">Iniciar workflow</button>
             </form>
             <form action={completeCicloOnboardingAction}>
               <input type="hidden" name="cliente_id" value={cliente.id} />
               <button className="button" disabled={!canConcluir} type="submit">Concluir onboarding</button>
             </form>
+          </div>
+        </div>
+
+        {atividades.length ? (
+          <div className="ciclo-workflow-list">
+            {atividades.map((atividade) => (
+              <form action={updateCicloOnboardingAtividadeAction} className="ciclo-workflow-row" key={atividade.id}>
+                <input type="hidden" name="id" value={atividade.id} />
+                <input type="hidden" name="cliente_id" value={cliente.id} />
+                <input type="hidden" name="descricao" value={atividade.descricao} />
+                <div className="ciclo-workflow-main">
+                  <span className={`ciclo-pill ${workflowTone(atividade.status)}`}>{workflowStatusLabel(atividade.status)}</span>
+                  <h3>{atividade.descricao}</h3>
+                  <p>{atividade.obrigatoria ? 'Obrigatoria' : 'Opcional'}</p>
+                </div>
+                <label>
+                  <span>Status</span>
+                  <select className="select" name="status" defaultValue={atividade.status}>
+                    <option value="pendente">Pendente</option>
+                    <option value="em_andamento">Em andamento</option>
+                    <option value="concluido">Concluido</option>
+                    <option value="dispensado">Dispensado</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Responsavel</span>
+                  <input className="input" name="responsavel" defaultValue={atividade.responsavel ?? ''} />
+                </label>
+                <label>
+                  <span>Observacoes</span>
+                  <input className="input" name="observacoes" defaultValue={atividade.observacoes ?? ''} />
+                </label>
+                <button className="button secondary" type="submit">Atualizar</button>
+              </form>
+            ))}
+          </div>
+        ) : (
+          <EmptyBlock label="Workflow ainda nao iniciado." />
+        )}
+      </section>
+
+      <section className="card ciclo-panel">
+        <div className="ciclo-panel-heading">
+          <div>
+            <h2>Checklist documental</h2>
+            <p>{cliente.nome} - {cliente.documento ?? 'sem documento'}</p>
           </div>
         </div>
 
@@ -1260,7 +1758,7 @@ export function CicloOnboardingDetalhe({ detail }: { detail: CicloOnboardingDeta
                 </select>
                 <input className="input" name="data_renovacao" type="date" defaultValue={documento.data_renovacao ?? ''} />
                 <input className="input" name="arquivo_url" placeholder="Link do arquivo" defaultValue={documento.arquivo_url ?? ''} />
-                <textarea className="textarea" name="observacoes" placeholder="Observacoes" defaultValue={documento.observacoes ?? ''} />
+                <textarea className="textarea" name="observacoes" placeholder="Observações" defaultValue={documento.observacoes ?? ''} />
                 <label className="checkbox-row">
                   <input name="validado" type="checkbox" defaultChecked={documento.validado} />
                   <span>Validado</span>
@@ -1316,28 +1814,15 @@ export function CicloListKpis({
   const danger = rows.filter((row) => row.tone === 'danger').length
 
   return (
-    <section className="ciclo-kpi-grid">
-      <article className="card metric-card">
-        <p className="metric-label">Total</p>
-        <p className="metric-value">{rows.length}</p>
-        <p className="metric-hint">registros carregados</p>
-      </article>
-      <article className="card metric-card">
-        <p className="metric-label">{secondaryLabel}</p>
-        <p className="metric-value">{success}</p>
-        <p className="metric-hint">status positivo</p>
-      </article>
-      <article className="card metric-card">
-        <p className="metric-label">Atencao</p>
-        <p className="metric-value">{warning}</p>
-        <p className="metric-hint">acompanhamento</p>
-      </article>
-      <article className="card metric-card">
-        <p className="metric-label">Risco</p>
-        <p className="metric-value">{danger}</p>
-        <p className="metric-hint">corrigir ou revisar</p>
-      </article>
-    </section>
+    <OperationalKpiGrid
+      className="ciclo-kpi-grid"
+      items={[
+        { label: 'Total', value: String(rows.length), hint: 'registros carregados' },
+        { label: secondaryLabel, value: String(success), hint: 'status positivo' },
+        { label: 'Atenção', value: String(warning), hint: 'acompanhamento' },
+        { label: 'Risco', value: String(danger), hint: 'corrigir ou revisar' },
+      ]}
+    />
   )
 }
 
@@ -1395,31 +1880,19 @@ export function CicloImportacaoDetalhe({
   lote: CicloImportacaoLote
 }) {
   const clientes = (lote.clientes_criados ?? 0) + (lote.clientes_atualizados ?? 0)
+  const isAtendimento = lote.tipo === 'atendimentos_astrea_xlsx'
 
   return (
     <>
-      <section className="ciclo-kpi-grid">
-        <article className="card metric-card">
-          <p className="metric-label">Linhas</p>
-          <p className="metric-value">{lote.total_linhas ?? 0}</p>
-          <p className="metric-hint">arquivo recebido</p>
-        </article>
-        <article className="card metric-card">
-          <p className="metric-label">Validas</p>
-          <p className="metric-value">{lote.linhas_validas ?? 0}</p>
-          <p className="metric-hint">aptas para carga</p>
-        </article>
-        <article className="card metric-card">
-          <p className="metric-label">Clientes</p>
-          <p className="metric-value">{clientes}</p>
-          <p className="metric-hint">{lote.clientes_criados ?? 0} novos</p>
-        </article>
-        <article className="card metric-card">
-          <p className="metric-label">Ignoradas</p>
-          <p className="metric-value">{lote.linhas_ignoradas ?? 0}</p>
-          <p className="metric-hint">com erro ou duplicadas</p>
-        </article>
-      </section>
+      <OperationalKpiGrid
+        className="ciclo-kpi-grid"
+        items={[
+          { label: 'Linhas', value: String(lote.total_linhas ?? 0), hint: 'arquivo recebido' },
+          { label: 'Válidas', value: String(lote.linhas_validas ?? 0), hint: 'aptas para carga' },
+          { label: isAtendimento ? 'Atendimentos' : 'Clientes', value: String(clientes), hint: `${lote.clientes_criados ?? 0} novos` },
+          { label: 'Ignoradas', value: String(lote.linhas_ignoradas ?? 0), hint: 'com erro ou duplicadas' },
+        ]}
+      />
 
       {lote.erro ? <div className="suite-empty-block danger">{lote.erro}</div> : null}
 
@@ -1438,7 +1911,7 @@ export function CicloImportacaoDetalhe({
               <article key={item.id}>
                 <div>
                   <h3>{item.cliente_nome ?? `Linha ${item.linha}`}</h3>
-                  <p>{item.cnpj_normalizado ?? 'Sem CNPJ'} - {item.mensagem ?? item.acao}</p>
+                  <p>{item.cnpj_normalizado ?? (isAtendimento ? 'Atendimento ASTREA' : 'Sem CNPJ')} - {item.mensagem ?? item.acao}</p>
                 </div>
                 <span className={`ciclo-pill ${item.status === 'sucesso' ? 'success' : item.status === 'erro' ? 'danger' : 'warning'}`}>{item.status}</span>
                 <strong>Linha {item.linha}</strong>

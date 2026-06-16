@@ -163,7 +163,7 @@ export async function createUsuarioTipoAction(formData: FormData) {
   const { authUser } = await requireAdminAction('admin.usuarios.write')
 
   const nome = required(text(formData, 'nome'), 'Nome')
-  const cod = codigo(required(text(formData, 'codigo'), 'Codigo'))
+  const cod = codigo(required(text(formData, 'codigo'), 'Código'))
 
   const { data, error } = await admin().schema('core').from('usuario_tipos').insert({
     nome,
@@ -174,7 +174,7 @@ export async function createUsuarioTipoAction(formData: FormData) {
 
   if (error) throw new Error(error.message)
 
-  await logEvent(authUser.id, 'usuario_tipo.criado', `Tipo de usuario criado: ${nome}`, { id: data.id, codigo: cod }, {
+  await logEvent(authUser.id, 'usuario_tipo.criado', `Tipo de usuário criado: ${nome}`, { id: data.id, codigo: cod }, {
     entidade_schema: 'core',
     entidade_tabela: 'usuario_tipos',
     entidade_id: data.id,
@@ -187,7 +187,7 @@ export async function createUsuarioTipoAction(formData: FormData) {
 export async function updateUsuarioTipoAction(formData: FormData) {
   const { authUser } = await requireAdminAction('admin.usuarios.write')
 
-  const id = uuid(text(formData, 'id'), 'Tipo de usuario')
+  const id = uuid(text(formData, 'id'), 'Tipo de usuário')
   const nome = required(text(formData, 'nome'), 'Nome')
 
   const { data: atual } = await admin()
@@ -201,14 +201,14 @@ export async function updateUsuarioTipoAction(formData: FormData) {
 
   const { error } = await admin().schema('core').from('usuario_tipos').update({
     nome,
-    ...(sistema ? {} : { codigo: codigo(required(text(formData, 'codigo'), 'Codigo')) }),
+    ...(sistema ? {} : { codigo: codigo(required(text(formData, 'codigo'), 'Código')) }),
     descricao: nullableText(formData, 'descricao'),
     ativo: boolFromSelect(formData, 'ativo'),
   }).eq('id', id)
 
   if (error) throw new Error(error.message)
 
-  await logEvent(authUser.id, 'usuario_tipo.atualizado', `Tipo de usuario atualizado: ${nome}`, { id }, {
+  await logEvent(authUser.id, 'usuario_tipo.atualizado', `Tipo de usuário atualizado: ${nome}`, { id }, {
     entidade_schema: 'core',
     entidade_tabela: 'usuario_tipos',
     entidade_id: id,
@@ -374,6 +374,7 @@ export async function createUsuarioAction(formData: FormData) {
   })
   revalidatePath('/admin')
   revalidatePath('/admin/usuarios')
+  revalidatePath('/admin/usuarios/novo')
   redirect('/admin/usuarios')
 }
 

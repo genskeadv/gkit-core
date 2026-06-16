@@ -24,6 +24,7 @@ export function ModuleShell({
   product,
   title,
   usuario,
+  variantClassName,
 }: {
   activeHref: string
   actions?: ReactNode
@@ -35,13 +36,17 @@ export function ModuleShell({
   product: string
   title: string
   usuario: PlatformUsuario
+  variantClassName?: string
 }) {
   return (
-    <main className="module-shell">
+    <main className={variantClassName ? `module-shell ${variantClassName}` : 'module-shell'}>
       <aside className="module-sidebar">
         <div className="module-sidebar-header">
-          <BrandLogo className="module-sidebar-mark" label={product} />
-          <strong>{product}</strong>
+          <BrandLogo className="module-sidebar-mark" label={brand} />
+          <div>
+            <strong>{product}</strong>
+            <small>{brand}</small>
+          </div>
         </div>
 
         <nav aria-label={`Navegacao ${product}`}>
@@ -83,18 +88,9 @@ export function ModuleShell({
 
       <section className="module-main">
         <div className="platform-bg" />
-        <header className="module-main-header">
-          <Link className="button secondary" href="/plataforma">Voltar ao painel</Link>
-          <div className="module-user">
-            <strong>{usuario.nome}</strong>
-            <span>{usuario.email}</span>
-          </div>
-        </header>
-
         <section className="module-page-hero">
           <div className="module-page-hero-main">
             <div className="module-page-hero-title">
-              <BrandLogo className="module-page-brand" label={`${title} - ${brand}`} />
               <div>
                 <p className="platform-kicker">{eyebrow}</p>
                 <h1>{title}</h1>

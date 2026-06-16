@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CrmGenericList, CrmListKpis, CrmShell } from '@/features/crm/components'
+import { CrmGenericList, CrmListKpis, CrmSection, CrmShell } from '@/features/crm/components'
 import { listCrmInteracaoRows, requireCrmContext } from '@/features/crm/queries'
 
 export default async function CrmInteracoesPage() {
@@ -12,19 +12,31 @@ export default async function CrmInteracoesPage() {
     <CrmShell
       active="interacoes"
       eyebrow="Base operacional"
-      title="Interacoes"
+      title="Interações"
       description="Historico de contatos, reunioes, mensagens e relacionamento comercial."
       usuario={context.usuario}
-      actions={canWrite ? <Link className="button" href="/modulos/crm/interacoes/nova">Nova interacao</Link> : null}
+      actions={canWrite ? <Link className="button" href="/modulos/crm/interacoes/nova">Nova interação</Link> : null}
     >
-      <CrmListKpis rows={rows} secondaryLabel="Registradas" />
-      <CrmGenericList
-        title="Historico de interacoes"
-        description="Linha de relacionamento por cliente, oportunidade e canal."
-        editHrefBase={canWrite ? '/modulos/crm/interacoes' : undefined}
-        emptyLabel="Nenhuma interacao encontrada."
-        rows={rows}
-      />
+      <CrmSection
+        eyebrow="Resumo"
+        title="Relacionamento registrado"
+        description="Volume e qualidade dos contatos comerciais carregados no CRM."
+      >
+        <CrmListKpis rows={rows} secondaryLabel="Registradas" />
+      </CrmSection>
+      <CrmSection
+        eyebrow="Historico"
+        title="Linha de interações"
+        description="Contatos, reunioes e mensagens por cliente, oportunidade e canal."
+      >
+        <CrmGenericList
+          title="Histórico de interações"
+          description="Linha de relacionamento por cliente, oportunidade e canal."
+          editHrefBase={canWrite ? '/modulos/crm/interacoes' : undefined}
+          emptyLabel="Nenhuma interação encontrada."
+          rows={rows}
+        />
+      </CrmSection>
     </CrmShell>
   )
 }

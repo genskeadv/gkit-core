@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import { updateCrmOpportunityAction } from '@/features/crm/actions'
-import { CrmOpportunityForm, CrmShell } from '@/features/crm/components'
+import { CrmOpportunityForm, CrmSection, CrmShell } from '@/features/crm/components'
 import { getCrmOpportunity, getCrmOpportunityFormData, requireCrmContext } from '@/features/crm/queries'
 
 export default async function EditarCrmOportunidadePage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,10 +19,16 @@ export default async function EditarCrmOportunidadePage({ params }: { params: Pr
       active="oportunidades"
       eyebrow="Pipeline comercial"
       title="Editar oportunidade"
-      description="Atualize etapa, valor, probabilidade e proximas acoes do pipeline."
+      description="Atualize etapa, valor, probabilidade e próximas ações do pipeline."
       usuario={context.usuario}
     >
-      <CrmOpportunityForm action={updateCrmOpportunityAction} formData={formData} opportunity={opportunity} />
+      <CrmSection
+        eyebrow="Edição"
+        title="Dados da oportunidade"
+        description="Atualize conta, etapa, valor, chance, origem e próxima ação comercial."
+      >
+        <CrmOpportunityForm action={updateCrmOpportunityAction} formData={formData} opportunity={opportunity} />
+      </CrmSection>
     </CrmShell>
   )
 }

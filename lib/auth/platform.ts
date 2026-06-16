@@ -25,8 +25,10 @@ const MODULE_PATHS: Record<string, string> = {
   ciclo: '/modulos/ciclo',
   core: '/admin',
   crm: '/modulos/crm',
+  gkit_new: '/modulos/gkit-new',
   intr: '/modulos/intr',
   colab: '/modulos/colab',
+  flex: '/modulos/flex',
   painel: '/modulos/painel',
   sind: '/modulos/sind',
 }
@@ -47,10 +49,17 @@ function moduleHref(app: any) {
   return MODULE_PATHS[String(app.codigo)] ?? `/modulos/${app.codigo}`
 }
 
+function moduleCode(codigo: unknown) {
+  const value = String(codigo)
+  return value === 'gkit_new' ? 'gkit-new' : value
+}
+
 function normalizeModule(app: any): PlatformModule {
+  const codigo = moduleCode(app.codigo)
+
   return {
     id: app.id,
-    codigo: String(app.codigo),
+    codigo,
     nome: app.nome,
     descricao: app.descricao,
     status: app.status,

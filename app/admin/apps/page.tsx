@@ -22,7 +22,7 @@ export default async function AppsPage({ searchParams }: AppsPageProps) {
 
   return (
     <>
-      <PageHeader title="Módulos" subtitle="Módulos disponíveis na plataforma GKLI." />
+      <PageHeader title="Módulos" subtitle="Módulos disponíveis na plataforma GKIT." />
       <ListToolbar
         query={params?.q}
         status={status}

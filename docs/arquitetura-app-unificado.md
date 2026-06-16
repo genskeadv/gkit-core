@@ -1,4 +1,4 @@
-# Arquitetura do app unificado GKLI
+# Arquitetura do app unificado GKIT
 
 ## Decisao
 

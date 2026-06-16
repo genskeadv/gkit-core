@@ -1,4 +1,4 @@
-# Revisao da Plataforma GKLI
+# Revisao da Plataforma GKIT
 
 Data: 2026-05-24
 
@@ -18,7 +18,7 @@ Data: 2026-05-24
 - App unificado validado com `typecheck`, `lint` e `build`.
 - Rotas operacionais principais publicadas dentro de `gkli-core/app/modulos`.
 - Documentacao por modulo criada em `docs/modulos`.
-- Padrao visual revisado: marca GKLI, favicon, tipografia leve, menus recolhiveis e telas desktop com rolagem interna.
+- Padrao visual revisado: marca GKIT, favicon, tipografia leve, menus recolhiveis e telas desktop com rolagem interna.
 - Build atual aprovado com 81 rotas.
 
 ## Pendencias Prioritarias

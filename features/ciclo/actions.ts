@@ -34,6 +34,38 @@ export type ImportacaoClientesResult = {
   loteId?: string | null
 }
 
+export type PreviewImportacaoAtendimentos = {
+  total: number
+  validas: number
+  criar: number
+  atualizar: number
+  abertos: number
+  encerrados: number
+  vinculados: number
+  semVinculoCliente: number
+  ignorados: string[]
+  amostras: Array<{
+    linha: number
+    acao: 'criar' | 'atualizar'
+    titulo: string
+    cliente: string
+    responsavel: string | null
+    tipo: string
+    status: 'aberto' | 'encerrado'
+    dataCriacao: string | null
+    vinculado: boolean
+  }>
+}
+
+export type ImportacaoAtendimentosResult = {
+  total: number
+  gravados: number
+  criados: number
+  atualizados: number
+  ignorados: string[]
+  loteId?: string | null
+}
+
 type PreparedImportRow = {
   linha: number
   row: Record<string, string>
@@ -45,6 +77,21 @@ type PreparedImportRow = {
   existingClienteId: string | null
   acao: 'criar' | 'atualizar'
   contatos: number
+}
+
+type PreparedAtendimentoRow = {
+  linha: number
+  payload: Record<string, unknown>
+  sourceKey: string
+  titulo: string
+  clienteNome: string
+  responsavel: string | null
+  tipoAtendimento: string
+  status: 'aberto' | 'encerrado'
+  dataCriacao: string | null
+  clienteId: string | null
+  carteiraId: string | null
+  acao: 'criar' | 'atualizar'
 }
 
 function admin() {
@@ -72,6 +119,10 @@ function numberBetween(formData: FormData, key: string, min: number, max: number
     throw new Error(`${key} deve ficar entre ${min} e ${max}.`)
   }
   return parsed
+}
+
+function tipoClienteValue(value: string) {
+  return value === 'pontual' || value === 'cobranca' ? value : 'mensal'
 }
 
 function uuidOrNull(value: string) {
@@ -315,6 +366,7 @@ function clientePayload(formData: FormData) {
       telefone: nullableText(formData, 'telefone'),
       cidade: nullableText(formData, 'cidade'),
       estado: nullableText(formData, 'estado'),
+      tipo_cliente: tipoClienteValue(text(formData, 'tipo_cliente')),
       status_operacional: text(formData, 'status_operacional') || 'novo',
       score_atual: numberBetween(formData, 'score_atual', 0, 100),
       risco_atual: text(formData, 'risco_atual') || 'medio',
@@ -492,6 +544,266 @@ async function readImportRows(formData: FormData) {
   }
 }
 
+async function readAtendimentoImportRows(formData: FormData) {
+  const file = formData.get('arquivo')
+  if (!(file instanceof File) || file.size === 0) throw new Error('Selecione um arquivo XLSX.')
+  const isXlsx = file.name.toLowerCase().endsWith('.xlsx') || file.type.includes('spreadsheetml')
+  if (!isXlsx) throw new Error('Use uma planilha XLSX exportada do ASTREA.')
+
+  const ExcelJS = await import('exceljs')
+  const workbook = new ExcelJS.Workbook()
+  const buffer = Buffer.from(await file.arrayBuffer())
+  await workbook.xlsx.load(buffer as any)
+  const sheet = workbook.getWorksheet('Processos') ?? workbook.worksheets[0]
+  if (!sheet) throw new Error('Arquivo XLSX sem abas.')
+
+  const firstRowValues = sheet.getRow(1).values
+  const headerValues = Array.isArray(firstRowValues) ? firstRowValues.slice(1) : []
+  const header = headerValues.map((value) => normalizeHeader(String(value ?? '')))
+  const rows: Record<string, string>[] = []
+  sheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return
+    const record: Record<string, string> = {}
+    let hasValue = false
+
+    for (let index = 0; index < header.length; index += 1) {
+      const key = header[index]
+      if (!key) continue
+      const value = excelCellText(row.getCell(index + 1).value)
+      if (value) hasValue = true
+      record[key] = value
+    }
+
+    if (hasValue) rows.push(record)
+  })
+
+  return {
+    fileInfo: { nome: file.name, tamanho: file.size },
+    rows,
+  }
+}
+
+function excelCellText(value: unknown): string {
+  if (value instanceof Date) return value.toISOString()
+  if (value && typeof value === 'object') {
+    if ('text' in value && typeof value.text === 'string') return value.text.trim()
+    if ('result' in value) return excelCellText(value.result)
+    if ('hyperlink' in value && typeof value.hyperlink === 'string') return value.hyperlink.trim()
+    if ('richText' in value && Array.isArray(value.richText)) {
+      return value.richText.map((item: { text?: string }) => item.text ?? '').join('').trim()
+    }
+  }
+  return String(value ?? '').trim()
+}
+
+function astreaNormalizeText(value: string | null | undefined) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function astreaNameKeys(value: string | null | undefined) {
+  const base = astreaNormalizeText(value)
+  if (!base) return []
+  const variants = new Set([base])
+  variants.add(base.replace(/^(condominio|condominial|subcondominio|edificio)\s+/, '').trim())
+  variants.add(base.replace(/^(condominio|condominial)\s+edificio\s+/, '').trim())
+  variants.add(base.replace(/\s+subcondominio\s+/g, ' ').trim())
+  variants.add(base.replace(/\s+setor\s+(residencial|moradia)\s*/g, ' ').trim())
+  return [...variants].filter(Boolean)
+}
+
+function nullableValue(value: string | null | undefined) {
+  const normalized = String(value ?? '').trim()
+  return normalized ? normalized : null
+}
+
+function excelSerialDate(value: string) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) return null
+  const timestamp = Date.UTC(1899, 11, 30) + Math.floor(parsed) * 86400000
+  return new Date(timestamp).toISOString().slice(0, 10)
+}
+
+function parseAstreaDate(value: string | null | undefined) {
+  const raw = nullableValue(value)
+  if (!raw) return null
+  const numericDate = /^\d+(\.\d+)?$/.test(raw) ? excelSerialDate(raw) : null
+  if (numericDate) return numericDate
+
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`
+
+  const br = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (br) return `${br[3]}-${br[2].padStart(2, '0')}-${br[1].padStart(2, '0')}`
+
+  return null
+}
+
+function parseAstreaTimestamp(value: string | null | undefined) {
+  const raw = nullableValue(value)
+  if (!raw) return null
+  if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) return raw
+  const date = parseAstreaDate(raw)
+  return date ? `${date}T00:00:00-03:00` : null
+}
+
+function splitAstreaEtiquetas(value: string | null | undefined) {
+  return String(value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function tipoAtendimentoAstrea(etiquetas: string[]) {
+  const specific = etiquetas.find((item) => astreaNormalizeText(item) !== 'consultivo')
+  return specific ?? etiquetas[0] ?? 'Sem etiqueta'
+}
+
+function astreaCodigo(title: string | null | undefined) {
+  return nullableValue(title)?.match(/\bATE\d+\b/i)?.[0]?.toUpperCase() ?? null
+}
+
+function astreaSourceKey(row: Record<string, string>, line: number) {
+  const titulo = rowValue(row, 'Título', 'Titulo')
+  const codigo = astreaCodigo(titulo)
+  if (codigo) return codigo
+  return astreaNormalizeText(`${titulo ?? ''}-${rowValue(row, 'Cliente') ?? ''}-${rowValue(row, 'Data de Criação', 'Data de Criacao') ?? ''}-${line}`)
+}
+
+async function loadAtendimentoClienteMap(context: Awaited<ReturnType<typeof requireCicloWrite>>) {
+  const { data, error } = await admin()
+    .schema('ciclo')
+    .from('clientes')
+    .select('id,carteira_id,nome,nome_fantasia,razao_social')
+    .limit(3000)
+
+  if (error) throw new Error(`Clientes Ciclo: ${error.message}`)
+
+  const carteiras = await allowedCarteirasFor(context.usuario.id, context.usuario.tipo)
+  const allowedCarteiraIds = context.usuario.tipo === 'admin_global' ? null : new Set([...carteiras.values()].map((carteira) => carteira.id))
+  const map = new Map<string, { id: string; carteira_id: string | null }>()
+
+  for (const cliente of (data ?? []) as Array<Record<string, any>>) {
+    const carteiraId = typeof cliente.carteira_id === 'string' ? cliente.carteira_id : null
+    if (allowedCarteiraIds && carteiraId && !allowedCarteiraIds.has(carteiraId)) continue
+    for (const name of [cliente.nome, cliente.nome_fantasia, cliente.razao_social]) {
+      for (const key of astreaNameKeys(String(name ?? ''))) {
+        if (key && !map.has(key)) map.set(key, { id: String(cliente.id), carteira_id: carteiraId })
+      }
+    }
+  }
+
+  return map
+}
+
+function findAtendimentoCliente(clienteNome: string, clienteMap: Map<string, { id: string; carteira_id: string | null }>) {
+  for (const key of astreaNameKeys(clienteNome)) {
+    const hit = clienteMap.get(key)
+    if (hit) return hit
+  }
+  return null
+}
+
+async function existingAtendimentoKeys(sourceKeys: string[]) {
+  const existing = new Set<string>()
+  const uniqueKeys = [...new Set(sourceKeys)].filter(Boolean)
+  for (let index = 0; index < uniqueKeys.length; index += 200) {
+    const chunk = uniqueKeys.slice(index, index + 200)
+    const { data, error } = await admin()
+      .schema('ciclo')
+      .from('atendimentos_consultivos')
+      .select('source_key')
+      .in('source_key', chunk)
+
+    if (error) throw new Error(`Atendimentos existentes: ${error.message}`)
+    for (const row of (data ?? []) as Array<Record<string, any>>) existing.add(String(row.source_key))
+  }
+  return existing
+}
+
+async function prepararImportacaoAtendimentosAstrea(formData: FormData) {
+  const context = await requireCicloWrite(null)
+  const { rows, fileInfo } = await readAtendimentoImportRows(formData)
+  const clienteMap = await loadAtendimentoClienteMap(context)
+  const ignorados: string[] = []
+  const preliminary: Omit<PreparedAtendimentoRow, 'acao'>[] = []
+  const seen = new Set<string>()
+
+  for (const [index, row] of rows.entries()) {
+    const linha = index + 2
+    const titulo = rowValue(row, 'Título', 'Titulo')
+    const clienteNome = rowValue(row, 'Cliente')
+
+    if (!titulo || !clienteNome) {
+      ignorados.push(`Linha ${linha}: titulo ou cliente vazio.`)
+      continue
+    }
+
+    const sourceKey = astreaSourceKey(row, linha)
+    if (seen.has(sourceKey)) {
+      ignorados.push(`Linha ${linha}: atendimento duplicado no arquivo (${sourceKey}).`)
+      continue
+    }
+    seen.add(sourceKey)
+
+    const etiquetas = splitAstreaEtiquetas(rowValue(row, 'Etiquetas'))
+    const cliente = findAtendimentoCliente(clienteNome, clienteMap)
+    const dataEncerramento = parseAstreaTimestamp(rowValue(row, 'Data de Encerramento'))
+    const dataCriacao = parseAstreaDate(rowValue(row, 'Data de Criação', 'Data de Criacao'))
+    const responsavel = nullableValue(rowValue(row, 'Responsável', 'Responsavel'))
+    const tipoAtendimento = tipoAtendimentoAstrea(etiquetas)
+    const status = dataEncerramento ? 'encerrado' : 'aberto'
+
+    preliminary.push({
+      carteiraId: cliente?.carteira_id ?? null,
+      clienteId: cliente?.id ?? null,
+      clienteNome,
+      dataCriacao,
+      linha,
+      payload: {
+        source_key: sourceKey,
+        astrea_codigo: astreaCodigo(titulo),
+        titulo,
+        cliente_nome: clienteNome,
+        cliente_id: cliente?.id ?? null,
+        carteira_id: cliente?.carteira_id ?? null,
+        responsavel,
+        etiquetas,
+        tipo_atendimento: tipoAtendimento,
+        status,
+        data_criacao: dataCriacao,
+        data_encerramento: dataEncerramento,
+        data_ultimo_historico: parseAstreaDate(rowValue(row, 'Data do último histórico', 'Data do ultimo historico')),
+        objeto: nullableValue(rowValue(row, 'Objeto')),
+        ultimo_historico: nullableValue(rowValue(row, 'Descrição do último histórico', 'Descricao do ultimo historico')),
+        url_processo: nullableValue(rowValue(row, 'URL do Processo')),
+        raw: row,
+        imported_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      responsavel,
+      sourceKey,
+      status,
+      tipoAtendimento,
+      titulo,
+    })
+  }
+
+  const existing = await existingAtendimentoKeys(preliminary.map((row) => row.sourceKey))
+  const prepared: PreparedAtendimentoRow[] = preliminary.map((row) => ({
+    ...row,
+    acao: existing.has(row.sourceKey) ? 'atualizar' : 'criar',
+  }))
+
+  return { context, fileInfo, ignorados, prepared, total: rows.length }
+}
+
 async function ensureAdministradora(nome: string | null) {
   if (!nome) return null
   const db = admin().schema('ciclo')
@@ -616,6 +928,83 @@ async function finalizarLoteImportacao(loteId: string, result: ImportacaoCliente
     .eq('id', loteId)
 }
 
+async function criarLoteImportacaoAtendimentos(analysis: Awaited<ReturnType<typeof prepararImportacaoAtendimentosAstrea>>) {
+  const { data, error } = await admin()
+    .schema('ciclo')
+    .from('importacao_lotes')
+    .insert({
+      tipo: 'atendimentos_astrea_xlsx',
+      status: 'processando',
+      arquivo_nome: analysis.fileInfo.nome,
+      arquivo_tamanho: analysis.fileInfo.tamanho,
+      usuario_id: analysis.context.usuario.id,
+      carteira_ids: [...new Set(analysis.prepared.map((row) => row.carteiraId).filter(Boolean))],
+      total_linhas: analysis.total,
+      linhas_validas: analysis.prepared.length,
+      linhas_ignoradas: analysis.ignorados.length,
+      resumo: {
+        criar: analysis.prepared.filter((row) => row.acao === 'criar').length,
+        atualizar: analysis.prepared.filter((row) => row.acao === 'atualizar').length,
+        abertos: analysis.prepared.filter((row) => row.status === 'aberto').length,
+        encerrados: analysis.prepared.filter((row) => row.status === 'encerrado').length,
+        vinculados: analysis.prepared.filter((row) => row.clienteId).length,
+      },
+    })
+    .select('id')
+    .single()
+
+  if (error) throw new Error(`Lote de importacao: ${error.message}`)
+  return data.id as string
+}
+
+async function finalizarLoteImportacaoAtendimentos(
+  loteId: string,
+  result: ImportacaoAtendimentosResult,
+  analysis: Awaited<ReturnType<typeof prepararImportacaoAtendimentosAstrea>>,
+  status: 'concluido' | 'parcial' | 'falhou',
+  erro?: string,
+) {
+  await admin()
+    .schema('ciclo')
+    .from('importacao_lotes')
+    .update({
+      status,
+      clientes_criados: result.criados,
+      clientes_atualizados: result.atualizados,
+      contatos_importados: 0,
+      linhas_ignoradas: result.ignorados.length,
+      resumo: {
+        total: result.total,
+        gravados: result.gravados,
+        criados: result.criados,
+        atualizados: result.atualizados,
+        abertos: analysis.prepared.filter((row) => row.status === 'aberto').length,
+        encerrados: analysis.prepared.filter((row) => row.status === 'encerrado').length,
+        vinculados: analysis.prepared.filter((row) => row.clienteId).length,
+        sem_vinculo_cliente: analysis.prepared.filter((row) => !row.clienteId).length,
+        ignorados: result.ignorados.slice(0, 50),
+      },
+      erro: erro ?? null,
+      finalizado_em: new Date().toISOString(),
+    })
+    .eq('id', loteId)
+}
+
+async function upsertAtendimentosAstrea(rows: PreparedAtendimentoRow[]) {
+  let count = 0
+  for (let index = 0; index < rows.length; index += 200) {
+    const chunk = rows.slice(index, index + 200).map((row) => row.payload)
+    const { error } = await admin()
+      .schema('ciclo')
+      .from('atendimentos_consultivos')
+      .upsert(chunk, { onConflict: 'source_key' })
+
+    if (error) throw new Error(`Atendimentos ASTREA: ${error.message}`)
+    count += chunk.length
+  }
+  return count
+}
+
 async function upsertContato(payload: Record<string, unknown>) {
   const db = admin().schema('ciclo')
   const email = typeof payload.email === 'string' && payload.email.trim() ? payload.email.trim() : null
@@ -715,6 +1104,37 @@ async function ensureOnboardingChecklist(clienteId: string, carteiraId: string |
     .upsert(rows, { onConflict: 'cliente_id,tipo_documento', ignoreDuplicates: true })
 
   if (error) throw new Error(`Checklist de onboarding: ${error.message}`)
+}
+
+async function ensureOnboardingWorkflow(clienteId: string, carteiraId: string | null) {
+  const { data, error } = await admin()
+    .schema('ciclo')
+    .from('onboarding_workflow_atividades')
+    .select('id,ordem,descricao,responsavel_padrao,obrigatoria')
+    .eq('ativo', true)
+    .order('ordem', { ascending: true })
+
+  if (error) throw new Error(`Workflow de onboarding: ${error.message}`)
+
+  const rows = ((data ?? []) as Array<Record<string, any>>).map((atividade) => ({
+    cliente_id: clienteId,
+    carteira_id: carteiraId,
+    atividade_id: atividade.id,
+    ordem: atividade.ordem ?? 0,
+    descricao: atividade.descricao,
+    responsavel: atividade.responsavel_padrao ?? null,
+    obrigatoria: atividade.obrigatoria !== false,
+    status: 'pendente',
+  }))
+
+  if (!rows.length) return
+
+  const upsert = await admin()
+    .schema('ciclo')
+    .from('onboarding_cliente_atividades')
+    .upsert(rows, { onConflict: 'cliente_id,atividade_id', ignoreDuplicates: true })
+
+  if (upsert.error) throw new Error(`Workflow de onboarding: ${upsert.error.message}`)
 }
 
 async function recalcularRegularidade(clienteId: string, carteiraId: string | null) {
@@ -1095,6 +1515,7 @@ export async function startCicloOnboardingAction(formData: FormData) {
   const context = await requireCicloWrite(cliente.carteira_id)
 
   await ensureOnboardingChecklist(clienteId, cliente.carteira_id)
+  await ensureOnboardingWorkflow(clienteId, cliente.carteira_id)
 
   const { error } = await admin()
     .schema('ciclo')
@@ -1149,18 +1570,101 @@ export async function updateCicloOnboardingDocumentoAction(formData: FormData) {
   revalidatePath('/modulos/ciclo/regularidade')
 }
 
+export async function createCicloOnboardingWorkflowAtividadeAction(formData: FormData) {
+  await requireCicloWrite(null)
+  const descricao = required(text(formData, 'descricao'), 'Descricao')
+  const ordem = Number(text(formData, 'ordem') || 0)
+
+  const { error } = await admin()
+    .schema('ciclo')
+    .from('onboarding_workflow_atividades')
+    .insert({
+      ordem: Number.isFinite(ordem) ? ordem : 0,
+      descricao,
+      responsavel_padrao: nullableText(formData, 'responsavel_padrao'),
+      obrigatoria: formData.get('obrigatoria') !== 'off',
+      ativo: true,
+    })
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/modulos/ciclo/onboarding')
+  revalidatePath('/modulos/ciclo/onboarding/workflow')
+}
+
+export async function updateCicloOnboardingWorkflowAtividadeAction(formData: FormData) {
+  await requireCicloWrite(null)
+  const id = required(text(formData, 'id'), 'Atividade')
+  const descricao = required(text(formData, 'descricao'), 'Descricao')
+  const ordem = Number(text(formData, 'ordem') || 0)
+
+  const { error } = await admin()
+    .schema('ciclo')
+    .from('onboarding_workflow_atividades')
+    .update({
+      ordem: Number.isFinite(ordem) ? ordem : 0,
+      descricao,
+      responsavel_padrao: nullableText(formData, 'responsavel_padrao'),
+      obrigatoria: formData.get('obrigatoria') !== 'off',
+      ativo: formData.get('ativo') !== 'off',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/modulos/ciclo/onboarding')
+  revalidatePath('/modulos/ciclo/onboarding/workflow')
+}
+
+export async function updateCicloOnboardingAtividadeAction(formData: FormData) {
+  const id = required(text(formData, 'id'), 'Atividade')
+  const clienteId = required(text(formData, 'cliente_id'), 'Cliente')
+  const cliente = await getClienteAccess(clienteId)
+  const context = await requireCicloWrite(cliente.carteira_id)
+  const status = text(formData, 'status') || 'pendente'
+
+  const { error } = await admin()
+    .schema('ciclo')
+    .from('onboarding_cliente_atividades')
+    .update({
+      responsavel: nullableText(formData, 'responsavel'),
+      status,
+      concluido_em: status === 'concluido' ? new Date().toISOString() : null,
+      observacoes: nullableText(formData, 'observacoes'),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .eq('cliente_id', clienteId)
+
+  if (error) throw new Error(error.message)
+
+  await logTimeline(clienteId, cliente.carteira_id, context.usuario.id, 'Atividade de onboarding atualizada', `${text(formData, 'descricao') || 'Atividade'} - ${status}`)
+
+  revalidatePath('/modulos/ciclo/onboarding')
+  revalidatePath(`/modulos/ciclo/onboarding/${clienteId}`)
+}
+
 export async function completeCicloOnboardingAction(formData: FormData) {
   const clienteId = required(text(formData, 'cliente_id'), 'Cliente')
   const cliente = await getClienteAccess(clienteId)
   const context = await requireCicloWrite(cliente.carteira_id)
 
-  const { data, error } = await admin()
+  const [{ data, error }, atividadesResult] = await Promise.all([
+    admin()
     .schema('ciclo')
     .from('cliente_documentos')
     .select('id,status,validado,obrigatorio,aplicavel')
-    .eq('cliente_id', clienteId)
+      .eq('cliente_id', clienteId),
+    admin()
+      .schema('ciclo')
+      .from('onboarding_cliente_atividades')
+      .select('id,status,obrigatoria')
+      .eq('cliente_id', clienteId),
+  ])
 
   if (error) throw new Error(error.message)
+  if (atividadesResult.error) throw new Error(atividadesResult.error.message)
 
   const pendentes = ((data ?? []) as Array<Record<string, any>>).filter((documento) => (
     documento.obrigatorio !== false &&
@@ -1171,6 +1675,21 @@ export async function completeCicloOnboardingAction(formData: FormData) {
 
   if (pendentes.length) {
     throw new Error('Ainda existem documentos obrigatorios pendentes no onboarding.')
+  }
+
+  const atividades = (atividadesResult.data ?? []) as Array<Record<string, any>>
+  if (!atividades.length) {
+    throw new Error('Inicie o workflow de onboarding antes de concluir.')
+  }
+
+  const atividadesPendentes = atividades.filter((atividade) => (
+    atividade.obrigatoria !== false &&
+    atividade.status !== 'dispensado' &&
+    atividade.status !== 'concluido'
+  ))
+
+  if (atividadesPendentes.length) {
+    throw new Error('Ainda existem atividades obrigatorias pendentes no workflow de onboarding.')
   }
 
   const update = await admin()
@@ -1257,6 +1776,7 @@ export async function importarClientesXlsx(formData: FormData): Promise<Importac
         estado: rowValue(row, 'estado')?.toUpperCase().slice(0, 2) ?? null,
         pasta_url: rowValue(row, 'pasta_url'),
         observacoes: rowValue(row, 'observacoes'),
+        tipo_cliente: 'mensal',
         status_operacional: 'novo',
         score_atual: 75,
         risco_atual: 'medio',
@@ -1347,5 +1867,94 @@ export async function importarClientesXlsx(formData: FormData): Promise<Importac
   revalidatePath('/modulos/ciclo/clientes')
   revalidatePath('/modulos/ciclo/importacoes')
   revalidatePath('/modulos/ciclo/onboarding')
+  return result
+}
+
+export async function previewImportacaoAtendimentosAstreaXlsx(formData: FormData): Promise<PreviewImportacaoAtendimentos> {
+  const analysis = await prepararImportacaoAtendimentosAstrea(formData)
+
+  return {
+    total: analysis.total,
+    validas: analysis.prepared.length,
+    criar: analysis.prepared.filter((row) => row.acao === 'criar').length,
+    atualizar: analysis.prepared.filter((row) => row.acao === 'atualizar').length,
+    abertos: analysis.prepared.filter((row) => row.status === 'aberto').length,
+    encerrados: analysis.prepared.filter((row) => row.status === 'encerrado').length,
+    vinculados: analysis.prepared.filter((row) => row.clienteId).length,
+    semVinculoCliente: analysis.prepared.filter((row) => !row.clienteId).length,
+    ignorados: analysis.ignorados,
+    amostras: analysis.prepared.slice(0, 10).map((row) => ({
+      linha: row.linha,
+      acao: row.acao,
+      titulo: row.titulo,
+      cliente: row.clienteNome,
+      responsavel: row.responsavel,
+      tipo: row.tipoAtendimento,
+      status: row.status,
+      dataCriacao: row.dataCriacao,
+      vinculado: Boolean(row.clienteId),
+    })),
+  }
+}
+
+export async function importarAtendimentosAstreaXlsx(formData: FormData): Promise<ImportacaoAtendimentosResult> {
+  const analysis = await prepararImportacaoAtendimentosAstrea(formData)
+  const result: ImportacaoAtendimentosResult = {
+    total: analysis.total,
+    gravados: 0,
+    criados: analysis.prepared.filter((row) => row.acao === 'criar').length,
+    atualizados: analysis.prepared.filter((row) => row.acao === 'atualizar').length,
+    ignorados: [...analysis.ignorados],
+    loteId: null,
+  }
+
+  const loteId = await criarLoteImportacaoAtendimentos(analysis)
+  result.loteId = loteId
+
+  for (const mensagem of analysis.ignorados) {
+    const linhaMatch = mensagem.match(/^Linha (\d+):/)
+    await registrarItemImportacao({
+      lote_id: loteId,
+      linha: linhaMatch ? Number(linhaMatch[1]) : 0,
+      acao: 'ignorar',
+      status: 'ignorado',
+      mensagem,
+    })
+  }
+
+  try {
+    result.gravados = await upsertAtendimentosAstrea(analysis.prepared)
+
+    for (const item of analysis.prepared) {
+      await registrarItemImportacao({
+        lote_id: loteId,
+        linha: item.linha,
+        carteira_id: item.carteiraId,
+        cliente_id: item.clienteId,
+        acao: item.acao,
+        status: 'sucesso',
+        cliente_nome: item.clienteNome,
+        mensagem: `${item.tipoAtendimento} - ${item.status}`,
+        payload: item.payload,
+      })
+    }
+  } catch (err) {
+    const mensagem = err instanceof Error ? err.message : 'Erro inesperado ao importar atendimentos.'
+    result.ignorados.push(mensagem)
+    await finalizarLoteImportacaoAtendimentos(loteId, result, analysis, 'falhou', mensagem)
+    throw err
+  }
+
+  const finalStatus = result.gravados === 0 && result.ignorados.length
+    ? 'falhou'
+    : result.ignorados.length
+      ? 'parcial'
+      : 'concluido'
+
+  await finalizarLoteImportacaoAtendimentos(loteId, result, analysis, finalStatus)
+
+  revalidatePath('/modulos/ciclo')
+  revalidatePath('/modulos/ciclo/atendimento')
+  revalidatePath('/modulos/ciclo/importacoes')
   return result
 }

@@ -1,5 +1,5 @@
 import { updateCicloAlertaAction } from '@/features/ciclo/actions'
-import { CicloAlertaForm, CicloShell } from '@/features/ciclo/components'
+import { CicloAlertaForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloAlerta, getCicloDocumentoFormData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function EditarAlertaPage({ params }: { params: Promise<{ id: string }> }) {
@@ -15,10 +15,16 @@ export default async function EditarAlertaPage({ params }: { params: Promise<{ i
       active="alertas"
       eyebrow="Fila operacional"
       title={alerta.titulo}
-      description="Edicao de status, severidade e vencimento do alerta."
+      description="Edição de status, severidade e vencimento do alerta."
       usuario={context.usuario}
     >
-      <CicloAlertaForm action={updateCicloAlertaAction} alerta={alerta} formData={formData} />
+      <CicloSection
+        eyebrow="Edição"
+        title="Dados do alerta"
+        description="Atualize status, severidade, vencimento e contexto operacional."
+      >
+        <CicloAlertaForm action={updateCicloAlertaAction} alerta={alerta} formData={formData} />
+      </CicloSection>
     </CicloShell>
   )
 }

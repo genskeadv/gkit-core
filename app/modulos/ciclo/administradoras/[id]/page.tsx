@@ -1,5 +1,5 @@
 import { updateCicloAdministradoraAction } from '@/features/ciclo/actions'
-import { CicloAdministradoraForm, CicloShell } from '@/features/ciclo/components'
+import { CicloAdministradoraForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloAdministradora, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function EditarAdministradoraPage({ params }: { params: Promise<{ id: string }> }) {
@@ -12,10 +12,16 @@ export default async function EditarAdministradoraPage({ params }: { params: Pro
       active="administradoras"
       eyebrow="Base cadastral"
       title={administradora.nome}
-      description="Edicao da administradora vinculada aos clientes do Ciclo."
+      description="Edição da administradora vinculada aos clientes do Ciclo."
       usuario={context.usuario}
     >
-      <CicloAdministradoraForm action={updateCicloAdministradoraAction} administradora={administradora} />
+      <CicloSection
+        eyebrow="Edição"
+        title="Dados da administradora"
+        description="Atualize cadastro, contato e observações operacionais."
+      >
+        <CicloAdministradoraForm action={updateCicloAdministradoraAction} administradora={administradora} />
+      </CicloSection>
     </CicloShell>
   )
 }

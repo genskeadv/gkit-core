@@ -42,9 +42,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <main className="login-page">
       <section className="login-card">
         <div className="login-brand">
-          <BrandLogo className="login-mark" label="GKLI Core" />
+          <BrandLogo className="login-mark" label="GKIT Core" />
           <div>
-            <p className="login-kicker">GKLI Core</p>
+            <p className="login-kicker">GKIT Core</p>
             <span className="login-subtitle">Genske Advogados</span>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { updateCicloDocumentoAction } from '@/features/ciclo/actions'
-import { CicloDocumentoForm, CicloShell } from '@/features/ciclo/components'
+import { CicloDocumentoForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloDocumento, getCicloDocumentoFormData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function EditarDocumentoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -15,10 +15,16 @@ export default async function EditarDocumentoPage({ params }: { params: Promise<
       active="documentos"
       eyebrow="Regularidade documental"
       title={documento.titulo ?? documento.tipo_documento}
-      description="Edicao de documento, vencimento, status e validacao."
+      description="Edição de documento, vencimento, status e validação."
       usuario={context.usuario}
     >
-      <CicloDocumentoForm action={updateCicloDocumentoAction} documento={documento} formData={formData} />
+      <CicloSection
+        eyebrow="Edição"
+        title="Dados do documento"
+        description="Atualize status, vencimento, validacao e vinculo documental."
+      >
+        <CicloDocumentoForm action={updateCicloDocumentoAction} documento={documento} formData={formData} />
+      </CicloSection>
     </CicloShell>
   )
 }

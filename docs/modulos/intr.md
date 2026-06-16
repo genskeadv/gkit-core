@@ -1,5 +1,7 @@
 # Modulo Intr
 
+> Nota de migracao: o desenvolvimento funcional deste modulo passou a ser tratado como FIX. Use `docs/modulos/fix.md` como especificacao funcional canonica. Este arquivo fica como referencia historica do antigo Intr e da base tecnica que ainda usa schema/permissoes `gkli_intr`/`intr.*`.
+
 ## Papel
 
 O Intr concentra operacao interna, pessoas, times, receitas, comissoes, pagamentos, agenda de pagamentos e fechamentos. Tambem e a fonte de dados do Colab.

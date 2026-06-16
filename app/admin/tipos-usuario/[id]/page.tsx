@@ -14,7 +14,7 @@ export default async function EditarTipoUsuarioPage({ params }: { params: Promis
 
   return (
     <>
-      <PageHeader title="Editar tipo de usuario" subtitle={tipo.nome} />
+      <PageHeader title="Editar tipo de usuário" subtitle={tipo.nome} />
 
       <form action={updateUsuarioTipoAction} className="card grid">
         <input type="hidden" name="id" value={tipo.id} />
@@ -22,12 +22,12 @@ export default async function EditarTipoUsuarioPage({ params }: { params: Promis
         <div className="grid cols-2">
           <Field label="Nome" name="nome" defaultValue={tipo.nome} required />
           <div>
-            <label className="label" htmlFor="codigo">Codigo</label>
+            <label className="label" htmlFor="codigo">Código</label>
             <input className="input" id="codigo" name="codigo" readOnly={sistema} defaultValue={tipo.codigo} />
           </div>
         </div>
 
-        <Field label="Descricao" name="descricao" defaultValue={tipo.descricao} />
+        <Field label="Descrição" name="descricao" defaultValue={tipo.descricao} />
 
         <SelectField label="Status" name="ativo" defaultValue={tipo.ativo === false ? 'false' : 'true'}>
           <option value="true">Ativo</option>

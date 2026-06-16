@@ -1,6 +1,9 @@
 export type CicloStatusCliente = 'novo' | 'implantacao' | 'ativo' | 'pausado' | 'encerrado'
 export type CicloRisco = 'baixo' | 'medio' | 'alto' | 'critico'
 export type CicloTemperatura = 'quente' | 'neutro' | 'frio'
+export type CicloTipoCliente = 'mensal' | 'pontual' | 'cobranca'
+export type CicloAtendimentoStatus = 'aberto' | 'encerrado'
+export type CicloAtendimentoTab = 'cliente' | 'responsavel' | 'carteira' | 'tipo'
 
 export type CicloCliente = {
   id: string
@@ -9,6 +12,7 @@ export type CicloCliente = {
   documento: string
   carteira: string
   administradora: string
+  tipoCliente: CicloTipoCliente
   status: CicloStatusCliente
   risco: CicloRisco
   temperatura: CicloTemperatura
@@ -69,6 +73,62 @@ export type CicloListRow = {
   tone?: 'primary' | 'success' | 'warning' | 'danger'
 }
 
+export type CicloAtendimentoRecord = {
+  id: string
+  source_key: string
+  astrea_codigo: string | null
+  titulo: string
+  cliente_nome: string
+  cliente_id: string | null
+  carteira_id: string | null
+  carteira_nome: string
+  responsavel: string
+  etiquetas: string[]
+  tipo_atendimento: string
+  status: CicloAtendimentoStatus
+  data_criacao: string | null
+  data_encerramento: string | null
+  data_ultimo_historico: string | null
+  objeto: string | null
+  ultimo_historico: string | null
+  url_processo: string | null
+}
+
+export type CicloAtendimentoGroup = {
+  label: string
+  total: number
+  abertos: number
+  encerrados: number
+  percentual: number
+}
+
+export type CicloAtendimentoMonth = {
+  label: string
+  total: number
+  abertos: number
+  encerrados: number
+}
+
+export type CicloAtendimentoDashboard = {
+  rows: CicloAtendimentoRecord[]
+  groups: Record<CicloAtendimentoTab, CicloAtendimentoGroup[]>
+  months: CicloAtendimentoMonth[]
+  kpis: {
+    total: number
+    abertos: number
+    encerrados: number
+    clientes: number
+    responsaveis: number
+    tipos: number
+  }
+  options: {
+    carteiras: string[]
+    responsaveis: string[]
+    tipos: string[]
+  }
+  databaseReady: boolean
+}
+
 export type CicloFormOption = {
   id: string
   label: string
@@ -96,6 +156,7 @@ export type CicloClienteRecord = {
   cidade: string | null
   estado: string | null
   status_operacional: CicloStatusCliente
+  tipo_cliente: CicloTipoCliente
   score_atual: number
   risco_atual: CicloRisco
   temperatura: CicloTemperatura
@@ -216,13 +277,41 @@ export type CicloOnboardingDocumento = {
   observacoes: string | null
 }
 
+export type CicloOnboardingWorkflowAtividade = {
+  id: string
+  ordem: number
+  descricao: string
+  responsavel_padrao: string | null
+  obrigatoria: boolean
+  ativo: boolean
+}
+
+export type CicloOnboardingClienteAtividade = {
+  id: string
+  atividade_id: string | null
+  ordem: number
+  descricao: string
+  responsavel: string | null
+  status: 'pendente' | 'em_andamento' | 'concluido' | 'dispensado'
+  obrigatoria: boolean
+  concluido_em: string | null
+  observacoes: string | null
+}
+
 export type CicloOnboardingDetail = {
   cliente: CicloClienteRecord
   documentos: CicloOnboardingDocumento[]
+  atividades: CicloOnboardingClienteAtividade[]
   timeline: CicloTimelineItem[]
   progresso: {
     total: number
     concluidos: number
+    percentual: number
+    pendentes: number
+  }
+  workflow: {
+    total: number
+    concluidas: number
     percentual: number
     pendentes: number
   }

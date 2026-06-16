@@ -3,6 +3,7 @@ import {
   CicloDocumentSignal,
   CicloKpis,
   CicloPriorityList,
+  CicloSection,
   CicloShell,
 } from '@/features/ciclo/components'
 import { getCicloData, requireCicloContext } from '@/features/ciclo/queries'
@@ -14,16 +15,32 @@ export default async function CicloDashboardPage() {
   return (
     <CicloShell
       active="dashboard"
-      eyebrow="Gestao Ciclo"
+      eyebrow="Gestão Ciclo"
       title="Dashboard operacional"
-      description="Visao executiva de clientes, risco, regularidade documental e alertas."
+      description="Visão executiva de clientes, risco, regularidade documental e alertas."
       usuario={context.usuario}
     >
-      <CicloKpis data={data} />
-      <CicloDocumentSignal documentos={data.documentos} />
+      <CicloSection
+        eyebrow="Indicadores"
+        title="Visão executiva"
+        description="Clientes, implantações, risco, alertas, score e regularidade documental."
+      >
+        <CicloKpis data={data} />
+      </CicloSection>
+      <CicloSection
+        eyebrow="Regularidade"
+        title="Sinal documental"
+        description="Documentos pendentes, obrigatórios e validados na carteira."
+      >
+        <CicloDocumentSignal documentos={data.documentos} />
+      </CicloSection>
       <section className="ciclo-split-grid">
-        <CicloPriorityList clientes={data.clientes} />
-        <CicloAlertList alertas={data.alertas} />
+        <CicloSection title="Clientes prioritarios" description="Ranking operacional para acompanhamento executivo.">
+          <CicloPriorityList clientes={data.clientes} />
+        </CicloSection>
+        <CicloSection title="Alertas recentes" description="Fila aberta por risco, documentação e acompanhamento.">
+          <CicloAlertList alertas={data.alertas} />
+        </CicloSection>
       </section>
     </CicloShell>
   )

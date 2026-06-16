@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CrmGenericList, CrmListKpis, CrmShell } from '@/features/crm/components'
+import { CrmGenericList, CrmListKpis, CrmSection, CrmShell } from '@/features/crm/components'
 import { listCrmContatoRows, requireCrmContext } from '@/features/crm/queries'
 
 export default async function CrmContatosPage() {
@@ -17,14 +17,26 @@ export default async function CrmContatosPage() {
       usuario={context.usuario}
       actions={canWrite ? <Link className="button" href="/modulos/crm/contatos/novo">Novo contato</Link> : null}
     >
-      <CrmListKpis rows={rows} secondaryLabel="Com cargo" />
-      <CrmGenericList
+      <CrmSection
+        eyebrow="Resumo"
+        title="Relacionamentos ativos"
+        description="Contatos disponíveis para oportunidades, atividades e interações comerciais."
+      >
+        <CrmListKpis rows={rows} secondaryLabel="Com cargo" />
+      </CrmSection>
+      <CrmSection
+        eyebrow="Cadastro"
         title="Lista de contatos"
-        description="Contatos carregados do CRM para apoiar pipeline e relacionamento."
-        emptyLabel="Nenhum contato encontrado."
-        editHrefBase={canWrite ? '/modulos/crm/contatos' : undefined}
-        rows={rows}
-      />
+        description="Pessoas de relacionamento com cargo, e-mail, telefone e status."
+      >
+        <CrmGenericList
+          title="Lista de contatos"
+          description="Contatos carregados do CRM para apoiar pipeline e relacionamento."
+          emptyLabel="Nenhum contato encontrado."
+          editHrefBase={canWrite ? '/modulos/crm/contatos' : undefined}
+          rows={rows}
+        />
+      </CrmSection>
     </CrmShell>
   )
 }

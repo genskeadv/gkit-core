@@ -24,8 +24,8 @@ export default async function TiposUsuarioPage({ searchParams }: TiposUsuarioPag
   return (
     <>
       <PageHeader
-        title="Tipos de usuario"
-        subtitle="Classificacao operacional de usuarios do Core."
+        title="Tipos de usuário"
+        subtitle="Classificação operacional de usuários do Core."
         actionHref={canWrite ? '/admin/tipos-usuario/novo' : undefined}
         actionLabel={canWrite ? 'Novo tipo' : undefined}
       />
@@ -43,8 +43,8 @@ export default async function TiposUsuarioPage({ searchParams }: TiposUsuarioPag
           <thead>
             <tr>
               <th>Nome</th>
-              <th>Codigo</th>
-              <th>Descricao</th>
+              <th>Código</th>
+              <th>Descrição</th>
               <th>Status</th>
               {canWrite ? <th></th> : null}
             </tr>
@@ -60,7 +60,7 @@ export default async function TiposUsuarioPage({ searchParams }: TiposUsuarioPag
               </tr>
             ))}
             {!filtrados.length ? (
-              <tr><td colSpan={canWrite ? 5 : 4}>Nenhum tipo de usuario encontrado.</td></tr>
+              <tr><td colSpan={canWrite ? 5 : 4}>Nenhum tipo de usuário encontrado.</td></tr>
             ) : null}
           </tbody>
         </table>

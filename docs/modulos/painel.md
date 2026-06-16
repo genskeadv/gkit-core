@@ -7,9 +7,9 @@ O Painel e uma entrada unificada alternativa, sem menu lateral, com atalhos para
 ## Funcionalidades prontas
 
 - Exibe Core para usuarios com permissao administrativa.
-- Exibe CRM, Ciclo, Intr e Colab conforme acesso ativo.
+- Exibe CRM, Ciclo, Flex e Colab conforme acesso ativo.
 - Publica atalhos por grupo funcional.
-- Mostra leitura executiva do fluxo CRM -> Ciclo -> Intr -> Colab.
+- Mostra leitura executiva do fluxo CRM -> Ciclo -> Flex -> Colab.
 - Mostra pendencias de migracao quando existirem.
 
 ## Telas principais

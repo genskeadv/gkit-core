@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CicloGenericList, CicloListKpis, CicloShell } from '@/features/ciclo/components'
+import { CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloAdministradoraRows, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function CicloAdministradorasPage() {
@@ -17,14 +17,26 @@ export default async function CicloAdministradorasPage() {
       usuario={context.usuario}
       actions={canWrite ? <Link className="button" href="/modulos/ciclo/administradoras/nova">Nova administradora</Link> : null}
     >
-      <CicloListKpis rows={rows} />
-      <CicloGenericList
+      <CicloSection
+        eyebrow="Resumo"
+        title="Base de administradoras"
+        description="Volume e status das administradoras vinculadas aos clientes."
+      >
+        <CicloListKpis rows={rows} />
+      </CicloSection>
+      <CicloSection
+        eyebrow="Cadastro"
         title="Lista de administradoras"
-        description="Administradoras disponiveis no schema Ciclo."
-        detailHrefBase="/modulos/ciclo/administradoras"
-        emptyLabel="Nenhuma administradora encontrada."
-        rows={rows}
-      />
+        description="Administradoras disponiveis para vinculo no cadastro mestre."
+      >
+        <CicloGenericList
+          title="Lista de administradoras"
+          description="Administradoras disponiveis no schema Ciclo."
+          detailHrefBase="/modulos/ciclo/administradoras"
+          emptyLabel="Nenhuma administradora encontrada."
+          rows={rows}
+        />
+      </CicloSection>
     </CicloShell>
   )
 }

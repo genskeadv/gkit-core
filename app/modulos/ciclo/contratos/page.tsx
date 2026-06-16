@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CicloGenericList, CicloListKpis, CicloShell } from '@/features/ciclo/components'
+import { CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloContratoRows, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function CicloContratosPage() {
@@ -10,21 +10,33 @@ export default async function CicloContratosPage() {
 
   return (
     <CicloShell
-      active="contratos"
-      eyebrow="Documentos juridicos"
+      active="documentos"
+      eyebrow="Documentos"
       title="Contratos"
-      description="Contratos, vigencias, valores e reajustes vinculados aos clientes."
+      description="Contratos, vigências, valores e reajustes vinculados aos clientes."
       usuario={context.usuario}
       actions={canWrite ? <Link className="button" href="/modulos/ciclo/contratos/novo">Novo contrato</Link> : null}
     >
-      <CicloListKpis rows={rows} />
-      <CicloGenericList
+      <CicloSection
+        eyebrow="Resumo"
+        title="Contratos da carteira"
+        description="Volume e situação dos contratos vinculados aos clientes."
+      >
+        <CicloListKpis rows={rows} />
+      </CicloSection>
+      <CicloSection
+        eyebrow="Documentos"
         title="Lista de contratos"
-        description="Contratos cadastrados no schema Ciclo."
-        detailHrefBase={canWrite ? '/modulos/ciclo/contratos' : undefined}
-        emptyLabel="Nenhum contrato encontrado."
-        rows={rows}
-      />
+        description="Contratos, vigências, valores e reajustes vinculados aos clientes."
+      >
+        <CicloGenericList
+          title="Lista de contratos"
+          description="Contratos cadastrados no schema Ciclo."
+          detailHrefBase={canWrite ? '/modulos/ciclo/contratos' : undefined}
+          emptyLabel="Nenhum contrato encontrado."
+          rows={rows}
+        />
+      </CicloSection>
     </CicloShell>
   )
 }

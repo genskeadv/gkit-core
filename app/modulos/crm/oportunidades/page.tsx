@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CrmBoard, CrmKpis, CrmShell } from '@/features/crm/components'
+import { CrmBoard, CrmKpis, CrmSection, CrmShell } from '@/features/crm/components'
 import { getCrmData, requireCrmContext } from '@/features/crm/queries'
 
 export default async function CrmOportunidadesPage() {
@@ -17,8 +17,20 @@ export default async function CrmOportunidadesPage() {
       usuario={context.usuario}
       actions={canWrite ? <Link className="button" href="/modulos/crm/oportunidades/nova">Nova oportunidade</Link> : null}
     >
-      <CrmKpis data={data} />
-      <CrmBoard canWrite={canWrite} oportunidades={data.oportunidades} />
+      <CrmSection
+        eyebrow="Resumo"
+        title="Indicadores do pipeline"
+        description="Base rápida para comparar volume aberto, previsão, conversão e follow-ups."
+      >
+        <CrmKpis data={data} />
+      </CrmSection>
+      <CrmSection
+        eyebrow="Operação"
+        title="Quadro de oportunidades"
+        description="Cards por etapa, com risco, score, valor, chance e próxima ação."
+      >
+        <CrmBoard canWrite={canWrite} oportunidades={data.oportunidades} />
+      </CrmSection>
     </CrmShell>
   )
 }

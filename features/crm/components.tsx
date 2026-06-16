@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ModuleShell, type ModuleNavGroup } from '@/features/shared/module-shell'
+import { OperationalKpiGrid, OperationalQuickLinks, OperationalSection } from '@/features/shared/operational-ui'
 import { sendCrmOpportunityToCicloAction } from '@/features/crm/actions'
 import { formatBRL, opportunityScore, riskLabel, riskTone, stageLabel, stageOrder } from '@/features/crm/scoring'
 import type {
@@ -25,11 +26,9 @@ type CrmTab =
   | 'propostas'
   | 'atividades'
   | 'interacoes'
-  | 'importacoes'
   | 'empresas'
   | 'clientes'
   | 'contatos'
-  | 'carteiras'
 
 const activeHref: Record<CrmTab, string> = {
   cockpit: '/modulos/crm',
@@ -38,11 +37,9 @@ const activeHref: Record<CrmTab, string> = {
   propostas: '/modulos/crm/propostas',
   atividades: '/modulos/crm/atividades',
   interacoes: '/modulos/crm/interacoes',
-  importacoes: '/modulos/crm/importacoes',
   empresas: '/modulos/crm/empresas',
   clientes: '/modulos/crm/clientes',
   contatos: '/modulos/crm/contatos',
-  carteiras: '/modulos/crm/carteiras-usuarios',
 }
 
 const navGroups: ModuleNavGroup[] = [
@@ -50,7 +47,6 @@ const navGroups: ModuleNavGroup[] = [
     title: 'Cockpit',
     items: [
       { href: '/modulos/crm', label: 'Cockpit' },
-      { href: '/modulos/crm/dashboard', label: 'Dashboard' },
     ],
   },
   {
@@ -59,15 +55,20 @@ const navGroups: ModuleNavGroup[] = [
       { href: '/modulos/crm/oportunidades', label: 'Pipeline' },
       { href: '/modulos/crm/propostas', label: 'Propostas' },
       { href: '/modulos/crm/atividades', label: 'Atividades' },
-      { href: '/modulos/crm/interacoes', label: 'Interacoes' },
+      { href: '/modulos/crm/interacoes', label: 'Interações' },
     ],
   },
   {
     title: 'Base cadastral',
     items: [
-      { href: '/modulos/crm/empresas', label: 'Empresas' },
       { href: '/modulos/crm/clientes', label: 'Clientes' },
       { href: '/modulos/crm/contatos', label: 'Contatos' },
+    ],
+  },
+  {
+    title: 'Gestão',
+    items: [
+      { href: '/modulos/crm/dashboard', label: 'Dashboard' },
     ],
   },
 ]
@@ -97,13 +98,44 @@ export function CrmShell({
       description={description}
       eyebrow={eyebrow}
       navGroups={navGroups}
-      product="GKLI CRM"
+      product="GKIT CRM"
       title={title}
       usuario={usuario}
+      variantClassName={active === 'cockpit' ? 'crm-shell crm-cockpit-page' : 'crm-shell'}
     >
       {children}
     </ModuleShell>
   )
+}
+
+export function CrmSection({
+  action,
+  children,
+  className,
+  description,
+  eyebrow,
+  title,
+}: {
+  action?: ReactNode
+  children: ReactNode
+  className?: string
+  description?: string
+  eyebrow?: string
+  title: string
+}) {
+  return (
+    <OperationalSection action={action} className={className} classPrefix="crm" description={description} eyebrow={eyebrow} title={title}>
+      {children}
+    </OperationalSection>
+  )
+}
+
+export function CrmQuickLinks({
+  items,
+}: {
+  items: Array<{ href: string; title: string; description: string; label?: string; meta?: string }>
+}) {
+  return <OperationalQuickLinks classPrefix="crm" defaultLabel="CRM" items={items} />
 }
 
 export function CrmReadinessCard({ data }: { data: CrmData }) {
@@ -112,7 +144,7 @@ export function CrmReadinessCard({ data }: { data: CrmData }) {
   return (
     <section className="crm-empty-card">
       <strong>CRM pronto para iniciar</strong>
-      <span>Cadastre empresas, contatos e oportunidades para alimentar o cockpit comercial.</span>
+      <span>Cadastre clientes, contatos e oportunidades para alimentar o cockpit comercial.</span>
     </section>
   )
 }
@@ -131,21 +163,11 @@ export function CrmKpis({ data }: { data: CrmData }) {
     { label: 'Receita provável', value: formatBRL(receitaProvavel), hint: 'ponderada por probabilidade' },
     { label: 'Conversão', value: `${conversao}%`, hint: 'fechados sobre a base' },
     { label: 'Follow-ups', value: String(followUps), hint: 'ações pendentes' },
-    { label: 'Empresas', value: String(data.empresas.length), hint: 'contas cadastradas' },
+    { label: 'Clientes', value: String(data.empresas.length), hint: 'clientes cadastrados' },
     { label: 'Propostas', value: String(data.propostas.total), hint: `${formatBRL(data.propostas.valorTotal)} em valor` },
   ]
 
-  return (
-    <section className="crm-kpi-grid">
-      {items.map((item) => (
-        <article className="card metric-card" key={item.label}>
-          <p className="metric-label">{item.label}</p>
-          <p className="metric-value">{item.value}</p>
-          <p className="metric-hint">{item.hint}</p>
-        </article>
-      ))}
-    </section>
-  )
+  return <OperationalKpiGrid className="crm-kpi-grid" items={items} />
 }
 
 export function CrmSemaforo({ oportunidades }: { oportunidades: CrmOportunidade[] }) {
@@ -371,7 +393,7 @@ export function CrmOpportunityForm({
       </div>
 
       <div>
-        <label className="label" htmlFor="empresa_id">Empresa</label>
+        <label className="label" htmlFor="empresa_id">Cliente</label>
         <select className="select" id="empresa_id" name="empresa_id" required defaultValue={opportunity?.empresa_id ?? ''}>
           <option value="">Selecione</option>
           {formData.empresas.map((empresa) => (
@@ -434,17 +456,17 @@ export function CrmOpportunityForm({
       </div>
 
       <div>
-        <label className="label" htmlFor="data_ultima_interacao">Ultima interacao</label>
+        <label className="label" htmlFor="data_ultima_interacao">Última interação</label>
         <input className="input" id="data_ultima_interacao" name="data_ultima_interacao" type="datetime-local" defaultValue={dateTimeLocal(opportunity?.data_ultima_interacao)} />
       </div>
 
       <div>
-        <label className="label" htmlFor="data_proxima_acao">Proxima acao em</label>
+        <label className="label" htmlFor="data_proxima_acao">Próxima ação em</label>
         <input className="input" id="data_proxima_acao" name="data_proxima_acao" type="datetime-local" defaultValue={dateTimeLocal(opportunity?.data_proxima_acao)} />
       </div>
 
       <div className="crm-form-wide">
-        <label className="label" htmlFor="proxima_acao">Proxima acao</label>
+        <label className="label" htmlFor="proxima_acao">Próxima ação</label>
         <input className="input" id="proxima_acao" name="proxima_acao" defaultValue={opportunity?.proxima_acao ?? ''} />
       </div>
 
@@ -476,8 +498,8 @@ export function CrmEmpresaList({ empresas }: { empresas: CrmEmpresa[] }) {
     <section className="card crm-panel">
       <div className="crm-panel-heading">
         <div>
-          <h2>Lista de empresas</h2>
-          <p>Contas comerciais vinculadas ao pipeline.</p>
+          <h2>Lista de clientes</h2>
+          <p>Clientes e prospectos vinculados ao pipeline.</p>
         </div>
       </div>
 
@@ -489,8 +511,8 @@ export function CrmEmpresaList({ empresas }: { empresas: CrmEmpresa[] }) {
                 <h3>{empresa.nome}</h3>
                 <p>{empresa.documento} · {empresa.segmento}</p>
               </div>
-              <span className={`crm-pill ${empresa.status === 'ativo' ? 'success' : empresa.status === 'inativo' ? 'danger' : 'primary'}`}>
-                {empresa.status}
+              <span className={`crm-pill ${empresa.status === 'ativo' ? 'success' : 'primary'}`}>
+                {empresa.status === 'ativo' ? 'Ativo' : 'Prospecto'}
               </span>
               <strong>{formatBRL(empresa.valorPipeline)}</strong>
               <small>{empresa.oportunidades} oportunidades · {empresa.contatos} contatos</small>
@@ -498,7 +520,7 @@ export function CrmEmpresaList({ empresas }: { empresas: CrmEmpresa[] }) {
           ))}
         </div>
       ) : (
-        <EmptyBlock label="Nenhuma empresa cadastrada." />
+        <EmptyBlock label="Nenhum cliente cadastrado." />
       )}
     </section>
   )
@@ -509,8 +531,8 @@ export function CrmEmpresaEditableList({ canWrite = false, empresas }: { canWrit
     <section className="card crm-panel">
       <div className="crm-panel-heading">
         <div>
-          <h2>Lista de empresas</h2>
-          <p>Contas comerciais vinculadas ao pipeline.</p>
+          <h2>Lista de clientes</h2>
+          <p>Clientes e prospectos vinculados ao pipeline.</p>
         </div>
       </div>
 
@@ -522,8 +544,8 @@ export function CrmEmpresaEditableList({ canWrite = false, empresas }: { canWrit
                 <h3>{empresa.nome}</h3>
                 <p>{empresa.documento} - {empresa.segmento}</p>
               </div>
-              <span className={`crm-pill ${empresa.status === 'ativo' ? 'success' : empresa.status === 'inativo' ? 'danger' : 'primary'}`}>
-                {empresa.status}
+              <span className={`crm-pill ${empresa.status === 'ativo' ? 'success' : 'primary'}`}>
+                {empresa.status === 'ativo' ? 'Ativo' : 'Prospecto'}
               </span>
               <strong>{formatBRL(empresa.valorPipeline)}</strong>
               <small>
@@ -534,7 +556,7 @@ export function CrmEmpresaEditableList({ canWrite = false, empresas }: { canWrit
           ))}
         </div>
       ) : (
-        <EmptyBlock label="Nenhuma empresa cadastrada." />
+        <EmptyBlock label="Nenhum cliente cadastrado." />
       )}
     </section>
   )
@@ -546,23 +568,13 @@ export function CrmEmpresaKpis({ empresas }: { empresas: CrmEmpresa[] }) {
   const contatos = empresas.reduce((sum, empresa) => sum + empresa.contatos, 0)
 
   const items = [
-    { label: 'Empresas', value: String(empresas.length), hint: 'base cadastrada' },
+    { label: 'Clientes', value: String(empresas.length), hint: 'base cadastrada' },
     { label: 'Prospectos', value: String(prospectos), hint: 'em relacionamento' },
-    { label: 'Vínculos', value: String(contatos), hint: 'empresas x contatos' },
+    { label: 'Vinculos', value: String(contatos), hint: 'clientes x contatos' },
     { label: 'Pipeline', value: formatBRL(totalPipeline), hint: 'valor associado' },
   ]
 
-  return (
-    <section className="crm-kpi-grid compact">
-      {items.map((item) => (
-        <article className="card metric-card" key={item.label}>
-          <p className="metric-label">{item.label}</p>
-          <p className="metric-value">{item.value}</p>
-          <p className="metric-hint">{item.hint}</p>
-        </article>
-      ))}
-    </section>
-  )
+  return <OperationalKpiGrid className="crm-kpi-grid compact" items={items} />
 }
 
 export function CrmListKpis({
@@ -577,28 +589,15 @@ export function CrmListKpis({
   const danger = rows.filter((row) => row.tone === 'danger').length
 
   return (
-    <section className="crm-kpi-grid compact">
-      <article className="card metric-card">
-        <p className="metric-label">Total</p>
-        <p className="metric-value">{rows.length}</p>
-        <p className="metric-hint">registros carregados</p>
-      </article>
-      <article className="card metric-card">
-        <p className="metric-label">{secondaryLabel}</p>
-        <p className="metric-value">{success}</p>
-        <p className="metric-hint">status positivo</p>
-      </article>
-      <article className="card metric-card">
-        <p className="metric-label">Atencao</p>
-        <p className="metric-value">{warning}</p>
-        <p className="metric-hint">acompanhamento</p>
-      </article>
-      <article className="card metric-card">
-        <p className="metric-label">Risco</p>
-        <p className="metric-value">{danger}</p>
-        <p className="metric-hint">corrigir ou revisar</p>
-      </article>
-    </section>
+    <OperationalKpiGrid
+      className="crm-kpi-grid compact"
+      items={[
+        { label: 'Total', value: String(rows.length), hint: 'registros carregados' },
+        { label: secondaryLabel, value: String(success), hint: 'status positivo' },
+        { label: 'Atenção', value: String(warning), hint: 'acompanhamento' },
+        { label: 'Risco', value: String(danger), hint: 'corrigir ou revisar' },
+      ]}
+    />
   )
 }
 
@@ -662,30 +661,13 @@ export function CrmEmpresaForm({
       {empresa ? <input type="hidden" name="id" value={empresa.id} /> : null}
 
       <div>
-        <label className="label" htmlFor="nome">Nome</label>
+        <label className="label" htmlFor="nome">Cliente</label>
         <input className="input" id="nome" name="nome" required defaultValue={empresa?.nome ?? ''} />
       </div>
 
       <div>
-        <label className="label" htmlFor="documento">Documento</label>
-        <input className="input" id="documento" name="documento" defaultValue={empresa?.documento ?? ''} />
-      </div>
-
-      <div>
-        <label className="label" htmlFor="tipo">Tipo</label>
-        <select className="select" id="tipo" name="tipo" defaultValue={empresa?.tipo ?? 'PJ'}>
-          <option value="PJ">PJ</option>
-          <option value="PF">PF</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="label" htmlFor="status">Status</label>
-        <select className="select" id="status" name="status" defaultValue={empresa?.status ?? 'prospecto'}>
-          <option value="prospecto">Prospecto</option>
-          <option value="ativo">Ativo</option>
-          <option value="inativo">Inativo</option>
-        </select>
+        <label className="label" htmlFor="documento">CNPJ</label>
+        <input className="input" id="documento" name="documento" inputMode="numeric" required defaultValue={empresa?.documento ?? ''} />
       </div>
 
       <div>
@@ -709,13 +691,13 @@ export function CrmEmpresaForm({
       </div>
 
       <div className="crm-form-wide">
-        <label className="label" htmlFor="observacoes">Observacoes</label>
+        <label className="label" htmlFor="observacoes">Observações</label>
         <textarea className="textarea" id="observacoes" name="observacoes" defaultValue={empresa?.observacoes ?? ''} />
       </div>
 
       <div className="form-actions crm-form-wide">
-        <button className="button" type="submit">Salvar empresa</button>
-        <Link className="button secondary" href="/modulos/crm/empresas">Cancelar</Link>
+        <button className="button" type="submit">Salvar cliente</button>
+        <Link className="button secondary" href="/modulos/crm/clientes">Cancelar</Link>
       </div>
     </form>
   )
@@ -723,11 +705,15 @@ export function CrmEmpresaForm({
 
 export function CrmContatoForm({
   action,
+  clientes = [],
   contato,
 }: {
   action: (formData: FormData) => Promise<void>
+  clientes?: CrmOpportunityFormData['empresas']
   contato?: CrmContatoRecord
 }) {
+  const selectedClientes = new Set(contato?.empresa_ids ?? [])
+
   return (
     <form action={action} className="card crm-panel crm-form-grid">
       {contato ? <input type="hidden" name="id" value={contato.id} /> : null}
@@ -765,6 +751,20 @@ export function CrmContatoForm({
           <option value="arquivado">Arquivado</option>
         </select>
       </div>
+
+      <fieldset className="crm-form-wide crm-checkbox-group">
+        <legend>Clientes vinculados</legend>
+        {clientes.length ? (
+          clientes.map((cliente) => (
+            <label className="checkbox-row" key={cliente.id}>
+              <input name="empresa_ids" type="checkbox" value={cliente.id} defaultChecked={selectedClientes.has(cliente.id)} />
+              <span>{cliente.label}</span>
+            </label>
+          ))
+        ) : (
+          <EmptyBlock label="Nenhum cliente disponivel para vinculo." />
+        )}
+      </fieldset>
 
       <div className="form-actions crm-form-wide">
         <button className="button" type="submit">Salvar contato</button>
@@ -844,7 +844,7 @@ export function CrmPropostaForm({
       </div>
 
       <div className="crm-form-wide">
-        <label className="label" htmlFor="observacoes">Observacoes</label>
+        <label className="label" htmlFor="observacoes">Observações</label>
         <textarea className="textarea" id="observacoes" name="observacoes" defaultValue={proposta?.observacoes ?? ''} />
       </div>
 
@@ -884,7 +884,7 @@ export function CrmAtividadeForm({
           <option value="tarefa">Tarefa</option>
           <option value="ligacao">Ligacao</option>
           <option value="email">E-mail</option>
-          <option value="reuniao">Reuniao</option>
+          <option value="reuniao">Reunião</option>
           <option value="nota">Nota</option>
         </select>
       </div>
@@ -900,9 +900,9 @@ export function CrmAtividadeForm({
       </div>
 
       <div>
-        <label className="label" htmlFor="empresa_id">Empresa</label>
+        <label className="label" htmlFor="empresa_id">Cliente</label>
         <select className="select" id="empresa_id" name="empresa_id" defaultValue={atividade?.empresa_id ?? ''}>
-          <option value="">Sem empresa</option>
+          <option value="">Sem cliente</option>
           {formData.empresas.map((empresa) => (
             <option key={empresa.id} value={empresa.id}>{empresa.label}</option>
           ))}

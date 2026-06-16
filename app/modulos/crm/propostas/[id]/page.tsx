@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import { updateCrmPropostaAction } from '@/features/crm/actions'
-import { CrmPropostaForm, CrmShell } from '@/features/crm/components'
+import { CrmPropostaForm, CrmSection, CrmShell } from '@/features/crm/components'
 import { getCrmOpportunityFormData, getCrmProposta, requireCrmContext } from '@/features/crm/queries'
 
 export default async function EditarCrmPropostaPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,10 +19,16 @@ export default async function EditarCrmPropostaPage({ params }: { params: Promis
       active="propostas"
       eyebrow="Base operacional"
       title="Editar proposta"
-      description="Atualize status, valor, validade e observacoes da proposta."
+      description="Atualize status, valor, validade e observações da proposta."
       usuario={context.usuario}
     >
-      <CrmPropostaForm action={updateCrmPropostaAction} formData={formData} proposta={proposta} />
+      <CrmSection
+        eyebrow="Edição"
+        title="Dados da proposta"
+        description="Atualize oportunidade, status, valor, validade e observações comerciais."
+      >
+        <CrmPropostaForm action={updateCrmPropostaAction} formData={formData} proposta={proposta} />
+      </CrmSection>
     </CrmShell>
   )
 }

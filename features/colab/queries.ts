@@ -91,7 +91,7 @@ function emptyData(databaseReady: boolean, message: string): ColabData {
     documents: [],
     databaseReady,
     source: {
-      label: 'GKLI Intr',
+      label: 'GKIT Intr',
       status: databaseReady ? 'pendente' : 'erro',
       message,
     },
@@ -137,7 +137,7 @@ function buildBenefits(collaborator: ColabCollaborator, row?: Record<string, unk
       name: description || 'Beneficio cadastrado',
       description: description || 'Beneficio sincronizado do cadastro do Intr.',
       status: 'ativo',
-      provider: 'GKLI Intr',
+      provider: 'GKIT Intr',
       monthlyValue: value,
     },
   ]
@@ -219,7 +219,7 @@ export async function getColabData(userEmail: string): Promise<ColabData> {
     documents: buildDocuments(collaborator, payments, commissions),
     databaseReady: true,
     source: {
-      label: 'GKLI Intr',
+      label: 'GKIT Intr',
       status: 'sincronizado',
       message: `Dados sincronizados pelo e-mail institucional ${collaborator.email}.`,
     },

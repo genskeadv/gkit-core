@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CicloGenericList, CicloListKpis, CicloShell } from '@/features/ciclo/components'
+import { CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloOcorrenciaRows, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function CicloOcorrenciasPage() {
@@ -11,20 +11,32 @@ export default async function CicloOcorrenciasPage() {
   return (
     <CicloShell
       active="ocorrencias"
-      eyebrow="Operacao"
+      eyebrow="Operação"
       title="Ocorrencias"
       description="Registros operacionais que impactam score, risco e rotina dos clientes."
       usuario={context.usuario}
-      actions={canWrite ? <Link className="button" href="/modulos/ciclo/ocorrencias/nova">Nova ocorrencia</Link> : null}
+      actions={canWrite ? <Link className="button" href="/modulos/ciclo/ocorrencias/nova">Nova ocorrência</Link> : null}
     >
-      <CicloListKpis rows={rows} secondaryLabel="Positivas" />
-      <CicloGenericList
-        title="Lista de ocorrencias"
-        description="Ocorrencias cadastradas no schema Ciclo."
-        detailHrefBase={canWrite ? '/modulos/ciclo/ocorrencias' : undefined}
-        emptyLabel="Nenhuma ocorrencia encontrada."
-        rows={rows}
-      />
+      <CicloSection
+        eyebrow="Resumo"
+        title="Impactos operacionais"
+        description="Volume de ocorrências positivas, em atenção e em risco."
+      >
+        <CicloListKpis rows={rows} secondaryLabel="Positivas" />
+      </CicloSection>
+      <CicloSection
+        eyebrow="Operação"
+        title="Lista de ocorrências"
+        description="Registros que impactam score, risco e rotina dos clientes."
+      >
+        <CicloGenericList
+          title="Lista de ocorrências"
+          description="Ocorrencias cadastradas no schema Ciclo."
+          detailHrefBase={canWrite ? '/modulos/ciclo/ocorrencias' : undefined}
+          emptyLabel="Nenhuma ocorrência encontrada."
+          rows={rows}
+        />
+      </CicloSection>
     </CicloShell>
   )
 }

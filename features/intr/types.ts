@@ -165,3 +165,12 @@ export type IntrComissaoTipoRecord = {
   ativo: boolean
   observacao: string | null
 }
+
+export type FixFinanceiroResumo = {
+  cards: Array<{ label: string; value: string; hint: string; tone?: 'primary' | 'success' | 'warning' | 'danger' }>
+  macrogrupos: IntrListRow[]
+  sugestoes: IntrListRow[]
+  extratos: IntrListRow[]
+  contasPagar: IntrListRow[]
+  previsao: IntrListRow[]
+}

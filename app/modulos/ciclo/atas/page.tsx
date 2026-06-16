@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CicloGenericList, CicloListKpis, CicloShell } from '@/features/ciclo/components'
+import { CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloAtaRows, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function CicloAtasPage() {
@@ -10,21 +10,33 @@ export default async function CicloAtasPage() {
 
   return (
     <CicloShell
-      active="atas"
-      eyebrow="Documentos juridicos"
+      active="documentos"
+      eyebrow="Documentos"
       title="Atas"
-      description="Atas, assembleias, validade e observacoes operacionais."
+      description="Atas, assembleias, validade e observações operacionais."
       usuario={context.usuario}
       actions={canWrite ? <Link className="button" href="/modulos/ciclo/atas/nova">Nova ata</Link> : null}
     >
-      <CicloListKpis rows={rows} secondaryLabel="Vigentes" />
-      <CicloGenericList
+      <CicloSection
+        eyebrow="Resumo"
+        title="Atas da carteira"
+        description="Volume e vigência das atas vinculadas aos clientes."
+      >
+        <CicloListKpis rows={rows} secondaryLabel="Vigentes" />
+      </CicloSection>
+      <CicloSection
+        eyebrow="Documentos"
         title="Lista de atas"
-        description="Atas cadastradas no schema Ciclo."
-        detailHrefBase={canWrite ? '/modulos/ciclo/atas' : undefined}
-        emptyLabel="Nenhuma ata encontrada."
-        rows={rows}
-      />
+        description="Atas, assembleias, validade e observações operacionais."
+      >
+        <CicloGenericList
+          title="Lista de atas"
+          description="Atas cadastradas no schema Ciclo."
+          detailHrefBase={canWrite ? '/modulos/ciclo/atas' : undefined}
+          emptyLabel="Nenhuma ata encontrada."
+          rows={rows}
+        />
+      </CicloSection>
     </CicloShell>
   )
 }

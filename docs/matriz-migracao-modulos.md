@@ -18,6 +18,8 @@ Documentacao detalhada por modulo:
 - `docs/modulos/core.md`
 - `docs/modulos/crm.md`
 - `docs/modulos/ciclo.md`
+- `docs/modulos/fix.md`
+- `docs/modulos/flex.md`
 - `docs/modulos/intr.md`
 - `docs/modulos/colab.md`
 - `docs/modulos/painel.md`
@@ -51,8 +53,6 @@ No Painel, os atalhos sao filtrados pelo Core:
 - `/modulos/crm/propostas`
 - `/modulos/crm/atividades`
 - `/modulos/crm/interacoes`
-- `/modulos/crm/importacoes`
-- `/modulos/crm/carteiras-usuarios`
 
 Pendente opcional do app antigo: Kanban como rota separada, caso seja mantido alem da tela de Pipeline.
 
@@ -95,45 +95,64 @@ Fluxo acionavel publicado:
 - Importar clientes por XLSX: `/modulos/ciclo/importacoes`
 - Detalhar lote de importacao: `/modulos/ciclo/importacoes/[id]`
 
-### Intr
+### FIX / Intr
 
-- `/modulos/intr`
-- `/modulos/intr/painel`
-- `/modulos/intr/colaboradores`
-- `/modulos/intr/times`
-- `/modulos/intr/reembolsos`
-- `/modulos/intr/documentos`
-- `/modulos/intr/comunicados`
-- `/modulos/intr/pagamentos`
-- `/modulos/intr/pagamentos/agenda`
-- `/modulos/intr/comissoes`
-- `/modulos/intr/receitas`
-- `/modulos/intr/fechamentos`
-- `/modulos/intr/cadastros`
-- `/modulos/intr/importacoes`
-- `/modulos/intr/integridade`
+O desenvolvimento funcional novo esta em `/modulos/fix`. As rotas `/modulos/intr/*` ficam como compatibilidade e redirecionam para FIX na maior parte dos fluxos.
+
+Especificacao detalhada: `docs/modulos/fix.md`.
+
+- `/modulos/fix`
+- `/modulos/fix/importacoes`
+- `/modulos/fix/financeiro`
+- `/modulos/fix/financeiro/extratos`
+- `/modulos/fix/financeiro/receitas`
+- `/modulos/fix/financeiro/despesas`
+- `/modulos/fix/financeiro/orcamento`
+- `/modulos/fix/financeiro/validacao`
+- `/modulos/fix/financeiro/sugestoes`
+- `/modulos/fix/financeiro/inteligencia`
+- `/modulos/fix/colaboradores`
+- `/modulos/fix/times`
+- `/modulos/fix/tipos-comissao`
+- `/modulos/fix/comissoes`
+- `/modulos/fix/comissoes/conferir`
+- `/modulos/fix/comissoes/aprovacao`
+- `/modulos/fix/pagamentos`
+- `/modulos/fix/pagamentos/agenda`
+- `/modulos/fix/pagamentos/importacoes`
+- `/modulos/fix/pagamentos/conciliar-extrato`
+- `/modulos/fix/fechamentos`
+- `/modulos/fix/dashboard`
+- `/modulos/fix/relatorios`
+- `/modulos/fix/configuracoes`
 
 Fluxo acionavel publicado:
 
-- Criar colaborador: `/modulos/intr/colaboradores/novo`
-- Editar colaborador: `/modulos/intr/colaboradores/[id]`
-- Criar time: `/modulos/intr/times/novo`
-- Editar time: `/modulos/intr/times/[id]`
-- Criar receita: `/modulos/intr/receitas/nova`
-- Editar receita: `/modulos/intr/receitas/[id]`
-- Criar comissao: `/modulos/intr/comissoes/nova`
-- Editar comissao: `/modulos/intr/comissoes/[id]`
-- Atualizar status de comissao e gerar pagamentos de comissoes aprovadas: `/modulos/intr/comissoes`
+- Criar colaborador: `/modulos/fix/colaboradores/novo`
+- Editar colaborador: `/modulos/fix/colaboradores/[id]`
+- Criar time: `/modulos/fix/times/novo`
+- Editar time: `/modulos/fix/times/[id]`
+- Importar receitas e extratos: `/modulos/fix/importacoes`
+- Criar comissao: `/modulos/fix/comissoes/nova`
+- Editar comissao: `/modulos/fix/comissoes/[id]`
+- Conferir comissoes: `/modulos/fix/comissoes/conferir`
+- Aprovar comissoes: `/modulos/fix/comissoes/aprovacao`
+- Atualizar status de comissao e gerar pagamentos de comissoes aprovadas: `/modulos/fix/comissoes`
 - As acoes de status de comissao ficam disponiveis diretamente por linha, sem necessidade de copiar o ID.
-- Criar pagamento: `/modulos/intr/pagamentos/novo`
-- Editar pagamento: `/modulos/intr/pagamentos/[id]`
-- Criar agenda de pagamento: `/modulos/intr/pagamentos/agenda/nova`
-- Editar agenda de pagamento: `/modulos/intr/pagamentos/agenda/[id]`
-- Gerar pagamentos previstos por competencia: `/modulos/intr/pagamentos/agenda`
-- Recalcular fechamento: `/modulos/intr/fechamentos`
-- Editar/fechar competencia: `/modulos/intr/fechamentos/[id]`
+- Criar pagamento: `/modulos/fix/pagamentos/novo`
+- Editar pagamento: `/modulos/fix/pagamentos/[id]`
+- Criar agenda de pagamento: `/modulos/fix/pagamentos/agenda/nova`
+- Editar agenda de pagamento: `/modulos/fix/pagamentos/agenda/[id]`
+- Gerar pagamentos previstos por competencia: `/modulos/fix/pagamentos/agenda`
+- Importar recibos: `/modulos/fix/pagamentos/importacoes`
+- Conciliar extrato: `/modulos/fix/pagamentos/conciliar-extrato`
+- Gerar orcamento: `/modulos/fix/financeiro/orcamento`
+- Validar despesas: `/modulos/fix/financeiro/validacao`
+- Gerar sugestoes inteligentes: `/modulos/fix/financeiro/sugestoes`
+- Recalcular fechamento: `/modulos/fix/fechamentos`
+- Editar/fechar competencia: `/modulos/fix/fechamentos/[id]`
 
-Pendentes do app antigo ou de etapa futura: documentos internos, reembolsos, comunicados e cadastros financeiros dedicados.
+Pendentes do app antigo ou de etapa futura: destino final de documentos internos, reembolsos, comunicados e integridade; CRUD de categorias financeiras e regras de classificacao; decisao final sobre renomear schema/permissoes `intr.*` para `fix.*`.
 
 ### Colab
 

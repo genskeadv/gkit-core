@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import { updateCicloClienteAction } from '@/features/ciclo/actions'
-import { CicloClienteForm, CicloShell } from '@/features/ciclo/components'
+import { CicloClienteForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloCliente, getCicloClienteFormData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function EditarCicloClientePage({ params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +22,13 @@ export default async function EditarCicloClientePage({ params }: { params: Promi
       description="Atualize status, risco, regularidade operacional e dados cadastrais."
       usuario={context.usuario}
     >
-      <CicloClienteForm action={updateCicloClienteAction} formData={formData} cliente={cliente} />
+      <CicloSection
+        eyebrow="Edição"
+        title="Dados do cliente"
+        description="Atualize cadastro, carteira, administradora, risco, score e regularidade."
+      >
+        <CicloClienteForm action={updateCicloClienteAction} formData={formData} cliente={cliente} />
+      </CicloSection>
     </CicloShell>
   )
 }

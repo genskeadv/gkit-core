@@ -124,8 +124,8 @@ export function ImportarRecibosPagamentoForm() {
           )}
 
           <div className="form-actions">
-            <Link className="button" href="/modulos/intr/pagamentos">Ver pagamentos</Link>
-            <Link className="button secondary" href="/modulos/intr/pagamentos/importacoes">Importar novo PDF</Link>
+            <Link className="button" href="/modulos/fix/pagamentos">Ver pagamentos</Link>
+            <Link className="button secondary" href="/modulos/fix/pagamentos/importacoes">Importar novo PDF</Link>
           </div>
         </section>
       ) : null}

@@ -128,9 +128,8 @@ function relativeLastInteraction(days: number) {
   return `Há ${days} dias`
 }
 
-function normalizeStatus(value: unknown): CrmEmpresa['status'] {
-  if (value === 'ativo' || value === 'inativo' || value === 'prospecto') return value
-  return 'prospecto'
+function clienteStatus(hasApprovedProposal: boolean): CrmEmpresa['status'] {
+  return hasApprovedProposal ? 'ativo' : 'prospecto'
 }
 
 function normalizeOpportunityStatus(value: unknown): CrmOportunidade['status'] {
@@ -241,7 +240,7 @@ export async function getCrmData(context: CrmContext): Promise<CrmData> {
     const oportunidade = {
       id: String(row.id),
       titulo: String(row.titulo ?? 'Oportunidade sem título'),
-      empresa: String(empresaMap.get(String(row.empresa_id))?.nome ?? 'Empresa não vinculada'),
+      empresa: String(empresaMap.get(String(row.empresa_id))?.nome ?? 'Cliente nao vinculado'),
       contato: String(contatoMap.get(String(row.contato_id))?.nome ?? 'Contato não definido'),
       etapa,
       status: normalizeOpportunityStatus(row.status),
@@ -261,24 +260,39 @@ export async function getCrmData(context: CrmContext): Promise<CrmData> {
     }
   })
 
-  const oportunidadesPorEmpresa = oportunidades.reduce<Record<string, CrmOportunidade[]>>((acc, oportunidade) => {
-    acc[oportunidade.empresa] = [...(acc[oportunidade.empresa] ?? []), oportunidade]
+  const oportunidadesPorEmpresa = oportunidadeRows.reduce<Record<string, CrmOportunidade[]>>((acc, row: any, index) => {
+    const empresaId = text(row.empresa_id)
+    if (empresaId) acc[empresaId] = [...(acc[empresaId] ?? []), oportunidades[index]]
     return acc
   }, {})
 
+  const approvedOpportunityIds = new Set(
+    propostaRows
+      .filter((row) => text(row.status) === 'aprovada')
+      .map((row) => text(row.oportunidade_id))
+      .filter(Boolean),
+  )
+  const approvedEmpresaIds = new Set(
+    oportunidadeRows
+      .filter((row) => approvedOpportunityIds.has(text(row.id)))
+      .map((row) => text(row.empresa_id))
+      .filter(Boolean),
+  )
+
   const empresas: CrmEmpresa[] = empresaRows.map((row: any) => {
-    const nome = String(row.nome ?? 'Empresa sem nome')
-    const oportunidadesDaEmpresa = oportunidadesPorEmpresa[nome] ?? []
+    const empresaId = String(row.id)
+    const nome = String(row.nome ?? 'Cliente sem nome')
+    const oportunidadesDaEmpresa = oportunidadesPorEmpresa[empresaId] ?? []
 
     return {
-      id: String(row.id),
+      id: empresaId,
       nome,
       documento: formatDocumento(row.documento),
-      tipo: row.tipo === 'PF' ? 'PF' : 'PJ',
+      tipo: 'PJ',
       segmento: String(row.segmento ?? 'Sem segmento'),
-      status: normalizeStatus(row.status),
+      status: clienteStatus(approvedEmpresaIds.has(empresaId)),
       carteira: String(carteiraMap.get(String(row.carteira_id)) ?? 'Sem carteira'),
-      contatos: contatosPorEmpresa[String(row.id)] ?? 0,
+      contatos: contatosPorEmpresa[empresaId] ?? 0,
       oportunidades: oportunidadesDaEmpresa.length,
       valorPipeline: oportunidadesDaEmpresa.reduce((sum, oportunidade) => sum + oportunidade.valor, 0),
     }
@@ -304,8 +318,8 @@ export async function listCrmClienteRows(context: CrmContext): Promise<CrmListRo
   return data.empresas.map((empresa) => ({
     id: empresa.id,
     title: empresa.nome,
-    subtitle: `${empresa.documento} · ${empresa.tipo} · ${empresa.segmento}`,
-    status: empresa.status,
+    subtitle: [empresa.documento, empresa.segmento].filter(Boolean).join(' - '),
+    status: empresa.status === 'ativo' ? 'Ativo' : 'Prospecto',
     value: empresa.carteira,
     meta: `${empresa.contatos} contato(s) · ${empresa.oportunidades} oportunidade(s)`,
     tone: listTone(empresa.status),
@@ -373,64 +387,6 @@ export async function listCrmInteracaoRows(context: CrmContext): Promise<CrmList
   })
 }
 
-export async function listCrmImportacaoRows(context: CrmContext): Promise<CrmListRow[]> {
-  const rows = await safeCrmList(context, 'importacoes', 'created_at')
-  return rows.map((row) => {
-    const status = text(row.status, 'processada')
-    return {
-      id: text(row.id),
-      title: text(row.arquivo ?? row.nome_arquivo, 'Importação de dados'),
-      subtitle: text(row.descricao ?? row.observacao, 'Sem descricao cadastrada'),
-      status,
-      value: `${numberValue(row.total_linhas ?? row.linhas_processadas ?? row.linhas).toLocaleString('pt-BR')} linhas`,
-      meta: dateLabel(row.created_at ?? row.criado_em),
-      tone: listTone(status),
-    }
-  })
-}
-
-export async function listCrmCarteiraUsuarioRows(): Promise<CrmListRow[]> {
-  const supabase = admin()
-  const { data, error } = await supabase
-    .schema('security')
-    .from('usuario_carteiras')
-    .select('id,usuario_id,carteira_id,ativo')
-    .limit(500)
-
-  if (error) return []
-
-  const rows = (data ?? []) as Array<Record<string, any>>
-  const usuarioIds = [...new Set(rows.map((row) => text(row.usuario_id)).filter(Boolean))]
-  const carteiraIds = [...new Set(rows.map((row) => text(row.carteira_id)).filter(Boolean))]
-
-  const [usuariosResult, carteirasResult] = await Promise.all([
-    usuarioIds.length
-      ? supabase.schema('security').from('usuarios').select('id,nome,email,tipo').in('id', usuarioIds)
-      : { data: [] },
-    carteiraIds.length
-      ? supabase.schema('core').from('carteiras').select('id,nome').in('id', carteiraIds)
-      : { data: [] },
-  ])
-
-  const usuarios = new Map(((usuariosResult.data ?? []) as Array<Record<string, any>>).map((row) => [text(row.id), row]))
-  const carteiras = new Map(((carteirasResult.data ?? []) as Array<Record<string, any>>).map((row) => [text(row.id), row]))
-
-  return rows.map((row) => {
-    const usuario = usuarios.get(text(row.usuario_id))
-    const carteira = carteiras.get(text(row.carteira_id))
-    const ativo = Boolean(row.ativo ?? true)
-    return {
-      id: text(row.id, `${row.usuario_id}-${row.carteira_id}`),
-      title: text(usuario?.nome, 'Usuario sem nome'),
-      subtitle: text(usuario?.email, 'Sem e-mail'),
-      status: ativo ? 'ativo' : 'inativo',
-      value: text(carteira?.nome, 'Carteira nao encontrada'),
-      meta: text(usuario?.tipo, 'operador'),
-      tone: ativo ? 'success' : 'danger',
-    }
-  })
-}
-
 export async function getCrmOpportunityFormData(context: CrmContext): Promise<CrmOpportunityFormData> {
   const supabase = admin()
 
@@ -478,7 +434,7 @@ export async function getCrmOpportunityFormData(context: CrmContext): Promise<Cr
   return {
     empresas: ((empresasResult.data ?? []) as Array<Record<string, any>>).map((row) => ({
       id: text(row.id),
-      label: `${text(row.nome, 'Empresa')} - ${formatDocumento(row.documento)}`,
+      label: `${text(row.nome, 'Cliente')} - ${formatDocumento(row.documento)}`,
     })),
     contatos: ((contatosResult.data ?? []) as Array<Record<string, any>>).map((row) => ({
       id: text(row.id),
@@ -544,7 +500,7 @@ export async function getCrmEmpresa(id: string, context: CrmContext): Promise<Cr
     .eq('id', id)
     .single()
 
-  if (error || !data) throw new Error(error?.message ?? 'Empresa nao encontrada.')
+  if (error || !data) throw new Error(error?.message ?? 'Cliente nao encontrado.')
 
   const row = data as Record<string, any>
   const allowedCarteiras = await getCrmOpportunityFormData(context)
@@ -552,7 +508,7 @@ export async function getCrmEmpresa(id: string, context: CrmContext): Promise<Cr
   const carteiraId = text(row.carteira_id)
 
   if (context.usuario.tipo !== 'admin_global' && carteiraId && !allowedIds.has(carteiraId)) {
-    redirect('/modulos/crm/empresas')
+    redirect('/modulos/crm/clientes')
   }
 
   return {
@@ -560,29 +516,40 @@ export async function getCrmEmpresa(id: string, context: CrmContext): Promise<Cr
     carteira_id: carteiraId || null,
     nome: text(row.nome),
     documento: text(row.documento) || null,
-    tipo: row.tipo === 'PF' ? 'PF' : 'PJ',
+    tipo: 'PJ',
     segmento: text(row.segmento) || null,
     origem: text(row.origem) || null,
-    status: normalizeStatus(row.status),
+    status: 'prospecto',
     observacoes: text(row.observacoes) || null,
   }
 }
 
 export async function getCrmContato(id: string): Promise<CrmContatoRecord> {
-  const { data, error } = await admin()
-    .schema('crm')
-    .from('contatos')
-    .select('id,nome,email,telefone,cargo,origem,status')
-    .eq('id', id)
-    .single()
+  const [contatoResult, vinculosResult] = await Promise.all([
+    admin()
+      .schema('crm')
+      .from('contatos')
+      .select('id,nome,email,telefone,cargo,origem,status')
+      .eq('id', id)
+      .single(),
+    admin()
+      .schema('crm')
+      .from('empresas_contatos')
+      .select('empresa_id')
+      .eq('contato_id', id),
+  ])
+
+  const { data, error } = contatoResult
 
   if (error || !data) throw new Error(error?.message ?? 'Contato nao encontrado.')
+  if (vinculosResult.error) throw new Error(vinculosResult.error.message)
 
   const row = data as Record<string, any>
   const status = row.status === 'inativo' || row.status === 'arquivado' ? row.status : 'ativo'
 
   return {
     id: text(row.id),
+    empresa_ids: ((vinculosResult.data ?? []) as Array<Record<string, any>>).map((vinculo) => text(vinculo.empresa_id)).filter(Boolean),
     nome: text(row.nome),
     email: text(row.email) || null,
     telefone: text(row.telefone) || null,

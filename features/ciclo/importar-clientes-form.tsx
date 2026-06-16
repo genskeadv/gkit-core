@@ -86,7 +86,7 @@ export function ImportarClientesForm() {
       {error ? <div className="suite-empty-block danger">{error}</div> : null}
 
       {preview ? (
-        <section className="card ciclo-panel">
+        <section className="ciclo-import-preview">
           <div className="ciclo-panel-heading">
             <div>
               <h2>Preview da carga</h2>

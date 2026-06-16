@@ -1,5 +1,5 @@
 import { updateCicloContratoAction } from '@/features/ciclo/actions'
-import { CicloContratoForm, CicloShell } from '@/features/ciclo/components'
+import { CicloContratoForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloContrato, getCicloDocumentoFormData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function EditarContratoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -12,13 +12,19 @@ export default async function EditarContratoPage({ params }: { params: Promise<{
 
   return (
     <CicloShell
-      active="contratos"
-      eyebrow="Documentos juridicos"
+      active="documentos"
+      eyebrow="Documentos"
       title={contrato.numero_contrato ?? 'Contrato'}
-      description="Edicao de vigencia, valor, status e reajuste contratual."
+      description="Edição de vigência, valor, status e reajuste contratual."
       usuario={context.usuario}
     >
-      <CicloContratoForm action={updateCicloContratoAction} contrato={contrato} formData={formData} />
+      <CicloSection
+        eyebrow="Edição"
+        title="Dados do contrato"
+        description="Atualize vigência, valor, status, reajuste e observações contratuais."
+      >
+        <CicloContratoForm action={updateCicloContratoAction} contrato={contrato} formData={formData} />
+      </CicloSection>
     </CicloShell>
   )
 }

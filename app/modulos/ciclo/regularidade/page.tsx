@@ -1,4 +1,4 @@
-import { CicloGenericList, CicloListKpis, CicloShell } from '@/features/ciclo/components'
+import { CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloRegularidadeRows, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function CicloRegularidadePage() {
@@ -13,14 +13,26 @@ export default async function CicloRegularidadePage() {
       description="Conformidade operacional por cliente, carteira, administradora e risco."
       usuario={context.usuario}
     >
-      <CicloListKpis rows={rows} secondaryLabel="Saudaveis" />
-      <CicloGenericList
+      <CicloSection
+        eyebrow="Resumo"
+        title="Conformidade operacional"
+        description="Distribuicao da regularidade por cliente, risco e acompanhamento."
+      >
+        <CicloListKpis rows={rows} secondaryLabel="Saudaveis" />
+      </CicloSection>
+      <CicloSection
+        eyebrow="Governanca"
         title="Regularidade por cliente"
         description="Percentual de regularidade e indicadores de risco."
-        detailHrefBase="/modulos/ciclo/clientes"
-        emptyLabel="Nenhum cliente encontrado para regularidade."
-        rows={rows}
-      />
+      >
+        <CicloGenericList
+          title="Regularidade por cliente"
+          description="Percentual de regularidade e indicadores de risco."
+          detailHrefBase="/modulos/ciclo/clientes"
+          emptyLabel="Nenhum cliente encontrado para regularidade."
+          rows={rows}
+        />
+      </CicloSection>
     </CicloShell>
   )
 }

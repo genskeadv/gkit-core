@@ -1,4 +1,4 @@
-# GKLI Core - Especificacao tecnica
+# GKIT Core - Especificacao tecnica
 
 ## Stack
 

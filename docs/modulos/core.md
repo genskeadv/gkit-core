@@ -2,7 +2,7 @@
 
 ## Papel
 
-O Core e a fonte de identidade, acesso, perfis, permissoes, carteiras e apps da GKLI Suite. Todo modulo operacional depende dele para saber se o usuario pode entrar e quais acoes pode executar.
+O Core e a fonte de identidade, acesso, perfis, permissoes, carteiras e apps da GKIT Suite. Todo modulo operacional depende dele para saber se o usuario pode entrar e quais acoes pode executar.
 
 ## Funcionalidades prontas
 

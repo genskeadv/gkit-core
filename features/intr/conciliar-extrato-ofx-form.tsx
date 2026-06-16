@@ -118,8 +118,8 @@ export function ConciliarExtratoOfxForm() {
             <span>Sem par <strong>{result.semCorrespondencia.length}</strong></span>
           </div>
           <div className="form-actions">
-            <Link className="button" href="/modulos/intr/pagamentos">Ver pagamentos</Link>
-            <Link className="button secondary" href="/modulos/intr/pagamentos/conciliar-extrato">Conciliar novo extrato</Link>
+            <Link className="button" href="/modulos/fix/pagamentos">Ver pagamentos</Link>
+            <Link className="button secondary" href="/modulos/fix/pagamentos/conciliar-extrato">Conciliar novo extrato</Link>
           </div>
         </section>
       ) : null}

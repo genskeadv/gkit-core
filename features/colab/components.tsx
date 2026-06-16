@@ -31,7 +31,6 @@ export function ColabShell({
   children,
   description,
   title,
-  usuario,
 }: {
   active: ColabTab
   children: ReactNode
@@ -43,19 +42,11 @@ export function ColabShell({
     <main className="suite-page">
       <div className="platform-bg" />
       <div className="suite-wrap no-sidebar colab-shell-wrap">
-        <header className="suite-topbar">
-          <Link className="button secondary" href="/plataforma">Voltar ao painel</Link>
-          <div className="module-user">
-            <strong>{usuario.nome}</strong>
-            <span>{usuario.email}</span>
-          </div>
-        </header>
-
         <section className="suite-hero-card">
           <div className="suite-hero-main">
-            <BrandLogo className="suite-brand-mark" label="GKLI Colab" />
+            <BrandLogo className="suite-brand-mark" label="GKIT Colab" />
             <div>
-              <p className="platform-kicker">GKLI Colab</p>
+              <p className="platform-kicker">GKIT Colab</p>
               <h1>{title}</h1>
               <p>{description}</p>
             </div>

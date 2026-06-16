@@ -1,4 +1,4 @@
-import { CicloClienteIntegralCockpit, CicloShell } from '@/features/ciclo/components'
+import { CicloClienteIntegralCockpit, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloClienteIntegral, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function CockpitClienteIntegralPage({ params }: { params: Promise<{ id: string }> }) {
@@ -14,7 +14,13 @@ export default async function CockpitClienteIntegralPage({ params }: { params: P
       description="Acompanhamento operacional completo do cliente."
       usuario={context.usuario}
     >
-      <CicloClienteIntegralCockpit detail={detail} />
+      <CicloSection
+        eyebrow="Cliente"
+        title="Cockpit integral"
+        description="Documentos, alertas, eventos, contratos, atas e histórico operacional."
+      >
+        <CicloClienteIntegralCockpit detail={detail} />
+      </CicloSection>
     </CicloShell>
   )
 }

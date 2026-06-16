@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import { createCrmPropostaAction } from '@/features/crm/actions'
-import { CrmPropostaForm, CrmShell } from '@/features/crm/components'
+import { CrmPropostaForm, CrmSection, CrmShell } from '@/features/crm/components'
 import { getCrmOpportunityFormData, requireCrmContext } from '@/features/crm/queries'
 
 export default async function NovaCrmPropostaPage() {
@@ -18,7 +18,13 @@ export default async function NovaCrmPropostaPage() {
       description="Crie uma proposta vinculada a oportunidade, carteira, valor e validade."
       usuario={context.usuario}
     >
-      <CrmPropostaForm action={createCrmPropostaAction} formData={formData} />
+      <CrmSection
+        eyebrow="Cadastro"
+        title="Dados da proposta"
+        description="Vincule oportunidade, carteira, valor, validade e status inicial."
+      >
+        <CrmPropostaForm action={createCrmPropostaAction} formData={formData} />
+      </CrmSection>
     </CrmShell>
   )
 }

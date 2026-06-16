@@ -7,6 +7,11 @@ import type {
   CicloAlerta,
   CicloAlertaRecord,
   CicloAdministradoraRecord,
+  CicloAtendimentoDashboard,
+  CicloAtendimentoGroup,
+  CicloAtendimentoRecord,
+  CicloAtendimentoStatus,
+  CicloAtendimentoTab,
   CicloAtaRecord,
   CicloCliente,
   CicloClienteFormData,
@@ -21,10 +26,12 @@ import type {
   CicloImportacaoLote,
   CicloListRow,
   CicloOnboardingDetail,
+  CicloOnboardingWorkflowAtividade,
   CicloOcorrenciaRecord,
   CicloRisco,
   CicloStatusCliente,
   CicloTemperatura,
+  CicloTipoCliente,
   CicloTimelineItem,
 } from '@/features/ciclo/types'
 
@@ -127,6 +134,11 @@ function normalizeTemperatura(value: unknown): CicloTemperatura {
   return 'neutro'
 }
 
+function normalizeTipoCliente(value: unknown): CicloTipoCliente {
+  if (value === 'pontual' || value === 'cobranca') return value
+  return 'mensal'
+}
+
 function normalizeDocumentoStatus(value: unknown): CicloDocumento['status'] {
   if (value === 'recebido' || value === 'validado' || value === 'vencido' || value === 'dispensado') return value
   return 'pendente'
@@ -135,6 +147,10 @@ function normalizeDocumentoStatus(value: unknown): CicloDocumento['status'] {
 function normalizeAlertaStatus(value: unknown): CicloAlerta['status'] {
   if (value === 'em_tratamento' || value === 'resolvido' || value === 'cancelado') return value
   return 'aberto'
+}
+
+function normalizeAtendimentoStatus(value: unknown): CicloAtendimentoStatus {
+  return value === 'encerrado' ? 'encerrado' : 'aberto'
 }
 
 function normalizeSeveridade(value: unknown): CicloAlerta['severidade'] {
@@ -165,7 +181,7 @@ export async function getCicloData(context: CicloContext): Promise<CicloData> {
     supabase
       .schema('ciclo')
       .from('clientes')
-      .select('id,carteira_id,administradora_id,nome,nome_fantasia,razao_social,documento,cnpj_normalizado,email,telefone,cidade,estado,status_operacional,score_atual,risco_atual,temperatura,ativo,created_at,updated_at')
+      .select('id,carteira_id,administradora_id,nome,nome_fantasia,razao_social,documento,cnpj_normalizado,email,telefone,cidade,estado,tipo_cliente,status_operacional,score_atual,risco_atual,temperatura,ativo,created_at,updated_at')
       .order('created_at', { ascending: false })
       .limit(300),
     supabase
@@ -251,6 +267,7 @@ export async function getCicloData(context: CicloContext): Promise<CicloData> {
       documento: formatDocumento(row.cnpj_normalizado ?? row.documento),
       carteira: String(carteiraMap.get(String(row.carteira_id)) ?? 'Sem carteira'),
       administradora: String(administradoraMap.get(String(row.administradora_id)) ?? 'Sem administradora'),
+      tipoCliente: normalizeTipoCliente(row.tipo_cliente),
       status: normalizeStatus(row.status_operacional),
       risco: normalizeRisco(row.risco_atual),
       temperatura: normalizeTemperatura(row.temperatura),
@@ -308,6 +325,160 @@ export async function getCicloData(context: CicloContext): Promise<CicloData> {
     documentos,
     alertas,
     timeline,
+    databaseReady: true,
+  }
+}
+
+export type CicloAtendimentoFilters = {
+  dataDe?: string
+  dataAte?: string
+  status?: '' | CicloAtendimentoStatus
+}
+
+function emptyAtendimentoDashboard(databaseReady = false): CicloAtendimentoDashboard {
+  return {
+    rows: [],
+    groups: {
+      cliente: [],
+      responsavel: [],
+      carteira: [],
+      tipo: [],
+    },
+    months: [],
+    kpis: {
+      total: 0,
+      abertos: 0,
+      encerrados: 0,
+      clientes: 0,
+      responsaveis: 0,
+      tipos: 0,
+    },
+    options: {
+      carteiras: [],
+      responsaveis: [],
+      tipos: [],
+    },
+    databaseReady,
+  }
+}
+
+function monthKey(value: string | null) {
+  if (!value) return 'Sem data'
+  return value.slice(0, 7)
+}
+
+function monthLabel(key: string) {
+  if (key === 'Sem data') return key
+  const [year, month] = key.split('-').map(Number)
+  if (!year || !month) return key
+  return new Intl.DateTimeFormat('pt-BR', { month: 'short', year: '2-digit' }).format(new Date(year, month - 1, 1))
+}
+
+function groupAtendimentos(rows: CicloAtendimentoRecord[], key: CicloAtendimentoTab): CicloAtendimentoGroup[] {
+  const map = new Map<string, CicloAtendimentoGroup>()
+  for (const row of rows) {
+    const label = key === 'cliente'
+      ? row.cliente_nome
+      : key === 'responsavel'
+        ? row.responsavel || 'Sem responsável'
+        : key === 'carteira'
+          ? row.carteira_nome || 'Sem carteira'
+          : row.tipo_atendimento || 'Sem etiqueta'
+    const item = map.get(label) ?? { label, total: 0, abertos: 0, encerrados: 0, percentual: 0 }
+    item.total += 1
+    if (row.status === 'aberto') item.abertos += 1
+    else item.encerrados += 1
+    map.set(label, item)
+  }
+
+  return [...map.values()]
+    .map((item) => ({ ...item, percentual: rows.length ? Math.round((item.total / rows.length) * 100) : 0 }))
+    .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label))
+}
+
+export async function getCicloAtendimentoDashboard(context: CicloContext, filters: CicloAtendimentoFilters): Promise<CicloAtendimentoDashboard> {
+  const supabase = admin()
+  const query = supabase
+    .schema('ciclo')
+    .from('atendimentos_consultivos')
+    .select('id,source_key,astrea_codigo,titulo,cliente_nome,cliente_id,carteira_id,responsavel,etiquetas,tipo_atendimento,status,data_criacao,data_encerramento,data_ultimo_historico,objeto,ultimo_historico,url_processo')
+    .order('data_criacao', { ascending: false })
+    .limit(5000)
+
+  if (filters.dataDe) query.gte('data_criacao', filters.dataDe)
+  if (filters.dataAte) query.lte('data_criacao', filters.dataAte)
+  if (filters.status) query.eq('status', filters.status)
+
+  const { data, error } = await query
+  if (error) return emptyAtendimentoDashboard(false)
+
+  const allowedCarteiraIds = await getAllowedCarteiraIds(context)
+  const scopedRows = filterByCarteiraScope((data ?? []) as Array<Record<string, any>>, allowedCarteiraIds)
+  const carteiraIds = [...new Set(scopedRows.map((row) => text(row.carteira_id)).filter(Boolean))]
+  const carteirasResult = carteiraIds.length
+    ? await supabase.schema('core').from('carteiras').select('id,nome').in('id', carteiraIds)
+    : { data: [], error: null }
+  const carteiraMap = new Map<string, string>((carteirasResult.data ?? []).map((row: any) => [text(row.id), text(row.nome)]))
+
+  const rows: CicloAtendimentoRecord[] = scopedRows.map((row) => ({
+    id: text(row.id),
+    source_key: text(row.source_key),
+    astrea_codigo: text(row.astrea_codigo) || null,
+    titulo: text(row.titulo, 'Atendimento sem titulo'),
+    cliente_nome: text(row.cliente_nome, 'Cliente nao informado'),
+    cliente_id: text(row.cliente_id) || null,
+    carteira_id: text(row.carteira_id) || null,
+    carteira_nome: text(carteiraMap.get(text(row.carteira_id)), 'Sem carteira'),
+    responsavel: text(row.responsavel, 'Sem responsável'),
+    etiquetas: Array.isArray(row.etiquetas) ? row.etiquetas.map(String) : [],
+    tipo_atendimento: text(row.tipo_atendimento, 'Sem etiqueta'),
+    status: normalizeAtendimentoStatus(row.status),
+    data_criacao: text(row.data_criacao) || null,
+    data_encerramento: text(row.data_encerramento) || null,
+    data_ultimo_historico: text(row.data_ultimo_historico) || null,
+    objeto: text(row.objeto) || null,
+    ultimo_historico: text(row.ultimo_historico) || null,
+    url_processo: text(row.url_processo) || null,
+  }))
+
+  const groups = {
+    cliente: groupAtendimentos(rows, 'cliente').slice(0, 50),
+    responsavel: groupAtendimentos(rows, 'responsavel').slice(0, 50),
+    carteira: groupAtendimentos(rows, 'carteira').slice(0, 50),
+    tipo: groupAtendimentos(rows, 'tipo').slice(0, 50),
+  }
+
+  const monthMap = new Map<string, { label: string; total: number; abertos: number; encerrados: number }>()
+  for (const row of rows) {
+    const key = monthKey(row.data_criacao)
+    const item = monthMap.get(key) ?? { label: monthLabel(key), total: 0, abertos: 0, encerrados: 0 }
+    item.total += 1
+    if (row.status === 'aberto') item.abertos += 1
+    else item.encerrados += 1
+    monthMap.set(key, item)
+  }
+
+  const months = [...monthMap.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, item]) => item)
+
+  return {
+    rows,
+    groups,
+    months,
+    kpis: {
+      total: rows.length,
+      abertos: rows.filter((row) => row.status === 'aberto').length,
+      encerrados: rows.filter((row) => row.status === 'encerrado').length,
+      clientes: new Set(rows.map((row) => row.cliente_nome)).size,
+      responsaveis: new Set(rows.map((row) => row.responsavel)).size,
+      tipos: new Set(rows.map((row) => row.tipo_atendimento)).size,
+    },
+    options: {
+      carteiras: groups.carteira.map((item) => item.label),
+      responsaveis: groups.responsavel.map((item) => item.label),
+      tipos: groups.tipo.map((item) => item.label),
+    },
     databaseReady: true,
   }
 }
@@ -449,6 +620,33 @@ export async function listCicloOnboardingRows(): Promise<CicloListRow[]> {
     })
 }
 
+function normalizeWorkflowStatus(value: unknown): CicloOnboardingDetail['atividades'][number]['status'] {
+  if (value === 'em_andamento' || value === 'concluido' || value === 'dispensado') return value
+  return 'pendente'
+}
+
+export async function listCicloOnboardingWorkflowAtividades(): Promise<CicloOnboardingWorkflowAtividade[]> {
+  const context = await requireCicloContext()
+  if (!canAccess(context.permissions, 'ciclo.clientes.write')) return []
+
+  const { data, error } = await admin()
+    .schema('ciclo')
+    .from('onboarding_workflow_atividades')
+    .select('id,ordem,descricao,responsavel_padrao,obrigatoria,ativo')
+    .order('ordem', { ascending: true })
+
+  if (error) return []
+
+  return ((data ?? []) as Array<Record<string, any>>).map((row) => ({
+    id: text(row.id),
+    ordem: numberValue(row.ordem),
+    descricao: text(row.descricao),
+    responsavel_padrao: text(row.responsavel_padrao) || null,
+    obrigatoria: row.obrigatoria !== false,
+    ativo: row.ativo !== false,
+  }))
+}
+
 export async function listCicloRegularidadeRows(context: CicloContext): Promise<CicloListRow[]> {
   const data = await getCicloData(context)
   return data.clientes.map((cliente) => {
@@ -583,7 +781,7 @@ export async function getCicloCliente(id: string, context: CicloContext): Promis
   const { data, error } = await admin()
     .schema('ciclo')
     .from('clientes')
-    .select('id,carteira_id,administradora_id,nome,nome_fantasia,razao_social,documento,email,telefone,cidade,estado,status_operacional,score_atual,risco_atual,temperatura,pasta_url,observacoes,ativo')
+    .select('id,carteira_id,administradora_id,nome,nome_fantasia,razao_social,documento,email,telefone,cidade,estado,tipo_cliente,status_operacional,score_atual,risco_atual,temperatura,pasta_url,observacoes,ativo')
     .eq('id', id)
     .single()
 
@@ -610,6 +808,7 @@ export async function getCicloCliente(id: string, context: CicloContext): Promis
     telefone: text(row.telefone) || null,
     cidade: text(row.cidade) || null,
     estado: text(row.estado) || null,
+    tipo_cliente: normalizeTipoCliente(row.tipo_cliente),
     status_operacional: normalizeStatus(row.status_operacional),
     score_atual: numberValue(row.score_atual),
     risco_atual: normalizeRisco(row.risco_atual),
@@ -992,13 +1191,19 @@ export async function getCicloAdministradora(id: string): Promise<CicloAdministr
 
 export async function getCicloOnboardingDetail(id: string, context: CicloContext): Promise<CicloOnboardingDetail> {
   const cliente = await getCicloCliente(id, context)
-  const [documentosResult, timelineResult] = await Promise.all([
+  const [documentosResult, atividadesResult, timelineResult] = await Promise.all([
     admin()
       .schema('ciclo')
       .from('cliente_documentos')
       .select('id,tipo_documento,titulo,status,obrigatorio,validado,data_renovacao,arquivo_url,observacoes,created_at')
       .eq('cliente_id', id)
       .order('created_at', { ascending: true }),
+    admin()
+      .schema('ciclo')
+      .from('onboarding_cliente_atividades')
+      .select('id,atividade_id,ordem,descricao,responsavel,status,obrigatoria,concluido_em,observacoes,created_at')
+      .eq('cliente_id', id)
+      .order('ordem', { ascending: true }),
     admin()
       .schema('ciclo')
       .from('timeline_cliente')
@@ -1009,6 +1214,7 @@ export async function getCicloOnboardingDetail(id: string, context: CicloContext
   ])
 
   if (documentosResult.error) throw new Error(documentosResult.error.message)
+  if (atividadesResult.error) throw new Error(atividadesResult.error.message)
   if (timelineResult.error) throw new Error(timelineResult.error.message)
 
   const documentos = ((documentosResult.data ?? []) as Array<Record<string, any>>).map((row) => ({
@@ -1025,10 +1231,24 @@ export async function getCicloOnboardingDetail(id: string, context: CicloContext
 
   const obrigatorios = documentos.filter((documento) => documento.obrigatorio && documento.status !== 'dispensado')
   const concluidos = obrigatorios.filter((documento) => documento.validado).length
+  const atividades = ((atividadesResult.data ?? []) as Array<Record<string, any>>).map((row) => ({
+    id: text(row.id),
+    atividade_id: text(row.atividade_id) || null,
+    ordem: numberValue(row.ordem),
+    descricao: text(row.descricao),
+    responsavel: text(row.responsavel) || null,
+    status: normalizeWorkflowStatus(row.status),
+    obrigatoria: row.obrigatoria !== false,
+    concluido_em: text(row.concluido_em) || null,
+    observacoes: text(row.observacoes) || null,
+  }))
+  const atividadesObrigatorias = atividades.filter((atividade) => atividade.obrigatoria && atividade.status !== 'dispensado')
+  const atividadesConcluidas = atividadesObrigatorias.filter((atividade) => atividade.status === 'concluido').length
 
   return {
     cliente,
     documentos,
+    atividades,
     timeline: ((timelineResult.data ?? []) as Array<Record<string, any>>).map((row) => ({
       id: text(row.id),
       cliente: cliente.nome,
@@ -1042,6 +1262,12 @@ export async function getCicloOnboardingDetail(id: string, context: CicloContext
       concluidos,
       percentual: obrigatorios.length ? Math.round((concluidos / obrigatorios.length) * 100) : 0,
       pendentes: Math.max(obrigatorios.length - concluidos, 0),
+    },
+    workflow: {
+      total: atividadesObrigatorias.length,
+      concluidas: atividadesConcluidas,
+      percentual: atividadesObrigatorias.length ? Math.round((atividadesConcluidas / atividadesObrigatorias.length) * 100) : 0,
+      pendentes: Math.max(atividadesObrigatorias.length - atividadesConcluidas, 0),
     },
   }
 }

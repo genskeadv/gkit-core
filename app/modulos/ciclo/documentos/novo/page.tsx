@@ -1,5 +1,5 @@
 import { createCicloDocumentoAction } from '@/features/ciclo/actions'
-import { CicloDocumentoForm, CicloShell } from '@/features/ciclo/components'
+import { CicloDocumentoForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloDocumentoFormData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function NovoDocumentoPage() {
@@ -14,7 +14,13 @@ export default async function NovoDocumentoPage() {
       description="Controle documental por cliente, status, vencimento e link do arquivo."
       usuario={context.usuario}
     >
-      <CicloDocumentoForm action={createCicloDocumentoAction} formData={formData} />
+      <CicloSection
+        eyebrow="Cadastro"
+        title="Dados do documento"
+        description="Defina cliente, tipo, status, obrigatoriedade, vencimento e arquivo."
+      >
+        <CicloDocumentoForm action={createCicloDocumentoAction} formData={formData} />
+      </CicloSection>
     </CicloShell>
   )
 }

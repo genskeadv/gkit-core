@@ -1,0 +1,17 @@
+export {
+  IntrColaboradorList as FixColaboradorList,
+  IntrColaboradorForm as FixColaboradorForm,
+  IntrGenericList as FixColaboradoresGenericList,
+  IntrKpis as FixColaboradoresKpis,
+  IntrListKpis as FixColaboradoresListKpis,
+  IntrTimeForm as FixTimeForm,
+  IntrComissaoTipoForm as FixComissaoTipoForm,
+  IntrComissaoForm as FixComissaoForm,
+  IntrComissaoOperationalList as FixComissaoOperationalList,
+  IntrComissaoWorkflowActions as FixComissaoWorkflowActions,
+  IntrComissaoDetailList as FixComissaoDetailList,
+  IntrConfirmarPagamentosTipoForm as FixConfirmarPagamentosTipoForm,
+  IntrPagamentoForm as FixPagamentoForm,
+  IntrPagamentoAgendaForm as FixPagamentoAgendaForm,
+  IntrGerarPagamentosForm as FixGerarPagamentosForm,
+} from '@/features/fix/_legacy/intr-components'

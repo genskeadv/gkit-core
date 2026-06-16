@@ -26,7 +26,6 @@ O CRM acompanha captacao comercial, oportunidades, empresas, contatos, propostas
 - `/modulos/crm/propostas`
 - `/modulos/crm/atividades`
 - `/modulos/crm/interacoes`
-- `/modulos/crm/carteiras-usuarios`
 
 ## Base tecnica
 

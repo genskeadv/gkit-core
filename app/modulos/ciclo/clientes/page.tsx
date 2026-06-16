@@ -1,12 +1,28 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CicloClienteList, CicloKpis, CicloShell } from '@/features/ciclo/components'
+import { buildClienteListFilters, filterAndSortClientes } from '@/features/ciclo/clientes-list'
+import { CicloClienteList, CicloKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloData, requireCicloContext } from '@/features/ciclo/queries'
 
-export default async function CicloClientesPage() {
+type CicloClientesPageProps = {
+  searchParams?: Promise<{ carteira?: string; dir?: string; q?: string; sort?: string; tipo?: string }>
+}
+
+export default async function CicloClientesPage({ searchParams }: CicloClientesPageProps) {
   const context = await requireCicloContext()
+  const params = await searchParams
   const data = await getCicloData(context)
   const canWrite = canAccess(context.permissions, 'ciclo.clientes.write')
+  const filters = buildClienteListFilters(params)
+  const carteiraOptions = Array.from(new Set(data.clientes.map((cliente) => cliente.carteira).filter(Boolean))).sort((a, b) => a.localeCompare(b))
+  const clientesFiltrados = filterAndSortClientes(data.clientes, filters)
+  const exportParams = new URLSearchParams()
+  if (filters.q) exportParams.set('q', filters.q)
+  if (filters.tipo) exportParams.set('tipo', filters.tipo)
+  if (filters.carteira) exportParams.set('carteira', filters.carteira)
+  exportParams.set('sort', filters.sort)
+  exportParams.set('dir', filters.dir)
+  const exportHref = `/modulos/ciclo/clientes/exportar?${exportParams.toString()}`
 
   return (
     <CicloShell
@@ -15,10 +31,34 @@ export default async function CicloClientesPage() {
       title="Clientes"
       description="Base única de clientes do Ciclo, com carteira, administradora, risco e regularidade."
       usuario={context.usuario}
-      actions={canWrite ? <Link className="button" href="/modulos/ciclo/clientes/novo">Novo cliente</Link> : null}
+      actions={
+        <>
+          <Link className="button secondary" href={exportHref}>Exportar XLSX</Link>
+          {canWrite ? <Link className="button" href="/modulos/ciclo/clientes/novo">Novo cliente</Link> : null}
+        </>
+      }
     >
-      <CicloKpis data={data} />
-      <CicloClienteList canWrite={canWrite} clientes={data.clientes} />
+      <CicloSection
+        className="ciclo-clientes-summary"
+        eyebrow="Resumo"
+        title="Saúde da base"
+        description="Clientes ativos, implantações, risco, alertas, score e regularidade média."
+      >
+        <CicloKpis data={data} />
+      </CicloSection>
+      <CicloSection
+        eyebrow="Cadastro"
+        title="Lista de clientes"
+        description="Cadastro mestre com carteira, administradora, risco e regularidade."
+      >
+        <CicloClienteList
+          canWrite={canWrite}
+          carteiraOptions={carteiraOptions}
+          clientes={clientesFiltrados}
+          filters={filters}
+          totalClientes={data.clientes.length}
+        />
+      </CicloSection>
     </CicloShell>
   )
 }

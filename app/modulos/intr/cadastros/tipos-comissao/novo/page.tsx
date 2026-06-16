@@ -1,18 +1,5 @@
-import { createIntrComissaoTipoAction } from '@/features/intr/actions'
-import { IntrComissaoTipoForm, IntrShell } from '@/features/intr/components'
-import { requireIntrContext } from '@/features/intr/queries'
+import { redirect } from 'next/navigation'
 
-export default async function NovoIntrTipoComissaoPage() {
-  const context = await requireIntrContext()
-
-  return (
-    <IntrShell
-      active="tiposComissao"
-      title="Novo tipo de comissao"
-      description="Cadastre percentual e categoria usada no calculo automatico da importação de receitas."
-      usuario={context.usuario}
-    >
-      <IntrComissaoTipoForm action={createIntrComissaoTipoAction} />
-    </IntrShell>
-  )
+export default function LegacyIntrRedirectPage() {
+  redirect('/modulos/fix/tipos-comissao/novo')
 }

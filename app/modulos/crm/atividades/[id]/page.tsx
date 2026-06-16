@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import { updateCrmAtividadeAction } from '@/features/crm/actions'
-import { CrmAtividadeForm, CrmShell } from '@/features/crm/components'
+import { CrmAtividadeForm, CrmSection, CrmShell } from '@/features/crm/components'
 import { getCrmAtividade, getCrmOpportunityFormData, requireCrmContext } from '@/features/crm/queries'
 
 export default async function EditarCrmAtividadePage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,10 +19,16 @@ export default async function EditarCrmAtividadePage({ params }: { params: Promi
       active="atividades"
       eyebrow="Base operacional"
       title="Editar atividade"
-      description="Atualize prazo, conclusao e relacionamento da atividade comercial."
+      description="Atualize prazo, conclusão e relacionamento da atividade comercial."
       usuario={context.usuario}
     >
-      <CrmAtividadeForm action={updateCrmAtividadeAction} formData={formData} atividade={atividade} />
+      <CrmSection
+        eyebrow="Edição"
+        title="Dados da atividade"
+        description="Atualize prazo, conclusão, responsáveis comerciais e vínculos do relacionamento."
+      >
+        <CrmAtividadeForm action={updateCrmAtividadeAction} formData={formData} atividade={atividade} />
+      </CrmSection>
     </CrmShell>
   )
 }

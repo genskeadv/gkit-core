@@ -1,0 +1,17 @@
+export {
+  getIntrData as getFixColaboradoresData,
+  getIntrFormData as getFixColaboradoresFormData,
+  getIntrColaborador as getFixColaborador,
+  getIntrTime as getFixTime,
+  getIntrComissaoTipo as getFixComissaoTipo,
+  getIntrComissao as getFixComissao,
+  getIntrPagamento as getFixPagamento,
+  getIntrPagamentoAgenda as getFixPagamentoAgenda,
+  listIntrTimeRows as listFixTimeRows,
+  listIntrComissaoTipoRows as listFixComissaoTipoRows,
+  listIntrComissaoRows as listFixComissaoRows,
+  listIntrComissaoDetalheRows as listFixComissaoDetalheRows,
+  listIntrPagamentoRows as listFixPagamentoRows,
+  listIntrPagamentoAgendaRows as listFixPagamentoAgendaRows,
+  requireIntrContext as requireFixColaboradoresContext,
+} from '@/features/fix/_legacy/intr-queries'
