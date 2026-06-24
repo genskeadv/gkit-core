@@ -20,6 +20,14 @@ export default async function ModuloPage({
   params: Promise<{ codigo: string }>
 }) {
   const { codigo } = await params
+  if (codigo === 'gkit_new') {
+    redirect('/modulos/gkit-new')
+  }
+
+  if (codigo === 'gkit_ate') {
+    redirect('/modulos/gkit-ate')
+  }
+
   if (codigo === 'intr' || codigo === 'fix' || codigo === 'flex') {
     redirect('/modulos/din')
   }

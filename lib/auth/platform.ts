@@ -26,6 +26,8 @@ const MODULE_PATHS: Record<string, string> = {
   core: '/admin',
   crm: '/modulos/crm',
   fix: '/modulos/din',
+  'gkit-ate': '/modulos/gkit-ate',
+  'gkit-new': '/modulos/gkit-new',
   gkit_ate: '/modulos/gkit-ate',
   gkit_new: '/modulos/gkit-new',
   intr: '/modulos/din',
@@ -46,12 +48,15 @@ function safeNext(next: string) {
   return next.startsWith('/') && !next.startsWith('//') ? next : '/plataforma'
 }
 
-function moduleHref(app: any) {
+function moduleHref(app: any, codigo: string) {
+  const knownPath = MODULE_PATHS[codigo] ?? MODULE_PATHS[String(app.codigo)]
+  if (knownPath) return knownPath
+
   if (typeof app.url_path === 'string' && app.url_path.startsWith('/') && !app.url_path.startsWith('//')) {
     return app.url_path
   }
 
-  return MODULE_PATHS[String(app.codigo)] ?? `/modulos/${app.codigo}`
+  return `/modulos/${codigo}`
 }
 
 function moduleCode(codigo: unknown) {
@@ -69,7 +74,7 @@ function normalizeModule(app: any): PlatformModule {
     nome: app.nome,
     descricao: app.descricao,
     status: app.status,
-    href: moduleHref(app),
+    href: moduleHref(app, codigo),
   }
 }
 
