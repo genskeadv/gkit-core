@@ -3,10 +3,20 @@ import { FlexList, FlexSection, FlexShell } from '@/features/flex/components'
 import {
   getFlexCompetenciaOperacional,
   listFlexCompetenciaOptions,
-  listFlexPrevisaoCalendarioRows,
+  listFlexPrevisaoComissoesPagamentos,
   listFlexPrevisoesDespesas,
   requireFlexContext,
 } from '@/features/flex/queries'
+
+function parseMoneyValue(value: string) {
+  const normalized = value.replace(/[^\d,-]/g, '').replace(/\./g, '').replace(',', '.')
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function formatMoney(value: number) {
+  return value.toLocaleString('pt-BR', { currency: 'BRL', style: 'currency' })
+}
 
 export default async function FlexPrevisaoPage({
   searchParams,
@@ -17,16 +27,18 @@ export default async function FlexPrevisaoPage({
   const context = await requireFlexContext()
   const [competenciaAtual, competencias] = await Promise.all([getFlexCompetenciaOperacional(), listFlexCompetenciaOptions()])
   const competencia = params?.competencia && /^\d{4}-\d{2}$/.test(params.competencia) ? params.competencia : competenciaAtual.competenciaMes
-  const [previsoes, calendario] = await Promise.all([
+  const [previsoes, comissoes] = await Promise.all([
     listFlexPrevisoesDespesas(competencia),
-    listFlexPrevisaoCalendarioRows(competencia),
+    listFlexPrevisaoComissoesPagamentos(competencia),
   ])
+  const rows = [...previsoes, ...comissoes]
+  const totalPrevisoes = rows.reduce((sum, row) => sum + parseMoneyValue(row.value), 0)
 
   return (
     <FlexShell
       active="previsao"
-      title="Previsão e calendário"
-      description="Planejamento mensal, pagamentos fixos e comissões previstas por data."
+      title="Previsão"
+      description="Base mensal recorrente, comissões aprovadas e pagamentos previstos para validação do caixa."
       usuario={context.usuario}
       actions={
         <>
@@ -53,21 +65,13 @@ export default async function FlexPrevisaoPage({
         </FlexSection>
 
         <FlexSection
-          className="flex-previsoes-panel"
-          eyebrow="Calendário"
-          title={`Previsto para ${competencia.slice(5, 7)}/${competencia.slice(0, 4)}`}
-          description="Despesas recorrentes, pagamentos fixos dos colaboradores, pagamentos gerados e comissões aprovadas."
-        >
-          <FlexList bare rows={calendario} empty="Nenhum item previsto para esta competência." />
-        </FlexSection>
-
-        <FlexSection
+          action={<span className="suite-pill primary">Total {formatMoney(totalPrevisoes)}</span>}
           className="flex-previsoes-panel"
           eyebrow="Planejamento"
-          title="Base recorrente de despesas"
-          description="Itens de orçamento recorrente usados para validar o extrato importado."
+          title="Previsão de despesas"
+          description="Base recorrente e comissões aprovadas para pagamento na competência."
         >
-          <FlexList bare rows={previsoes} empty="Nenhuma previsão mensal cadastrada." />
+          <FlexList bare rows={rows} empty="Nenhuma previsão mensal cadastrada." />
         </FlexSection>
       </div>
     </FlexShell>

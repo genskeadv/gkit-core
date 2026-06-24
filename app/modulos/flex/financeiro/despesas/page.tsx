@@ -1,9 +1,11 @@
 import Link from 'next/link'
-import { FlexList, FlexSection, FlexShell } from '@/features/flex/components'
+import { updateFlexExtratoLancamentoAction } from '@/features/flex/actions'
+import { FlexDespesasInlineList, FlexSection, FlexShell } from '@/features/flex/components'
 import {
   getFlexCompetenciaOperacional,
+  getFlexFormData,
   listFlexCompetenciaOptions,
-  listFlexDespesas,
+  listFlexDespesasInline,
   requireFlexContext,
 } from '@/features/flex/queries'
 
@@ -31,9 +33,11 @@ export default async function FlexDespesasPage({
   const competenciaAtual = await getFlexCompetenciaOperacional()
   const competencia = params?.competencia && competenciaDate(params.competencia) ? params.competencia : competenciaAtual.competenciaMes
   const status = statusFilter(params?.status)
-  const [rows, competencias] = await Promise.all([
-    listFlexDespesas(`${competencia}-01`, status),
+  const returnTo = `/modulos/flex/financeiro/despesas?competencia=${competencia}&status=${status}`
+  const [rows, competencias, formData] = await Promise.all([
+    listFlexDespesasInline(`${competencia}-01`, status),
     listFlexCompetenciaOptions(),
+    getFlexFormData(),
   ])
 
   return (
@@ -50,7 +54,7 @@ export default async function FlexDespesasPage({
       )}
     >
       <div className="flex-despesas-page">
-        <FlexSection eyebrow="Filtro" title="Despesas do mês" description="Filtre a competência e abra uma linha para classificar, ajustar ou vincular à previsão.">
+        <FlexSection eyebrow="Filtro" title="Despesas do mês" description="Filtre a competência e classifique os lançamentos direto na lista.">
           <form className="flex-filter-bar">
             <label>
               <span>Competência</span>
@@ -72,8 +76,8 @@ export default async function FlexDespesasPage({
           </form>
         </FlexSection>
 
-        <FlexSection eyebrow="Realizado" title={`${rows.length} despesa(s) encontrada(s)`} description="Clique em uma linha para alterar classificação, dados do lançamento ou vínculo com a previsão mensal.">
-          <FlexList bare rows={rows} empty="Nenhuma despesa encontrada para os filtros selecionados." />
+        <FlexSection eyebrow="Realizado" title={`${rows.length} despesa(s) encontrada(s)`} description="Classifique a categoria e marque se a despesa compõe a base recorrente direto na linha.">
+          <FlexDespesasInlineList action={updateFlexExtratoLancamentoAction} formData={formData} returnTo={returnTo} rows={rows} />
         </FlexSection>
       </div>
     </FlexShell>

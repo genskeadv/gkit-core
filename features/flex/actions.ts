@@ -15,7 +15,7 @@ function admin() {
 async function requireFlexWrite(permission: string) {
   const context = await requireModuleAccess('flex')
   if (!canAccess(context.permissions, permission)) {
-    throw new Error('Usuario sem permissao para executar esta acao no Flex.')
+    throw new Error('Usuário sem permissão para executar esta ação no Flex.')
   }
   return context
 }
@@ -36,7 +36,7 @@ function optionalText(formData: FormData, key: string) {
 
 function requiredText(formData: FormData, key: string, label: string) {
   const value = text(formData, key)
-  if (!value) throw new Error(`${label} e obrigatorio.`)
+  if (!value) throw new Error(`${label} é obrigatório.`)
   return value
 }
 
@@ -46,10 +46,13 @@ function optionalUuid(formData: FormData, key: string) {
 }
 
 function money(formData: FormData, key: string) {
-  const raw = text(formData, key).replace(/\./g, '').replace(',', '.')
+  const value = text(formData, key)
+  const raw = value.includes(',')
+    ? value.replace(/\./g, '').replace(',', '.')
+    : value
   if (!raw) return 0
   const parsed = Number(raw)
-  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${key} invalido.`)
+  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${key} inválido.`)
   return parsed
 }
 
@@ -57,7 +60,7 @@ function decimalNumber(formData: FormData, key: string) {
   const raw = text(formData, key).replace(',', '.')
   if (!raw) return 0
   const parsed = Number(raw)
-  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${key} invalido.`)
+  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${key} inválido.`)
   return parsed
 }
 
@@ -65,7 +68,7 @@ function percent(formData: FormData, key: string) {
   const raw = text(formData, key).replace(',', '.')
   if (!raw) return 0
   const parsed = Number(raw)
-  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${key} invalido.`)
+  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${key} inválido.`)
   return parsed
 }
 
@@ -73,7 +76,7 @@ function integer(formData: FormData, key: string, fallback = 0) {
   const raw = text(formData, key)
   if (!raw) return fallback
   const parsed = Number.parseInt(raw, 10)
-  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${key} invalido.`)
+  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${key} inválido.`)
   return parsed
 }
 
@@ -91,21 +94,21 @@ function aliases(formData: FormData, key = 'aliases') {
 
 function requiredDate(formData: FormData, key: string, label: string) {
   const value = text(formData, key)
-  if (!value) throw new Error(`${label} e obrigatoria.`)
+  if (!value) throw new Error(`${label} é obrigatória.`)
   return value
 }
 
 function competenciaMonth(formData: FormData, key = 'competencia') {
-  const value = requiredText(formData, key, 'Competencia')
+  const value = requiredText(formData, key, 'Competência')
   if (/^\d{4}-\d{2}$/.test(value)) return `${value}-01`
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return `${value.slice(0, 7)}-01`
-  throw new Error('Competencia deve estar em mes/ano.')
+  throw new Error('Competência deve estar em mês/ano.')
 }
 
 function competenciaFromDate(value: string) {
   if (/^\d{4}-\d{2}$/.test(value)) return `${value}-01`
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return `${value.slice(0, 7)}-01`
-  throw new Error('Data da competencia invalida.')
+  throw new Error('Data da competência inválida.')
 }
 
 function previousMonthDate() {
@@ -164,7 +167,7 @@ function tipoComissaoPayload(formData: FormData) {
 
 function colaboradorPayload(formData: FormData) {
   return {
-    usuario_id: requiredText(formData, 'usuario_id', 'Usuario Core'),
+    usuario_id: requiredText(formData, 'usuario_id', 'Usuário Core'),
     carteira_id: optionalUuid(formData, 'carteira_id'),
     time_id: optionalUuid(formData, 'time_id'),
     gestor_usuario_id: optionalUuid(formData, 'gestor_usuario_id'),
@@ -206,11 +209,11 @@ async function ensureFlexTipoPagamento(supabase: any, codigo: string, nome: stri
 
 async function syncFlexColaboradorPagamentoAgendas(supabase: any, colaboradorId: string, payload: FlexColaboradorPayload) {
   const items = [
-    { codigo: 'salario', nome: 'Salario', descricao: 'Salario - cadastro colaborador', valor: payload.salario },
-    { codigo: 'participacao_honorarios', nome: 'Participacao em honorarios', descricao: 'Participacao em honorarios - cadastro colaborador', valor: payload.participacao_honorarios },
-    { codigo: 'pro_labore', nome: 'Pro-labore', descricao: 'Pro-labore - cadastro colaborador', valor: payload.pro_labore },
+    { codigo: 'salario', nome: 'Salário', descricao: 'Salário - cadastro colaborador', valor: payload.salario },
+    { codigo: 'participacao_honorarios', nome: 'Participação em honorários', descricao: 'Participação em honorários - cadastro colaborador', valor: payload.participacao_honorarios },
+    { codigo: 'pro_labore', nome: 'Pró-labore', descricao: 'Pró-labore - cadastro colaborador', valor: payload.pro_labore },
     { codigo: 'ajuda_custo', nome: 'Ajuda de custo', descricao: 'Ajuda de custo - cadastro colaborador', valor: payload.ajuda_custo },
-    { codigo: 'beneficio', nome: 'Beneficio', descricao: 'Beneficio - cadastro colaborador', valor: payload.beneficio_valor },
+    { codigo: 'beneficio', nome: 'Benefício', descricao: 'Benefício - cadastro colaborador', valor: payload.beneficio_valor },
     { codigo: 'outros_vencimentos', nome: 'Outros vencimentos', descricao: 'Outros vencimentos - cadastro colaborador', valor: payload.outros_vencimentos },
   ]
   const descricoes = items.map((item) => item.descricao)
@@ -286,7 +289,7 @@ function comissaoPayload(formData: FormData) {
 
 function receitaMapeamentoPayload(formData: FormData) {
   const destinoTipo = requiredText(formData, 'destino_tipo', 'Destino')
-  if (!['colaborador', 'time'].includes(destinoTipo)) throw new Error('Destino invalido.')
+  if (!['colaborador', 'time'].includes(destinoTipo)) throw new Error('Destino inválido.')
 
   const colaboradorId = destinoTipo === 'colaborador' ? requiredText(formData, 'colaborador_id', 'Colaborador') : null
   const timeId = destinoTipo === 'time' ? requiredText(formData, 'time_id', 'Time') : null
@@ -349,8 +352,9 @@ async function syncFlexPagamentoComissao(supabase: any, comissao: {
   const valor = Number(comissao.valor_comissao) || 0
   if (!comissao.colaborador_id || valor <= 0) return
 
-  const tipoPagamentoId = await ensureFlexTipoPagamento(supabase, 'comissao', 'Comissao')
-  const dataPrevista = paymentDateForCompetencia(comissao.competencia, FLEX_COMISSAO_PAGAMENTO_DIA)
+  const tipoPagamentoId = await ensureFlexTipoPagamento(supabase, 'comissao', 'Comissão')
+  const competenciaPagamento = nextMonth(comissao.competencia)
+  const dataPrevista = paymentDateForCompetencia(competenciaPagamento, FLEX_COMISSAO_PAGAMENTO_DIA)
   const { data: existente, error: existenteError } = await supabase
     .schema('flex')
     .from('pagamentos')
@@ -365,8 +369,8 @@ async function syncFlexPagamentoComissao(supabase: any, comissao: {
     colaborador_id: comissao.colaborador_id,
     tipo_pagamento_id: tipoPagamentoId,
     comissao_id: comissao.id,
-    competencia: comissao.competencia,
-    descricao: 'Comissao aprovada',
+    competencia: competenciaPagamento,
+    descricao: 'Comissão aprovada',
     data_prevista: dataPrevista,
     valor_bruto: valor,
     valor_descontos: 0,
@@ -428,7 +432,7 @@ function lancamentoPayload(formData: FormData, extratoId: string) {
     extrato_id: extratoId,
     categoria_id: categoriaId,
     previsao_despesa_id: previsaoDespesaId,
-    data_lancamento: requiredDate(formData, 'data_lancamento', 'Data do lancamento'),
+    data_lancamento: requiredDate(formData, 'data_lancamento', 'Data do lançamento'),
     fornecedor: optionalText(formData, 'fornecedor'),
     historico: optionalText(formData, 'historico'),
     descricao: optionalText(formData, 'descricao'),
@@ -507,6 +511,7 @@ export type FlexComissaoPreviewState = {
   error?: string
   ok: boolean
   competencia?: string
+  impostoPercentual?: number
   diagnostics?: Array<{ label: string; value: string }>
   diagnosticRows?: FlexComissaoPreviewRow[]
   rows?: FlexComissaoPreviewRow[]
@@ -568,13 +573,17 @@ async function parseFlexOfxFile(formData: FormData) {
   if (!(file instanceof File) || file.size === 0) throw new Error('Selecione um arquivo OFX.')
   const content = await file.text()
   const parsed = parseFlexOfxContent(content)
-  if (!parsed.transactions.length) throw new Error('Nenhum lancamento OFX encontrado.')
+  if (!parsed.transactions.length) throw new Error('Nenhum lançamento OFX encontrado.')
 
   return {
     arquivo: file.name,
     arquivoHash: createHash('sha1').update(content).digest('hex'),
     ...parsed,
   }
+}
+
+function flexOfxDespesaTransactions(transactions: FlexOfxTransaction[]) {
+  return transactions.filter((transaction) => transaction.amount < 0)
 }
 
 async function parseFlexOmieReceitasFile(formData: FormData) {
@@ -587,7 +596,7 @@ async function parseFlexOmieReceitasFile(formData: FormData) {
   if (!worksheet) throw new Error('Planilha sem abas.')
 
   const headerRowNumber = findOmieHeaderRow(worksheet)
-  if (!headerRowNumber) throw new Error('Cabecalho do Omie nao encontrado.')
+  if (!headerRowNumber) throw new Error('Cabeçalho do Omie não encontrado.')
 
   const headers = new Map<string, number>()
   worksheet.getRow(headerRowNumber).eachCell((cell, column) => {
@@ -704,7 +713,7 @@ async function salvarReceitaCategoriaMapeamento(supabase: any, categoriaOrigem: 
     .limit(1000)
 
   if (error) {
-    throw new Error(`Cadastro de rotas de receita indisponivel. Execute sql/38_flex_receita_categoria_mapeamentos.sql no Supabase. Detalhe: ${error.message}`)
+    throw new Error(`Cadastro de rotas de receita indisponível. Execute sql/38_flex_receita_categoria_mapeamentos.sql no Supabase. Detalhe: ${error.message}`)
   }
 
   const existente = ((data ?? []) as any[]).find((row) => String(row.categoria_origem ?? '').trim().toLowerCase() === categoriaOrigem.trim().toLowerCase())
@@ -748,6 +757,34 @@ async function getDespesaCategoriaMapeamentos(supabase: any): Promise<DespesaCat
   })).filter((row) => row.termo_origem)
 }
 
+async function flexCategoriaMacrogrupo(supabase: any, categoriaId: string | null, fallback?: string | null) {
+  if (!categoriaId) return fallback ?? null
+
+  const { data, error } = await supabase
+    .schema('flex')
+    .from('categorias_financeiras')
+    .select('macrogrupo')
+    .eq('id', categoriaId)
+    .maybeSingle()
+
+  if (error) return fallback ?? null
+  return valueText(data?.macrogrupo, fallback ?? '') || null
+}
+
+async function flexCategoriaNome(supabase: any, categoriaId: string | null) {
+  if (!categoriaId) return ''
+
+  const { data, error } = await supabase
+    .schema('flex')
+    .from('categorias_financeiras')
+    .select('nome')
+    .eq('id', categoriaId)
+    .maybeSingle()
+
+  if (error) return ''
+  return valueText(data?.nome)
+}
+
 function matchDespesaCategoriaMapeamento(transaction: FlexOfxTransaction, mapeamentos: DespesaCategoriaMapping[]) {
   if (transaction.amount >= 0) return null
   const source = normalizeForMatch(`${transaction.name} ${transaction.memo}`)
@@ -763,7 +800,7 @@ async function salvarDespesaCategoriaMapeamento(supabase: any, termoOrigem: stri
     .limit(1000)
 
   if (error) {
-    throw new Error(`Cadastro de rotas de despesa indisponivel. Execute sql/39_flex_despesa_categoria_mapeamentos.sql no Supabase. Detalhe: ${error.message}`)
+    throw new Error(`Cadastro de rotas de despesa indisponível. Execute sql/39_flex_despesa_categoria_mapeamentos.sql no Supabase. Detalhe: ${error.message}`)
   }
 
   const existente = ((data ?? []) as any[]).find((row) => String(row.termo_origem ?? '').trim().toLowerCase() === termoOrigem.trim().toLowerCase())
@@ -1477,7 +1514,7 @@ export async function previewFlexReceitasOmieAction(_previousState: FlexImportPr
       },
     }
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : 'Nao foi possivel pre-visualizar o arquivo.' }
+    return { ok: false, error: error instanceof Error ? error.message : 'Não foi possível pré-visualizar o arquivo.' }
   }
 }
 
@@ -1517,30 +1554,33 @@ export async function createFlexExtratoLancamentoAction(formData: FormData) {
     .insert(lancamentoPayload(formData, extrato.id))
 
   if (error) throw new Error(error.message)
-  const competencia = competenciaFromDate(requiredDate(formData, 'data_lancamento', 'Data lancamento'))
+  const competencia = competenciaFromDate(requiredDate(formData, 'data_lancamento', 'Data lançamento'))
   await gerarFlexValidacaoItens(competencia, supabase)
   redirect(`/modulos/flex/financeiro/despesas?competencia=${competencia.slice(0, 7)}`)
 }
 
 export async function updateFlexExtratoLancamentoAction(formData: FormData) {
   await requireFlexWrite('flex.financeiro.write')
-  const id = requiredText(formData, 'id', 'Lancamento')
+  const id = requiredText(formData, 'id', 'Lançamento')
   const categoriaId = optionalUuid(formData, 'categoria_id')
-  const macrogrupo = optionalText(formData, 'macrogrupo')
+  const supabase = admin()
+  const macrogrupo = await flexCategoriaMacrogrupo(supabase, categoriaId, optionalText(formData, 'macrogrupo'))
   let previsaoDespesaId = optionalUuid(formData, 'previsao_despesa_id')
-  const dataLancamento = requiredDate(formData, 'data_lancamento', 'Data do lancamento')
+  const dataLancamento = requiredDate(formData, 'data_lancamento', 'Data do lançamento')
   const valor = money(formData, 'valor')
   const fornecedor = optionalText(formData, 'fornecedor')
   const descricao = optionalText(formData, 'descricao')
-  const supabase = admin()
+  const categoriaNome = await flexCategoriaNome(supabase, categoriaId)
 
   if (formData.get('criar_previsao') === 'on' && !previsaoDespesaId) {
+    if (!categoriaId) throw new Error('Selecione uma categoria para incluir a despesa na base recorrente.')
+
     const { data: previsao, error: previsaoError } = await supabase
       .schema('flex')
       .from('previsoes_despesa')
       .insert({
         fornecedor: valueText(fornecedor, valueText(descricao, 'Fornecedor pendente')),
-        tipo_despesa: valueText(descricao, valueText(fornecedor, 'Despesa importada')),
+        tipo_despesa: valueText(categoriaNome, valueText(descricao, valueText(fornecedor, 'Despesa importada'))),
         categoria_id: categoriaId,
         macrogrupo: macrogrupo ?? 'operacional',
         valor_previsto: valor,
@@ -1576,16 +1616,22 @@ export async function updateFlexExtratoLancamentoAction(formData: FormData) {
 
   if (error) throw new Error(error.message)
   const competencia = competenciaFromDate(dataLancamento)
+  const fallback = `/modulos/flex/financeiro/despesas?competencia=${competencia.slice(0, 7)}`
+  const returnTo = text(formData, 'return_to')
+  const redirectTo = returnTo.startsWith('/modulos/flex/financeiro/despesas') ? returnTo : fallback
   await gerarFlexValidacaoItens(competencia, supabase)
   revalidatePath('/modulos/flex/financeiro/despesas')
-  redirect(`/modulos/flex/financeiro/despesas?competencia=${competencia.slice(0, 7)}`)
+  redirect(redirectTo)
 }
 
 export async function importarFlexExtratoOfxAction(formData: FormData) {
   const context = await requireFlexWrite('flex.importacoes.write')
   const parsed = await parseFlexOfxFile(formData)
+  const despesaTransactions = flexOfxDespesaTransactions(parsed.transactions)
+  if (!despesaTransactions.length) throw new Error('Nenhuma despesa encontrada no OFX. Entradas do extrato sao ignoradas; receitas entram pelo Omie.')
+
   const supabase = admin()
-  const fitIds = parsed.transactions.map((item) => item.fitId)
+  const fitIds = despesaTransactions.map((item) => item.fitId)
 
   const [duplicados, previsoes, despesaMapeamentos] = await Promise.all([
     supabase
@@ -1606,7 +1652,8 @@ export async function importarFlexExtratoOfxAction(formData: FormData) {
   if (previsoes.error) throw new Error(previsoes.error.message)
 
   const existing = new Set(((duplicados.data ?? []) as any[]).map((row) => String(row.origem_chave)))
-  const newTransactions = parsed.transactions.filter((transaction) => !existing.has(transaction.fitId))
+  const newTransactions = despesaTransactions.filter((transaction) => !existing.has(transaction.fitId))
+  const ignoredEntries = parsed.transactions.filter((transaction) => transaction.amount > 0)
   const previsaoRows = (previsoes.data ?? []) as any[]
 
   const { data: importacao, error: importError } = await supabase
@@ -1618,15 +1665,17 @@ export async function importarFlexExtratoOfxAction(formData: FormData) {
       arquivo_nome: parsed.arquivo,
       arquivo_hash: parsed.arquivoHash,
       status: 'processado',
-      total_itens: parsed.transactions.length,
+      total_itens: despesaTransactions.length,
       total_processados: newTransactions.length,
-      total_alertas: parsed.transactions.length - newTransactions.length,
+      total_alertas: despesaTransactions.length - newTransactions.length,
       usuario_id: context.usuario.id,
       metadata: {
         banco: parsed.bankId,
         agencia: parsed.branchId,
         conta: parsed.accountId,
-        duplicados: parsed.transactions.length - newTransactions.length,
+        duplicados: despesaTransactions.length - newTransactions.length,
+        entradas_ignoradas: ignoredEntries.length,
+        valor_entradas_ignorado: ignoredEntries.reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0),
       },
     })
     .select('id')
@@ -1652,7 +1701,7 @@ export async function importarFlexExtratoOfxAction(formData: FormData) {
   if (extratoError) throw new Error(extratoError.message)
 
   const rows = newTransactions.map((transaction) => {
-    const tipo = transaction.amount < 0 ? 'saida' : 'entrada'
+    const tipo = 'saida'
     const previsao = matchPrevisaoDespesa(transaction, previsaoRows)
     const rotaDespesa = previsao?.categoria_id ? null : matchDespesaCategoriaMapeamento(transaction, despesaMapeamentos)
     const categoriaId = previsao?.categoria_id ?? rotaDespesa?.categoria_id ?? null
@@ -1670,7 +1719,7 @@ export async function importarFlexExtratoOfxAction(formData: FormData) {
       valor: Math.abs(transaction.amount),
       tipo,
       macrogrupo,
-      status_classificacao: tipo === 'saida' && !hasClassification ? 'pendente' : 'classificado',
+      status_classificacao: hasClassification ? 'classificado' : 'pendente',
       confianca: hasClassification ? 85 : null,
       conciliado: false,
       origem_chave: transaction.fitId,
@@ -1692,7 +1741,7 @@ export async function importarFlexExtratoOfxAction(formData: FormData) {
   }
 
   const competenciaBase = parsed.start || parsed.transactions[0]?.date || parsed.end
-  if (!competenciaBase) throw new Error('Nao foi possivel identificar a competencia do extrato.')
+  if (!competenciaBase) throw new Error('Não foi possível identificar a competência do extrato.')
   const competencia = competenciaFromDate(competenciaBase)
   await gerarFlexValidacaoItens(competencia, supabase)
   redirect(`/modulos/flex/financeiro/despesas?competencia=${competencia.slice(0, 7)}`)
@@ -1702,7 +1751,8 @@ export async function previewFlexExtratoOfxAction(_previousState: FlexImportPrev
   try {
     await requireFlexWrite('flex.importacoes.write')
     const parsed = await parseFlexOfxFile(formData)
-    const fitIds = parsed.transactions.map((item) => item.fitId)
+    const despesaTransactions = flexOfxDespesaTransactions(parsed.transactions)
+    const fitIds = despesaTransactions.map((item) => item.fitId)
     const supabase = admin()
 
     const [duplicados, previsoes, despesaMapeamentos] = await Promise.all([
@@ -1725,10 +1775,10 @@ export async function previewFlexExtratoOfxAction(_previousState: FlexImportPrev
 
     const existing = new Set(((duplicados.data ?? []) as any[]).map((row) => String(row.origem_chave)))
     const previsaoRows = (previsoes.data ?? []) as any[]
-    const novas = parsed.transactions.filter((transaction) => !existing.has(transaction.fitId))
-    const saidas = parsed.transactions.filter((transaction) => transaction.amount < 0)
+    const novas = despesaTransactions.filter((transaction) => !existing.has(transaction.fitId))
+    const saidas = despesaTransactions
     const entradas = parsed.transactions.filter((transaction) => transaction.amount > 0)
-    const saidasNovas = novas.filter((transaction) => transaction.amount < 0)
+    const saidasNovas = novas
     const classificadas = saidasNovas.filter((transaction) => Boolean(matchPrevisaoDespesa(transaction, previsaoRows)))
     const autoRotas = saidasNovas.filter((transaction) => !matchPrevisaoDespesa(transaction, previsaoRows) && Boolean(matchDespesaCategoriaMapeamento(transaction, despesaMapeamentos)))
     const pendentes = saidasNovas.length - classificadas.length - autoRotas.length
@@ -1739,26 +1789,24 @@ export async function previewFlexExtratoOfxAction(_previousState: FlexImportPrev
       ok: true,
       preview: {
         arquivo: parsed.arquivo,
-        columns: ['Data', 'Descrição', 'Tipo', 'Valor', 'Classificação', 'Status'],
+        columns: ['Data', 'Descrição', 'Valor', 'Classificação', 'Status'],
         kind: 'despesas',
-        rows: parsed.transactions.slice(0, 8).map((transaction) => {
+        rows: despesaTransactions.slice(0, 8).map((transaction) => {
           const previsao = matchPrevisaoDespesa(transaction, previsaoRows)
           const rotaDespesa = previsao ? null : matchDespesaCategoriaMapeamento(transaction, despesaMapeamentos)
-          const tipo = transaction.amount < 0 ? 'Saída' : 'Entrada'
           return {
             'Data': previewDate(transaction.date),
             'Descrição': flexOfxDescription(transaction),
-            'Tipo': tipo,
             'Valor': formatPreviewMoney(Math.abs(transaction.amount)),
-            'Classificação': transaction.amount < 0 ? (previsao ? valueText(previsao.tipo_despesa, 'Prevista') : rotaDespesa ? `Rota: ${rotaDespesa.termo_origem}` : 'Pendente') : 'Entrada',
+            'Classificação': previsao ? valueText(previsao.tipo_despesa, 'Prevista') : rotaDespesa ? `Rota: ${rotaDespesa.termo_origem}` : 'Pendente',
             'Status': existing.has(transaction.fitId) ? 'Duplicada' : 'Nova',
           }
         }),
         summary: [
-          { label: 'Lançamentos', value: String(parsed.transactions.length), hint: `${novas.length} novo(s)` },
-          { label: 'Duplicados', value: String(parsed.transactions.length - novas.length), hint: 'por FITID' },
+          { label: 'Despesas OFX', value: String(saidas.length), hint: `${novas.length} nova(s)` },
+          { label: 'Duplicadas', value: String(saidas.length - novas.length), hint: 'por FITID' },
           { label: 'Saídas', value: formatPreviewMoney(totalSaidas), hint: `${saidas.length} lançamento(s)` },
-          { label: 'Entradas', value: formatPreviewMoney(totalEntradas), hint: `${entradas.length} lançamento(s)` },
+          { label: 'Entradas ignoradas', value: formatPreviewMoney(totalEntradas), hint: `${entradas.length} via Omie` },
           { label: 'Classificadas', value: String(classificadas.length), hint: 'por previsão ativa' },
           { label: 'Auto rotas', value: String(autoRotas.length), hint: 'por rota de Gestão' },
           { label: 'Pendentes', value: String(pendentes), hint: 'saídas novas sem regra' },
@@ -1767,7 +1815,7 @@ export async function previewFlexExtratoOfxAction(_previousState: FlexImportPrev
       },
     }
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : 'Nao foi possivel pre-visualizar o arquivo.' }
+    return { ok: false, error: error instanceof Error ? error.message : 'Não foi possível pré-visualizar o arquivo.' }
   }
 }
 
@@ -1780,7 +1828,7 @@ export async function createFlexPrevisaoDespesaAction(formData: FormData) {
 
 export async function updateFlexPrevisaoDespesaAction(formData: FormData) {
   await requireFlexWrite('flex.financeiro.write')
-  const id = requiredText(formData, 'id', 'Previsao')
+  const id = requiredText(formData, 'id', 'Previsão')
   const { error } = await admin().schema('flex').from('previsoes_despesa').update(previsaoDespesaPayload(formData)).eq('id', id)
   if (error) throw new Error(error.message)
   redirect('/modulos/flex/financeiro/previsao')
@@ -1810,7 +1858,7 @@ export async function gerarFlexOrcamentoAction(formData: FormData) {
     grouped.set(key, current)
   }
 
-  if (!grouped.size) throw new Error('Nao ha despesas na competencia base para gerar orcamento.')
+  if (!grouped.size) throw new Error('Não há despesas na competência base para gerar orçamento.')
 
   await supabase.schema('flex').from('orcamentos').delete().gte('competencia', nextMonth(competenciaBase))
 
@@ -1870,7 +1918,7 @@ export async function gerarFlexValidacaoAction(formData: FormData) {
     }
   })
 
-  if (!rows.length) throw new Error('Nao ha orcamento publicado para validar esta competencia.')
+  if (!rows.length) throw new Error('Não há orçamento publicado para validar esta competência.')
 
   const { error } = await supabase.schema('flex').from('validacoes').insert(rows)
   if (error) throw new Error(error.message)
@@ -1963,7 +2011,7 @@ async function gerarFlexValidacaoItens(competencia: string, supabase = admin()) 
       extrato_lancamento_id: lancamento.id,
       tipo: 'pago_sem_previsao',
       fornecedor: valueText(lancamento.fornecedor),
-      descricao: valueText(lancamento.descricao, valueText(lancamento.historico, 'Despesa realizada sem previsao')),
+      descricao: valueText(lancamento.descricao, valueText(lancamento.historico, 'Despesa realizada sem previsão')),
       valor_realizado: Math.abs(Number(lancamento.valor || 0)),
       data_realizada: lancamento.data_lancamento,
       status: 'pendente',
@@ -2011,13 +2059,13 @@ function validacaoItemKey(row: Record<string, unknown>) {
 
 export async function decidirFlexValidacaoItemAction(formData: FormData) {
   const context = await requireFlexWrite('flex.financeiro.write')
-  const id = requiredText(formData, 'id', 'Item de validacao')
+  const id = requiredText(formData, 'id', 'Item de validação')
   const decisao = requiredText(formData, 'decisao', 'Decisao')
   const justificativa = optionalText(formData, 'justificativa')
   const supabase = admin()
 
   const { data: item, error } = await supabase.schema('flex').from('validacao_itens').select('*').eq('id', id).single()
-  if (error || !item) throw new Error(error?.message ?? 'Item de validacao nao encontrado.')
+  if (error || !item) throw new Error(error?.message ?? 'Item de validação não encontrado.')
 
   if (decisao === 'atualizar_previsao') {
     if (!item.previsao_id) throw new Error('Esta decisao exige uma previsao vinculada.')
@@ -2123,12 +2171,39 @@ export async function createFlexComissaoAction(formData: FormData) {
 export async function updateFlexComissaoAction(formData: FormData) {
   await requireFlexWrite('flex.comissoes.write')
   const id = requiredText(formData, 'id', 'ID')
-  const { error } = await admin().schema('flex').from('comissoes').update(comissaoPayload(formData)).eq('id', id)
+  const payload = comissaoPayload(formData)
+  const supabase = admin()
+  const { error } = await supabase.schema('flex').from('comissoes').update(payload).eq('id', id)
   if (error) throw new Error(error.message)
+  if (payload.status === 'aprovada') {
+    await syncFlexPagamentoComissao(supabase, {
+      id,
+      colaborador_id: payload.colaborador_id,
+      competencia: payload.competencia,
+      valor_comissao: payload.valor_comissao,
+    })
+    revalidatePath('/modulos/flex/financeiro/previsao')
+    revalidatePath('/modulos/flex/pagamentos')
+  }
+  revalidatePath('/modulos/flex/financeiro')
   redirect('/modulos/flex/comissoes')
 }
 
-async function calcularFlexComissoesReceitas(supabase: any, competencia: string): Promise<{
+function flexComissaoValorLiquido(valorBruto: number, impostoPercentual: number) {
+  return valorBruto * (1 - impostoPercentual / 100)
+}
+
+function flexComissaoImpostoObservacao(impostoPercentual: number) {
+  return impostoPercentual > 0 ? `Imposto de ${impostoPercentual.toLocaleString('pt-BR', { maximumFractionDigits: 4 })}% aplicado.` : ''
+}
+
+function flexComissaoImpostoPercentual(formData: FormData) {
+  const value = percent(formData, 'imposto_percentual')
+  if (value > 100) throw new Error('Percentual de imposto inválido.')
+  return value
+}
+
+async function calcularFlexComissoesReceitas(supabase: any, competencia: string, impostoPercentual = 0): Promise<{
   diagnostics: Record<string, number>
   diagnosticRows: FlexComissaoPreviewRow[]
   rows: FlexComissaoPreviewRow[]
@@ -2190,8 +2265,8 @@ async function calcularFlexComissoesReceitas(supabase: any, competencia: string)
       competencia,
       cliente: valueText(receita.cliente, 'Receita'),
       categoria: categoriaNomePorId.get(String(receita.categoria_id ?? '')) ?? 'Sem categoria',
-      colaborador: receita.colaborador_id ? 'Nao elegivel' : 'Sem colaborador',
-      tipo: tipoComissao ? valueText(tipoComissao.nome, 'Comissao') : 'Sem regra',
+      colaborador: receita.colaborador_id ? 'Não elegível' : 'Sem colaborador',
+      tipo: tipoComissao ? valueText(tipoComissao.nome, 'Comissão') : 'Sem regra',
       escopo: tipoComissao?.escopo ?? '-',
       valor_base: base,
       percentual: Number(tipoComissao?.percentual) || 0,
@@ -2218,14 +2293,14 @@ async function calcularFlexComissoesReceitas(supabase: any, competencia: string)
     const tipoComissao = tipoRows.find((tipo) => tipo.categoria_id && tipo.categoria_id === receita.categoria_id)
     if (!tipoComissao) {
       diagnostics.semRegra += 1
-      addDiagnosticRow(receita, 'sem_regra', 'Categoria sem regra ativa de comissao.')
+      addDiagnosticRow(receita, 'sem_regra', 'Categoria sem regra ativa de comissão.')
       continue
     }
 
     const baseOriginal = Number(tipoComissao.base_calculo === 'valor_base' ? receita.valor_base : receita.valor_recebido) || Number(receita.valor_base || receita.valor_recebido) || 0
     if (baseOriginal <= 0) {
       diagnostics.baseZerada += 1
-      addDiagnosticRow(receita, 'base_zerada', 'Receita sem base de calculo para comissao.', tipoComissao)
+      addDiagnosticRow(receita, 'base_zerada', 'Receita sem base de cálculo para comissão.', tipoComissao)
       continue
     }
 
@@ -2233,13 +2308,13 @@ async function calcularFlexComissoesReceitas(supabase: any, competencia: string)
       const timeId = receita.time_id ?? colaboradorRows.find((colaborador) => colaborador.id === receita.colaborador_id)?.time_id
       if (!timeId) {
         diagnostics.semTime += 1
-        addDiagnosticRow(receita, 'sem_time', 'Regra por time, mas receita/colaborador nao tem time mapeado.', tipoComissao, baseOriginal)
+        addDiagnosticRow(receita, 'sem_time', 'Regra por time, mas receita/colaborador não tem time mapeado.', tipoComissao, baseOriginal)
         continue
       }
       const membros = colaboradorRows.filter((colaborador) => colaborador.time_id === timeId)
       if (!membros.length) {
         diagnostics.timeSemMembros += 1
-        addDiagnosticRow(receita, 'time_sem_membros', 'Time sem membros ativos e elegiveis para comissao.', tipoComissao, baseOriginal)
+        addDiagnosticRow(receita, 'time_sem_membros', 'Time sem membros ativos e elegíveis para comissão.', tipoComissao, baseOriginal)
         continue
       }
       const percentualValue = Number(tipoComissao?.percentual) || 0
@@ -2250,11 +2325,13 @@ async function calcularFlexComissoesReceitas(supabase: any, competencia: string)
         const key = `${receita.id}:${membro.id}:${tipoComissao.id}`
         if (existentesKeys.has(key)) {
           diagnostics.jaGerada += 1
-          addDiagnosticRow(receita, 'ja_gerada', 'Comissao ja gerada para esta receita, colaborador e regra.', tipoComissao, baseRateada)
+          addDiagnosticRow(receita, 'ja_gerada', 'Comissão já gerada para esta receita, colaborador e regra.', tipoComissao, baseRateada)
           continue
         }
-        const valorComissao = baseRateada * percentualValue / 100
+        const valorComissaoBruta = baseRateada * percentualValue / 100
+        const valorComissao = flexComissaoValorLiquido(valorComissaoBruta, impostoPercentual)
         if (valorComissao <= 0) continue
+        const impostoObservacao = flexComissaoImpostoObservacao(impostoPercentual)
         rows.push({
           key,
           receita_id: receita.id,
@@ -2264,12 +2341,12 @@ async function calcularFlexComissoesReceitas(supabase: any, competencia: string)
           cliente: valueText(receita.cliente, 'Receita'),
           categoria: categoriaNomePorId.get(String(receita.categoria_id ?? '')) ?? 'Categoria',
           colaborador: colaboradorNome(membro),
-          tipo: valueText(tipoComissao.nome, 'Comissao'),
+          tipo: valueText(tipoComissao.nome, 'Comissão'),
           escopo: 'time',
           valor_base: baseRateada,
           percentual: percentualValue,
           valor_comissao: valorComissao,
-          observacao: `Rateio de comissao por time sobre base total ${baseOriginal.toLocaleString('pt-BR', { currency: 'BRL', style: 'currency' })}.`,
+          observacao: [`Rateio de comissão por time sobre base total ${baseOriginal.toLocaleString('pt-BR', { currency: 'BRL', style: 'currency' })}.`, impostoObservacao].filter(Boolean).join(' '),
           geravel: true,
         })
       }
@@ -2284,19 +2361,20 @@ async function calcularFlexComissoesReceitas(supabase: any, competencia: string)
     const colaboradorElegivel = colaboradorRows.some((colaborador) => colaborador.id === receita.colaborador_id)
     if (!colaboradorElegivel) {
       diagnostics.colaboradorInelegivel += 1
-      addDiagnosticRow(receita, 'colaborador_inelegivel', 'Colaborador inativo ou sem participacao em comissoes.', tipoComissao, baseOriginal)
+      addDiagnosticRow(receita, 'colaborador_inelegivel', 'Colaborador inativo ou sem participação em comissões.', tipoComissao, baseOriginal)
       continue
     }
     const key = `${receita.id}:${receita.colaborador_id}:${tipoComissao.id}`
     if (existentesKeys.has(key)) {
       diagnostics.jaGerada += 1
-      addDiagnosticRow(receita, 'ja_gerada', 'Comissao ja gerada para esta receita, colaborador e regra.', tipoComissao, baseOriginal)
+      addDiagnosticRow(receita, 'ja_gerada', 'Comissão já gerada para esta receita, colaborador e regra.', tipoComissao, baseOriginal)
       continue
     }
 
     const percentualValue = Number(tipoComissao?.percentual) || 0
     if (percentualValue <= 0) diagnostics.percentualZerado += 1
-    const valorComissao = baseOriginal * percentualValue / 100
+    const valorComissaoBruta = baseOriginal * percentualValue / 100
+    const valorComissao = flexComissaoValorLiquido(valorComissaoBruta, impostoPercentual)
     if (valorComissao <= 0) continue
     rows.push({
       key,
@@ -2307,12 +2385,12 @@ async function calcularFlexComissoesReceitas(supabase: any, competencia: string)
       cliente: valueText(receita.cliente, 'Receita'),
       categoria: categoriaNomePorId.get(String(receita.categoria_id ?? '')) ?? 'Categoria',
       colaborador: colaboradorNome(colaboradorRows.find((colaborador) => colaborador.id === receita.colaborador_id)),
-      tipo: valueText(tipoComissao.nome, 'Comissao'),
+      tipo: valueText(tipoComissao.nome, 'Comissão'),
       escopo: 'individual',
       valor_base: baseOriginal,
       percentual: percentualValue,
       valor_comissao: valorComissao,
-      observacao: '',
+      observacao: flexComissaoImpostoObservacao(impostoPercentual),
       geravel: true,
     })
   }
@@ -2321,19 +2399,19 @@ async function calcularFlexComissoesReceitas(supabase: any, competencia: string)
 }
 
 function flexComissaoDiagnosticsMessage(competencia: string, diagnostics: Record<string, number>) {
-  if (!diagnostics.receitas) return 'Nenhuma receita encontrada para a competencia selecionada.'
+  if (!diagnostics.receitas) return 'Nenhuma receita encontrada para a competência selecionada.'
   const motivos = [
     diagnostics.semRegra ? `${diagnostics.semRegra} receita(s) sem regra ativa por categoria` : '',
     diagnostics.semColaborador ? `${diagnostics.semColaborador} receita(s) sem colaborador mapeado` : '',
     diagnostics.semTime ? `${diagnostics.semTime} receita(s) sem time mapeado` : '',
-    diagnostics.timeSemMembros ? `${diagnostics.timeSemMembros} receita(s) com time sem membros elegiveis` : '',
-    diagnostics.colaboradorInelegivel ? `${diagnostics.colaboradorInelegivel} receita(s) com colaborador inativo ou sem comissoes` : '',
+    diagnostics.timeSemMembros ? `${diagnostics.timeSemMembros} receita(s) com time sem membros elegíveis` : '',
+    diagnostics.colaboradorInelegivel ? `${diagnostics.colaboradorInelegivel} receita(s) com colaborador inativo ou sem comissões` : '',
     diagnostics.baseZerada ? `${diagnostics.baseZerada} receita(s) com base zerada` : '',
     diagnostics.percentualZerado ? `${diagnostics.percentualZerado} receita(s) com percentual zerado` : '',
-    diagnostics.jaGerada ? `${diagnostics.jaGerada} comissao(oes) ja gerada(s)` : '',
+    diagnostics.jaGerada ? `${diagnostics.jaGerada} comissão(ões) já gerada(s)` : '',
   ].filter(Boolean).join('; ')
 
-  return `Nenhuma receita elegivel para gerar comissoes em ${competencia.slice(5, 7)}/${competencia.slice(0, 4)}. ${motivos || 'Revise receitas, regras, mapeamentos e colaboradores ativos.'}`
+  return `Nenhuma receita elegível para gerar comissões em ${competencia.slice(5, 7)}/${competencia.slice(0, 4)}. ${motivos || 'Revise receitas, regras, mapeamentos e colaboradores ativos.'}`
 }
 
 function flexComissaoDiagnosticsList(diagnostics: Record<string, number>) {
@@ -2343,9 +2421,9 @@ function flexComissaoDiagnosticsList(diagnostics: Record<string, number>) {
     { label: 'Sem colaborador', value: String(diagnostics.semColaborador || 0) },
     { label: 'Sem time', value: String(diagnostics.semTime || 0) },
     { label: 'Time sem membros', value: String(diagnostics.timeSemMembros || 0) },
-    { label: 'Colaborador inelegivel', value: String(diagnostics.colaboradorInelegivel || 0) },
+    { label: 'Colaborador inelegível', value: String(diagnostics.colaboradorInelegivel || 0) },
     { label: 'Base zerada', value: String(diagnostics.baseZerada || 0) },
-    { label: 'Ja geradas', value: String(diagnostics.jaGerada || 0) },
+    { label: 'Já geradas', value: String(diagnostics.jaGerada || 0) },
   ].filter((item) => item.value !== '0' || item.label === 'Receitas analisadas')
 }
 
@@ -2353,16 +2431,18 @@ export async function previewFlexComissoesReceitasAction(_previousState: FlexCom
   try {
     await requireFlexWrite('flex.comissoes.write')
     const competencia = competenciaMonth(formData)
+    const impostoPercentual = flexComissaoImpostoPercentual(formData)
     const supabase = admin()
 
     await aplicarFlexMapeamentosReceitas(supabase, competencia)
 
-    const { diagnostics, diagnosticRows, rows } = await calcularFlexComissoesReceitas(supabase, competencia)
+    const { diagnostics, diagnosticRows, rows } = await calcularFlexComissoesReceitas(supabase, competencia, impostoPercentual)
     if (!rows.length) {
       return {
         error: flexComissaoDiagnosticsMessage(competencia, diagnostics),
         ok: false,
         competencia: competencia.slice(0, 7),
+        impostoPercentual,
         diagnostics: flexComissaoDiagnosticsList(diagnostics),
         diagnosticRows,
       }
@@ -2374,6 +2454,7 @@ export async function previewFlexComissoesReceitasAction(_previousState: FlexCom
     return {
       ok: true,
       competencia: competencia.slice(0, 7),
+      impostoPercentual,
       rows,
       diagnosticRows,
       diagnostics: flexComissaoDiagnosticsList(diagnostics),
@@ -2381,11 +2462,12 @@ export async function previewFlexComissoesReceitasAction(_previousState: FlexCom
         { label: 'Linhas', value: String(rows.length), hint: 'prontas para gerar' },
         { label: 'Colaboradores', value: String(new Set(rows.map((row) => row.colaborador_id)).size), hint: 'com comissão' },
         { label: 'Base', value: formatPreviewMoney(totalBase), hint: 'valor considerado' },
+        { label: 'Imposto', value: `${impostoPercentual.toLocaleString('pt-BR', { maximumFractionDigits: 4 })}%`, hint: 'desconto aplicado' },
         { label: 'Comissões', value: formatPreviewMoney(totalComissao), hint: 'valor previsto' },
       ],
     }
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Nao foi possivel gerar a previa de comissoes.', ok: false }
+    return { error: error instanceof Error ? error.message : 'Não foi possível gerar a prévia de comissões.', ok: false }
   }
 }
 
@@ -2406,7 +2488,7 @@ export async function gerarFlexComissoesReceitasAction(formData: FormData) {
     rows.push({
       receita_id: requiredText(formData, `receita_id_${index}`, 'Receita'),
       colaborador_id: requiredText(formData, `colaborador_id_${index}`, 'Colaborador'),
-      tipo_comissao_id: requiredText(formData, `tipo_comissao_id_${index}`, 'Tipo de comissao'),
+      tipo_comissao_id: requiredText(formData, `tipo_comissao_id_${index}`, 'Tipo de comissão'),
       competencia,
       valor_base: valorBase,
       percentual: percentualValue,
@@ -2433,18 +2515,19 @@ export async function gerarFlexComissoesReceitasAction(formData: FormData) {
   const payableRows = rows.filter((row) => !existentesKeys.has(`${row.receita_id}:${row.colaborador_id}:${row.tipo_comissao_id}`))
 
   if (!payableRows.length) {
-    throw new Error('As comissoes selecionadas ja foram geradas para essa competencia.')
+    throw new Error('As comissões selecionadas já foram geradas para essa competência.')
   }
 
   const { error } = await supabase.schema('flex').from('comissoes').insert(payableRows)
   if (error) throw new Error(error.message)
   revalidatePath('/modulos/flex/comissoes')
-  redirect('/modulos/flex/comissoes')
+  revalidatePath('/modulos/flex/financeiro')
+  redirect(`/modulos/flex/financeiro?competencia=${competencia.slice(0, 7)}&status=calculada`)
 }
 
 export async function updateFlexComissaoStatusAction(formData: FormData) {
   const context = await requireFlexWrite('flex.comissoes.approve')
-  const id = requiredText(formData, 'id', 'Comissao')
+  const id = requiredText(formData, 'id', 'Comissão')
   const nextStatus = requiredText(formData, 'status', 'Status')
   const returnTo = text(formData, 'return_to') || '/modulos/flex/comissoes/aprovacao'
   const payload: Record<string, unknown> = { status: nextStatus }
@@ -2480,7 +2563,7 @@ export async function approveFlexComissoesLoteAction(formData: FormData) {
   const context = await requireFlexWrite('flex.comissoes.approve')
   const ids = formData.getAll('ids').map((value) => String(value)).filter(Boolean)
   const returnTo = text(formData, 'return_to') || '/modulos/flex/comissoes'
-  if (!ids.length) throw new Error('Selecione ao menos uma comissao para aprovar.')
+  if (!ids.length) throw new Error('Selecione ao menos uma comissão para aprovar.')
 
   const supabase = admin()
   const { data: comissoes, error: comissoesError } = await supabase
@@ -2492,7 +2575,7 @@ export async function approveFlexComissoesLoteAction(formData: FormData) {
   if (comissoesError) throw new Error(comissoesError.message)
 
   const elegiveis = ((comissoes ?? []) as any[]).filter((row) => ['calculada', 'em_conferencia', 'rejeitada'].includes(String(row.status)))
-  if (!elegiveis.length) throw new Error('Nenhuma comissao selecionada esta pendente de aprovacao.')
+  if (!elegiveis.length) throw new Error('Nenhuma comissão selecionada está pendente de aprovação.')
 
   const elegiveisIds = elegiveis.map((row) => row.id)
   const { error } = await supabase
@@ -2589,7 +2672,7 @@ export async function gerarFlexPagamentosComissoesAction(formData: FormData) {
   await requireFlexWrite('flex.pagamentos.write')
   const competencia = competenciaMonth(formData)
   const supabase = admin()
-  const tipoPagamentoId = await ensureFlexTipoPagamento(supabase, 'comissao', 'Comissao')
+  const tipoPagamentoId = await ensureFlexTipoPagamento(supabase, 'comissao', 'Comissão')
 
   const { data, error } = await supabase
     .schema('flex')
@@ -2610,20 +2693,23 @@ export async function gerarFlexPagamentosComissoesAction(formData: FormData) {
   const paidIds = new Set(((existing.data ?? []) as any[]).map((row) => row.comissao_id))
   const rows = ((data ?? []) as any[])
     .filter((row) => !paidIds.has(row.id))
-    .map((row) => ({
-      colaborador_id: row.colaborador_id,
-      comissao_id: row.id,
-      tipo_pagamento_id: tipoPagamentoId,
-      competencia,
-      descricao: 'Comissao aprovada',
-      data_prevista: paymentDateForCompetencia(competencia, FLEX_COMISSAO_PAGAMENTO_DIA),
-      valor_bruto: row.valor_comissao,
-      valor_descontos: 0,
-      status: 'previsto',
-      origem: 'comissao',
-    }))
+    .map((row) => {
+      const competenciaPagamento = nextMonth(row.competencia)
+      return {
+        colaborador_id: row.colaborador_id,
+        comissao_id: row.id,
+        tipo_pagamento_id: tipoPagamentoId,
+        competencia: competenciaPagamento,
+        descricao: 'Comissão aprovada',
+        data_prevista: paymentDateForCompetencia(competenciaPagamento, FLEX_COMISSAO_PAGAMENTO_DIA),
+        valor_bruto: row.valor_comissao,
+        valor_descontos: 0,
+        status: 'previsto',
+        origem: 'comissao',
+      }
+    })
 
-  if (!rows.length) throw new Error('Nenhuma comissao aprovada sem pagamento encontrada.')
+  if (!rows.length) throw new Error('Nenhuma comissão aprovada sem pagamento encontrada.')
 
   const { error: insertError } = await supabase.schema('flex').from('pagamentos').insert(rows)
   if (insertError) throw new Error(insertError.message)
@@ -2642,7 +2728,7 @@ export async function marcarFlexPagamentoPagoAction(formData: FormData) {
 export async function conciliarFlexPagamentoAction(formData: FormData) {
   const context = await requireFlexWrite('flex.pagamentos.reconcile')
   const pagamentoId = requiredText(formData, 'pagamento_id', 'Pagamento')
-  const lancamentoId = requiredText(formData, 'extrato_lancamento_id', 'Lancamento')
+  const lancamentoId = requiredText(formData, 'extrato_lancamento_id', 'Lançamento')
   const supabase = admin()
 
   const { error } = await supabase.schema('flex').from('conciliacoes').insert({
@@ -2677,7 +2763,7 @@ export async function recalcularFlexFechamentoAction(formData: FormData) {
     .maybeSingle()
 
   if (existingError) throw new Error(existingError.message)
-  if (existing?.status === 'fechado') throw new Error('Competencia fechada precisa ser reaberta antes de recalcular.')
+  if (existing?.status === 'fechado') throw new Error('Competência fechada precisa ser reaberta antes de recalcular.')
 
   const metrics = await flexFechamentoMetrics(competencia)
   const status = fechamentoStatus(metrics, existing?.status)
@@ -2717,7 +2803,7 @@ export async function abrirFlexProximaCompetenciaAction(_formData: FormData) {
     .maybeSingle()
 
   if (existingError) throw new Error(existingError.message)
-  if (existing?.status === 'fechado') throw new Error('A proxima competencia calculada ja esta fechada.')
+  if (existing?.status === 'fechado') throw new Error('A próxima competência calculada já está fechada.')
 
   const metrics = await flexFechamentoMetrics(competencia)
   const status = fechamentoStatus(metrics, existing?.status ?? 'aberto')
@@ -2751,7 +2837,7 @@ export async function fecharFlexFechamentoAction(formData: FormData) {
       .update({ status: fechamentoStatus(metrics, data?.status), ...metrics.totals })
       .eq('id', id)
     if (pendingUpdateError) throw new Error(pendingUpdateError.message)
-    throw new Error('Nao e possivel fechar competencia com pendencias.')
+    throw new Error('Não é possível fechar competência com pendências.')
   }
 
   const { error: updateError } = await supabase
@@ -2819,11 +2905,11 @@ async function flexFechamentoMetrics(competencia: string) {
   const pendenciasTotal = extratoPendente + receitasPendentes + despesasPendentes + validacoesPendentes + validacaoItensPendentes + comissoesPendentes + pagamentosPendentes
 
   const checklist = [
-    { chave: 'extrato', titulo: 'Extrato importado', status: extratoPendente ? 'pendente' : 'ok', total: extratoRows.length, pendencias: extratoPendente, detalhe: 'A competencia precisa ter extrato bancario importado.' },
+    { chave: 'extrato', titulo: 'Extrato importado', status: extratoPendente ? 'pendente' : 'ok', total: extratoRows.length, pendencias: extratoPendente, detalhe: 'A competência precisa ter extrato bancário importado.' },
     { chave: 'receitas', titulo: 'Receitas preparadas', status: receitasPendentes ? 'pendente' : 'ok', total: receitaRows.length, pendencias: receitasPendentes, detalhe: 'Receitas sem categoria, colaborador ou time para comissionamento.' },
-    { chave: 'despesas', titulo: 'Despesas classificadas', status: despesasPendentes ? 'pendente' : 'ok', total: despesaRows.length, pendencias: despesasPendentes, detalhe: 'Lancamentos de saida sem classificacao.' },
-    { chave: 'validacoes', titulo: 'Validacoes tratadas', status: validacoesPendentes + validacaoItensPendentes ? 'pendente' : 'ok', total: validacaoRows.length + validacaoItemRows.length, pendencias: validacoesPendentes + validacaoItensPendentes, detalhe: 'Divergencias previsto x realizado ainda pendentes.' },
-    { chave: 'comissoes', titulo: 'Comissoes aprovadas', status: comissoesPendentes ? 'pendente' : 'ok', total: comissaoRows.length, pendencias: comissoesPendentes, detalhe: 'Comissoes calculadas, em conferencia ou rejeitadas.' },
+    { chave: 'despesas', titulo: 'Despesas classificadas', status: despesasPendentes ? 'pendente' : 'ok', total: despesaRows.length, pendencias: despesasPendentes, detalhe: 'Lançamentos de saída sem classificação.' },
+    { chave: 'validacoes', titulo: 'Validações tratadas', status: validacoesPendentes + validacaoItensPendentes ? 'pendente' : 'ok', total: validacaoRows.length + validacaoItemRows.length, pendencias: validacoesPendentes + validacaoItensPendentes, detalhe: 'Divergências previsto x realizado ainda pendentes.' },
+    { chave: 'comissoes', titulo: 'Comissões aprovadas', status: comissoesPendentes ? 'pendente' : 'ok', total: comissaoRows.length, pendencias: comissoesPendentes, detalhe: 'Comissões calculadas, em conferência ou rejeitadas.' },
     { chave: 'pagamentos', titulo: 'Pagamentos processados', status: pagamentosPendentes ? 'pendente' : 'ok', total: pagamentoRows.length, pendencias: pagamentosPendentes, detalhe: 'Pagamentos previstos ou em processamento.' },
   ]
 

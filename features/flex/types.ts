@@ -130,6 +130,10 @@ export type FlexExtratoLancamento = {
   conciliado: boolean
 }
 
+export type FlexDespesaInlineRow = FlexExtratoLancamento & {
+  categoria_nome?: string | null
+}
+
 export type FlexPrevisaoDespesa = {
   id: string
   fornecedor: string
@@ -308,4 +312,13 @@ export type FlexDashboardData = {
   pendencias: FlexListRow[]
   pendenciasReceitas: FlexListRow[]
   pendenciasDespesas: FlexListRow[]
+}
+
+export type FlexCashFlowData = {
+  competenciaMes: string
+  label: string
+  cards: Array<{ label: string; value: string; hint: string; tone?: FlexTone }>
+  previstas: FlexListRow[]
+  abertas: FlexListRow[]
+  movimentos: FlexListRow[]
 }

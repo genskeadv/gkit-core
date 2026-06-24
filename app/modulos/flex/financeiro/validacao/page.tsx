@@ -42,7 +42,7 @@ export default async function FlexValidacaoPage({
       <FlexSection eyebrow="Decisões" title={`Pendências de ${competencia}`} description="Cada item exige uma decisão antes de alterar a previsão.">
         <FlexValidacaoItensList action={decidirFlexValidacaoItemAction} rows={itens} />
       </FlexSection>
-      <FlexSection eyebrow="Histórico" title="Validação por categoria" description="Comparação agregada mantida para compatibilidade com orçamentos publicados.">
+      <FlexSection eyebrow="Histórico" title="Validação por categoria" description="Comparação agregada mantida para compatibilidade com orcamentos publicados.">
         <FlexCompetenciaForm
           action={gerarFlexValidacaoAction}
           button="Validar orçamento"

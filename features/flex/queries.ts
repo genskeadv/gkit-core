@@ -3,12 +3,14 @@ import { canAccess } from '@/lib/auth/permissions'
 import { requireModuleAccess } from '@/lib/auth/platform'
 import type {
   FlexCategoriaFinanceira,
+  FlexCashFlowData,
   FlexColaborador,
   FlexComissao,
   FlexComissaoListItem,
   FlexDashboardData,
   FlexDespesaCategoriaMapeamento,
   FlexDespesaCategoriaPendencia,
+  FlexDespesaInlineRow,
   FlexFechamento,
   FlexFormData,
   FlexExtrato,
@@ -80,6 +82,10 @@ function paymentDateForCompetencia(competencia: string, diaPrevisto: number) {
   lastDay.setDate(0)
   const day = Math.min(Math.max(Number(diaPrevisto) || 1, 1), lastDay.getDate())
   return `${month.slice(0, 8)}${String(day).padStart(2, '0')}`
+}
+
+function sumMoneyRows(rows: Array<Record<string, any>>, key: string) {
+  return rows.reduce((sum, row) => sum + Math.abs(numberValue(row[key])), 0)
 }
 
 function statusTone(status: string): FlexTone {
@@ -175,18 +181,18 @@ export async function getFlexFormData(): Promise<FlexFormData> {
     })),
     comissoes: ((comissoes.data ?? []) as any[]).map((row) => ({
       id: String(row.id),
-      label: text(row.colaborador?.security_usuario?.nome, 'Comissao'),
+      label: text(row.colaborador?.security_usuario?.nome, 'Comissão'),
       meta: `${money(row.valor_comissao)} - ${text(row.status)}`,
     })),
     competencias,
     extratoLancamentos: ((lancamentos.data ?? []) as any[]).map((row) => ({
       id: String(row.id),
-      label: text(row.descricao, text(row.historico, 'Lancamento')),
+      label: text(row.descricao, text(row.historico, 'Lançamento')),
       meta: `${money(row.valor)} - ${text(row.data_lancamento)}`,
     })),
     previsoesDespesa: ((previsoesDespesa.data ?? []) as any[]).map((row) => ({
       id: String(row.id),
-      label: text(row.fornecedor, 'Previsao'),
+      label: text(row.fornecedor, 'Previsão'),
       meta: `${text(row.tipo_despesa)} - ${money(row.valor_previsto)}`,
     })),
     tiposPagamento: ((tiposPagamento.data ?? []) as any[]).map((row) => option(row)),
@@ -213,7 +219,7 @@ export async function listFlexImportacoes(): Promise<FlexListRow[]> {
 
   return ((data ?? []) as any[]).map((row) => ({
     id: String(row.id),
-    title: text(row.arquivo_nome, text(row.origem, 'Lancamento manual')),
+    title: text(row.arquivo_nome, text(row.origem, 'Lançamento manual')),
     subtitle: `${text(row.tipo, 'outro')} - ${new Date(row.criado_em).toLocaleDateString('pt-BR')}`,
     status: text(row.status, 'processado'),
     value: String(numberValue(row.total_processados || row.total_itens)),
@@ -309,7 +315,7 @@ export async function listFlexReceitasPorCategoria(): Promise<FlexListRow[]> {
       categoriaId,
       count: 0,
       latestCompetencia: '',
-      macrogrupo: text(categoria?.macrogrupo, categoriaId ? 'receita' : 'classificacao pendente'),
+      macrogrupo: text(categoria?.macrogrupo, categoriaId ? 'receita' : 'classificação pendente'),
       status: categoriaId ? 'realizada' : 'pendente',
       title: text(categoria?.nome, 'Sem categoria'),
       total: 0,
@@ -405,7 +411,7 @@ export async function listFlexDespesaCategoriaPendencias(): Promise<FlexDespesaC
   const groups = new Map<string, FlexDespesaCategoriaPendencia>()
 
   for (const row of ((data ?? []) as any[])) {
-    const termoOrigem = text(row.fornecedor, text(row.descricao, text(row.historico, 'Lancamento sem termo')))
+    const termoOrigem = text(row.fornecedor, text(row.descricao, text(row.historico, 'Lançamento sem termo')))
     const current = groups.get(termoOrigem) ?? {
       termoOrigem,
       count: 0,
@@ -480,7 +486,7 @@ export async function listFlexExtratoLancamentos(extratoId?: string, competencia
 
     return {
       id: String(row.id),
-      title: text(row.fornecedor, text(row.descricao, text(row.historico, 'Lancamento'))),
+      title: text(row.fornecedor, text(row.descricao, text(row.historico, 'Lançamento'))),
       subtitle: [text(row.categoria?.nome, 'Sem categoria'), text(row.macrogrupo), text(row.data_lancamento)].filter(Boolean).join(' - '),
       status: row.conciliado ? 'conciliado' : classificationStatus,
       value: money(row.valor),
@@ -494,6 +500,42 @@ export async function listFlexExtratoLancamentos(extratoId?: string, competencia
 export async function listFlexDespesas(competencia?: string, status?: string): Promise<FlexListRow[]> {
   const rows = await listFlexExtratoLancamentos(undefined, competencia, status)
   return rows.filter((row) => row.meta === 'saida')
+}
+
+export async function listFlexDespesasInline(competencia?: string, status?: string): Promise<FlexDespesaInlineRow[]> {
+  let query = admin()
+    .schema('flex')
+    .from('extrato_lancamentos')
+    .select('id,extrato_id,categoria_id,previsao_despesa_id,data_lancamento,fornecedor,historico,descricao,valor,tipo,macrogrupo,status_classificacao,confianca,conciliado,categoria:categoria_id(nome)')
+    .eq('tipo', 'saida')
+    .order('data_lancamento', { ascending: false })
+    .order('valor', { ascending: false })
+    .limit(500)
+
+  if (competencia) query = query.gte('data_lancamento', `${competencia.slice(0, 7)}-01`).lt('data_lancamento', addMonthsDate(competencia, 1))
+  if (status === 'pendente') query = query.is('categoria_id', null)
+  if (status === 'classificado') query = query.not('categoria_id', 'is', null)
+
+  const { data, error } = await query
+  if (error) return []
+
+  return ((data ?? []) as any[]).map((row) => ({
+    id: String(row.id),
+    extrato_id: String(row.extrato_id),
+    categoria_id: row.categoria_id ? String(row.categoria_id) : null,
+    categoria_nome: row.categoria?.nome ?? null,
+    previsao_despesa_id: row.previsao_despesa_id ? String(row.previsao_despesa_id) : null,
+    data_lancamento: String(row.data_lancamento),
+    fornecedor: row.fornecedor ?? null,
+    historico: row.historico ?? null,
+    descricao: row.descricao ?? null,
+    valor: Number(row.valor || 0),
+    tipo: String(row.tipo ?? 'saida'),
+    macrogrupo: row.macrogrupo ?? null,
+    status_classificacao: row.categoria_id ? 'classificado' : 'pendente',
+    confianca: row.confianca === null ? null : Number(row.confianca),
+    conciliado: Boolean(row.conciliado),
+  }))
 }
 
 export async function listFlexPrevisoesDespesas(competencia?: string): Promise<FlexListRow[]> {
@@ -512,16 +554,53 @@ export async function listFlexPrevisoesDespesas(competencia?: string): Promise<F
   const { data, error } = await query
   if (error) return []
 
-  return ((data ?? []) as any[]).map((row) => ({
-    id: String(row.id),
-    title: text(row.fornecedor, 'Fornecedor'),
-    subtitle: [text(row.tipo_despesa, 'Despesa'), text(row.categoria?.nome), row.recorrente ? `dia ${row.dia_previsto ?? 5}` : 'nao recorrente', Array.isArray(row.aliases) && row.aliases.length ? `${row.aliases.length} alias` : ''].filter(Boolean).join(' - '),
-    status: text(row.status, 'ativo'),
-    value: money(row.valor_previsto),
-    meta: text(row.macrogrupo, text(row.categoria?.macrogrupo, text(row.origem, 'manual'))),
-    tone: statusTone(text(row.status, 'ativo')),
-    detailHref: `/modulos/flex/financeiro/previsao/${row.id}`,
-  }))
+  return ((data ?? []) as any[]).map((row) => {
+    const diaVencimento = row.recorrente ? String(row.dia_previsto ?? 5).padStart(2, '0') : ''
+    return {
+      id: String(row.id),
+      title: text(row.fornecedor, 'Fornecedor'),
+      subtitle: [text(row.tipo_despesa, 'Despesa'), text(row.categoria?.nome), row.recorrente ? text(row.macrogrupo, text(row.categoria?.macrogrupo, text(row.origem, 'manual'))) : 'não recorrente', Array.isArray(row.aliases) && row.aliases.length ? `${row.aliases.length} alias` : ''].filter(Boolean).join(' - '),
+      status: text(row.status, 'ativo'),
+      value: money(row.valor_previsto),
+      meta: diaVencimento ? `Vencimento: dia ${diaVencimento}` : 'Sem vencimento recorrente',
+      tone: statusTone(text(row.status, 'ativo')),
+      detailHref: `/modulos/flex/financeiro/previsao/${row.id}`,
+    }
+  })
+}
+
+export async function listFlexPrevisaoComissoesPagamentos(competencia?: string): Promise<FlexListRow[]> {
+  const competenciaDate = competencia ? `${competencia.slice(0, 7)}-01` : ''
+  let query = admin()
+    .schema('flex')
+    .from('pagamentos')
+    .select('id,competencia,data_prevista,valor_bruto,valor_descontos,valor_liquido,status,comissao:comissao_id(id,competencia),colaborador:colaborador_id(security_usuario:usuario_id(nome))')
+    .not('comissao_id', 'is', null)
+    .order('data_prevista', { ascending: true, nullsFirst: false })
+    .limit(500)
+
+  if (competenciaDate) query = query.eq('competencia', competenciaDate)
+
+  const { data, error } = await query
+  if (error) return []
+
+  return ((data ?? []) as any[]).map((row) => {
+    const value = row.valor_liquido ?? (numberValue(row.valor_bruto) - numberValue(row.valor_descontos))
+    const comissaoCompetencia = text(row.comissao?.competencia)
+    return {
+      id: `comissao-pagamento-${row.id}`,
+      title: text(row.colaborador?.security_usuario?.nome, 'Colaborador'),
+      subtitle: [
+        'Comissão aprovada',
+        comissaoCompetencia ? `receita ${monthLabel(comissaoCompetencia)}` : '',
+      ].filter(Boolean).join(' - '),
+      status: text(row.status, 'previsto'),
+      value: money(value),
+      meta: `Vencimento: dia ${String(row.data_prevista ?? '').slice(8, 10) || '20'}`,
+      detailHref: row.comissao?.id ? `/modulos/flex/comissoes/${row.comissao.id}` : `/modulos/flex/pagamentos/${row.id}`,
+      tone: statusTone(text(row.status, 'previsto')),
+    }
+  })
 }
 
 export async function listFlexPrevisoesDespesasRaw(): Promise<FlexPrevisaoDespesa[]> {
@@ -588,7 +667,7 @@ export async function listFlexValidacaoItens(competencia?: string): Promise<Flex
     id: row.id,
     title: text(row.fornecedor, text(row.descricao, 'Validacao')),
     subtitle: [
-      text(row.tipo, 'pendencia'),
+      text(row.tipo, 'pendência'),
       row.data_prevista ? `previsto ${dateText(row.data_prevista)}` : '',
       row.data_realizada ? `real ${dateText(row.data_realizada)}` : '',
     ].filter(Boolean).join(' - '),
@@ -696,13 +775,145 @@ export async function getFlexFinanceiroResumo(): Promise<FlexDashboardData> {
       { label: 'Receitas', value: money(sumRows(receitas)), hint: `${receitas.length} registro(s)`, tone: receitas.length ? 'success' : 'primary' },
       { label: 'Despesas', value: money(sumRows(despesas)), hint: `${despesas.length} saida(s)`, tone: despesas.length ? 'warning' : 'primary' },
       { label: 'Extratos', value: String(extratos.length), hint: 'arquivos processados', tone: extratos.length ? 'success' : 'primary' },
-      { label: 'Orcamentos', value: String(orcamentos.length), hint: 'previsoes publicadas', tone: orcamentos.length ? 'success' : 'warning' },
-      { label: 'Validacoes', value: String(validacoesPendentes), hint: 'pendentes', tone: validacoesPendentes ? 'warning' : 'success' },
+      { label: 'Orçamentos', value: String(orcamentos.length), hint: 'previsões publicadas', tone: orcamentos.length ? 'success' : 'warning' },
+      { label: 'Validações', value: String(validacoesPendentes), hint: 'pendentes', tone: validacoesPendentes ? 'warning' : 'success' },
       { label: 'Sugestoes', value: String(sugestoesPendentes), hint: 'pendentes', tone: sugestoesPendentes ? 'warning' : 'success' },
     ],
     pendencias: [...pendenciasReceitas, ...pendenciasDespesas].slice(0, 8),
     pendenciasReceitas,
     pendenciasDespesas,
+  }
+}
+
+export async function getFlexFluxoCaixaCockpit(competencia?: string): Promise<FlexCashFlowData> {
+  const competenciaMes = competencia && /^\d{4}-\d{2}$/.test(competencia) ? competencia : (await getFlexCompetenciaOperacional()).competenciaMes
+  const competenciaDate = `${competenciaMes}-01`
+  const nextCompetenciaDate = addMonthsDate(competenciaDate, 1)
+  const today = new Date().toISOString().slice(0, 10)
+  const supabase = admin()
+
+  const [previsoes, lancamentos, pagamentos] = await Promise.all([
+    supabase
+      .schema('flex')
+      .from('previsoes_despesa')
+      .select('id,fornecedor,tipo_despesa,valor_previsto,dia_previsto,macrogrupo,status,categoria:categoria_id(nome,macrogrupo)')
+      .eq('status', 'ativo')
+      .lte('competencia_inicio', competenciaDate)
+      .or(`competencia_fim.is.null,competencia_fim.gte.${competenciaDate}`)
+      .limit(500),
+    supabase
+      .schema('flex')
+      .from('extrato_lancamentos')
+      .select('id,previsao_despesa_id,data_lancamento,fornecedor,descricao,historico,valor,tipo,status_classificacao,conciliado,categoria:categoria_id(nome,macrogrupo)')
+      .eq('tipo', 'saida')
+      .gte('data_lancamento', competenciaDate)
+      .lt('data_lancamento', nextCompetenciaDate)
+      .order('data_lancamento', { ascending: false })
+      .limit(1000),
+    supabase
+      .schema('flex')
+      .from('pagamentos')
+      .select('id,competencia,descricao,data_prevista,data_pagamento,valor_liquido,valor_bruto,valor_descontos,status,origem,comissao_id,colaborador:colaborador_id(security_usuario:usuario_id(nome))')
+      .eq('competencia', competenciaDate)
+      .order('data_prevista', { ascending: true, nullsFirst: false })
+      .limit(500),
+  ])
+
+  const previsaoRows = previsoes.error ? [] : ((previsoes.data ?? []) as any[])
+  const lancamentoRows = lancamentos.error ? [] : ((lancamentos.data ?? []) as any[])
+  const pagamentoRows = pagamentos.error ? [] : ((pagamentos.data ?? []) as any[])
+  const lancamentosPorPrevisao = new Map<string, any[]>()
+
+  for (const row of lancamentoRows) {
+    const previsaoId = text(row.previsao_despesa_id)
+    if (!previsaoId) continue
+    const current = lancamentosPorPrevisao.get(previsaoId) ?? []
+    current.push(row)
+    lancamentosPorPrevisao.set(previsaoId, current)
+  }
+
+  const previstas: FlexListRow[] = previsaoRows.map((row) => {
+    const linked = lancamentosPorPrevisao.get(String(row.id)) ?? []
+    const previsto = numberValue(row.valor_previsto)
+    const pago = sumMoneyRows(linked, 'valor')
+    const falta = Math.max(previsto - pago, 0)
+    const dataPrevista = paymentDateForCompetencia(competenciaDate, numberValue(row.dia_previsto) || 5)
+    const status = pago >= previsto && previsto > 0 ? 'conciliado' : pago > 0 ? 'parcial' : dataPrevista < today ? 'atrasado' : 'previsto'
+
+    return {
+      id: `previsao-caixa-${row.id}`,
+      title: text(row.fornecedor, 'Despesa prevista'),
+      subtitle: [text(row.tipo_despesa, 'Despesa'), text(row.categoria?.nome), `venc. ${dateText(dataPrevista)}`].filter(Boolean).join(' - '),
+      status,
+      value: money(previsto),
+      meta: `Pago ${money(pago)} / Falta ${money(falta)}`,
+      detailHref: `/modulos/flex/financeiro/previsao/${row.id}`,
+      tone: status === 'conciliado' ? 'success' : status === 'atrasado' ? 'danger' : status === 'parcial' ? 'warning' : 'primary',
+    }
+  })
+
+  const pagamentosPrevistos: FlexListRow[] = pagamentoRows.map((row) => {
+    const previsto = numberValue(row.valor_liquido ?? (numberValue(row.valor_bruto) - numberValue(row.valor_descontos)))
+    const pago = ['pago', 'conciliado'].includes(text(row.status).toLowerCase()) ? previsto : 0
+    const falta = Math.max(previsto - pago, 0)
+    const dataPrevista = text(row.data_prevista)
+    const status = pago >= previsto && previsto > 0 ? 'pago' : dataPrevista && dataPrevista < today ? 'atrasado' : text(row.status, 'previsto')
+
+    return {
+      id: `pagamento-caixa-${row.id}`,
+      title: text(row.colaborador?.security_usuario?.nome, text(row.descricao, 'Pagamento previsto')),
+      subtitle: [row.comissao_id ? 'Comissão aprovada' : text(row.origem, 'Pagamento'), dataPrevista ? `venc. ${dateText(dataPrevista)}` : 'sem data prevista'].filter(Boolean).join(' - '),
+      status,
+      value: money(previsto),
+      meta: `Pago ${money(pago)} / Falta ${money(falta)}`,
+      detailHref: row.comissao_id ? `/modulos/flex/comissoes/${row.comissao_id}` : `/modulos/flex/pagamentos/${row.id}`,
+      tone: status === 'pago' || status === 'conciliado' ? 'success' : status === 'atrasado' ? 'danger' : 'primary',
+    }
+  })
+
+  const movimentos: FlexListRow[] = lancamentoRows.map((row) => {
+    const conciliado = Boolean(row.previsao_despesa_id)
+    return {
+      id: `movimento-caixa-${row.id}`,
+      title: text(row.fornecedor, text(row.descricao, text(row.historico, 'Saída do extrato'))),
+      subtitle: [conciliado ? 'Conciliada com previsão' : 'Fora da previsão', text(row.categoria?.nome), dateText(row.data_lancamento)].filter(Boolean).join(' - '),
+      status: conciliado ? 'conciliado' : text(row.status_classificacao, 'sem previsão'),
+      value: money(Math.abs(numberValue(row.valor))),
+      meta: text(row.previsao_despesa_id) ? 'prevista' : 'não planejada',
+      detailHref: `/modulos/flex/financeiro/despesas/${row.id}`,
+      tone: conciliado ? 'success' : 'warning',
+    }
+  })
+
+  const todasPrevistas = [...previstas, ...pagamentosPrevistos]
+  const abertas = todasPrevistas
+    .filter((row) => !['conciliado', 'pago'].includes(row.status))
+    .sort((a, b) => a.status === 'atrasado' && b.status !== 'atrasado' ? -1 : b.status === 'atrasado' && a.status !== 'atrasado' ? 1 : a.title.localeCompare(b.title))
+    .slice(0, 12)
+
+  const previstoTotal = previsaoRows.reduce((sum, row) => sum + numberValue(row.valor_previsto), 0)
+    + pagamentoRows.reduce((sum, row) => sum + numberValue(row.valor_liquido ?? (numberValue(row.valor_bruto) - numberValue(row.valor_descontos))), 0)
+  const pagoExtratoTotal = sumMoneyRows(lancamentoRows, 'valor')
+  const pagamentoPagoTotal = pagamentoRows
+    .filter((row) => ['pago', 'conciliado'].includes(text(row.status).toLowerCase()))
+    .reduce((sum, row) => sum + numberValue(row.valor_liquido ?? (numberValue(row.valor_bruto) - numberValue(row.valor_descontos))), 0)
+  const conciliadoTotal = sumMoneyRows(lancamentoRows.filter((row) => row.previsao_despesa_id), 'valor')
+  const foraPrevisaoTotal = sumMoneyRows(lancamentoRows.filter((row) => !row.previsao_despesa_id), 'valor')
+  const faltaTotal = Math.max(previstoTotal - conciliadoTotal - pagamentoPagoTotal, 0)
+
+  return {
+    competenciaMes,
+    label: monthLabel(competenciaDate),
+    cards: [
+      { label: 'Previsto', value: money(previstoTotal), hint: `${todasPrevistas.length} item(ns)`, tone: 'primary' },
+      { label: 'Pago no mês', value: money(pagoExtratoTotal + pagamentoPagoTotal), hint: `${lancamentoRows.length} saída(s) no extrato`, tone: pagoExtratoTotal || pagamentoPagoTotal ? 'success' : 'primary' },
+      { label: 'Conciliado', value: money(conciliadoTotal), hint: 'extrato vinculado à previsão', tone: conciliadoTotal ? 'success' : 'warning' },
+      { label: 'Falta pagar', value: money(faltaTotal), hint: `${abertas.length} item(ns) em aberto`, tone: faltaTotal ? 'warning' : 'success' },
+      { label: 'Fora da previsão', value: money(foraPrevisaoTotal), hint: 'saídas sem vínculo', tone: foraPrevisaoTotal ? 'danger' : 'success' },
+    ],
+    previstas: todasPrevistas.slice(0, 14),
+    abertas,
+    movimentos: movimentos.slice(0, 14),
   }
 }
 
@@ -856,7 +1067,7 @@ export async function listFlexOperadorTarefas(): Promise<FlexListRow[]> {
     rows.push({
       id: `validacao-item-${row.id}`,
       title: 'Tratar despesa',
-      subtitle: `${text(row.fornecedor, text(row.descricao, 'Despesa'))} - ${text(row.tipo, 'pendencia')}`,
+      subtitle: `${text(row.fornecedor, text(row.descricao, 'Despesa'))} - ${text(row.tipo, 'pendência')}`,
       status: 'decisao',
       value: money(row.diferenca ?? row.valor_realizado ?? row.valor_previsto ?? 0),
       meta: 'Validação',
@@ -1011,11 +1222,11 @@ export async function listFlexPrevisaoCalendarioRows(competencia: string): Promi
   const colaboradorRows = colaboradorRowsRaw.flatMap((row) => {
     const usuario = usuariosById.get(String(row.usuario_id))
     const items = [
-      { descricao: 'Salario - cadastro colaborador', nome: 'Salario', valor: row.salario },
-      { descricao: 'Participacao em honorarios - cadastro colaborador', nome: 'Participacao em honorarios', valor: row.participacao_honorarios },
-      { descricao: 'Pro-labore - cadastro colaborador', nome: 'Pro-labore', valor: row.pro_labore },
+      { descricao: 'Salário - cadastro colaborador', nome: 'Salário', valor: row.salario },
+      { descricao: 'Participação em honorários - cadastro colaborador', nome: 'Participação em honorários', valor: row.participacao_honorarios },
+      { descricao: 'Pró-labore - cadastro colaborador', nome: 'Pró-labore', valor: row.pro_labore },
       { descricao: 'Ajuda de custo - cadastro colaborador', nome: 'Ajuda de custo', valor: row.ajuda_custo },
-      { descricao: 'Beneficio - cadastro colaborador', nome: 'Beneficio', valor: row.beneficio_valor },
+      { descricao: 'Benefício - cadastro colaborador', nome: 'Benefício', valor: row.beneficio_valor },
       { descricao: 'Outros vencimentos - cadastro colaborador', nome: 'Outros vencimentos', valor: row.outros_vencimentos },
     ]
 
@@ -1036,11 +1247,11 @@ export async function listFlexPrevisaoCalendarioRows(competencia: string): Promi
     .filter((row) => !generatedComissaoIds.has(String(row.id)))
     .map((row) => ({
       id: `comissao-${row.id}`,
-      title: text(row.colaborador?.security_usuario?.nome, 'Comissao aprovada'),
-      subtitle: `Comissao aprovada - previsto ${dateText(paymentDateForCompetencia(competenciaDate, 20))}`,
+      title: text(row.colaborador?.security_usuario?.nome, 'Comissão aprovada'),
+      subtitle: `Comissão aprovada - previsto ${dateText(paymentDateForCompetencia(competenciaDate, 20))}`,
       status: 'previsto',
       value: money(row.valor_comissao),
-      meta: `comissao - ${monthLabel(competenciaDate)}`,
+      meta: `comissão - ${monthLabel(competenciaDate)}`,
       detailHref: `/modulos/flex/comissoes/${row.id}`,
       tone: 'primary' as const,
     }))
@@ -1099,7 +1310,7 @@ export async function listFlexComissoes(): Promise<FlexListRow[]> {
   return ((data ?? []) as any[]).map((row) => ({
     id: String(row.id),
     title: text(row.colaborador?.security_usuario?.nome, 'Colaborador'),
-    subtitle: [text(row.tipo?.nome, 'Comissao'), text(row.receita?.cliente), text(row.competencia)].filter(Boolean).join(' - '),
+    subtitle: [text(row.tipo?.nome, 'Comissão'), text(row.receita?.cliente), text(row.competencia)].filter(Boolean).join(' - '),
     status: text(row.status, 'calculada'),
     value: money(row.valor_comissao),
     meta: `${numberValue(row.percentual).toLocaleString('pt-BR')}%`,
@@ -1152,7 +1363,7 @@ export async function listFlexComissoesOperacionais(competencia?: string, status
 
   const usuarioNomePorId = new Map(((usuarios.data ?? []) as any[]).map((row) => [String(row.id), text(row.nome, 'Colaborador')]))
   const colaboradorNomePorId = new Map(colaboradorRows.map((row) => [String(row.id), usuarioNomePorId.get(String(row.usuario_id)) ?? 'Colaborador']))
-  const tipoNomePorId = new Map(((tipos.data ?? []) as any[]).map((row) => [String(row.id), text(row.nome, 'Comissao')]))
+  const tipoNomePorId = new Map(((tipos.data ?? []) as any[]).map((row) => [String(row.id), text(row.nome, 'Comissão')]))
   const receitaNomePorId = new Map(((receitas.data ?? []) as any[]).map((row) => [String(row.id), text(row.cliente, 'Receita')]))
 
   return rows.map((row) => ({
@@ -1160,7 +1371,7 @@ export async function listFlexComissoesOperacionais(competencia?: string, status
     competencia: text(row.competencia),
     colaborador: colaboradorNomePorId.get(String(row.colaborador_id)) ?? 'Colaborador',
     receita: receitaNomePorId.get(String(row.receita_id)) ?? 'Receita',
-    tipo: tipoNomePorId.get(String(row.tipo_comissao_id)) ?? 'Comissao',
+    tipo: tipoNomePorId.get(String(row.tipo_comissao_id)) ?? 'Comissão',
     valor_base: numberValue(row.valor_base),
     percentual: numberValue(row.percentual),
     valor_comissao: numberValue(row.valor_comissao),
@@ -1288,8 +1499,8 @@ export async function listFlexFechamentos(): Promise<FlexListRow[]> {
 
   return ((data ?? []) as FlexFechamento[]).map((row) => ({
     id: row.id,
-    title: `Competencia ${monthLabel(row.competencia)}`,
-    subtitle: `${row.pendencias_total} pendencia(s) - saldo ${money(row.saldo_operacional)}`,
+    title: `Competência ${monthLabel(row.competencia)}`,
+    subtitle: `${row.pendencias_total} pendência(s) - saldo ${money(row.saldo_operacional)}`,
     status: row.status,
     value: money(row.receita_total),
     meta: row.fechado_em ? `fechado ${new Date(row.fechado_em).toLocaleDateString('pt-BR')}` : 'em aberto',
@@ -1321,25 +1532,25 @@ export async function listFlexFechamentoChecklist(fechamentoId: string): Promise
 
 export async function getFlexComissao(id: string): Promise<FlexComissao> {
   const { data, error } = await admin().schema('flex').from('comissoes').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Comissao Flex nao encontrada.')
+  if (error || !data) throw new Error(error?.message ?? 'Comissão Flex não encontrada.')
   return data as FlexComissao
 }
 
 export async function getFlexPagamentoAgenda(id: string): Promise<FlexPagamentoAgenda> {
   const { data, error } = await admin().schema('flex').from('pagamento_agendas').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Agenda Flex nao encontrada.')
+  if (error || !data) throw new Error(error?.message ?? 'Agenda Flex não encontrada.')
   return data as FlexPagamentoAgenda
 }
 
 export async function getFlexPagamento(id: string): Promise<FlexPagamento> {
   const { data, error } = await admin().schema('flex').from('pagamentos').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Pagamento Flex nao encontrado.')
+  if (error || !data) throw new Error(error?.message ?? 'Pagamento Flex não encontrado.')
   return data as FlexPagamento
 }
 
 export async function getFlexFechamento(id: string): Promise<FlexFechamento> {
   const { data, error } = await admin().schema('flex').from('fechamentos').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Fechamento Flex nao encontrado.')
+  if (error || !data) throw new Error(error?.message ?? 'Fechamento Flex não encontrado.')
   return data as FlexFechamento
 }
 
@@ -1385,7 +1596,7 @@ export async function listFlexColaboradores(): Promise<FlexListRow[]> {
 
     return {
       id: String(row.id),
-      title: text(usuario?.nome, 'Usuario Core'),
+      title: text(usuario?.nome, 'Usuário Core'),
       subtitle: [
         text(row.cargo_operacional, 'Sem funcao'),
         text(time?.nome),
@@ -1495,9 +1706,9 @@ export async function getFlexDashboardData(): Promise<FlexDashboardData> {
 
   const pendencias = [
     !colaboradores.length ? { id: 'colaboradores', title: 'Complementos de colaboradores', subtitle: 'Cadastre os complementos financeiros dos usuarios Core.', status: 'pendente', value: '0', meta: 'cadastro base', detailHref: '/modulos/flex/colaboradores', tone: 'warning' as const } : null,
-    !categorias.length ? { id: 'categorias', title: 'Categorias financeiras', subtitle: 'Defina macrogrupos para receitas, despesas e orcamento.', status: 'pendente', value: '0', meta: 'configuracao', detailHref: '/modulos/flex/configuracoes/categorias', tone: 'warning' as const } : null,
-    !tiposPagamento.length ? { id: 'tipos-pagamento', title: 'Tipos de pagamento', subtitle: 'Crie os tipos usados por agendas e pagamentos.', status: 'pendente', value: '0', meta: 'configuracao', detailHref: '/modulos/flex/configuracoes/tipos-pagamento', tone: 'warning' as const } : null,
-    !tiposComissao.length ? { id: 'tipos-comissao', title: 'Tipos de comissao', subtitle: 'Configure regras percentuais para calculo futuro.', status: 'pendente', value: '0', meta: 'configuracao', detailHref: '/modulos/flex/tipos-comissao', tone: 'warning' as const } : null,
+    !categorias.length ? { id: 'categorias', title: 'Categorias financeiras', subtitle: 'Defina macrogrupos para receitas, despesas e orçamento.', status: 'pendente', value: '0', meta: 'configuração', detailHref: '/modulos/flex/configuracoes/categorias', tone: 'warning' as const } : null,
+    !tiposPagamento.length ? { id: 'tipos-pagamento', title: 'Tipos de pagamento', subtitle: 'Crie os tipos usados por agendas e pagamentos.', status: 'pendente', value: '0', meta: 'configuração', detailHref: '/modulos/flex/configuracoes/tipos-pagamento', tone: 'warning' as const } : null,
+    !tiposComissao.length ? { id: 'tipos-comissao', title: 'Tipos de comissão', subtitle: 'Configure regras percentuais para cálculo futuro.', status: 'pendente', value: '0', meta: 'configuração', detailHref: '/modulos/flex/tipos-comissao', tone: 'warning' as const } : null,
   ].filter(Boolean) as FlexListRow[]
 
   return {
@@ -1506,7 +1717,7 @@ export async function getFlexDashboardData(): Promise<FlexDashboardData> {
       { label: 'Times', value: String(times.length), hint: 'equipes operacionais', tone: times.length ? 'success' : 'primary' },
       { label: 'Categorias', value: String(categorias.length), hint: 'macrogrupos financeiros', tone: categorias.length ? 'success' : 'warning' },
       { label: 'Tipos de pagamento', value: String(tiposPagamento.length), hint: 'base da agenda', tone: tiposPagamento.length ? 'success' : 'warning' },
-      { label: 'Tipos de comissao', value: String(tiposComissao.length), hint: 'regras percentuais', tone: tiposComissao.length ? 'success' : 'warning' },
+      { label: 'Tipos de comissão', value: String(tiposComissao.length), hint: 'regras percentuais', tone: tiposComissao.length ? 'success' : 'warning' },
       { label: 'Tarefas', value: String(tarefas.length), hint: 'fila do operador', tone: tarefas.length ? 'warning' : 'success' },
     ],
     pendencias: tarefas.length ? tarefas : pendencias,
@@ -1517,54 +1728,54 @@ export async function getFlexDashboardData(): Promise<FlexDashboardData> {
 
 export async function getFlexColaborador(id: string): Promise<FlexColaborador> {
   const { data, error } = await admin().schema('flex').from('colaboradores').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Colaborador Flex nao encontrado.')
+  if (error || !data) throw new Error(error?.message ?? 'Colaborador Flex não encontrado.')
   return data as FlexColaborador
 }
 
 export async function getFlexReceita(id: string): Promise<FlexReceita> {
   const { data, error } = await admin().schema('flex').from('receitas').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Receita Flex nao encontrada.')
+  if (error || !data) throw new Error(error?.message ?? 'Receita Flex não encontrada.')
   return data as FlexReceita
 }
 
 export async function getFlexExtratoLancamento(id: string): Promise<FlexExtratoLancamento> {
   const { data, error } = await admin().schema('flex').from('extrato_lancamentos').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Lancamento de extrato nao encontrado.')
+  if (error || !data) throw new Error(error?.message ?? 'Lançamento de extrato não encontrado.')
   return data as FlexExtratoLancamento
 }
 
 export async function getFlexPrevisaoDespesa(id: string): Promise<FlexPrevisaoDespesa> {
   const { data, error } = await admin().schema('flex').from('previsoes_despesa').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Previsao Flex nao encontrada.')
+  if (error || !data) throw new Error(error?.message ?? 'Previsão Flex não encontrada.')
   return data as FlexPrevisaoDespesa
 }
 
 export async function getFlexTime(id: string): Promise<FlexTime> {
   const { data, error } = await admin().schema('flex').from('times').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Time Flex nao encontrado.')
+  if (error || !data) throw new Error(error?.message ?? 'Time Flex não encontrado.')
   return data as FlexTime
 }
 
 export async function getFlexCategoria(id: string): Promise<FlexCategoriaFinanceira> {
   const { data, error } = await admin().schema('flex').from('categorias_financeiras').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Categoria Flex nao encontrada.')
+  if (error || !data) throw new Error(error?.message ?? 'Categoria Flex não encontrada.')
   return data as FlexCategoriaFinanceira
 }
 
 export async function getFlexTipoPagamento(id: string): Promise<FlexTipoPagamento> {
   const { data, error } = await admin().schema('flex').from('tipos_pagamento').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Tipo de pagamento Flex nao encontrado.')
+  if (error || !data) throw new Error(error?.message ?? 'Tipo de pagamento Flex não encontrado.')
   return data as FlexTipoPagamento
 }
 
 export async function getFlexTipoComissao(id: string): Promise<FlexTipoComissao> {
   const { data, error } = await admin().schema('flex').from('tipos_comissao').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Tipo de comissao Flex nao encontrado.')
+  if (error || !data) throw new Error(error?.message ?? 'Tipo de comissão Flex não encontrado.')
   return data as FlexTipoComissao
 }
 
 export async function getFlexReceitaMapeamento(id: string): Promise<FlexReceitaMapeamento> {
   const { data, error } = await admin().schema('flex').from('receita_mapeamentos').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Mapeamento Omie nao encontrado.')
+  if (error || !data) throw new Error(error?.message ?? 'Mapeamento Omie não encontrado.')
   return data as FlexReceitaMapeamento
 }

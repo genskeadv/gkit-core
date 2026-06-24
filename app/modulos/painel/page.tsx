@@ -4,11 +4,11 @@ import { canAccess } from '@/lib/auth/permissions'
 import { requirePlatformContext } from '@/lib/auth/platform'
 
 const moduleArea: Record<string, string> = {
-  core: 'Administração',
+  core: 'Administracao',
   'gkit-new': 'Novos negocios',
+  'gkit-ate': 'Atendimento',
   ciclo: 'Governanca',
-  flex: 'Financeiro operacional',
-  intr: 'Financeiro e remuneracao',
+  din: 'Faturamento',
   colab: 'Portal do colaborador',
 }
 
@@ -16,14 +16,14 @@ const shortcutGroups = [
   {
     codigo: 'core',
     title: 'Core',
-    description: 'Administração e segurança central.',
+    description: 'Administracao e seguranca central.',
     links: [
-      { href: '/admin', label: 'Visão geral' },
-      { href: '/admin/usuarios', label: 'Usuários' },
+      { href: '/admin', label: 'Visao geral' },
+      { href: '/admin/usuarios', label: 'Usuarios' },
       { href: '/admin/carteiras', label: 'Carteiras' },
       { href: '/admin/perfis', label: 'Perfis' },
-      { href: '/admin/permissoes', label: 'Permissões' },
-      { href: '/admin/apps', label: 'Módulos' },
+      { href: '/admin/permissoes', label: 'Permissoes' },
+      { href: '/admin/apps', label: 'Modulos' },
       { href: '/admin/auditoria', label: 'Auditoria' },
     ],
     pending: [],
@@ -39,9 +39,22 @@ const shortcutGroups = [
       { href: '/modulos/gkit-new/oportunidades', label: 'Oportunidades' },
       { href: '/modulos/gkit-new/base/workflow', label: 'Workflow' },
       { href: '/modulos/gkit-new/tarefas', label: 'Tarefas' },
-      { href: '/modulos/gkit-new/gestao', label: 'Gestão' },
+      { href: '/modulos/gkit-new/gestao', label: 'Gestao' },
     ],
     pending: ['Oportunidades e tarefas na Sprint 2', 'Dashboard na Sprint 3'],
+  },
+  {
+    codigo: 'gkit-ate',
+    title: 'GKIT ATE',
+    description: 'Atendimentos consultivos importados do ASTREA com tarefas vinculadas.',
+    links: [
+      { href: '/modulos/gkit-ate', label: 'Cockpit' },
+      { href: '/modulos/gkit-ate/atendimentos', label: 'Atendimentos' },
+      { href: '/modulos/gkit-ate/tarefas', label: 'Tarefas' },
+      { href: '/modulos/gkit-ate/importacoes', label: 'Importacoes' },
+      { href: '/modulos/gkit-ate/cadastros', label: 'Cadastros' },
+    ],
+    pending: ['Importacao futura das tarefas do ASTREA quando a origem estiver disponivel'],
   },
   {
     codigo: 'ciclo',
@@ -49,7 +62,7 @@ const shortcutGroups = [
     description: 'Funcionalidades operacionais ja publicadas no app unificado.',
     links: [
       { href: '/modulos/ciclo', label: 'Cockpit' },
-      { href: '/modulos/ciclo/importacoes', label: 'Importações' },
+      { href: '/modulos/ciclo/importacoes', label: 'Importacoes' },
       { href: '/modulos/ciclo/clientes', label: 'Clientes' },
       { href: '/modulos/ciclo/administradoras', label: 'Administradoras' },
       { href: '/modulos/ciclo/documentos', label: 'Documentos' },
@@ -58,43 +71,16 @@ const shortcutGroups = [
       { href: '/modulos/ciclo/regularidade', label: 'Regularidade' },
       { href: '/modulos/ciclo/timeline', label: 'Timeline' },
       { href: '/modulos/ciclo/ocorrencias', label: 'Ocorrencias' },
-      { href: '/modulos/ciclo/contratos', label: 'Contratos' },
-      { href: '/modulos/ciclo/atas', label: 'Atas' },
-      { href: '/modulos/ciclo/dashboard', label: 'Gestão' },
+      { href: '/modulos/ciclo/dashboard', label: 'Gestao' },
     ],
-    pending: ['Automações', 'IA', 'Carteiras x usuários'],
+    pending: ['Automacoes', 'IA', 'Carteiras x usuarios'],
   },
   {
-    codigo: 'flex',
-    title: 'Flex',
-    description: 'Nova fundacao financeira-operacional da GKIT Suite.',
+    codigo: 'din',
+    title: 'DIN',
+    description: 'Faturamento mensal, repasses, clientes do ciclo e exportacao Omie.',
     links: [
-      { href: '/modulos/flex', label: 'Cockpit' },
-      { href: '/modulos/flex/importacoes', label: 'Importacoes' },
-      { href: '/modulos/flex/financeiro', label: 'Financeiro' },
-      { href: '/modulos/flex/comissoes', label: 'Comissões' },
-      { href: '/modulos/flex/pagamentos', label: 'Pagamentos' },
-      { href: '/modulos/flex/fechamentos', label: 'Fechamentos' },
-      { href: '/modulos/flex/colaboradores', label: 'Colaboradores' },
-      { href: '/modulos/flex/times', label: 'Times' },
-      { href: '/modulos/flex/tipos-comissao', label: 'Tipos de comissao' },
-      { href: '/modulos/flex/configuracoes', label: 'Configuracoes' },
-    ],
-    pending: ['Colab'],
-  },
-  {
-    codigo: 'intr',
-    title: 'FIX',
-    description: 'Financeiro, colaboradores e gestão da competência.',
-    links: [
-      { href: '/modulos/fix', label: 'Cockpit' },
-      { href: '/modulos/fix/importacoes', label: 'Importações' },
-      { href: '/modulos/fix/colaboradores', label: 'Colaboradores' },
-      { href: '/modulos/fix/times', label: 'Times' },
-      { href: '/modulos/fix/pagamentos', label: 'Pagamentos' },
-      { href: '/modulos/fix/comissoes', label: 'Comissoes' },
-      { href: '/modulos/fix/tipos-comissao', label: 'Tipos de comissao' },
-      { href: '/modulos/fix/fechamentos', label: 'Fechamentos' },
+      { href: '/modulos/din', label: 'Cockpit' },
     ],
     pending: [],
   },
@@ -116,25 +102,31 @@ const shortcutGroups = [
 
 const executiveFlow = [
   { codigo: 'gkit-new', title: 'Conquistar 2.0', description: 'GKIT New registra clientes, contatos, oportunidades e workflow.' },
+  { codigo: 'gkit-ate', title: 'Atender', description: 'GKIT ATE organiza atendimentos consultivos e tarefas operacionais.' },
   { codigo: 'ciclo', title: 'Acompanhar', description: 'Ciclo assume onboarding e vida diaria do cliente.' },
-  { codigo: 'flex', title: 'Controlar', description: 'Flex consolida financeiro, comissoes, pagamentos e fechamentos.' },
+  { codigo: 'din', title: 'Faturar', description: 'DIN processa faturamento mensal, repasses e exportacao Omie.' },
   { codigo: 'colab', title: 'Publicar', description: 'Colab mostra pagamentos e comissoes para cada colaborador.' },
 ]
+
+const legacyModuleCodes = new Set(['fix', 'intr', 'flex'])
 
 export default async function PainelPage() {
   const context = await requirePlatformContext('/modulos/painel')
   const hasAdmin = canAccess(context.permissions, 'admin.dashboard.read')
   const availableCodes = new Set(context.modules.map((modulo) => modulo.codigo))
-  availableCodes.delete('fix')
-  availableCodes.delete('intr')
+
+  for (const codigo of legacyModuleCodes) {
+    availableCodes.delete(codigo)
+  }
+
   const availableShortcutGroups = shortcutGroups.filter((group) => (
     group.codigo === 'core' ? hasAdmin : availableCodes.has(group.codigo)
   ))
   const modules = [
     ...(hasAdmin
-      ? [{ codigo: 'core', nome: 'GKIT Core', descricao: 'Usuários, perfis, carteiras e permissões.', href: '/admin' }]
+      ? [{ codigo: 'core', nome: 'GKIT Core', descricao: 'Usuarios, perfis, carteiras e permissoes.', href: '/admin' }]
       : []),
-    ...context.modules.filter((modulo) => modulo.codigo !== 'fix' && modulo.codigo !== 'intr'),
+    ...context.modules.filter((modulo) => !legacyModuleCodes.has(modulo.codigo)),
   ]
   const operationalModules = executiveFlow.filter((item) => availableCodes.has(item.codigo))
   const publishedShortcutCount = availableShortcutGroups.reduce((sum, group) => sum + group.links.length, 0)
@@ -159,7 +151,7 @@ export default async function PainelPage() {
           <article className="suite-executive-card featured">
             <span>Fluxo operacional</span>
             <h2>{operationalModules.length} de {executiveFlow.length} modulos ativos</h2>
-            <p>Leitura executiva da esteira: venda, onboarding, operação interna e publicação ao colaborador.</p>
+            <p>Leitura executiva da esteira: venda, onboarding, faturamento e publicacao ao colaborador.</p>
           </article>
           <article className="suite-executive-card">
             <span>Atalhos publicados</span>

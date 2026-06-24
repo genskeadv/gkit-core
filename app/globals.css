@@ -7426,7 +7426,17 @@ a.button {
   align-items: end;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(220px, 320px) auto;
+  grid-template-columns: minmax(220px, 320px) minmax(140px, 180px) auto;
+}
+
+.flex-comissoes-preview-button {
+  box-shadow: 0 14px 28px rgba(93, 47, 117, 0.22);
+  min-height: 46px;
+  padding-inline: 22px;
+}
+
+.flex-comissoes-preview-button:hover {
+  box-shadow: 0 18px 34px rgba(93, 47, 117, 0.28);
 }
 
 .flex-comissoes-diagnostics {
@@ -7655,10 +7665,9 @@ a.button {
 }
 
 .flex-shell .flex-pendencias-panel .suite-table-list {
-  max-height: 520px;
-  overflow: auto;
+  max-height: none;
+  overflow: visible;
   padding-right: 2px;
-  scrollbar-gutter: stable;
 }
 
 .flex-shell .suite-table-list {
@@ -7931,11 +7940,11 @@ a.button {
 
 .flex-despesas-page .suite-table-list {
   gap: 8px;
-  max-height: min(50vh, 430px);
+  max-height: none;
 }
 
 .flex-previsoes-panel .suite-table-list {
-  max-height: min(56vh, 520px);
+  max-height: none;
 }
 
 .flex-despesas-page .suite-table-list article,
@@ -7962,6 +7971,110 @@ a.button {
 .flex-despesas-page .suite-table-list strong,
 .flex-despesas-page .suite-table-list small {
   white-space: nowrap;
+}
+
+.flex-inline-expense-list {
+  display: grid;
+  gap: 8px;
+  max-height: none;
+  overflow: visible;
+  padding-right: 4px;
+}
+
+.flex-inline-expense-row {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--flex-line);
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(220px, 1fr) minmax(210px, 0.45fr) minmax(132px, max-content) auto minmax(96px, max-content) max-content;
+  min-height: 62px;
+  padding: 10px 12px;
+}
+
+.flex-inline-expense-main {
+  min-width: 0;
+}
+
+.flex-inline-expense-main h3,
+.flex-inline-expense-main p {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flex-inline-expense-main h3 {
+  color: var(--flex-ink);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.flex-inline-expense-main p {
+  color: var(--flex-muted);
+  font-size: 0.82rem;
+  margin-top: 4px;
+}
+
+.flex-inline-expense-field,
+.flex-inline-expense-check {
+  display: grid;
+  gap: 5px;
+}
+
+.flex-inline-expense-field span,
+.flex-inline-expense-check span {
+  color: var(--flex-muted);
+  font-size: 0.74rem;
+}
+
+.flex-inline-expense-field select {
+  min-height: 38px;
+}
+
+.flex-inline-expense-check {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 0;
+}
+
+.flex-inline-expense-check input {
+  accent-color: var(--flex-primary);
+  height: 17px;
+  width: 17px;
+}
+
+.flex-inline-expense-row strong {
+  color: var(--flex-ink);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .flex-inline-expense-row {
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.7fr);
+  }
+
+  .flex-inline-expense-row .suite-pill,
+  .flex-inline-expense-row strong,
+  .flex-inline-expense-row .button {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 760px) {
+  .flex-inline-expense-list {
+    max-height: none;
+  }
+
+  .flex-inline-expense-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .flex-previsao-form-panel .flex-previsao-form {
@@ -11199,7 +11312,16 @@ a.button {
   color: #fff !important;
 }
 
+.flex-shell.module-shell {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+}
+
 .flex-shell .module-main {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
   background: transparent;
   padding: 16px 18px 22px;
 }
@@ -12759,5 +12881,124 @@ a.button {
   .ciclo-atendimento-bar {
     grid-column: 1 / -1;
     order: 3;
+  }
+}
+
+/* GKIT DIN - faturamento mensal incorporado ao core */
+.din-shell .module-page-content {
+  width: min(100%, 1360px);
+}
+
+.din-command-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.din-form-grid {
+  grid-template-columns: minmax(240px, 1.4fr) repeat(3, minmax(150px, 1fr));
+}
+
+.din-upload-grid,
+.din-core-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.din-upload-card {
+  background: #fff;
+  border: 1px dashed rgba(148, 163, 184, 0.34);
+  border-radius: var(--suite-module-card-radius, 8px);
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  min-height: 78px;
+  padding: 10px;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.din-upload-card:hover {
+  background: var(--flex-accent-soft, rgba(93, 47, 117, 0.09));
+  border-color: var(--flex-accent-line, rgba(93, 47, 117, 0.22));
+}
+
+.din-upload-card span,
+.din-core-grid p {
+  color: var(--flex-muted, #667085);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.din-upload-card strong,
+.din-core-grid strong {
+  color: var(--flex-text, #131927);
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.din-upload-card input {
+  display: none;
+}
+
+.din-kpi-grid {
+  grid-template-columns: repeat(6, minmax(104px, 1fr));
+}
+
+.din-core-grid {
+  grid-template-columns: 1.1fr 0.9fr;
+}
+
+.din-core-grid article {
+  background: #fff;
+  border: 1px solid var(--flex-line, rgba(148, 163, 184, 0.24));
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.din-core-grid p {
+  margin: 0;
+}
+
+.din-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.din-shell .table-wrap {
+  max-height: min(58vh, 620px);
+}
+
+.din-shell table {
+  min-width: 1040px;
+}
+
+@media (max-width: 1100px) {
+  .din-form-grid,
+  .din-upload-grid,
+  .din-core-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .din-kpi-grid {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .din-form-grid,
+  .din-upload-grid,
+  .din-core-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .din-filter-bar {
+    justify-content: flex-start;
   }
 }

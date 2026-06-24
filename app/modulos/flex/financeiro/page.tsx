@@ -1,10 +1,18 @@
 import Link from 'next/link'
-import { gerarFlexValidacaoItensAction, upsertFlexDespesaCategoriaMapeamentoAction, upsertFlexReceitaCategoriaMapeamentoAction } from '@/features/flex/actions'
-import { FlexCompetenciaForm, FlexDespesaCategoriaMapeamentosPanel, FlexKpis, FlexList, FlexQuickLinks, FlexReceitaCategoriaMapeamentosPanel, FlexSection, FlexShell } from '@/features/flex/components'
+import { canAccess } from '@/lib/auth/permissions'
+import {
+  approveFlexComissoesLoteAction,
+  gerarFlexValidacaoItensAction,
+  updateFlexComissaoStatusAction,
+  upsertFlexDespesaCategoriaMapeamentoAction,
+  upsertFlexReceitaCategoriaMapeamentoAction,
+} from '@/features/flex/actions'
+import { FlexCompetenciaForm, FlexComissoesOperacionaisList, FlexDespesaCategoriaMapeamentosPanel, FlexKpis, FlexList, FlexQuickLinks, FlexReceitaCategoriaMapeamentosPanel, FlexSection, FlexShell } from '@/features/flex/components'
 import {
   getFlexCompetenciaOperacional,
   getFlexFinanceiroResumo,
   getFlexFormData,
+  listFlexComissoesOperacionais,
   listFlexCompetenciaOptions,
   listFlexDespesaCategoriaMapeamentos,
   listFlexDespesaCategoriaPendencias,
@@ -21,14 +29,25 @@ const atalhos = [
   { href: '/modulos/flex/financeiro/sugestoes', title: 'Sugestões', description: 'Pendências operacionais geradas pelo Flex.', label: 'Fila', meta: 'Tratamento' },
 ]
 
+function competenciaFilter(value?: string) {
+  if (!value || value === 'todas') return undefined
+  return /^\d{4}-\d{2}$/.test(value) ? `${value}-01` : undefined
+}
+
+function statusFilter(value?: string) {
+  return ['calculada', 'em_conferencia', 'rejeitada', 'aprovada', 'paga', 'cancelada'].includes(value ?? '') ? value! : 'todos'
+}
+
 export default async function FlexFinanceiroPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ pendencias?: string }>
+  searchParams?: Promise<{ competencia?: string; pendencias?: string; status?: string }>
 }) {
   const params = await searchParams
   const context = await requireFlexContext()
-  const [data, competenciaAtual, competencias, formData, rotasReceitas, categoriasPendentes, rotasDespesas, termosDespesasPendentes] = await Promise.all([
+  const comissoesCompetencia = params?.competencia && params.competencia !== 'todas' ? params.competencia : 'todas'
+  const comissoesStatus = statusFilter(params?.status)
+  const [data, competenciaAtual, competencias, formData, rotasReceitas, categoriasPendentes, rotasDespesas, termosDespesasPendentes, comissoesRows] = await Promise.all([
     getFlexFinanceiroResumo(),
     getFlexCompetenciaOperacional(),
     listFlexCompetenciaOptions(),
@@ -37,7 +56,9 @@ export default async function FlexFinanceiroPage({
     listFlexReceitaCategoriaPendencias(),
     listFlexDespesaCategoriaMapeamentos(),
     listFlexDespesaCategoriaPendencias(),
+    listFlexComissoesOperacionais(competenciaFilter(params?.competencia), comissoesStatus),
   ])
+  const canApproveComissoes = canAccess(context.permissions, 'flex.comissoes.approve')
   const competencia = competenciaAtual.competenciaMes
   const activePendencias = params?.pendencias === 'receitas' ? 'receitas' : 'despesas'
   const pendenciasRows = activePendencias === 'receitas' ? data.pendenciasReceitas : data.pendenciasDespesas
@@ -78,6 +99,18 @@ export default async function FlexFinanceiroPage({
         </div>
         <FlexSection eyebrow="Rotina" title="Centros de trabalho" description="Acesso direto aos pontos da operação.">
           <FlexQuickLinks items={atalhos} />
+        </FlexSection>
+        <FlexSection eyebrow="Comissões" title="Histórico de comissões" description="Filtre, confira e aprove as comissões geradas.">
+          <FlexComissoesOperacionaisList
+            approveAction={updateFlexComissaoStatusAction}
+            bulkApproveAction={approveFlexComissoesLoteAction}
+            canApprove={canApproveComissoes}
+            competencia={comissoesCompetencia}
+            competencias={competencias}
+            returnBaseHref="/modulos/flex/financeiro"
+            rows={comissoesRows}
+            status={comissoesStatus}
+          />
         </FlexSection>
         <div id="rotas-receitas">
           <FlexSection eyebrow="Receitas" title="Rotas automáticas de categoria" description="Cadastre como categorias do Omie devem entrar no Flex nas próximas importações.">

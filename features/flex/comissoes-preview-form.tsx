@@ -131,6 +131,7 @@ export function FlexComissoesPreviewForm({
   const [activeFilter, setActiveFilter] = useState<PreviewFilter>('prontas')
   const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'receita', direction: 'asc' })
   const competencia = state.competencia ?? defaultCompetencia
+  const impostoPercentual = state.impostoPercentual ?? 0
   const rows = state.rows ?? []
   const diagnosticRows = state.diagnosticRows ?? []
   const allRows = useMemo(() => [...rows, ...diagnosticRows], [rows, diagnosticRows])
@@ -176,7 +177,19 @@ export function FlexComissoesPreviewForm({
             ))}
           </select>
         </label>
-        <button className="button secondary" disabled={isPending} type="submit">
+        <label>
+          <span>Imposto (%)</span>
+          <input
+            className="input"
+            defaultValue={percentInputValue(impostoPercentual)}
+            max="100"
+            min="0"
+            name="imposto_percentual"
+            step="0.0001"
+            type="number"
+          />
+        </label>
+        <button className="button flex-comissoes-preview-button" disabled={isPending} type="submit">
           {isPending ? 'Calculando...' : 'Gerar prévia'}
         </button>
       </form>
@@ -213,6 +226,7 @@ export function FlexComissoesPreviewForm({
       {rowCount ? (
         <form action={confirmAction} className="flex-comissoes-preview-table">
           <input type="hidden" name="competencia" value={competencia} />
+          <input type="hidden" name="imposto_percentual" value={percentInputValue(impostoPercentual)} />
           <input type="hidden" name="row_count" value={rowCount} />
           <table>
             <thead>
@@ -232,38 +246,38 @@ export function FlexComissoesPreviewForm({
                 const geravel = isGeneratable(row)
 
                 return (
-                <tr className={geravel ? '' : 'diagnostic'} key={row.key}>
-                  <td>
-                    <input name={`incluir_${index}`} type="checkbox" defaultChecked={geravel} disabled={!geravel} />
-                    <input type="hidden" name={`receita_id_${index}`} value={row.receita_id} />
-                    <input type="hidden" name={`colaborador_id_${index}`} value={row.colaborador_id} />
-                    <input type="hidden" name={`tipo_comissao_id_${index}`} value={row.tipo_comissao_id} />
-                  </td>
-                  <td>
-                    <strong>{row.cliente}</strong>
-                    <small>{row.categoria}</small>
-                  </td>
-                  <td>
-                    <strong>{row.colaborador}</strong>
-                    <small>{row.escopo === 'time' ? 'rateio por time' : 'individual'}</small>
-                  </td>
-                  <td>
-                    <strong>{row.tipo}</strong>
-                    <small>{row.escopo}</small>
-                  </td>
-                  <td>
-                    <input className="input" name={`valor_base_${index}`} type="number" step="0.01" min="0" defaultValue={numberInputValue(row.valor_base)} />
-                  </td>
-                  <td>
-                    <input className="input" name={`percentual_${index}`} type="number" step="0.0001" min="0" defaultValue={percentInputValue(row.percentual)} />
-                  </td>
-                  <td>
-                    <input className="input" name={`valor_comissao_${index}`} type="number" step="0.01" min="0" defaultValue={numberInputValue(row.valor_comissao)} />
-                  </td>
-                  <td>
-                    <input className="input" name={`observacao_${index}`} defaultValue={row.observacao} placeholder="Opcional" />
-                  </td>
-                </tr>
+                  <tr className={geravel ? '' : 'diagnostic'} key={row.key}>
+                    <td>
+                      <input name={`incluir_${index}`} type="checkbox" defaultChecked={geravel} disabled={!geravel} />
+                      <input type="hidden" name={`receita_id_${index}`} value={row.receita_id} />
+                      <input type="hidden" name={`colaborador_id_${index}`} value={row.colaborador_id} />
+                      <input type="hidden" name={`tipo_comissao_id_${index}`} value={row.tipo_comissao_id} />
+                    </td>
+                    <td>
+                      <strong>{row.cliente}</strong>
+                      <small>{row.categoria}</small>
+                    </td>
+                    <td>
+                      <strong>{row.colaborador}</strong>
+                      <small>{row.escopo === 'time' ? 'rateio por time' : 'individual'}</small>
+                    </td>
+                    <td>
+                      <strong>{row.tipo}</strong>
+                      <small>{row.escopo}</small>
+                    </td>
+                    <td>
+                      <input className="input" name={`valor_base_${index}`} type="number" step="0.01" min="0" defaultValue={numberInputValue(row.valor_base)} />
+                    </td>
+                    <td>
+                      <input className="input" name={`percentual_${index}`} type="number" step="0.0001" min="0" defaultValue={percentInputValue(row.percentual)} />
+                    </td>
+                    <td>
+                      <input className="input" name={`valor_comissao_${index}`} type="number" step="0.01" min="0" defaultValue={numberInputValue(row.valor_comissao)} />
+                    </td>
+                    <td>
+                      <input className="input" name={`observacao_${index}`} defaultValue={row.observacao} placeholder="Opcional" />
+                    </td>
+                  </tr>
                 )
               })}
             </tbody>

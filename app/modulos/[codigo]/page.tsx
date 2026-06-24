@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import { requireModuleAccess } from '@/lib/auth/platform'
 
@@ -19,6 +20,10 @@ export default async function ModuloPage({
   params: Promise<{ codigo: string }>
 }) {
   const { codigo } = await params
+  if (codigo === 'intr' || codigo === 'fix' || codigo === 'flex') {
+    redirect('/modulos/din')
+  }
+
   const context = await requireModuleAccess(codigo === 'fix' ? 'intr' : codigo)
   const lookupCodigo = codigo === 'fix' ? 'intr' : codigo
   const modulo = context.modules.find((item) => item.codigo === lookupCodigo)

@@ -11,6 +11,7 @@ import type {
   FlexDashboardData,
   FlexDespesaCategoriaMapeamento,
   FlexDespesaCategoriaPendencia,
+  FlexDespesaInlineRow,
   FlexExtratoLancamento,
   FlexFechamento,
   FlexFormData,
@@ -234,7 +235,7 @@ export function FlexReadinessCard({ data }: { data: FlexDashboardData }) {
     <section className="card suite-panel flex-attention-card">
       <div className="suite-panel-heading">
         <div>
-          <h2>Fundacao da Sprint 1</h2>
+          <h2>Fundação da Sprint 1</h2>
           <p>Complete os cadastros base para liberar importações, comissões, pagamentos e fechamento.</p>
         </div>
       </div>
@@ -308,6 +309,63 @@ export function FlexList({
     <section className="card suite-panel">
       {content}
     </section>
+  )
+}
+
+function moneyInputValue(value: number | string | null | undefined) {
+  return Number(value || 0).toFixed(2)
+}
+
+export function FlexDespesasInlineList({
+  action,
+  formData,
+  returnTo,
+  rows,
+}: {
+  action: (formData: FormData) => void | Promise<void>
+  formData: FlexFormData
+  returnTo: string
+  rows: FlexDespesaInlineRow[]
+}) {
+  if (!rows.length) return <div className="suite-empty-block">Nenhuma despesa encontrada para os filtros selecionados.</div>
+
+  return (
+    <div className="flex-inline-expense-list">
+      {rows.map((row) => {
+        const title = row.fornecedor || row.descricao || row.historico || 'Despesa'
+        const detail = [row.categoria_nome || 'Sem categoria', row.data_lancamento].filter(Boolean).join(' - ')
+        const hasCategory = Boolean(row.categoria_id)
+
+        return (
+          <form action={action} className="flex-inline-expense-row" key={row.id}>
+            <input type="hidden" name="id" value={row.id} />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <input type="hidden" name="data_lancamento" value={row.data_lancamento} />
+            <input type="hidden" name="valor" value={moneyInputValue(row.valor)} />
+            <input type="hidden" name="fornecedor" value={row.fornecedor ?? ''} />
+            <input type="hidden" name="descricao" value={row.descricao ?? row.historico ?? ''} />
+            <input type="hidden" name="historico" value={row.historico ?? ''} />
+            <input type="hidden" name="previsao_despesa_id" value={row.previsao_despesa_id ?? ''} />
+            <div className="flex-inline-expense-main">
+              <h3>{title}</h3>
+              <p>{detail}</p>
+            </div>
+            <label className="flex-inline-expense-field">
+              <select aria-label="Categoria" name="categoria_id" defaultValue={row.categoria_id ?? ''}>
+                <OptionList options={formData.categoriasDespesa} placeholder="Sem categoria" />
+              </select>
+            </label>
+            <label className="flex-inline-expense-check">
+              <input name="criar_previsao" type="checkbox" defaultChecked={Boolean(row.previsao_despesa_id)} disabled={Boolean(row.previsao_despesa_id)} />
+              <span>{row.previsao_despesa_id ? 'Na base' : 'Base recorrente'}</span>
+            </label>
+            <span className={`suite-pill ${hasCategory ? 'success' : 'warning'}`}>{hasCategory ? 'Classificada' : 'Pendente'}</span>
+            <strong>{Number(row.valor || 0).toLocaleString('pt-BR', { currency: 'BRL', style: 'currency' })}</strong>
+            <button className="button secondary" type="submit">Salvar</button>
+          </form>
+        )
+      })}
+    </div>
   )
 }
 
@@ -814,7 +872,7 @@ export function FlexOmieReceitasImportForm({
       <div className="suite-panel-heading">
         <div>
           <h2>Importar receitas Omie</h2>
-          <p>Planilha Financas - Movimentacao da Conta Corrente exportada do Omie.</p>
+          <p>Planilha Finanças - Movimentação da Conta Corrente exportada do Omie.</p>
         </div>
       </div>
       <div className="module-form-grid">
@@ -1132,6 +1190,7 @@ export function FlexComissoesOperacionaisList({
   canApprove,
   competencia,
   competencias,
+  returnBaseHref = '/modulos/flex/comissoes',
   rows,
   status,
 }: {
@@ -1140,10 +1199,11 @@ export function FlexComissoesOperacionaisList({
   canApprove: boolean
   competencia: string
   competencias: FlexOption[]
+  returnBaseHref?: string
   rows: FlexComissaoListItem[]
   status: string
 }) {
-  const returnTo = `/modulos/flex/comissoes?competencia=${competencia}&status=${status}`
+  const returnTo = `${returnBaseHref}?competencia=${competencia}&status=${status}`
   const approvableRows = rows.filter((row) => canApproveComissao(row.status))
 
   return (
@@ -1409,7 +1469,7 @@ export function FlexPagamentoForm({
         <Field label="Origem">
           <input className="input" name="origem" defaultValue={pagamento?.origem ?? 'manual'} />
         </Field>
-        <Field label="Observacao">
+        <Field label="Observação">
           <textarea className="textarea" name="observacao" defaultValue={pagamento?.observacao ?? ''} />
         </Field>
       </div>
@@ -1440,7 +1500,7 @@ export function FlexPagamentoQuickActions({
       </form>
       <form action={conciliarAction} className="card module-form">
         <input type="hidden" name="pagamento_id" value={pagamento.id} />
-        <Field label="Lancamento de extrato">
+        <Field label="Lançamento de extrato">
           <select name="extrato_lancamento_id" required>
             <OptionList options={formData.extratoLancamentos} placeholder="Selecione o lançamento" />
           </select>
@@ -1554,7 +1614,7 @@ export function FlexTipoPagamentoForm({
     <form action={action} className="card module-form">
       {tipo ? <input name="id" type="hidden" value={tipo.id} /> : null}
       <div className="module-form-grid">
-        <Field label="Codigo">
+        <Field label="Código">
           <input className="input" name="codigo" defaultValue={tipo?.codigo ?? ''} required />
         </Field>
         <Field label="Nome">
@@ -1593,7 +1653,7 @@ export function FlexTipoComissaoForm({
         <Field label="Percentual">
           <input className="input" name="percentual" type="number" step="0.0001" min="0" defaultValue={tipo?.percentual ?? 0} />
         </Field>
-        <Field label="Base de calculo">
+        <Field label="Base de cálculo">
           <select name="base_calculo" defaultValue={tipo?.base_calculo ?? 'valor_recebido'}>
             <option value="valor_recebido">Valor recebido</option>
             <option value="valor_base">Valor base</option>
@@ -1605,16 +1665,16 @@ export function FlexTipoComissaoForm({
             <option value="time">Time</option>
           </select>
         </Field>
-        <Field label="Inicio vigencia">
+        <Field label="Início da vigência">
           <input className="input" name="inicio_vigencia" type="date" defaultValue={tipo?.inicio_vigencia ?? ''} />
         </Field>
-        <Field label="Fim vigencia">
+        <Field label="Fim da vigência">
           <input className="input" name="fim_vigencia" type="date" defaultValue={tipo?.fim_vigencia ?? ''} />
         </Field>
         <Field label="Status">
           <StatusSelect defaultValue={tipo?.status ?? 'ativo'} />
         </Field>
-        <Field label="Observacao">
+        <Field label="Observação">
           <textarea className="textarea" name="observacao" defaultValue={tipo?.observacao ?? ''} />
         </Field>
       </div>
@@ -1675,7 +1735,7 @@ export function FlexReceitaMapeamentoForm({
         <Field label="Status">
           <StatusSelect defaultValue={mapeamento?.status ?? 'ativo'} />
         </Field>
-        <Field label="Observacao">
+        <Field label="Observação">
           <textarea className="textarea" name="observacao" defaultValue={mapeamento?.observacao ?? ''} />
         </Field>
       </div>
@@ -1700,11 +1760,11 @@ export function FlexColaboradorForm({
     <form action={action} className="card module-form flex-colaborador-form">
       {colaborador ? <input name="id" type="hidden" value={colaborador.id} /> : null}
       <section className="flex-form-block">
-        <h2>Vinculo operacional</h2>
+        <h2>Vínculo operacional</h2>
         <div className="flex-colaborador-core-grid">
-          <Field label="Usuario Core">
+          <Field label="Usuário Core">
             <select name="usuario_id" defaultValue={colaborador?.usuario_id ?? ''} required>
-              <OptionList options={usuariosCore} placeholder="Selecione um usuario" />
+            <OptionList options={usuariosCore} placeholder="Selecione um usuário" />
             </select>
           </Field>
         <Field label="Carteira">
@@ -1722,10 +1782,10 @@ export function FlexColaboradorForm({
             <OptionList options={formData.usuarios} placeholder="Sem gestor" />
           </select>
         </Field>
-        <Field label="Funcao">
+        <Field label="Função">
           <input className="input" name="cargo_operacional" defaultValue={colaborador?.cargo_operacional ?? ''} />
         </Field>
-        <Field label="Data inicio">
+        <Field label="Data de início">
           <input className="input" name="data_inicio" type="date" defaultValue={colaborador?.data_inicio ?? ''} />
         </Field>
         <Field label="Status">
@@ -1739,7 +1799,7 @@ export function FlexColaboradorForm({
         <div className="flex-comissao-toggle">
           <label className="checkbox-row">
             <input name="recebe_comissoes" type="checkbox" defaultChecked={recebeComissoes} />
-            <span>Participa da apuracao de comissoes</span>
+            <span>Participa da apuração de comissões</span>
           </label>
         </div>
       </section>
@@ -1747,13 +1807,13 @@ export function FlexColaboradorForm({
       <section className="flex-form-block">
         <h2>Valores</h2>
         <div className="flex-colaborador-values-grid">
-        <Field label="Salario">
+        <Field label="Salário">
           <input className="input" name="salario" type="number" step="0.01" min="0" defaultValue={colaborador?.salario ?? 0} />
         </Field>
-        <Field label="Participacao em honorarios">
+        <Field label="Participação em honorários">
           <input className="input" name="participacao_honorarios" type="number" step="0.01" min="0" defaultValue={colaborador?.participacao_honorarios ?? 0} />
         </Field>
-        <Field label="Pro-labore">
+        <Field label="Pró-labore">
           <input className="input" name="pro_labore" type="number" step="0.01" min="0" defaultValue={colaborador?.pro_labore ?? 0} />
         </Field>
         <Field label="Ajuda de custo">
@@ -1762,10 +1822,10 @@ export function FlexColaboradorForm({
         <Field label="Outros vencimentos">
           <input className="input" name="outros_vencimentos" type="number" step="0.01" min="0" defaultValue={colaborador?.outros_vencimentos ?? 0} />
         </Field>
-        <Field label="Beneficio">
+        <Field label="Benefício">
           <input className="input" name="beneficio_descricao" defaultValue={colaborador?.beneficio_descricao ?? ''} />
         </Field>
-        <Field label="Valor beneficio">
+        <Field label="Valor do benefício">
           <input className="input" name="beneficio_valor" type="number" step="0.01" min="0" defaultValue={colaborador?.beneficio_valor ?? 0} />
         </Field>
         <Field label="Observações">

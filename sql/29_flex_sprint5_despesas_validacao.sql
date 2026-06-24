@@ -86,63 +86,7 @@ grant usage on schema flex to authenticated, service_role;
 grant select, insert, update, delete on flex.previsoes_despesa to authenticated, service_role;
 grant select, insert, update, delete on flex.validacao_itens to authenticated, service_role;
 
-with seed(fornecedor, tipo_despesa, valor_previsto) as (
-  values
-    ('SND Distribuicao de Produtos de Informatica S/A', 'Licencas Microsoft', 1961.81),
-    ('Juliana Vieira', 'Aluguel, cond. e IPTU sala 140', 3314.01),
-    ('Montreal Administracao de Imoveis', 'Aluguel, cond. e IPTU sala 141', 3774.48),
-    ('J2LG Consultoria', 'TI', 715.60),
-    ('Aasp', 'Publicacoes', 108.70),
-    ('Chubb', 'Seguro', 263.12),
-    ('Enel', 'Energia eletrica', 300.00),
-    ('Omie', 'Sistema Financeiro', 1125.05),
-    ('Fenyx', 'Pesquisas', 107.02),
-    ('Astrea', 'Sistema Processual', 1106.10),
-    ('Natalia Dias', 'Contabilidade', 560.60),
-    ('INSS', 'Impostos', 2854.51),
-    ('FGTS', 'Impostos', 538.66),
-    ('Simples', 'Impostos', 35000.00),
-    ('Vivo', 'Telefonia e Internet', 1130.00),
-    ('Importinvest', 'Impressora', 285.00),
-    ('OAB', 'OAB', 104.87),
-    ('Site', 'Hospedagem', 160.00),
-    ('Escritorio', 'Caixa interno', 500.00),
-    ('Colaboradores', 'Provisao 13o', 1000.00),
-    ('Jusbrasil', 'Jurisprudencia', 98.99),
-    ('Google', 'Drive', 96.99),
-    ('Cedrus', 'Sistema de acordos', 630.00),
-    ('BB', 'Emprestimo (2)', 7107.30),
-    ('Gekali', 'Prestacao de servicos', 35000.00),
-    ('Despesas extra locomocao', 'Escritorio', 300.00),
-    ('Recrutas', 'Motoboy', 80.00)
-)
-insert into flex.previsoes_despesa (
-  fornecedor,
-  tipo_despesa,
-  macrogrupo,
-  valor_previsto,
-  dia_previsto,
-  competencia_inicio,
-  recorrente,
-  status,
-  origem
-)
-select
-  seed.fornecedor,
-  seed.tipo_despesa,
-  'operacional',
-  seed.valor_previsto,
-  5,
-  date '2026-03-01',
-  true,
-  'ativo',
-  'seed_sprint5'
-from seed
-where not exists (
-  select 1
-  from flex.previsoes_despesa previsao
-  where lower(previsao.fornecedor) = lower(seed.fornecedor)
-    and lower(previsao.tipo_despesa) = lower(seed.tipo_despesa)
-);
+-- Base recorrente deve ser cadastrada/importada a partir de fonte validada.
+-- O seed de previsoes foi removido para evitar recriar valores historicos incorretos.
 
 commit;

@@ -26,11 +26,13 @@ const adminModule: ModuleCard = {
 const moduleMeta: Record<string, Pick<ModuleCard, 'area' | 'icon'>> = {
   core: { area: 'Administração', icon: 'core' },
   ciclo: { area: 'Governança', icon: 'ciclo' },
+  'gkit-ate': { area: 'Atendimento', icon: 'clock' },
   'gkit-new': { area: 'Novos negocios', icon: 'crm' },
   intr: { area: 'Financial Xperience', icon: 'fix' },
   fix: { area: 'Financial Xperience', icon: 'fix' },
   flex: { area: 'Financial Xperience', icon: 'flex' },
   colab: { area: 'Portal do colaborador', icon: 'grid' },
+  din: { area: 'Faturamento', icon: 'fix' },
   painel: { area: 'Entrada unificada', icon: 'grid' },
   sind: { area: 'Portal do síndico', icon: 'ciclo' },
 }
@@ -49,11 +51,25 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
     icon: 'crm',
     href: '/modulos/gkit-new',
   },
+  'gkit-ate': {
+    nome: 'GKIT ATE',
+    descricao: 'Atendimentos consultivos do ASTREA com tarefas vinculadas.',
+    area: 'Atendimento',
+    icon: 'clock',
+    href: '/modulos/gkit-ate',
+  },
   colab: {
     nome: 'GKIT Colab',
     descricao: 'Portal individual de colaboradores, pagamentos, comissões e documentos.',
     area: 'Portal do colaborador',
     icon: 'grid',
+  },
+  din: {
+    nome: 'GKIT DIN',
+    descricao: 'Faturamento mensal: repasses, clientes do ciclo e exportacao Omie.',
+    area: 'Faturamento',
+    icon: 'fix',
+    href: '/modulos/din',
   },
   fix: {
     nome: 'GKIT FIX',
@@ -72,7 +88,7 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
 }
 
 function canonicalCode(codigo: string) {
-  return codigo === 'intr' ? 'fix' : codigo
+  return codigo === 'intr' || codigo === 'fix' || codigo === 'flex' ? 'din' : codigo
 }
 
 function Icon({ name }: { name: IconName }) {
@@ -259,7 +275,7 @@ export default async function PlataformaPage() {
   const { usuario, permissions, modules } = await requirePlatformContext()
   const hasAdmin = canAccess(permissions, 'admin.dashboard.read')
   const integratedModules = uniqueModules(modules).filter((module) => (
-    module.codigo !== 'cobranca' && module.codigo !== 'fix' && module.codigo !== 'intr' && module.codigo !== 'crm'
+    module.codigo !== 'cobranca' && module.codigo !== 'fix' && module.codigo !== 'intr' && module.codigo !== 'flex' && module.codigo !== 'crm'
   ))
   const visibleModules: ModuleCard[] = hasAdmin
     ? [adminModule, ...integratedModules]

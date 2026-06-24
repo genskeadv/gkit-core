@@ -31,7 +31,7 @@ export default async function FlexFechamentoDetalhePage({ params }: { params: Pr
         />
       </FlexSection>
       <FlexSection eyebrow="Checklist" title="Pendências do fechamento" description="Itens que precisam estar ok antes de fechar a competência.">
-        <FlexList rows={checklist} empty="Checklist ainda nao gerado." />
+        <FlexList rows={checklist} empty="Checklist ainda não gerado." />
       </FlexSection>
       <FlexSection eyebrow="Governança" title="Ações de fechamento" description="Feche competências sem pendências ou reabra informando motivo.">
         <FlexFechamentoActions fechamento={fechamento} fecharAction={fecharFlexFechamentoAction} reabrirAction={reabrirFlexFechamentoAction} />

@@ -25,13 +25,18 @@ const MODULE_PATHS: Record<string, string> = {
   ciclo: '/modulos/ciclo',
   core: '/admin',
   crm: '/modulos/crm',
+  fix: '/modulos/din',
+  gkit_ate: '/modulos/gkit-ate',
   gkit_new: '/modulos/gkit-new',
-  intr: '/modulos/intr',
+  intr: '/modulos/din',
   colab: '/modulos/colab',
-  flex: '/modulos/flex',
+  din: '/modulos/din',
+  flex: '/modulos/din',
   painel: '/modulos/painel',
   sind: '/modulos/sind',
 }
+
+const LEGACY_MODULE_CODES = new Set(['intr', 'fix', 'flex'])
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -51,6 +56,7 @@ function moduleHref(app: any) {
 
 function moduleCode(codigo: unknown) {
   const value = String(codigo)
+  if (value === 'gkit_ate') return 'gkit-ate'
   return value === 'gkit_new' ? 'gkit-new' : value
 }
 
@@ -67,6 +73,12 @@ function normalizeModule(app: any): PlatformModule {
   }
 }
 
+function activePlatformModules(data: any[] | null): PlatformModule[] {
+  return (data ?? [])
+    .map(normalizeModule)
+    .filter((module) => !LEGACY_MODULE_CODES.has(module.codigo))
+}
+
 async function listActiveModulesFor(usuario: PlatformUsuario, permissions: string[]): Promise<PlatformModule[]> {
   const supabase = admin()
 
@@ -80,7 +92,7 @@ async function listActiveModulesFor(usuario: PlatformUsuario, permissions: strin
       .order('nome', { ascending: true })
 
     if (error) throw new Error(error.message)
-    return (data ?? []).map(normalizeModule)
+    return activePlatformModules(data)
   }
 
   const { data: accessRows, error: accessError } = await supabase
@@ -105,7 +117,7 @@ async function listActiveModulesFor(usuario: PlatformUsuario, permissions: strin
     .order('nome', { ascending: true })
 
   if (error) throw new Error(error.message)
-  return (data ?? []).map(normalizeModule)
+  return activePlatformModules(data)
 }
 
 export async function requirePlatformContext(next = '/plataforma'): Promise<{
