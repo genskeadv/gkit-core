@@ -47,7 +47,7 @@ export type GkitNewWorkflowModelo = {
   ordem: number
 }
 
-export type GkitNewOportunidadeStatus = 'nova' | 'proposta_enviada' | 'em_negociacao' | 'aprovada' | 'encerrada'
+export type GkitNewOportunidadeStatus = 'nova' | 'proposta_enviada' | 'em_negociacao' | 'aprovada' | 'rejeitada' | 'cancelada' | 'encerrada'
 
 export type GkitNewOportunidadeTipo = 'mensal' | 'pontual'
 

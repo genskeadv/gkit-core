@@ -10562,6 +10562,25 @@ a.button {
   background: rgba(255, 255, 255, 0.72);
 }
 
+.gkit-new-command-panel .gkit-new-cockpit-flow .gkit-new-quick-card {
+  appearance: none;
+  border: 1px solid rgba(93, 47, 117, 0.18);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.gkit-new-command-panel .gkit-new-cockpit-flow .gkit-new-quick-card.active {
+  background: rgba(93, 47, 117, 0.12);
+  border-color: rgba(93, 47, 117, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(93, 47, 117, 0.16);
+}
+
+.gkit-new-command-panel .gkit-new-cockpit-flow .gkit-new-quick-card:focus-visible {
+  outline: 2px solid rgba(93, 47, 117, 0.5);
+  outline-offset: 2px;
+}
+
 .gkit-new-command-panel .gkit-new-quick-card h3 {
   margin-top: 8px;
 }
@@ -10597,6 +10616,38 @@ a.button {
 
 .gkit-new-shell .module-form textarea {
   min-height: 86px;
+}
+
+.gkit-new-cockpit-form-panel .module-form {
+  margin: 0;
+}
+
+.gkit-new-radio-group {
+  border: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 0;
+  padding: 0;
+}
+
+.gkit-new-radio-group legend {
+  color: #233047;
+  font-size: 12px;
+  font-weight: 600;
+  grid-column: 1 / -1;
+  margin-bottom: 2px;
+}
+
+.gkit-new-radio-group .checkbox-row {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(93, 47, 117, 0.14);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: flex;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 10px;
 }
 
 .gkit-new-shell .module-form input:hover,

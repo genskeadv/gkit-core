@@ -64,7 +64,7 @@ function dateTimeLabel(value: unknown) {
 }
 
 function opportunityStatus(value: unknown): GkitNewOportunidadeStatus {
-  if (value === 'proposta_enviada' || value === 'em_negociacao' || value === 'aprovada' || value === 'encerrada') return value
+  if (value === 'proposta_enviada' || value === 'em_negociacao' || value === 'aprovada' || value === 'rejeitada' || value === 'cancelada' || value === 'encerrada') return value
   return 'nova'
 }
 
@@ -74,6 +74,7 @@ function statusLabel(status: string) {
     proposta_enviada: 'Proposta enviada',
     em_negociacao: 'Em negociação',
     aprovada: 'Aprovada',
+    rejeitada: 'Rejeitada',
     encerrada: 'Encerrada',
     pendente: 'Pendente',
     concluida: 'Concluída',
@@ -101,7 +102,7 @@ function boolLabel(value: boolean) {
 function tone(status: string): GkitNewTone {
   if (['ativo', 'concluida', 'aprovada'].includes(status)) return 'success'
   if (['pendente', 'prospecto', 'proposta_enviada', 'em_negociacao'].includes(status)) return 'warning'
-  if (['cancelada', 'inativo', 'encerrada'].includes(status)) return 'danger'
+  if (['cancelada', 'rejeitada', 'inativo', 'encerrada'].includes(status)) return 'danger'
   return 'primary'
 }
 
@@ -547,14 +548,14 @@ export async function getGkitNewGestaoData(): Promise<GkitNewGestaoData> {
   ])
 
   const ativos = clientes.filter((cliente) => cliente.status === 'ativo').length
-  const abertas = oportunidades.filter((oportunidade) => oportunidade.status !== 'encerrada')
+  const abertas = oportunidades.filter((oportunidade) => !['encerrada', 'rejeitada', 'cancelada'].includes(oportunidade.status))
   const aprovadas = oportunidades.filter((oportunidade) => oportunidade.status === 'aprovada')
   const pipeline = abertas.reduce((total, oportunidade) => total + oportunidade.valor, 0)
   const aprovado = aprovadas.reduce((total, oportunidade) => total + oportunidade.valor, 0)
   const conversao = oportunidades.length ? Math.round((aprovadas.length / oportunidades.length) * 100) : 0
   const pendentes = tarefas.filter((tarefa) => tarefa.status === 'pendente').length
 
-  const statusOrder: GkitNewOportunidadeStatus[] = ['nova', 'proposta_enviada', 'em_negociacao', 'aprovada', 'encerrada']
+  const statusOrder: GkitNewOportunidadeStatus[] = ['nova', 'proposta_enviada', 'em_negociacao', 'aprovada', 'rejeitada', 'cancelada', 'encerrada']
   const oportunidadesPorStatus = statusOrder.map((status) => {
     const rows = oportunidades.filter((oportunidade) => oportunidade.status === status)
     return {

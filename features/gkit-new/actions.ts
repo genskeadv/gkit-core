@@ -162,7 +162,7 @@ function oportunidadePayload(formData: FormData) {
   const status = text(formData, 'status') || 'nova'
   const tipo = text(formData, 'tipo') || 'mensal'
 
-  if (!['nova', 'proposta_enviada', 'em_negociacao', 'aprovada', 'encerrada'].includes(status)) {
+  if (!['nova', 'proposta_enviada', 'em_negociacao', 'aprovada', 'rejeitada', 'cancelada', 'encerrada'].includes(status)) {
     throw new Error('Status da oportunidade inválido.')
   }
 
@@ -260,7 +260,7 @@ async function cancelPendingTasks(oportunidadeId: string, usuarioId: string, mot
 }
 
 function isFinalOpportunityStatus(status: string) {
-  return status === 'aprovada' || status === 'encerrada'
+  return status === 'aprovada' || status === 'rejeitada' || status === 'cancelada' || status === 'encerrada'
 }
 
 function revalidateGkitNewBase(id?: string, kind?: 'cliente' | 'contato' | 'workflow' | 'oportunidade' | 'tarefa') {
@@ -495,6 +495,64 @@ export async function createGkitNewOportunidadeAction(formData: FormData) {
   redirect(`/modulos/gkit-new/oportunidades/${oportunidadeId}`)
 }
 
+export async function createGkitNewCockpitPropostaAction(formData: FormData) {
+  const context = await requireGkitNewWrite('gkit_new.oportunidades.write')
+  const clienteId = requiredText(formData, 'cliente_id', 'Cliente')
+  const contatoId = requiredText(formData, 'contato_id', 'Contato')
+  const tipo = text(formData, 'tipo') || 'mensal'
+
+  if (!['mensal', 'pontual'].includes(tipo)) {
+    throw new Error('Tipo da proposta invalido.')
+  }
+
+  const vinculo = await admin()
+    .schema('gkit_new')
+    .from('cliente_contatos')
+    .upsert(
+      { cliente_id: clienteId, contato_id: contatoId },
+      { ignoreDuplicates: true, onConflict: 'cliente_id,contato_id' },
+    )
+
+  if (vinculo.error) throw new Error(vinculo.error.message)
+
+  const payload = {
+    cliente_id: clienteId,
+    contato_id: contatoId,
+    data: new Date().toISOString().slice(0, 10),
+    descricao: tipo === 'pontual' ? 'Proposta pontual' : 'Proposta mensal',
+    tipo,
+    valor: money(formData, 'valor'),
+    escopo: optionalText(formData, 'escopo'),
+    status: 'proposta_enviada',
+    motivo_encerramento_antecipado: null,
+    responsavel_id: optionalUuid(formData, 'responsavel_id'),
+    criado_por: context.usuario.id,
+    atualizado_por: context.usuario.id,
+  }
+
+  const { data, error } = await admin()
+    .schema('gkit_new')
+    .from('oportunidades')
+    .insert(payload)
+    .select('id')
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  const oportunidadeId = String(data.id)
+  await registerEvent({
+    entidade: 'oportunidade',
+    entidadeId: oportunidadeId,
+    usuarioId: context.usuario.id,
+    tipo: 'proposta_criada',
+    descricao: `${payload.descricao} criada pelo cockpit.`,
+    metadata: { status: payload.status, tipo: payload.tipo, valor: payload.valor },
+  })
+
+  revalidateGkitNewBase(oportunidadeId, 'oportunidade')
+  redirect('/modulos/gkit-new?painel=acompanhamento')
+}
+
 export async function updateGkitNewOportunidadeAction(formData: FormData) {
   const id = requiredText(formData, 'id', 'Oportunidade')
   const context = await requireGkitNewWrite('gkit_new.oportunidades.write')
@@ -569,4 +627,53 @@ export async function completeGkitNewTarefaAction(formData: FormData) {
 
   revalidateGkitNewBase(id, 'tarefa')
   redirect('/modulos/gkit-new/tarefas')
+}
+
+export async function updateGkitNewAcompanhamentoAction(formData: FormData) {
+  const id = requiredText(formData, 'oportunidade_id', 'Proposta')
+  const status = text(formData, 'status') || 'proposta_enviada'
+  const descricao = optionalText(formData, 'descricao')
+  const context = await requireGkitNewWrite('gkit_new.oportunidades.write')
+
+  if (!['proposta_enviada', 'em_negociacao', 'aprovada', 'rejeitada', 'cancelada'].includes(status)) {
+    throw new Error('Status de acompanhamento invalido.')
+  }
+
+  if (status !== 'proposta_enviada' && !descricao) {
+    throw new Error('Descricao e obrigatoria ao alterar o status da proposta.')
+  }
+
+  const updates: Record<string, unknown> = {
+    status,
+    atualizado_por: context.usuario.id,
+  }
+
+  if (descricao) {
+    updates.motivo_encerramento_antecipado = descricao
+  }
+
+  const pendingTasks = await countPendingTasks(id)
+  const { error } = await admin()
+    .schema('gkit_new')
+    .from('oportunidades')
+    .update(updates)
+    .eq('id', id)
+
+  if (error) throw new Error(error.message)
+
+  await registerEvent({
+    entidade: 'oportunidade',
+    entidadeId: id,
+    usuarioId: context.usuario.id,
+    tipo: 'oportunidade_acompanhamento',
+    descricao: descricao ?? 'Proposta marcada como enviada.',
+    metadata: { status },
+  })
+
+  if (isFinalOpportunityStatus(status) && pendingTasks > 0 && descricao) {
+    await cancelPendingTasks(id, context.usuario.id, descricao)
+  }
+
+  revalidateGkitNewBase(id, 'oportunidade')
+  redirect('/modulos/gkit-new?painel=acompanhamento')
 }

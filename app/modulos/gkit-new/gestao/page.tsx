@@ -8,8 +8,8 @@ export default async function GkitNewGestaoPage() {
   return (
     <GkitNewShell
       active="gestao"
-      title="Gestão"
-      description="Visão gerencial inicial do pipeline, produtividade e auditoria comercial."
+      title="Dashboard"
+      description="Visao gerencial do pipeline, produtividade, indicadores e auditoria comercial."
       usuario={context.usuario}
     >
       <GkitNewHealthNotice health={data.health} />

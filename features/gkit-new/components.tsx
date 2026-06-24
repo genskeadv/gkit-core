@@ -34,7 +34,7 @@ const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-new/oportunidades', title: 'Oportunidades' },
   { href: '/modulos/gkit-new/base/workflow', title: 'Workflow' },
   { href: '/modulos/gkit-new/tarefas', title: 'Tarefas' },
-  { href: '/modulos/gkit-new/gestao', title: 'Gestão' },
+  { href: '/modulos/gkit-new/gestao', title: 'Dashboard' },
 ]
 
 export function GkitNewShell({
