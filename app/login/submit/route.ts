@@ -1,20 +1,13 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getSupabasePublicEnv } from '@/lib/supabase/env'
 
 function safeRedirectPath(value: FormDataEntryValue | null) {
   const fallback = '/plataforma'
 
-  if (typeof value !== 'string') {
-    return fallback
-  }
-
-  if (!value.startsWith('/') || value.startsWith('//')) {
-    return fallback
-  }
-
-  if (value === '/app' || value === '/admin/login') {
-    return fallback
-  }
+  if (typeof value !== 'string') return fallback
+  if (!value.startsWith('/') || value.startsWith('//')) return fallback
+  if (value === '/app' || value === '/admin/login') return fallback
 
   return value
 }
@@ -40,17 +33,15 @@ export async function POST(request: NextRequest) {
     return redirectTo(request, loginUrl(request, next, 'Informe e-mail e senha.').toString(), { status: 303 })
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseKey) {
-    return redirectTo(request, loginUrl(request, next, 'Configuração de login ausente no servidor.').toString(), { status: 303 })
+  let supabaseEnv: ReturnType<typeof getSupabasePublicEnv>
+  try {
+    supabaseEnv = getSupabasePublicEnv()
+  } catch {
+    return redirectTo(request, loginUrl(request, next, 'Configuracao de login ausente no servidor.').toString(), { status: 303 })
   }
 
   const response = redirectTo(request, next, { status: 303 })
-  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+  const supabase = createServerClient(supabaseEnv.supabaseUrl, supabaseEnv.supabaseKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll()
@@ -64,15 +55,23 @@ export async function POST(request: NextRequest) {
     },
   })
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
-  if (error) {
-    const message = error.message.toLowerCase().includes('fetch failed')
-      ? 'Não foi possível conectar ao serviço de login. Tente novamente em instantes.'
-      : 'E-mail ou senha inválidos.'
+  if (error || !data.session) {
+    const message = error?.message.toLowerCase().includes('fetch failed')
+      ? 'Nao foi possivel conectar ao servico de login. Tente novamente em instantes.'
+      : 'E-mail, senha ou sessao invalidos.'
 
     return redirectTo(request, loginUrl(request, next, message).toString(), { status: 303 })
   }
+
+  response.cookies.set('gkit_login_probe', 'ok', {
+    httpOnly: true,
+    maxAge: 300,
+    path: '/',
+    sameSite: 'lax',
+    secure: request.nextUrl.protocol === 'https:',
+  })
 
   return response
 }

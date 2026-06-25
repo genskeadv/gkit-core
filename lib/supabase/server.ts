@@ -1,16 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { getSupabasePublicEnv } from '@/lib/supabase/env'
 
 export async function createClient() {
   const cookieStore = await cookies()
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Env ausente: NEXT_PUBLIC_SUPABASE_URL ou chave pública do Supabase.')
-  }
+  const { supabaseKey, supabaseUrl } = getSupabasePublicEnv()
 
   return createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
@@ -23,7 +17,7 @@ export async function createClient() {
             cookieStore.set(name, value, options)
           })
         } catch {
-          // Chamadas a partir de Server Components são cobertas pelo proxy.
+          // Server Components cannot set cookies directly; middleware refresh covers them.
         }
       },
     },
