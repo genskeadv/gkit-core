@@ -13726,7 +13726,7 @@ a.button {
 .ciclo-command-panel .ciclo-quick-card,
 .gkit-ate-command-panel .gkit-ate-quick-card {
   border-radius: var(--suite-module-card-radius, 8px) !important;
-  min-height: 76px !important;
+  min-height: 83px !important;
   padding: 9px 28px 9px 10px !important;
   position: relative;
 }
