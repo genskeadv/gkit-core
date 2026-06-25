@@ -13741,6 +13741,47 @@ a.button {
   }
 }
 
+/* Final shared cockpit header treatment for New, Ciclo and ATE. */
+.gkit-new-shell .module-sidebar-header,
+.ciclo-shell .module-sidebar-header,
+.gkit-ate-shell .module-sidebar-header,
+.gkit-new-shell .module-sidebar-footer,
+.ciclo-shell .module-sidebar-footer,
+.gkit-ate-shell .module-sidebar-footer,
+.gkit-new-shell .module-page-hero,
+.ciclo-shell .module-page-hero,
+.gkit-ate-shell .module-page-hero {
+  background: rgba(255, 255, 255, 0.94) !important;
+  color: #131927 !important;
+}
+
+.gkit-new-shell .module-sidebar-header,
+.ciclo-shell .module-sidebar-header,
+.gkit-ate-shell .module-sidebar-header,
+.gkit-new-shell .module-sidebar-footer,
+.ciclo-shell .module-sidebar-footer,
+.gkit-ate-shell .module-sidebar-footer {
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04) !important;
+}
+
+.gkit-new-shell .module-page-hero,
+.ciclo-shell .module-page-hero,
+.gkit-ate-shell .module-page-hero {
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06) !important;
+}
+
+.gkit-new-shell .module-sidebar a:not(.module-sidebar-header),
+.ciclo-shell .module-sidebar a:not(.module-sidebar-header),
+.gkit-ate-shell .module-sidebar a:not(.module-sidebar-header) {
+  padding: 9px 10px !important;
+}
+
+.gkit-new-shell .module-sidebar a.active,
+.ciclo-shell .module-sidebar a.active,
+.gkit-ate-shell .module-sidebar a.active {
+  box-shadow: 0 10px 22px rgba(93, 47, 117, 0.16) !important;
+}
+
 /* Shared compact flow cards for GKIT New, Ciclo and ATE cockpit. */
 .gkit-new-command-panel .gkit-new-quick-grid,
 .ciclo-command-panel .ciclo-quick-grid,
