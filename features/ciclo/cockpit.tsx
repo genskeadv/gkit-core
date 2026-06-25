@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import type { CicloCockpitData, CicloListRow } from '@/features/ciclo/types'
 import { CicloSubmitButton } from '@/features/ciclo/submit-button'
@@ -70,7 +71,7 @@ export function CicloCockpit({
   startOnboardingAction: (formData: FormData) => Promise<void>
   updateDocumentacaoAction: (formData: FormData) => Promise<void>
 }) {
-  const [activePanel, setActivePanel] = useState<CockpitPanel | null>(initialPanel)
+  const activePanel = initialPanel
   const [documentacaoClienteId, setDocumentacaoClienteId] = useState('')
   const documentos = useMemo(
     () => data.documentos.filter((documento) => documento.clienteId === documentacaoClienteId),
@@ -89,17 +90,16 @@ export function CicloCockpit({
 
         <div className="ciclo-quick-grid ciclo-cockpit-flow">
           {panels.map((panel) => (
-            <button
-              aria-pressed={activePanel === panel.id}
+            <Link
+              aria-current={activePanel === panel.id ? 'page' : undefined}
               className={activePanel === panel.id ? 'ciclo-quick-card active' : 'ciclo-quick-card'}
+              href={`/modulos/ciclo?panel=${panel.id}`}
               key={panel.id}
-              onClick={() => setActivePanel(panel.id)}
-              type="button"
             >
               <span>{panel.label}</span>
               <h3>{panel.title}</h3>
               <p>{panel.description}</p>
-            </button>
+            </Link>
           ))}
         </div>
       </section>

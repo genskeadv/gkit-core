@@ -57,7 +57,7 @@ export default async function GkitNewPage({
         createContatoAction={createGkitNewContatoAction}
         createPropostaAction={createGkitNewCockpitPropostaAction}
         formData={formData}
-        initialPanel={initialPanel(params?.painel)}
+        initialPanel={initialPanel(params?.panel ?? params?.painel)}
         oportunidades={oportunidades}
         tarefasPendentes={tarefaRows(tarefasPendentes)}
         tarefasPendentesScope={canSeeAllTasks ? 'Todas as tarefas pendentes' : `Pendencias de ${context.usuario.nome}`}

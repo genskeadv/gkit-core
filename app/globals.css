@@ -13777,6 +13777,14 @@ a.button {
   }
 }
 
+@media (max-width: 640px) {
+  .gkit-new-command-panel .gkit-new-quick-grid,
+  .ciclo-command-panel .ciclo-quick-grid,
+  .gkit-ate-command-panel .gkit-ate-quick-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 .ciclo-cockpit-form-panel .module-form {
   margin: 0;
 }

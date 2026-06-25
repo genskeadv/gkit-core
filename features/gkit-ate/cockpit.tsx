@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
 import { GkitAteSubmitButton } from '@/features/gkit-ate/submit-button'
 import type { GkitAteFormData, GkitAteListRow } from '@/features/gkit-ate/types'
 
@@ -97,7 +96,7 @@ export function GkitAteCockpit({
   initialPanel?: CockpitPanel | null
   tarefasPendentes: GkitAteListRow[]
 }) {
-  const [activePanel, setActivePanel] = useState<CockpitPanel | null>(initialPanel)
+  const activePanel = initialPanel
 
   return (
     <>
@@ -111,17 +110,16 @@ export function GkitAteCockpit({
 
         <div className="gkit-ate-quick-grid gkit-ate-cockpit-flow">
           {panels.map((panel) => (
-            <button
-              aria-pressed={activePanel === panel.id}
+            <Link
+              aria-current={activePanel === panel.id ? 'page' : undefined}
               className={activePanel === panel.id ? 'gkit-ate-quick-card active' : 'gkit-ate-quick-card'}
+              href={`/modulos/gkit-ate?panel=${panel.id}`}
               key={panel.id}
-              onClick={() => setActivePanel(panel.id)}
-              type="button"
             >
               <span>{panel.label}</span>
               <h3>{panel.title}</h3>
               <p>{panel.description}</p>
-            </button>
+            </Link>
           ))}
         </div>
       </section>

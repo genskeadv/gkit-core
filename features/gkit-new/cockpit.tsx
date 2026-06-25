@@ -113,7 +113,7 @@ export function GkitNewCockpit({
   tarefasPendentesScope: string
   updateAcompanhamentoAction: CockpitAction
 }) {
-  const [activePanel, setActivePanel] = useState<CockpitPanel | null>(initialPanel)
+  const activePanel = initialPanel
   const [status, setStatus] = useState('proposta_enviada')
   const propostaOptions = useMemo(() => orderedOportunidades(oportunidades), [oportunidades])
   const requiresDescription = status !== 'proposta_enviada'
@@ -130,17 +130,16 @@ export function GkitNewCockpit({
 
         <div className="gkit-new-quick-grid gkit-new-cockpit-flow">
           {panels.map((panel) => (
-            <button
-              aria-pressed={activePanel === panel.id}
+            <Link
+              aria-current={activePanel === panel.id ? 'page' : undefined}
               className={activePanel === panel.id ? 'gkit-new-quick-card active' : 'gkit-new-quick-card'}
+              href={`/modulos/gkit-new?panel=${panel.id}`}
               key={panel.id}
-              onClick={() => setActivePanel(panel.id)}
-              type="button"
             >
               <span>{panel.label}</span>
               <h3>{panel.title}</h3>
               <p>{panel.description}</p>
-            </button>
+            </Link>
           ))}
         </div>
       </section>

@@ -45,7 +45,7 @@ export default async function GkitAtePage({
         createTarefaAction={createGkitAteTarefaAction}
         createTarefaTipoAction={createGkitAteTarefaTipoAction}
         formData={formData}
-        initialPanel={initialPanel(params?.painel)}
+        initialPanel={initialPanel(params?.panel ?? params?.painel)}
         tarefasPendentes={tarefaRows(tarefasPendentes)}
       />
     </GkitAteShell>
