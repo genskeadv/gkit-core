@@ -53,12 +53,6 @@ function formatCompetencia(value: string) {
   return `${month}/${year}`;
 }
 
-function statusText(status: MonthStatus) {
-  if (status === 'aberto') return 'Aberto';
-  if (status === 'fechado') return 'Fechado';
-  return 'Não aberto';
-}
-
 export function DashboardHome() {
   const [competencia, setCompetencia] = useState(currentMonthValue());
   const [data, setData] = useState<DashboardSummary | null>(null);
@@ -189,7 +183,7 @@ export function DashboardHome() {
             <>Aberto: <strong>{formatMoney(contasPagarAberto)}</strong></>,
             <>Itens: <strong>{data?.contasPagar.quantidade || 0}</strong></>,
           ]}
-          cta="Abrir contas a pagar →"
+          cta="Abrir contas a pagar"
         />
 
         <ActionCard
@@ -203,7 +197,7 @@ export function DashboardHome() {
             <>Base reduzida: <strong>{formatMoney(data?.comissoes.latestExecution?.total_base_reduzida || 0)}</strong></>,
             <>Auditoria: <strong>{data?.comissoes.latestExecution?.audit_count || 0} item(ns)</strong></>,
           ]}
-          cta="Abrir contas a receber →"
+          cta="Abrir contas a receber"
         />
       </section>
 

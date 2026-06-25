@@ -28,11 +28,11 @@ export function AppFrame({ children }: { children: ReactNode }) {
           <div className="gkit-flex-sidebar-mark" aria-hidden="true">G</div>
           <div>
             <strong>GKIT Flex</strong>
-            <small>Gestao mensal</small>
+            <small>Gestão mensal</small>
           </div>
         </Link>
 
-        <nav aria-label="Navegacao GKIT Flex">
+        <nav aria-label="Navegação GKIT Flex">
           {navItems.map((item) => (
             <Link className={isActive(pathname, item.href) ? 'active' : ''} href={item.href} key={item.href}>
               <span>{item.label}</span>
@@ -41,7 +41,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="gkit-flex-sidebar-footer">
-          <span>Operacao Flex</span>
+          <span>Operação Flex</span>
           <span className="sidebar-badge">Integrado ao Core</span>
         </div>
       </aside>
