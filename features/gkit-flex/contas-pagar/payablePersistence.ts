@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PayableImportIssue, PayableImportPreview, PayableImportRow, PayableItem, PayableMonthStatus, PayableSummary } from './types';
 import { getSupabaseAdmin, logEvent } from '../audit';
 import { buildPayablesExportWorkbook } from './payableProcessor';
+import { syncCicloRegularidadePagamentos } from '../regularidade-pagamentos';
 
 function roundMoney(value: number): number {
   return Math.round((value || 0) * 100) / 100;
@@ -198,6 +199,20 @@ async function syncCommissionPayables(supabase: SupabaseClient, competencia: str
 
   if (executionError) throw new Error(`Erro ao consultar comissões calculadas: ${executionError.message}`);
 
+  const { data: existingCommissionItems, error: existingCommissionError } = await supabase
+    .from('contas_pagar_itens')
+    .select('origem_resumo_id,pago')
+    .eq('competencia_id', competenciaId)
+    .eq('origem_tipo', 'comissao');
+
+  if (existingCommissionError) throw new Error(`Erro ao preservar pagamentos de comissão: ${existingCommissionError.message}`);
+
+  const paidBySummaryId = new Map(
+    (existingCommissionItems || [])
+      .filter((item) => item.origem_resumo_id)
+      .map((item) => [String(item.origem_resumo_id), Boolean(item.pago)]),
+  );
+
   // Remove os itens automáticos anteriores. Os itens manuais/importados ficam preservados.
   const { error: deleteError } = await supabase
     .from('contas_pagar_itens')
@@ -228,7 +243,7 @@ async function syncCommissionPayables(supabase: SupabaseClient, competencia: str
     valor_previsto: roundMoney(Number(summary.comissao_final || 0)),
     categoria: 'Comissões',
     centro: 'Pessoal',
-    pago: false,
+    pago: paidBySummaryId.get(String(summary.id)) ?? false,
     origem_tipo: 'comissao',
     origem_execucao_id: latestExecution.id,
     origem_resumo_id: summary.id,
@@ -417,6 +432,7 @@ export async function importPayables(competenciaInput: string, rows: PayableImpo
   });
 
   await syncCommissionPayables(supabase, competencia, competenciaId);
+  await syncCicloRegularidadePagamentos(supabase, competencia);
   return { ...(await listPayables(competencia)), preview, snapshotId };
 }
 
@@ -430,6 +446,7 @@ export async function listPayables(competenciaInput: string) {
 
   if (status.status === 'aberto') {
     await syncCommissionPayables(supabase, competencia, status.row.id as string);
+    await syncCicloRegularidadePagamentos(supabase, competencia);
   }
 
   const { data, error } = await supabase
@@ -472,6 +489,9 @@ export async function updatePayableItem(id: string, patch: Partial<Pick<PayableI
     .eq('id', id);
 
   if (error) throw new Error(`Erro ao atualizar conta a pagar: ${error.message}`);
+  if (patch.pago !== undefined && (item as { origem_tipo?: string | null }).origem_tipo === 'comissao') {
+    await syncCicloRegularidadePagamentos(supabase, item.competencia as string);
+  }
   await logEvent({ supabase, modulo: 'contas_pagar', competencia: item.competencia as string, action: 'atualizar_conta_pagar', entidadeTipo: 'contas_pagar_item', entidadeId: id, detalhe: { patch: payload } });
   return { ok: true };
 }
@@ -486,6 +506,7 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
   if (current.status !== 'aberto') throw new Error('Esta competência já está fechada ou não permite fechamento.');
 
   await syncCommissionPayables(supabase, competencia, current.row.id as string);
+  await syncCicloRegularidadePagamentos(supabase, competencia);
 
   const { data: currentItems, error: itemsError } = await supabase
     .from('contas_pagar_itens')

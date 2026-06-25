@@ -72,6 +72,12 @@ function numberValue(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+function regularidadePrincipal(row: Record<string, any>) {
+  return row.percentual_pagamentos === null || row.percentual_pagamentos === undefined
+    ? normalizePercent(row.percentual_regularidade)
+    : normalizePercent(row.percentual_pagamentos)
+}
+
 function dateLabel(value: unknown) {
   const raw = text(value)
   if (!raw) return 'Sem data'
@@ -250,7 +256,7 @@ export async function getCicloData(context: CicloContext): Promise<CicloData> {
       ? supabase.schema('ciclo').from('administradoras').select('id,nome').in('id', administradoraIds)
       : { data: [], error: null },
     clienteRows.length
-      ? supabase.schema('ciclo').from('regularidade_cliente').select('cliente_id,percentual_regularidade').in('cliente_id', clienteRows.map((row) => row.id))
+      ? supabase.schema('ciclo').from('regularidade_cliente').select('cliente_id,percentual_regularidade,percentual_pagamentos').in('cliente_id', clienteRows.map((row) => row.id))
       : { data: [], error: null },
     clienteRows.length
       ? supabase.schema('ciclo').from('cliente_contatos').select('cliente_id,nome,email,telefone,principal,ativo').in('cliente_id', clienteRows.map((row) => row.id)).eq('ativo', true)
@@ -259,7 +265,7 @@ export async function getCicloData(context: CicloContext): Promise<CicloData> {
 
   const carteiraMap = new Map<string, string>((carteirasResult.data ?? []).map((row: any) => [String(row.id), String(row.nome)]))
   const administradoraMap = new Map<string, string>((administradorasResult.data ?? []).map((row: any) => [String(row.id), String(row.nome)]))
-  const regularidadeMap = new Map<string, number>((regularidadeResult.data ?? []).map((row: any) => [String(row.cliente_id), normalizePercent(row.percentual_regularidade)]))
+  const regularidadeMap = new Map<string, number>((regularidadeResult.data ?? []).map((row: any) => [String(row.cliente_id), regularidadePrincipal(row)]))
   const contatoMap = new Map<string, string>()
 
   for (const contato of (contatosResult.data ?? []) as Array<Record<string, any>>) {
@@ -847,7 +853,7 @@ export async function getCicloClienteIntegral(id: string, context: CicloContext)
     admin()
       .schema('ciclo')
       .from('regularidade_cliente')
-      .select('percentual_regularidade,pendencias,status')
+      .select('percentual_regularidade,percentual_pagamentos,pendencias,pendencias_pagamentos,status,status_pagamentos')
       .eq('cliente_id', id)
       .maybeSingle(),
     admin()
@@ -901,8 +907,11 @@ export async function getCicloClienteIntegral(id: string, context: CicloContext)
     cliente,
     carteira,
     administradora,
-    regularidade: normalizePercent(regularidadeRow.percentual_regularidade),
-    pendencias: Array.isArray(regularidadeRow.pendencias) ? regularidadeRow.pendencias.map((item) => text(item)).filter(Boolean) : [],
+    regularidade: regularidadePrincipal(regularidadeRow),
+    pendencias: [
+      ...(Array.isArray(regularidadeRow.pendencias) ? regularidadeRow.pendencias.map((item) => text(item)).filter(Boolean) : []),
+      ...(Array.isArray(regularidadeRow.pendencias_pagamentos) ? regularidadeRow.pendencias_pagamentos.map((item) => text(item)).filter(Boolean) : []),
+    ],
     documentos: ((documentosResult.data ?? []) as Array<Record<string, any>>).map((row) => ({
       id: text(row.id),
       tipo_documento: text(row.tipo_documento),
