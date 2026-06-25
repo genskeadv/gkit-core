@@ -11909,10 +11909,11 @@ a.button {
   }
 }
 
-/* Unified cockpit polish for GKIT New, Flex and Ciclo. */
+/* Unified cockpit polish for GKIT New, Flex, Ciclo and ATE. */
 .gkit-new-shell,
 .flex-shell,
-.ciclo-shell {
+.ciclo-shell,
+.gkit-ate-shell {
   --suite-module-accent: #5d2f75;
   --suite-module-accent-soft: rgba(93, 47, 117, 0.09);
   --suite-module-accent-line: rgba(93, 47, 117, 0.22);
@@ -11923,15 +11924,19 @@ a.button {
 .gkit-new-shell .module-sidebar-header,
 .flex-shell .module-sidebar-header,
 .ciclo-shell .module-sidebar-header,
+.gkit-ate-shell .module-sidebar-header,
 .gkit-new-shell .module-sidebar-footer,
 .flex-shell .module-sidebar-footer,
 .ciclo-shell .module-sidebar-footer,
+.gkit-ate-shell .module-sidebar-footer,
 .gkit-new-shell .module-page-hero,
 .flex-shell .module-page-hero,
 .ciclo-shell .module-page-hero,
+.gkit-ate-shell .module-page-hero,
 .gkit-new-shell .suite-panel,
 .flex-shell .suite-panel,
 .ciclo-shell .suite-panel,
+.gkit-ate-shell .suite-panel,
 .flex-section,
 .ciclo-section {
   border-radius: var(--suite-module-card-radius) !important;
@@ -11939,7 +11944,8 @@ a.button {
 
 .gkit-new-shell .module-sidebar-header strong,
 .flex-shell .module-sidebar-header strong,
-.ciclo-shell .module-sidebar-header strong {
+.ciclo-shell .module-sidebar-header strong,
+.gkit-ate-shell .module-sidebar-header strong {
   color: #131927 !important;
   font-size: 14px !important;
   font-weight: 450 !important;
@@ -11949,9 +11955,11 @@ a.button {
 .gkit-new-shell .module-sidebar-header small,
 .flex-shell .module-sidebar-header small,
 .ciclo-shell .module-sidebar-header small,
+.gkit-ate-shell .module-sidebar-header small,
 .gkit-new-shell .module-sidebar-footer span,
 .flex-shell .module-sidebar-footer span,
-.ciclo-shell .module-sidebar-footer span {
+.ciclo-shell .module-sidebar-footer span,
+.gkit-ate-shell .module-sidebar-footer span {
   color: #344054 !important;
   font-size: 11px !important;
   font-weight: 400 !important;
@@ -11960,7 +11968,8 @@ a.button {
 
 .gkit-new-shell .module-sidebar a,
 .flex-shell .module-sidebar a,
-.ciclo-shell .module-sidebar a {
+.ciclo-shell .module-sidebar a,
+.gkit-ate-shell .module-sidebar a {
   border-radius: var(--suite-module-card-radius) !important;
   font-size: 13px !important;
   font-weight: 400 !important;
@@ -11969,7 +11978,8 @@ a.button {
 
 .gkit-new-shell .module-sidebar a.active,
 .flex-shell .module-sidebar a.active,
-.ciclo-shell .module-sidebar a.active {
+.ciclo-shell .module-sidebar a.active,
+.gkit-ate-shell .module-sidebar a.active {
   background: var(--suite-module-accent) !important;
   box-shadow: 0 10px 22px rgba(93, 47, 117, 0.16) !important;
   color: #fff !important;
@@ -11977,7 +11987,8 @@ a.button {
 
 .gkit-new-shell .module-page-hero,
 .flex-shell .module-page-hero,
-.ciclo-shell .module-page-hero {
+.ciclo-shell .module-page-hero,
+.gkit-ate-shell .module-page-hero {
   margin-bottom: 10px !important;
   min-height: 0 !important;
   padding: 14px !important;
@@ -11985,7 +11996,8 @@ a.button {
 
 .gkit-new-shell .module-page-hero::before,
 .flex-shell .module-page-hero::before,
-.ciclo-shell .module-page-hero::before {
+.ciclo-shell .module-page-hero::before,
+.gkit-ate-shell .module-page-hero::before {
   background: var(--suite-module-accent) !important;
   border-radius: 0 !important;
   height: auto !important;
@@ -11995,7 +12007,8 @@ a.button {
 
 .gkit-new-shell .module-page-hero .platform-kicker,
 .flex-shell .module-page-hero .platform-kicker,
-.ciclo-shell .module-page-hero .platform-kicker {
+.ciclo-shell .module-page-hero .platform-kicker,
+.gkit-ate-shell .module-page-hero .platform-kicker {
   color: #5b6b86 !important;
   font-size: 11px !important;
   font-weight: 400 !important;
@@ -12007,7 +12020,8 @@ a.button {
 
 .gkit-new-shell .module-page-hero h1,
 .flex-shell .module-page-hero h1,
-.ciclo-shell .module-page-hero h1 {
+.ciclo-shell .module-page-hero h1,
+.gkit-ate-shell .module-page-hero h1 {
   color: #131927 !important;
   font-size: clamp(21px, 2.2vw, 28px) !important;
   font-weight: 450 !important;
@@ -12018,9 +12032,12 @@ a.button {
 .gkit-new-shell .module-page-hero p:not(.platform-kicker),
 .flex-shell .module-page-hero p:not(.platform-kicker),
 .ciclo-shell .module-page-hero p:not(.platform-kicker),
+.gkit-ate-shell .module-page-hero p:not(.platform-kicker),
 .gkit-new-shell .suite-panel-heading p,
 .flex-shell .suite-panel-heading p,
 .ciclo-shell .suite-panel-heading p,
+.gkit-ate-shell .suite-panel-heading p,
+.gkit-ate-shell .gkit-ate-panel-heading p,
 .ciclo-shell .ciclo-panel-heading p,
 .flex-section-header p,
 .ciclo-section-header p {
@@ -12034,6 +12051,8 @@ a.button {
 .gkit-new-shell .suite-panel-heading h2,
 .flex-shell .suite-panel-heading h2,
 .ciclo-shell .suite-panel-heading h2,
+.gkit-ate-shell .suite-panel-heading h2,
+.gkit-ate-shell .gkit-ate-panel-heading h2,
 .ciclo-shell .ciclo-panel-heading h2,
 .flex-section-header h2,
 .ciclo-section-header h2 {
@@ -12047,6 +12066,8 @@ a.button {
 .gkit-new-shell .suite-panel-heading,
 .flex-shell .suite-panel-heading,
 .ciclo-shell .suite-panel-heading,
+.gkit-ate-shell .suite-panel-heading,
+.gkit-ate-shell .gkit-ate-panel-heading,
 .ciclo-shell .ciclo-panel-heading,
 .flex-section-header,
 .ciclo-section-header {
@@ -12056,7 +12077,8 @@ a.button {
 
 .gkit-new-shell .metric-card,
 .flex-shell .metric-card,
-.ciclo-shell .metric-card {
+.ciclo-shell .metric-card,
+.gkit-ate-shell .metric-card {
   border-radius: var(--suite-module-card-radius) !important;
   min-height: 74px !important;
   padding: 9px 10px !important;
@@ -12065,18 +12087,22 @@ a.button {
 .gkit-new-shell .metric-card + .metric-card,
 .flex-shell .metric-card + .metric-card,
 .ciclo-shell .metric-card + .metric-card,
+.gkit-ate-shell .metric-card + .metric-card,
 .gkit-new-quick-card + .gkit-new-quick-card,
 .flex-quick-card + .flex-quick-card,
-.ciclo-quick-card + .ciclo-quick-card {
+.ciclo-quick-card + .ciclo-quick-card,
+.gkit-ate-quick-card + .gkit-ate-quick-card {
   margin-top: 0 !important;
 }
 
 .gkit-new-shell .metric-label,
 .flex-shell .metric-label,
 .ciclo-shell .metric-label,
+.gkit-ate-shell .metric-label,
 .gkit-new-shell .metric-hint,
 .flex-shell .metric-hint,
-.ciclo-shell .metric-hint {
+.ciclo-shell .metric-hint,
+.gkit-ate-shell .metric-hint {
   color: #5b6b86 !important;
   font-size: 11px !important;
   font-weight: 400 !important;
@@ -12086,7 +12112,8 @@ a.button {
 
 .gkit-new-shell .metric-value,
 .flex-shell .metric-value,
-.ciclo-shell .metric-value {
+.ciclo-shell .metric-value,
+.gkit-ate-shell .metric-value {
   color: #131927 !important;
   font-size: clamp(18px, 1.8vw, 22px) !important;
   font-weight: 400 !important;
@@ -12096,7 +12123,8 @@ a.button {
 
 .gkit-new-quick-card,
 .flex-quick-card,
-.ciclo-quick-card {
+.ciclo-quick-card,
+.gkit-ate-quick-card {
   border-radius: var(--suite-module-card-radius) !important;
   min-height: 92px !important;
 }
