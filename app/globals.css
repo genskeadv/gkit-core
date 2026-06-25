@@ -14086,6 +14086,43 @@ a.button {
   position: relative;
 }
 
+.gkit-flex-shell .gkit-flex-form {
+  display: grid;
+  gap: 18px;
+}
+
+.gkit-flex-shell .gkit-flex-form section {
+  display: grid;
+  gap: 10px;
+}
+
+.gkit-flex-shell .gkit-flex-filters {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(220px, 1fr) minmax(150px, 180px) auto;
+  min-width: min(100%, 560px);
+}
+
+.gkit-flex-shell .gkit-flex-checks {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.gkit-flex-shell .gkit-flex-check {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--gkit-flex-line);
+  border-radius: var(--suite-module-card-radius);
+  color: var(--gkit-flex-text);
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 10px;
+}
+
 .gkit-flex-shell .month-context-header::before,
 .gkit-flex-shell .dashboard-hero::before {
   background: var(--suite-module-accent);
@@ -14360,7 +14397,11 @@ a.button {
   }
 
   .gkit-flex-sidebar nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  }
+
+  .gkit-flex-shell .gkit-flex-checks {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -14376,7 +14417,9 @@ a.button {
   .gkit-flex-sidebar nav,
   .gkit-flex-shell .grid-2,
   .gkit-flex-shell .grid-3,
-  .gkit-flex-shell .grid-4 {
+  .gkit-flex-shell .grid-4,
+  .gkit-flex-shell .gkit-flex-filters,
+  .gkit-flex-shell .gkit-flex-checks {
     grid-template-columns: 1fr !important;
   }
 

@@ -8,6 +8,7 @@ const navItems = [
   { href: '/modulos/gkit-flex', label: 'Cockpit' },
   { href: '/modulos/gkit-flex/comissoes', label: 'Receber' },
   { href: '/modulos/gkit-flex/contas-a-pagar', label: 'Pagar' },
+  { href: '/modulos/gkit-flex/colaboradores', label: 'Colaboradores' },
   { href: '/modulos/gkit-flex/cadastros', label: 'Cadastros' },
   { href: '/modulos/gkit-flex/auditoria', label: 'Auditoria' },
 ];

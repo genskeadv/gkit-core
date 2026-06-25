@@ -65,6 +65,7 @@ const shortcutGroups = [
       { href: '/modulos/gkit-flex', label: 'Abrir app' },
       { href: '/modulos/gkit-flex', label: 'Comissoes' },
       { href: '/modulos/gkit-flex', label: 'Contas a pagar' },
+      { href: '/modulos/gkit-flex/colaboradores', label: 'Colaboradores' },
       { href: '/modulos/gkit-flex', label: 'Cadastros' },
       { href: '/modulos/gkit-flex', label: 'Auditoria' },
     ],

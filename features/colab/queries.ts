@@ -128,6 +128,7 @@ function buildSummary(payments: ColabPayment[], commissions: ColabCommission[]):
 function buildBenefits(collaborator: ColabCollaborator, row?: Record<string, unknown>): ColabBenefit[] {
   const description = text(row?.beneficio_descricao ?? row?.beneficios_descricao)
   const value = numberValue(row?.beneficio_valor ?? row?.total_beneficios ?? row?.beneficios)
+  const provider = text(row?.fonte_label, 'GKIT Flex')
 
   if (!description && value <= 0) return []
 
@@ -135,9 +136,9 @@ function buildBenefits(collaborator: ColabCollaborator, row?: Record<string, unk
     {
       id: `${collaborator.id}-beneficio-principal`,
       name: description || 'Beneficio cadastrado',
-      description: description || 'Beneficio sincronizado do cadastro do Intr.',
+      description: description || `Beneficio sincronizado do cadastro do ${provider}.`,
       status: 'ativo',
-      provider: 'GKIT Intr',
+      provider,
       monthlyValue: value,
     },
   ]
@@ -175,32 +176,90 @@ export async function requireColabContext() {
   return requireModuleAccess('colab')
 }
 
+async function getGkitFlexProfileByEmail(normalizedEmail: string) {
+  const usuarioResult = await admin()
+    .schema('security')
+    .from('usuarios')
+    .select('id,nome,email,status')
+    .ilike('email', normalizedEmail)
+    .maybeSingle()
+
+  if (usuarioResult.error || !usuarioResult.data) {
+    return { data: null, error: usuarioResult.error }
+  }
+
+  const colaboradorResult = await admin()
+    .from('gkit_flex_colaboradores')
+    .select('*')
+    .eq('usuario_id', usuarioResult.data.id)
+    .maybeSingle()
+
+  if (colaboradorResult.error || !colaboradorResult.data) {
+    return { data: null, error: colaboradorResult.error }
+  }
+
+  const row = colaboradorResult.data as Record<string, unknown>
+  const [carteiraResult, gestorResult] = await Promise.all([
+    row.carteira_id
+      ? admin().schema('core').from('carteiras').select('id,nome').eq('id', row.carteira_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    row.gestor_usuario_id
+      ? admin().schema('security').from('usuarios').select('id,nome,email').eq('id', row.gestor_usuario_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ])
+
+  return {
+    data: {
+      ...row,
+      nome: usuarioResult.data.nome,
+      email: usuarioResult.data.email,
+      telefone: row.telefone,
+      cargo: row.cargo_operacional,
+      time_nome: text(carteiraResult.data?.nome, 'Sem carteira'),
+      gestor_nome: text(gestorResult.data?.nome, 'Sem gestor'),
+      data_admissao: row.data_inicio,
+      fonte_label: 'GKIT Flex',
+    },
+    error: null,
+  }
+}
+
 export async function getColabData(userEmail: string): Promise<ColabData> {
   const normalizedEmail = userEmail.trim()
+  const flexProfileResult = await getGkitFlexProfileByEmail(normalizedEmail)
   const profileResult = await admin()
     .from('gkli_intr_colaborador_detalhe')
     .select('*')
     .ilike('email', normalizedEmail)
     .maybeSingle()
 
-  if (profileResult.error || !profileResult.data) {
-    return emptyData(!profileResult.error, profileResult.error ? 'Nao foi possivel consultar o cadastro do Intr.' : 'O e-mail do usuario ainda nao esta vinculado a um colaborador ativo no Intr.')
+  const sourceProfile = flexProfileResult.data ?? profileResult.data
+  const legacyProfile = profileResult.data as Record<string, unknown> | null
+
+  if ((flexProfileResult.error && profileResult.error) || !sourceProfile) {
+    return emptyData(
+      !flexProfileResult.error && !profileResult.error,
+      flexProfileResult.error || profileResult.error
+        ? 'Nao foi possivel consultar o cadastro de colaboradores.'
+        : 'O e-mail do usuario ainda nao esta vinculado a um colaborador ativo no GKIT Flex.',
+    )
   }
 
-  const collaborator = mapCollaborator(profileResult.data as Record<string, unknown>)
+  const collaborator = mapCollaborator(sourceProfile as Record<string, unknown>)
+  const historyCollaboratorId = text(legacyProfile?.id || collaborator.id)
 
   const [paymentsResult, commissionsResult] = await Promise.all([
     admin()
       .from('gkli_intr_pagamentos_resumo')
       .select('*')
-      .eq('colaborador_id', collaborator.id)
+      .eq('colaborador_id', historyCollaboratorId)
       .neq('status', 'cancelado')
       .order('competencia', { ascending: false })
       .limit(24),
     admin()
       .from('gkli_intr_comissoes_resumo')
       .select('*')
-      .eq('colaborador_id', collaborator.id)
+      .eq('colaborador_id', historyCollaboratorId)
       .neq('status', 'cancelada')
       .order('competencia', { ascending: false })
       .limit(24),
@@ -215,11 +274,11 @@ export async function getColabData(userEmail: string): Promise<ColabData> {
     collaborator,
     payments,
     commissions,
-    benefits: buildBenefits(collaborator, profileResult.data as Record<string, unknown>),
+    benefits: buildBenefits(collaborator, sourceProfile as Record<string, unknown>),
     documents: buildDocuments(collaborator, payments, commissions),
     databaseReady: true,
     source: {
-      label: 'GKIT Intr',
+      label: flexProfileResult.data ? 'GKIT Flex' : 'GKIT Intr',
       status: 'sincronizado',
       message: `Dados sincronizados pelo e-mail institucional ${collaborator.email}.`,
     },
