@@ -5,15 +5,20 @@ const LEGACY_MODULE_PREFIXES = ['/modulos/intr', '/modulos/fix', '/modulos/flex'
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const sessionResponse = await updateSession(request)
   const isLegacyModule = LEGACY_MODULE_PREFIXES.some((prefix) => (
     pathname === prefix || pathname.startsWith(`${prefix}/`)
   ))
 
   if (isLegacyModule) {
-    return NextResponse.redirect(new URL('/modulos/din', request.url))
+    const response = NextResponse.redirect(new URL('/modulos/din', request.url))
+    sessionResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie)
+    })
+    return response
   }
 
-  return updateSession(request)
+  return sessionResponse
 }
 
 export const config = {

@@ -28,6 +28,10 @@ export default async function ModuloPage({
     redirect('/modulos/gkit-ate')
   }
 
+  if (codigo === 'gkit_dir') {
+    redirect('/modulos/gkit-dir')
+  }
+
   if (codigo === 'gkit_flex') {
     redirect('/modulos/gkit-flex')
   }

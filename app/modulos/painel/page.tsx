@@ -7,6 +7,7 @@ const moduleArea: Record<string, string> = {
   core: 'Administracao',
   'gkit-new': 'Novos negocios',
   'gkit-ate': 'Atendimento',
+  'gkit-dir': 'Diretorio',
   'gkit-flex': 'Financial Xperience',
   ciclo: 'Governanca',
   din: 'Faturamento',
@@ -54,6 +55,15 @@ const shortcutGroups = [
       { href: '/modulos/gkit-ate/tarefas', label: 'Tarefas' },
       { href: '/modulos/gkit-ate/importacoes', label: 'Importacoes' },
       { href: '/modulos/gkit-ate/cadastros', label: 'Cadastros' },
+    ],
+    pending: [],
+  },
+  {
+    codigo: 'gkit-dir',
+    title: 'GKIT DIR',
+    description: 'Diretorio de clientes com dados cadastrais vindos do Ciclo.',
+    links: [
+      { href: '/modulos/gkit-dir', label: 'Diretorio' },
     ],
     pending: [],
   },
@@ -117,6 +127,7 @@ const shortcutGroups = [
 const executiveFlow = [
   { codigo: 'gkit-new', title: 'Conquistar 2.0', description: 'GKIT New registra clientes, contatos, oportunidades e workflow.' },
   { codigo: 'gkit-ate', title: 'Atender', description: 'GKIT ATE organiza atendimentos consultivos e tarefas operacionais.' },
+  { codigo: 'gkit-dir', title: 'Consultar', description: 'GKIT DIR consulta o diretorio de clientes do Ciclo.' },
   { codigo: 'ciclo', title: 'Acompanhar', description: 'Ciclo assume onboarding e vida diaria do cliente.' },
   { codigo: 'gkit-flex', title: 'Comissionar', description: 'GKIT Flex calcula comissoes, contas a pagar e auditoria financeira.' },
   { codigo: 'din', title: 'Faturar', description: 'DIN processa faturamento mensal, repasses e exportacao Omie.' },

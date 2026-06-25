@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-import { loginAction } from '@/features/auth/actions'
 import { BrandLogo } from '@/features/shared/brand-logo'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -60,7 +59,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
         ) : null}
 
-        <form action={loginAction} className="grid">
+        <form action="/login/submit" className="grid" method="post">
           <input type="hidden" name="next" value={next} />
 
           <div>

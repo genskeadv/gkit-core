@@ -27,9 +27,11 @@ const MODULE_PATHS: Record<string, string> = {
   crm: '/modulos/crm',
   fix: '/modulos/din',
   'gkit-ate': '/modulos/gkit-ate',
+  'gkit-dir': '/modulos/gkit-dir',
   'gkit-flex': '/modulos/gkit-flex',
   'gkit-new': '/modulos/gkit-new',
   gkit_ate: '/modulos/gkit-ate',
+  gkit_dir: '/modulos/gkit-dir',
   gkit_flex: '/modulos/gkit-flex',
   gkit_new: '/modulos/gkit-new',
   intr: '/modulos/din',
@@ -64,6 +66,7 @@ function moduleHref(app: any, codigo: string) {
 function moduleCode(codigo: unknown) {
   const value = String(codigo)
   if (value === 'gkit_ate') return 'gkit-ate'
+  if (value === 'gkit_dir') return 'gkit-dir'
   if (value === 'gkit_flex') return 'gkit-flex'
   return value === 'gkit_new' ? 'gkit-new' : value
 }

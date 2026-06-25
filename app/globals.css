@@ -10731,6 +10731,90 @@ a.button {
   justify-content: center;
 }
 
+.gkit-dir-shell .module-page-content {
+  gap: 12px;
+}
+
+.gkit-dir-kpis {
+  margin: 0;
+}
+
+.gkit-dir-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.gkit-dir-filter-bar {
+  margin: 0;
+}
+
+.gkit-dir-list {
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-dir-row {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(240px, 1.5fr) minmax(180px, 1fr) minmax(180px, 1fr) minmax(190px, 1fr) minmax(110px, auto);
+  min-height: 78px;
+  padding: 12px;
+}
+
+.gkit-dir-row h3,
+.gkit-dir-row p,
+.gkit-dir-row strong,
+.gkit-dir-row small,
+.gkit-dir-row span {
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.gkit-dir-row h3 {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 450;
+}
+
+.gkit-dir-row p,
+.gkit-dir-row small {
+  color: #5b6474;
+  font-size: 12px;
+}
+
+.gkit-dir-row > div > span:not(.suite-pill) {
+  color: #6b7280;
+  display: block;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.gkit-dir-row strong {
+  color: #111827;
+  display: block;
+  font-size: 13px;
+  font-weight: 450;
+}
+
+.gkit-dir-client {
+  min-width: 0;
+}
+
+.gkit-dir-tags {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gkit-dir-score {
+  text-align: right;
+}
+
 @media (max-width: 1500px) {
   .gkit-new-cockpit-columns {
     grid-template-columns: 1fr;
@@ -10738,6 +10822,10 @@ a.button {
 
   .gkit-new-filter-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gkit-dir-row {
+    grid-template-columns: minmax(240px, 1.4fr) minmax(180px, 1fr) minmax(180px, 1fr);
   }
 
   .gkit-new-command-panel .gkit-new-quick-grid {
@@ -10748,6 +10836,15 @@ a.button {
 @media (max-width: 760px) {
   .gkit-new-shell .module-page-content {
     gap: 8px;
+  }
+
+  .gkit-dir-row {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-dir-score {
+    text-align: left;
   }
 
   .gkit-new-shell .module-page-hero {
