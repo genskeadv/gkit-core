@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     supabaseCookieNames: [...new Set(supabaseCookies)].sort(),
     cookieCount: cookies.length,
     hasLoginProbe: cookies.some((cookie) => cookie.name === 'gkit_login_probe'),
+    loginAttempt: cookies.find((cookie) => cookie.name === 'gkit_login_attempt')?.value ?? null,
     hasUser: Boolean(user),
     userEmail: user?.email ?? null,
     userId: user?.id ? `${user.id.slice(0, 8)}...` : null,

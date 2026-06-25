@@ -23,6 +23,16 @@ function loginUrl(request: NextRequest, next: string, error: string) {
   return url
 }
 
+function setLoginAttemptCookie(response: NextResponse, request: NextRequest, value: string) {
+  response.cookies.set('gkit_login_attempt', value, {
+    httpOnly: true,
+    maxAge: 300,
+    path: '/',
+    sameSite: 'lax',
+    secure: request.nextUrl.protocol === 'https:',
+  })
+}
+
 export async function POST(request: NextRequest) {
   const formData = await request.formData()
   const email = String(formData.get('email') || '').trim().toLowerCase()
@@ -30,14 +40,18 @@ export async function POST(request: NextRequest) {
   const next = safeRedirectPath(formData.get('next'))
 
   if (!email || !password) {
-    return redirectTo(request, loginUrl(request, next, 'Informe e-mail e senha.').toString(), { status: 303 })
+    const response = redirectTo(request, loginUrl(request, next, 'Informe e-mail e senha.').toString(), { status: 303 })
+    setLoginAttemptCookie(response, request, 'missing_credentials')
+    return response
   }
 
   let supabaseEnv: ReturnType<typeof getSupabasePublicEnv>
   try {
     supabaseEnv = getSupabasePublicEnv()
   } catch {
-    return redirectTo(request, loginUrl(request, next, 'Configuracao de login ausente no servidor.').toString(), { status: 303 })
+    const response = redirectTo(request, loginUrl(request, next, 'Configuracao de login ausente no servidor.').toString(), { status: 303 })
+    setLoginAttemptCookie(response, request, 'missing_env')
+    return response
   }
 
   const response = redirectTo(request, next, { status: 303 })
@@ -62,9 +76,12 @@ export async function POST(request: NextRequest) {
       ? 'Nao foi possivel conectar ao servico de login. Tente novamente em instantes.'
       : 'E-mail, senha ou sessao invalidos.'
 
-    return redirectTo(request, loginUrl(request, next, message).toString(), { status: 303 })
+    const response = redirectTo(request, loginUrl(request, next, message).toString(), { status: 303 })
+    setLoginAttemptCookie(response, request, error ? 'auth_error' : 'missing_session')
+    return response
   }
 
+  setLoginAttemptCookie(response, request, 'success')
   response.cookies.set('gkit_login_probe', 'ok', {
     httpOnly: true,
     maxAge: 300,
