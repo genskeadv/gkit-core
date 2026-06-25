@@ -10,7 +10,6 @@ const moduleArea: Record<string, string> = {
   'gkit-dir': 'Diretorio',
   'gkit-flex': 'Financial Xperience',
   ciclo: 'Governanca',
-  din: 'Faturamento',
   colab: 'Portal do colaborador',
 }
 
@@ -100,15 +99,6 @@ const shortcutGroups = [
     pending: [],
   },
   {
-    codigo: 'din',
-    title: 'DIN',
-    description: 'Faturamento mensal, repasses, clientes do ciclo e exportacao Omie.',
-    links: [
-      { href: '/modulos/din', label: 'Cockpit' },
-    ],
-    pending: [],
-  },
-  {
     codigo: 'colab',
     title: 'Colab',
     description: 'Portal individual sem menu lateral.',
@@ -130,7 +120,6 @@ const executiveFlow = [
   { codigo: 'gkit-dir', title: 'Consultar', description: 'GKIT DIR consulta o diretorio de clientes do Ciclo.' },
   { codigo: 'ciclo', title: 'Acompanhar', description: 'Ciclo assume onboarding e vida diaria do cliente.' },
   { codigo: 'gkit-flex', title: 'Comissionar', description: 'GKIT Flex calcula comissoes, contas a pagar e auditoria financeira.' },
-  { codigo: 'din', title: 'Faturar', description: 'DIN processa faturamento mensal, repasses e exportacao Omie.' },
   { codigo: 'colab', title: 'Publicar', description: 'Colab mostra pagamentos e comissoes para cada colaborador.' },
 ]
 
@@ -177,7 +166,7 @@ export default async function PainelPage() {
           <article className="suite-executive-card featured">
             <span>Fluxo operacional</span>
             <h2>{operationalModules.length} de {executiveFlow.length} modulos ativos</h2>
-            <p>Leitura executiva da esteira: venda, onboarding, faturamento e publicacao ao colaborador.</p>
+            <p>Leitura executiva da esteira: venda, onboarding, comissionamento e publicacao ao colaborador.</p>
           </article>
           <article className="suite-executive-card">
             <span>Atalhos publicados</span>

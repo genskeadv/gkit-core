@@ -11,7 +11,7 @@ export async function proxy(request: NextRequest) {
   ))
 
   if (isLegacyModule) {
-    const response = NextResponse.redirect(new URL('/modulos/din', request.url))
+    const response = NextResponse.redirect(new URL('/plataforma', request.url))
     sessionResponse.cookies.getAll().forEach((cookie) => {
       response.cookies.set(cookie)
     })

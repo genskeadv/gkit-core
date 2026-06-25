@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { BrandLogo } from '@/features/shared/brand-logo'
+import { canAccess, getUsuarioPermissionCodes } from '@/lib/auth/permissions'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -31,6 +32,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       .maybeSingle()
 
     if (usuario?.status === 'ativo') {
+      if (next === '/admin' || next.startsWith('/admin/')) {
+        const permissions = await getUsuarioPermissionCodes(usuario)
+
+        if (!canAccess(permissions, 'admin.dashboard.read')) {
+          redirect('/plataforma')
+        }
+      }
+
       redirect(next)
     }
 

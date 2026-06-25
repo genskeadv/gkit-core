@@ -37,7 +37,7 @@ export default async function ModuloPage({
   }
 
   if (codigo === 'intr' || codigo === 'fix' || codigo === 'flex') {
-    redirect('/modulos/din')
+    redirect('/plataforma')
   }
 
   const context = await requireModuleAccess(codigo === 'fix' ? 'intr' : codigo)
