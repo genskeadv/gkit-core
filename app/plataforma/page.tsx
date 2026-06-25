@@ -27,6 +27,7 @@ const moduleMeta: Record<string, Pick<ModuleCard, 'area' | 'icon'>> = {
   core: { area: 'Administração', icon: 'core' },
   ciclo: { area: 'Governança', icon: 'ciclo' },
   'gkit-ate': { area: 'Atendimento', icon: 'clock' },
+  'gkit-flex': { area: 'Financial Xperience', icon: 'flex' },
   'gkit-new': { area: 'Novos negocios', icon: 'crm' },
   intr: { area: 'Financial Xperience', icon: 'fix' },
   fix: { area: 'Financial Xperience', icon: 'fix' },
@@ -57,6 +58,13 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
     area: 'Atendimento',
     icon: 'clock',
     href: '/modulos/gkit-ate',
+  },
+  'gkit-flex': {
+    nome: 'GKIT Flex',
+    descricao: 'Comissoes, contas a pagar, cadastros financeiros e auditoria mensal.',
+    area: 'Financial Xperience',
+    icon: 'flex',
+    href: '/modulos/gkit-flex',
   },
   colab: {
     nome: 'GKIT Colab',

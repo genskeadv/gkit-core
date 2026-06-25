@@ -112,9 +112,7 @@ const navGroups: ModuleNavGroup[] = [
     title: 'Base cadastral',
     items: [
       { href: '/modulos/ciclo/clientes', label: 'Clientes' },
-      { href: '/modulos/ciclo/atendimento', label: 'Atendimento' },
       { href: '/modulos/ciclo/administradoras', label: 'Administradoras' },
-      { href: '/modulos/ciclo/importacoes', label: 'Importações' },
     ],
   },
   {

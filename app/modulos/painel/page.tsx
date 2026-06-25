@@ -7,6 +7,7 @@ const moduleArea: Record<string, string> = {
   core: 'Administracao',
   'gkit-new': 'Novos negocios',
   'gkit-ate': 'Atendimento',
+  'gkit-flex': 'Financial Xperience',
   ciclo: 'Governanca',
   din: 'Faturamento',
   colab: 'Portal do colaborador',
@@ -41,7 +42,7 @@ const shortcutGroups = [
       { href: '/modulos/gkit-new/tarefas', label: 'Tarefas' },
       { href: '/modulos/gkit-new/gestao', label: 'Gestao' },
     ],
-    pending: ['Oportunidades e tarefas na Sprint 2', 'Dashboard na Sprint 3'],
+    pending: [],
   },
   {
     codigo: 'gkit-ate',
@@ -54,7 +55,20 @@ const shortcutGroups = [
       { href: '/modulos/gkit-ate/importacoes', label: 'Importacoes' },
       { href: '/modulos/gkit-ate/cadastros', label: 'Cadastros' },
     ],
-    pending: ['Importacao futura das tarefas do ASTREA quando a origem estiver disponivel'],
+    pending: [],
+  },
+  {
+    codigo: 'gkit-flex',
+    title: 'GKIT Flex',
+    description: 'App financeiro independente para comissoes, contas a pagar, cadastros e auditoria.',
+    links: [
+      { href: '/modulos/gkit-flex', label: 'Abrir app' },
+      { href: '/modulos/gkit-flex', label: 'Comissoes' },
+      { href: '/modulos/gkit-flex', label: 'Contas a pagar' },
+      { href: '/modulos/gkit-flex', label: 'Cadastros' },
+      { href: '/modulos/gkit-flex', label: 'Auditoria' },
+    ],
+    pending: [],
   },
   {
     codigo: 'ciclo',
@@ -62,7 +76,6 @@ const shortcutGroups = [
     description: 'Funcionalidades operacionais ja publicadas no app unificado.',
     links: [
       { href: '/modulos/ciclo', label: 'Cockpit' },
-      { href: '/modulos/ciclo/importacoes', label: 'Importacoes' },
       { href: '/modulos/ciclo/clientes', label: 'Clientes' },
       { href: '/modulos/ciclo/administradoras', label: 'Administradoras' },
       { href: '/modulos/ciclo/documentos', label: 'Documentos' },
@@ -73,7 +86,7 @@ const shortcutGroups = [
       { href: '/modulos/ciclo/ocorrencias', label: 'Ocorrencias' },
       { href: '/modulos/ciclo/dashboard', label: 'Gestao' },
     ],
-    pending: ['Automacoes', 'IA', 'Carteiras x usuarios'],
+    pending: [],
   },
   {
     codigo: 'din',
@@ -104,6 +117,7 @@ const executiveFlow = [
   { codigo: 'gkit-new', title: 'Conquistar 2.0', description: 'GKIT New registra clientes, contatos, oportunidades e workflow.' },
   { codigo: 'gkit-ate', title: 'Atender', description: 'GKIT ATE organiza atendimentos consultivos e tarefas operacionais.' },
   { codigo: 'ciclo', title: 'Acompanhar', description: 'Ciclo assume onboarding e vida diaria do cliente.' },
+  { codigo: 'gkit-flex', title: 'Comissionar', description: 'GKIT Flex calcula comissoes, contas a pagar e auditoria financeira.' },
   { codigo: 'din', title: 'Faturar', description: 'DIN processa faturamento mensal, repasses e exportacao Omie.' },
   { codigo: 'colab', title: 'Publicar', description: 'Colab mostra pagamentos e comissoes para cada colaborador.' },
 ]
