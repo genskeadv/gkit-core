@@ -1,0 +1,8 @@
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3005
+- PID:          26748
+- Dir:          C:\Users\Genske\Documents\gkit-core
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 26748 /F to stop it.

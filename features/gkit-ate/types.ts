@@ -84,7 +84,31 @@ export type GkitAteTipoOption = {
   descricaoPadrao?: string
 }
 
+export type GkitAteAtendimentoTipo = {
+  ativo: boolean
+  criado_em: string
+  id: string
+  label: string
+  tarefaTipoId: string | null
+  tarefaTipoNome: string | null
+}
+
+export type GkitAteTarefaTipo = {
+  ativo: boolean
+  criado_em: string
+  descricaoPadrao: string
+  id: string
+  label: string
+}
+
+export type GkitAteAtendimentoOption = {
+  id: string
+  label: string
+  status: GkitAteStatus
+}
+
 export type GkitAteFormData = {
+  atendimentos: GkitAteAtendimentoOption[]
   atendimentoTipos: GkitAteTipoOption[]
   tarefaTipos: GkitAteTipoOption[]
 }

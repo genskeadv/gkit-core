@@ -10664,6 +10664,65 @@ a.button {
   margin-left: auto;
 }
 
+.gkit-new-filter-bar {
+  background: rgba(249, 250, 252, 0.82);
+  border: 1px solid var(--new-border);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+}
+
+.gkit-new-filter-fields {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.gkit-new-filter-bar label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.gkit-new-filter-bar label span,
+.gkit-new-filter-actions span {
+  color: var(--new-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gkit-new-filter-bar input,
+.gkit-new-filter-bar select {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  border-radius: var(--suite-module-card-radius, 8px);
+  color: var(--new-ink);
+  font: inherit;
+  min-height: 38px;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.gkit-new-filter-bar input:focus,
+.gkit-new-filter-bar select:focus {
+  border-color: var(--new-accent);
+  box-shadow: 0 0 0 3px var(--new-accent-soft);
+  outline: none;
+}
+
+.gkit-new-filter-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.gkit-new-filter-actions span {
+  margin-right: auto;
+}
+
 .gkit-new-shell .gkit-new-submit {
   min-width: 148px;
 }
@@ -10675,6 +10734,10 @@ a.button {
 @media (max-width: 1500px) {
   .gkit-new-cockpit-columns {
     grid-template-columns: 1fr;
+  }
+
+  .gkit-new-filter-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .gkit-new-command-panel .gkit-new-quick-grid {
@@ -10726,6 +10789,19 @@ a.button {
 
   .gkit-new-command-panel .gkit-new-quick-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gkit-new-filter-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-new-filter-actions {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .gkit-new-filter-actions span {
+    margin-right: 0;
   }
 
   .gkit-new-command-panel .gkit-new-quick-card {
@@ -12239,7 +12315,7 @@ a.button {
 }
 
 .ciclo-command-panel .ciclo-quick-grid {
-  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  grid-template-columns: repeat(4, minmax(132px, 1fr));
 }
 
 .ciclo-command-panel .metric-card,
@@ -12249,7 +12325,35 @@ a.button {
 }
 
 .ciclo-command-panel .ciclo-quick-card {
-  min-height: 112px !important;
+  min-height: 76px !important;
+  padding: 9px 28px 9px 10px !important;
+}
+
+.ciclo-command-panel .ciclo-quick-card::after {
+  right: 10px;
+  top: 10px;
+}
+
+.ciclo-command-panel .ciclo-quick-card span,
+.ciclo-command-panel .ciclo-quick-card small {
+  font-size: 10px !important;
+  line-height: 1.1;
+}
+
+.ciclo-command-panel .ciclo-quick-card h3 {
+  font-size: 13px !important;
+  line-height: 1.2;
+  margin: 4px 0 3px !important;
+}
+
+.ciclo-command-panel .ciclo-quick-card p {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  margin: 0 !important;
+  overflow: hidden;
 }
 
 .ciclo-shell .ciclo-ranking-list article {
@@ -13051,5 +13155,678 @@ a.button {
 
   .din-filter-bar {
     justify-content: flex-start;
+  }
+}
+
+/* GKIT ATE aligned to the GKIT New and Ciclo operational pattern. */
+.gkit-ate-shell {
+  --suite-module-accent: #5d2f75;
+  --suite-module-accent-soft: rgba(93, 47, 117, 0.09);
+  --suite-module-accent-line: rgba(93, 47, 117, 0.22);
+  --suite-module-card-radius: 8px;
+  --gkit-ate-bg: #f5f7fb;
+  --gkit-ate-line: rgba(148, 163, 184, 0.24);
+  --gkit-ate-line-strong: rgba(148, 163, 184, 0.34);
+  --gkit-ate-muted: #5b6b86;
+  --gkit-ate-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+  --gkit-ate-surface: rgba(255, 255, 255, 0.94);
+  --gkit-ate-text: #131927;
+  color: var(--gkit-ate-text);
+}
+
+.gkit-ate-shell .platform-bg {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(245, 247, 251, 0.98) 42%),
+    radial-gradient(circle at 12% 0%, rgba(93, 47, 117, 0.075), transparent 26rem),
+    radial-gradient(circle at 90% 10%, rgba(43, 122, 120, 0.045), transparent 22rem);
+}
+
+.gkit-ate-shell .module-page-content {
+  gap: 10px;
+  width: min(100%, 1360px);
+}
+
+.gkit-ate-shell .module-sidebar-header,
+.gkit-ate-shell .module-sidebar-footer,
+.gkit-ate-shell .module-page-hero,
+.gkit-ate-shell .suite-panel,
+.gkit-ate-shell .card.module-form,
+.gkit-ate-shell .metric-card,
+.gkit-ate-shell .suite-table-list article,
+.gkit-ate-shell .suite-row-link,
+.gkit-ate-shell .suite-empty-block,
+.gkit-ate-quick-card,
+.gkit-ate-import-preview {
+  border-color: var(--gkit-ate-line) !important;
+  border-radius: var(--suite-module-card-radius) !important;
+}
+
+.gkit-ate-shell .module-sidebar-header strong {
+  color: var(--gkit-ate-text) !important;
+  font-size: 14px !important;
+  font-weight: 450 !important;
+  letter-spacing: 0 !important;
+}
+
+.gkit-ate-shell .module-sidebar-header small,
+.gkit-ate-shell .module-sidebar-footer span,
+.gkit-ate-shell .module-page-hero p:not(.platform-kicker),
+.gkit-ate-shell .suite-panel-heading p,
+.gkit-ate-shell .gkit-ate-panel-heading p,
+.gkit-ate-shell .metric-label,
+.gkit-ate-shell .metric-hint,
+.gkit-ate-shell .suite-table-list p,
+.gkit-ate-shell .suite-table-list small,
+.gkit-ate-quick-card p,
+.gkit-ate-quick-card small {
+  color: var(--gkit-ate-muted) !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}
+
+.gkit-ate-shell .module-sidebar a {
+  border-radius: var(--suite-module-card-radius) !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}
+
+.gkit-ate-shell .module-sidebar a.active,
+.gkit-ate-shell .button:not(.secondary),
+.gkit-ate-shell a.button:not(.secondary),
+.gkit-ate-shell button.button:not(.secondary) {
+  background: var(--suite-module-accent) !important;
+  border-color: var(--suite-module-accent) !important;
+  box-shadow: 0 10px 22px rgba(93, 47, 117, 0.14) !important;
+  color: #fff !important;
+}
+
+.gkit-ate-shell .module-page-hero {
+  margin-bottom: 10px !important;
+  min-height: 0 !important;
+  padding: 14px !important;
+}
+
+.gkit-ate-shell .module-page-hero::before {
+  background: var(--suite-module-accent) !important;
+  border-radius: 0 !important;
+  height: auto !important;
+  inset: 0 auto 0 0 !important;
+  width: 4px !important;
+}
+
+.gkit-ate-shell .module-page-hero .platform-kicker {
+  color: var(--gkit-ate-muted) !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.3 !important;
+  margin-bottom: 6px !important;
+  text-transform: none !important;
+}
+
+.gkit-ate-shell .module-page-hero h1 {
+  color: var(--gkit-ate-text) !important;
+  font-size: clamp(21px, 2.2vw, 28px) !important;
+  font-weight: 450 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.08 !important;
+}
+
+.gkit-ate-shell .module-page-hero p:not(.platform-kicker),
+.gkit-ate-shell .suite-panel-heading p,
+.gkit-ate-shell .gkit-ate-panel-heading p {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+.gkit-ate-shell .suite-panel-heading h2,
+.gkit-ate-shell .gkit-ate-panel-heading h2,
+.gkit-ate-shell .suite-table-list h3,
+.gkit-ate-quick-card h3 {
+  color: var(--gkit-ate-text) !important;
+  font-size: 13px !important;
+  font-weight: 450 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.25 !important;
+}
+
+.gkit-ate-shell .suite-panel-heading h2,
+.gkit-ate-shell .gkit-ate-panel-heading h2 {
+  font-size: 15px !important;
+  line-height: 1.2 !important;
+}
+
+.gkit-ate-shell .suite-panel-heading,
+.gkit-ate-shell .gkit-ate-panel-heading {
+  gap: 12px !important;
+  padding-bottom: 9px !important;
+}
+
+.gkit-ate-shell .suite-panel {
+  background: var(--gkit-ate-surface) !important;
+  box-shadow: var(--gkit-ate-shadow) !important;
+  gap: 10px;
+  padding: 12px !important;
+}
+
+.gkit-ate-command-panel {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(251, 252, 255, 0.98) 54%, rgba(246, 241, 249, 0.96) 100%) !important;
+}
+
+.gkit-ate-command-grid {
+  align-items: stretch;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+
+.gkit-ate-command-panel .suite-kpi-grid,
+.gkit-ate-command-panel .suite-kpi-grid.compact,
+.gkit-ate-kpi-grid {
+  align-items: stretch;
+  gap: 8px;
+  grid-template-columns: repeat(5, minmax(104px, 1fr));
+  height: auto;
+  margin-bottom: 0;
+}
+
+.gkit-ate-command-panel .metric-card,
+.gkit-ate-shell .metric-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 252, 255, 0.98)) !important;
+  height: 86px !important;
+  justify-content: space-between;
+  min-height: 86px !important;
+  overflow: hidden;
+  padding: 9px 10px !important;
+}
+
+.gkit-ate-shell .metric-card + .metric-card,
+.gkit-ate-quick-card + .gkit-ate-quick-card {
+  margin-top: 0 !important;
+}
+
+.gkit-ate-shell .metric-label,
+.gkit-ate-shell .metric-hint {
+  display: block;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  margin: 0;
+  max-width: 100%;
+  min-height: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gkit-ate-shell .metric-value {
+  color: var(--gkit-ate-text) !important;
+  font-size: clamp(18px, 1.8vw, 22px) !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+}
+
+.gkit-ate-quick-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+}
+
+.gkit-ate-quick-card {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--gkit-ate-line);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.035);
+  color: inherit;
+  display: grid;
+  gap: 4px;
+  min-height: 86px;
+  padding: 11px 32px 11px 11px;
+  position: relative;
+  text-decoration: none;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.gkit-ate-quick-card::after {
+  color: var(--suite-module-accent);
+  content: ">";
+  font-size: 14px;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+
+.gkit-ate-quick-card:hover {
+  background: var(--suite-module-accent-soft);
+  border-color: var(--suite-module-accent-line);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.075);
+}
+
+.gkit-ate-cockpit-flow .gkit-ate-quick-card {
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.gkit-ate-cockpit-flow .gkit-ate-quick-card.active {
+  background: rgba(93, 47, 117, 0.12);
+  border-color: rgba(93, 47, 117, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(93, 47, 117, 0.16);
+}
+
+.gkit-ate-cockpit-flow .gkit-ate-quick-card:focus-visible {
+  outline: 2px solid rgba(93, 47, 117, 0.5);
+  outline-offset: 2px;
+}
+
+.gkit-ate-quick-card span,
+.gkit-ate-quick-card small,
+.gkit-ate-shell .suite-pill,
+.gkit-ate-shell .sidebar-badge {
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}
+
+.gkit-ate-quick-card span {
+  color: var(--suite-module-accent) !important;
+}
+
+.gkit-ate-quick-card p {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  margin: 0;
+}
+
+.gkit-ate-shell .suite-table-list {
+  gap: 8px;
+}
+
+.gkit-ate-shell .suite-table-list article,
+.gkit-ate-shell .suite-row-link {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--gkit-ate-line);
+  color: inherit;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(92px, 120px) minmax(120px, 160px);
+  padding: 10px;
+  text-decoration: none;
+}
+
+.gkit-ate-shell .suite-row-link:hover {
+  background: var(--suite-module-accent-soft);
+  border-color: var(--suite-module-accent-line);
+}
+
+.gkit-ate-shell .suite-table-list h3,
+.gkit-ate-shell .suite-table-list p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.gkit-ate-shell .suite-table-list p,
+.gkit-ate-shell .suite-table-list small {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+.gkit-ate-shell .suite-table-list strong,
+.gkit-ate-shell .suite-table-list small {
+  text-align: right;
+}
+
+.gkit-ate-shell .suite-empty-block {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--gkit-ate-line);
+  gap: 4px;
+  padding: 10px;
+}
+
+.gkit-ate-filter-bar {
+  background: rgba(249, 250, 252, 0.82);
+  border: 1px solid var(--gkit-ate-line);
+  border-radius: var(--suite-module-card-radius);
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+}
+
+.gkit-ate-filter-fields {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.gkit-ate-filter-bar label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.gkit-ate-filter-bar label span,
+.gkit-ate-filter-actions span {
+  color: var(--gkit-ate-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gkit-ate-filter-bar input,
+.gkit-ate-filter-bar select {
+  background: #fff;
+  border: 1px solid var(--gkit-ate-line-strong);
+  border-radius: var(--suite-module-card-radius);
+  color: var(--gkit-ate-text);
+  font: inherit;
+  min-height: 38px;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.gkit-ate-filter-bar input:focus,
+.gkit-ate-filter-bar select:focus {
+  border-color: var(--suite-module-accent);
+  box-shadow: 0 0 0 3px var(--suite-module-accent-soft);
+  outline: none;
+}
+
+.gkit-ate-filter-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.gkit-ate-filter-actions span {
+  margin-right: auto;
+}
+
+.gkit-ate-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.gkit-ate-tabs a {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--gkit-ate-line);
+  border-radius: var(--suite-module-card-radius);
+  color: var(--gkit-ate-text);
+  display: inline-flex;
+  gap: 8px;
+  min-height: 34px;
+  padding: 7px 10px;
+  text-decoration: none;
+}
+
+.gkit-ate-tabs a.active {
+  background: var(--suite-module-accent);
+  border-color: var(--suite-module-accent);
+  color: #fff;
+}
+
+.gkit-ate-tabs small {
+  background: rgba(15, 23, 42, 0.07);
+  border-radius: 999px;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 7px;
+}
+
+.gkit-ate-shell .card.module-form {
+  background: var(--gkit-ate-surface) !important;
+  border: 1px solid var(--gkit-ate-line) !important;
+  box-shadow: var(--gkit-ate-shadow) !important;
+  padding: 12px !important;
+}
+
+.gkit-ate-shell .button,
+.gkit-ate-shell a.button,
+.gkit-ate-shell button.button {
+  border-radius: var(--suite-module-card-radius) !important;
+  font-size: 12px !important;
+  font-weight: 450 !important;
+  letter-spacing: 0 !important;
+  min-height: 34px !important;
+}
+
+.gkit-ate-shell .gkit-ate-submit {
+  min-width: 148px;
+}
+
+.gkit-ate-shell .button.secondary,
+.gkit-ate-shell a.button.secondary,
+.gkit-ate-shell button.button.secondary {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: var(--gkit-ate-line) !important;
+  box-shadow: none !important;
+  color: var(--gkit-ate-text) !important;
+}
+
+.gkit-ate-shell input,
+.gkit-ate-shell select,
+.gkit-ate-shell textarea,
+.gkit-ate-shell .input,
+.gkit-ate-shell .textarea {
+  border-radius: var(--suite-module-card-radius) !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+}
+
+.gkit-ate-import-box {
+  display: grid;
+  gap: 10px;
+}
+
+.gkit-ate-import-preview {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--gkit-ate-line);
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.gkit-ate-import-stats {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(104px, 1fr));
+}
+
+.gkit-ate-import-stats span {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--gkit-ate-line);
+  border-radius: var(--suite-module-card-radius);
+  color: var(--gkit-ate-muted);
+  display: grid;
+  font-size: 11px;
+  gap: 4px;
+  padding: 8px;
+}
+
+.gkit-ate-import-stats strong {
+  color: var(--gkit-ate-text);
+  font-size: 16px;
+  font-weight: 450;
+}
+
+@media (max-width: 1100px) {
+  .gkit-ate-command-panel .suite-kpi-grid,
+  .gkit-ate-command-panel .suite-kpi-grid.compact,
+  .gkit-ate-kpi-grid {
+    grid-template-columns: repeat(5, minmax(104px, 1fr));
+    overflow-x: auto;
+  }
+
+  .gkit-ate-quick-grid,
+  .gkit-ate-import-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gkit-ate-filter-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gkit-ate-shell .suite-table-list article,
+  .gkit-ate-shell .suite-row-link {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .gkit-ate-shell .suite-table-list strong,
+  .gkit-ate-shell .suite-table-list small {
+    text-align: left;
+  }
+}
+
+@media (max-width: 760px) {
+  .gkit-ate-shell .module-page-hero h1 {
+    font-size: 21px !important;
+  }
+
+  .gkit-ate-command-panel .metric-card {
+    height: 74px !important;
+    min-height: 74px !important;
+  }
+
+  .gkit-ate-quick-grid,
+  .gkit-ate-import-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-ate-filter-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-ate-filter-actions {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .gkit-ate-filter-actions span {
+    margin-right: 0;
+  }
+}
+
+/* Shared compact flow cards for GKIT New, Ciclo and ATE cockpit. */
+.gkit-new-command-panel .gkit-new-quick-grid,
+.ciclo-command-panel .ciclo-quick-grid,
+.gkit-ate-command-panel .gkit-ate-quick-grid {
+  display: grid;
+  gap: 8px !important;
+  grid-template-columns: repeat(4, minmax(132px, 1fr)) !important;
+}
+
+.gkit-new-command-panel .gkit-new-quick-card,
+.ciclo-command-panel .ciclo-quick-card,
+.gkit-ate-command-panel .gkit-ate-quick-card {
+  border-radius: var(--suite-module-card-radius, 8px) !important;
+  min-height: 76px !important;
+  padding: 9px 28px 9px 10px !important;
+  position: relative;
+}
+
+.gkit-new-command-panel .gkit-new-quick-card::after,
+.ciclo-command-panel .ciclo-quick-card::after,
+.gkit-ate-command-panel .gkit-ate-quick-card::after {
+  font-size: 13px !important;
+  right: 10px !important;
+  top: 10px !important;
+}
+
+.gkit-new-command-panel .gkit-new-quick-card span,
+.gkit-new-command-panel .gkit-new-quick-card small,
+.ciclo-command-panel .ciclo-quick-card span,
+.ciclo-command-panel .ciclo-quick-card small,
+.gkit-ate-command-panel .gkit-ate-quick-card span,
+.gkit-ate-command-panel .gkit-ate-quick-card small {
+  font-size: 10px !important;
+  line-height: 1.1 !important;
+}
+
+.gkit-new-command-panel .gkit-new-quick-card h3,
+.ciclo-command-panel .ciclo-quick-card h3,
+.gkit-ate-command-panel .gkit-ate-quick-card h3 {
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  margin: 4px 0 3px !important;
+}
+
+.gkit-new-command-panel .gkit-new-quick-card p,
+.ciclo-command-panel .ciclo-quick-card p,
+.gkit-ate-command-panel .gkit-ate-quick-card p {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  margin: 0 !important;
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .gkit-new-command-panel .gkit-new-quick-grid,
+  .ciclo-command-panel .ciclo-quick-grid,
+  .gkit-ate-command-panel .gkit-ate-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+.ciclo-cockpit-form-panel .module-form {
+  margin: 0;
+}
+
+.ciclo-document-checklist {
+  display: grid;
+  gap: 10px;
+}
+
+.ciclo-document-checklist article {
+  align-items: center;
+  border: 1px solid rgba(88, 64, 112, 0.16);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(220px, 1fr) repeat(2, max-content) minmax(150px, 190px);
+  padding: 12px 14px;
+}
+
+.ciclo-document-checklist strong,
+.ciclo-document-checklist span {
+  display: block;
+}
+
+.ciclo-document-checklist strong {
+  color: #1f1a2c;
+  font-size: 0.92rem;
+}
+
+.ciclo-document-checklist span {
+  color: #5a5269;
+  font-size: 0.78rem;
+}
+
+.ciclo-document-checklist label {
+  margin: 0;
+}
+
+.ciclo-document-checklist input[type='date'] {
+  min-width: 0;
+}
+
+@media (max-width: 980px) {
+  .ciclo-document-checklist article {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .ciclo-document-checklist article {
+    grid-template-columns: 1fr;
   }
 }

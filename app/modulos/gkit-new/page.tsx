@@ -6,14 +6,23 @@ import {
 } from '@/features/gkit-new/actions'
 import { GkitNewCockpit } from '@/features/gkit-new/cockpit'
 import { GkitNewHealthNotice, GkitNewShell } from '@/features/gkit-new/components'
-import { getGkitNewFormData, getGkitNewHealth, listGkitNewOportunidades, requireGkitNewContext } from '@/features/gkit-new/queries'
+import {
+  canSeeAllGkitNewTasks,
+  getGkitNewFormData,
+  getGkitNewHealth,
+  listGkitNewOportunidades,
+  listGkitNewTarefas,
+  requireGkitNewContext,
+  tarefaRows,
+} from '@/features/gkit-new/queries'
+import { moduleTarget } from '@/lib/auth/platform'
 
 type CockpitPanel = 'contato' | 'cliente' | 'proposta' | 'acompanhamento'
 
-function initialPanel(value: string | string[] | undefined): CockpitPanel {
+function initialPanel(value: string | string[] | undefined): CockpitPanel | null {
   const panel = Array.isArray(value) ? value[0] : value
-  if (panel === 'cliente' || panel === 'proposta' || panel === 'acompanhamento') return panel
-  return 'contato'
+  if (panel === 'contato' || panel === 'cliente' || panel === 'proposta' || panel === 'acompanhamento') return panel
+  return null
 }
 
 export default async function GkitNewPage({
@@ -21,12 +30,18 @@ export default async function GkitNewPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const context = await requireGkitNewContext()
   const params = await searchParams
-  const [health, formData, oportunidades] = await Promise.all([
+  const context = await requireGkitNewContext(moduleTarget('/modulos/gkit-new', params))
+  const canSeeAllTasks = canSeeAllGkitNewTasks(context.usuario.tipo, context.permissions)
+  const [health, formData, oportunidades, tarefasPendentes] = await Promise.all([
     getGkitNewHealth(),
     getGkitNewFormData(),
     listGkitNewOportunidades(),
+    listGkitNewTarefas({
+      limit: 50,
+      responsavelId: canSeeAllTasks ? undefined : context.usuario.id,
+      status: 'pendente',
+    }),
   ])
 
   return (
@@ -44,6 +59,8 @@ export default async function GkitNewPage({
         formData={formData}
         initialPanel={initialPanel(params?.painel)}
         oportunidades={oportunidades}
+        tarefasPendentes={tarefaRows(tarefasPendentes)}
+        tarefasPendentesScope={canSeeAllTasks ? 'Todas as tarefas pendentes' : `Pendencias de ${context.usuario.nome}`}
         updateAcompanhamentoAction={updateGkitNewAcompanhamentoAction}
       />
     </GkitNewShell>

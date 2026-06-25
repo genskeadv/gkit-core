@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
+import { moduleTarget } from '@/lib/auth/platform'
 import { CicloGenericList, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { ImportarAtendimentosAstreaForm } from '@/features/ciclo/importar-atendimentos-form'
 import { ImportarClientesForm } from '@/features/ciclo/importar-clientes-form'
@@ -18,7 +19,7 @@ export default async function CicloImportacoesPage({
 }) {
   const params = await searchParams
   const tab = activeTab(params?.tipo)
-  const context = await requireCicloContext()
+  const context = await requireCicloContext(moduleTarget('/modulos/ciclo/importacoes', params))
   const rows = await listCicloImportacaoRows(context)
   const canWrite = canAccess(context.permissions, 'ciclo.clientes.write')
 

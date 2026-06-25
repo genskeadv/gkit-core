@@ -1,5 +1,6 @@
 import { CicloAtendimentoDashboardView, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloAtendimentoDashboard, requireCicloContext } from '@/features/ciclo/queries'
+import { moduleTarget } from '@/lib/auth/platform'
 import type { CicloAtendimentoStatus, CicloAtendimentoTab } from '@/features/ciclo/types'
 
 type CicloAtendimentoPageProps = {
@@ -26,8 +27,8 @@ function dateFilter(value?: string) {
 }
 
 export default async function CicloAtendimentoPage({ searchParams }: CicloAtendimentoPageProps) {
-  const context = await requireCicloContext()
   const params = await searchParams
+  const context = await requireCicloContext(moduleTarget('/modulos/ciclo/atendimento', params))
   const tab = activeTab(params?.aba)
   const filters = {
     dataDe: dateFilter(params?.de),

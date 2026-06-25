@@ -108,6 +108,10 @@ function nullableText(formData: FormData, key: string) {
   return value.length ? value : null
 }
 
+function shouldReturnToCockpit(formData: FormData) {
+  return text(formData, 'return_to') === 'cockpit'
+}
+
 function required(value: string, label: string) {
   if (!value) throw new Error(`${label} e obrigatorio.`)
   return value
@@ -1222,6 +1226,7 @@ export async function createCicloClienteAction(formData: FormData) {
   revalidatePath('/modulos/ciclo')
   revalidatePath('/modulos/ciclo/clientes')
   revalidatePath('/modulos/ciclo/onboarding')
+  if (shouldReturnToCockpit(formData)) redirect('/modulos/ciclo')
   redirect('/modulos/ciclo/clientes')
 }
 
@@ -1398,6 +1403,7 @@ export async function createCicloOcorrenciaAction(formData: FormData) {
   revalidatePath('/modulos/ciclo')
   revalidatePath('/modulos/ciclo/ocorrencias')
   revalidatePath('/modulos/ciclo/alertas')
+  if (shouldReturnToCockpit(formData)) redirect('/modulos/ciclo')
   redirect(`/modulos/ciclo/ocorrencias/${data.id}`)
 }
 
@@ -1535,6 +1541,54 @@ export async function startCicloOnboardingAction(formData: FormData) {
   revalidatePath('/modulos/ciclo/onboarding')
   revalidatePath(`/modulos/ciclo/onboarding/${clienteId}`)
   revalidatePath('/modulos/ciclo/clientes')
+  if (shouldReturnToCockpit(formData)) redirect('/modulos/ciclo')
+}
+
+export async function updateCicloCockpitDocumentacaoAction(formData: FormData) {
+  const clienteId = required(text(formData, 'cliente_id'), 'Cliente')
+  const descricao = required(text(formData, 'descricao_alteracao'), 'Descricao da alteracao')
+  const cliente = await getClienteAccess(clienteId)
+  const context = await requireCicloDocumentWrite(cliente.carteira_id)
+
+  const rows = onboardingDocumentos.map((documento) => {
+    const key = documento.tipo_documento
+    const validado = formData.get(`validado_${key}`) === 'on'
+    const aplicavel = formData.get(`aplicavel_${key}`) === 'on'
+    const status = !aplicavel ? 'dispensado' : validado ? 'validado' : 'pendente'
+    const dataRenovacao = text(formData, `data_renovacao_${key}`)
+
+    return {
+      cliente_id: clienteId,
+      carteira_id: cliente.carteira_id,
+      tipo_documento: key,
+      titulo: documento.titulo,
+      status,
+      obrigatorio: true,
+      aplicavel,
+      validado,
+      validado_em: validado ? new Date().toISOString() : null,
+      data_renovacao: dataRenovacao || null,
+      observacoes: descricao,
+    }
+  })
+
+  const { error } = await admin()
+    .schema('ciclo')
+    .from('cliente_documentos')
+    .upsert(rows, { onConflict: 'cliente_id,tipo_documento' })
+
+  if (error) throw new Error(error.message)
+
+  await recalcularRegularidade(clienteId, cliente.carteira_id)
+  await logTimeline(clienteId, cliente.carteira_id, context.usuario.id, 'Documentacao atualizada pelo cockpit', descricao)
+  await runOptionalRpc('gkli_recalcular_regularidade_cliente', clienteId)
+
+  revalidatePath('/modulos/ciclo')
+  revalidatePath('/modulos/ciclo/documentos')
+  revalidatePath('/modulos/ciclo/regularidade')
+  revalidatePath('/modulos/ciclo/onboarding')
+  revalidatePath(`/modulos/ciclo/onboarding/${clienteId}`)
+  redirect('/modulos/ciclo')
 }
 
 export async function updateCicloOnboardingDocumentoAction(formData: FormData) {

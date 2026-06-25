@@ -143,6 +143,24 @@ export type CicloDocumentoFormData = {
   clientes: CicloFormOption[]
 }
 
+export type CicloCockpitDocumento = {
+  clienteId: string
+  dataRenovacao: string | null
+  id: string | null
+  observacoes: string | null
+  status: CicloDocumento['status']
+  tipoDocumento: string
+  titulo: string
+  validado: boolean
+}
+
+export type CicloCockpitData = {
+  clienteFormData: CicloClienteFormData
+  documentoFormData: CicloDocumentoFormData
+  documentos: CicloCockpitDocumento[]
+  tarefas: CicloListRow[]
+}
+
 export type CicloClienteRecord = {
   id: string
   carteira_id: string | null

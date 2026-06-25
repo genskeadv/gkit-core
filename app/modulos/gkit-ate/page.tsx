@@ -1,42 +1,53 @@
-import { GkitAteHealthNotice, GkitAteKpis, GkitAteList, GkitAteQuickLinks, GkitAteSection, GkitAteShell } from '@/features/gkit-ate/components'
-import { getGkitAteDashboardData, requireGkitAteContext } from '@/features/gkit-ate/queries'
+import {
+  createGkitAteAtendimentoAction,
+  createGkitAteAtendimentoTipoAction,
+  createGkitAteTarefaAction,
+  createGkitAteTarefaTipoAction,
+} from '@/features/gkit-ate/actions'
+import { GkitAteCockpit } from '@/features/gkit-ate/cockpit'
+import { GkitAteHealthNotice, GkitAteShell } from '@/features/gkit-ate/components'
+import { getGkitAteFormData, getGkitAteHealth, listGkitAteTarefas, requireGkitAteContext, tarefaRows } from '@/features/gkit-ate/queries'
+import { moduleTarget } from '@/lib/auth/platform'
 
-export default async function GkitAtePage() {
-  const context = await requireGkitAteContext()
-  const data = await getGkitAteDashboardData()
+type CockpitPanel = 'atendimento' | 'tarefa' | 'tipo-atendimento' | 'tipo-tarefa'
+
+function initialPanel(value: string | string[] | undefined): CockpitPanel | null {
+  const panel = Array.isArray(value) ? value[0] : value
+  if (panel === 'atendimento' || panel === 'tarefa' || panel === 'tipo-atendimento' || panel === 'tipo-tarefa') return panel
+  return null
+}
+
+export default async function GkitAtePage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
+  const context = await requireGkitAteContext(moduleTarget('/modulos/gkit-ate', params))
+  const [health, formData, tarefas] = await Promise.all([
+    getGkitAteHealth(),
+    getGkitAteFormData(),
+    listGkitAteTarefas(),
+  ])
+  const tarefasPendentes = tarefas.filter((item) => item.status === 'pendente' || item.status === 'em_andamento').slice(0, 50)
 
   return (
     <GkitAteShell
       active="cockpit"
-      title="Cockpit"
-      description="Atendimentos consultivos importados do ASTREA e tarefas vinculadas."
+      title="Fluxo de atendimento"
+      description="Execucao diaria do GKIT ATE, organizada na ordem natural do atendimento consultivo."
       usuario={context.usuario}
     >
-      <GkitAteHealthNotice health={data.health} />
-      <GkitAteSection title="Visao operacional" description="Fila de atendimentos, responsaveis e pendencias.">
-        <div className="gkit-new-command-grid">
-          <GkitAteKpis data={data} />
-          <GkitAteQuickLinks
-            items={[
-              { href: '/modulos/gkit-ate/importacoes', label: 'ASTREA', title: 'Importar planilha', description: 'Carregar exportacao de processos/atendimentos.', meta: 'Tarefas ficam em tabela separada' },
-              { href: '/modulos/gkit-ate/atendimentos', label: 'Fila', title: 'Atendimentos', description: 'Consultar base importada e abrir detalhes.', meta: '1 atendimento para N tarefas' },
-              { href: '/modulos/gkit-ate/tarefas', label: 'Agenda', title: 'Tarefas', description: 'Acompanhar tarefas vinculadas aos atendimentos.', meta: 'Manual ou futura importacao' },
-            ]}
-          />
-        </div>
-      </GkitAteSection>
-
-      <GkitAteSection title="Atendimentos recentes" description="Ultimos registros importados do ASTREA.">
-        <GkitAteList empty="Nenhum atendimento importado ainda." rows={data.atendimentos} />
-      </GkitAteSection>
-
-      <GkitAteSection title="Tarefas pendentes" description="Pendencias ligadas aos atendimentos.">
-        <GkitAteList empty="Nenhuma tarefa pendente." rows={data.tarefas} />
-      </GkitAteSection>
-
-      <GkitAteSection title="Responsaveis" description="Distribuicao dos atendimentos por responsavel.">
-        <GkitAteList empty="Sem responsaveis importados ainda." rows={data.porResponsavel} />
-      </GkitAteSection>
+      <GkitAteHealthNotice health={health} />
+      <GkitAteCockpit
+        createAtendimentoAction={createGkitAteAtendimentoAction}
+        createAtendimentoTipoAction={createGkitAteAtendimentoTipoAction}
+        createTarefaAction={createGkitAteTarefaAction}
+        createTarefaTipoAction={createGkitAteTarefaTipoAction}
+        formData={formData}
+        initialPanel={initialPanel(params?.painel)}
+        tarefasPendentes={tarefaRows(tarefasPendentes)}
+      />
     </GkitAteShell>
   )
 }

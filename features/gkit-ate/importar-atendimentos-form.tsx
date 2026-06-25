@@ -63,7 +63,7 @@ export function ImportarGkitAteAstreaForm() {
   }
 
   return (
-    <div className="ciclo-import-box">
+    <div className="gkit-ate-import-box">
       <input
         ref={fileRef}
         accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -85,15 +85,15 @@ export function ImportarGkitAteAstreaForm() {
       {error ? <div className="suite-empty-block danger">{error}</div> : null}
 
       {preview ? (
-        <section className="ciclo-import-preview">
-          <div className="ciclo-panel-heading">
+        <section className="gkit-ate-import-preview">
+          <div className="gkit-ate-panel-heading">
             <div>
               <h2>Preview ASTREA</h2>
               <p>Confira os atendimentos antes de gravar no GKIT ATE.</p>
             </div>
           </div>
 
-          <div className="ciclo-import-stats">
+          <div className="gkit-ate-import-stats">
             <span>Linhas <strong>{preview.total}</strong></span>
             <span>Validas <strong>{preview.validas}</strong></span>
             <span>Criar <strong>{preview.criar}</strong></span>

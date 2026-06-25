@@ -1,8 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { GkitNewSubmitButton } from '@/features/gkit-new/submit-button'
-import type { GkitNewFormData, GkitNewOportunidade } from '@/features/gkit-new/types'
+import type { GkitNewFormData, GkitNewListRow, GkitNewOportunidade } from '@/features/gkit-new/types'
 
 type CockpitPanel = 'contato' | 'cliente' | 'proposta' | 'acompanhamento'
 type CockpitAction = (formData: FormData) => Promise<void>
@@ -59,24 +60,60 @@ function orderedOportunidades(oportunidades: GkitNewOportunidade[]) {
   return [...oportunidades].sort((a, b) => a.descricao.localeCompare(b.descricao, 'pt-BR'))
 }
 
+function PendingTaskList({ rows }: { rows: GkitNewListRow[] }) {
+  if (!rows.length) {
+    return <div className="suite-empty-block success">Nenhuma tarefa pendente para este contexto.</div>
+  }
+
+  return (
+    <div className="suite-table-list compact gkit-new-table-list" role="list">
+      {rows.map((row) => {
+        const content = (
+          <>
+            <div>
+              <h3>{row.title}</h3>
+              <p>{row.subtitle}</p>
+            </div>
+            <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+            <strong>{row.value}</strong>
+            <small>{row.meta}</small>
+          </>
+        )
+
+        return row.detailHref ? (
+          <Link className="suite-row-link" href={row.detailHref} key={row.id} role="listitem">
+            {content}
+          </Link>
+        ) : (
+          <article key={row.id} role="listitem">{content}</article>
+        )
+      })}
+    </div>
+  )
+}
+
 export function GkitNewCockpit({
   createClienteAction,
   createContatoAction,
   createPropostaAction,
   formData,
-  initialPanel = 'contato',
+  initialPanel = null,
   oportunidades,
+  tarefasPendentes,
+  tarefasPendentesScope,
   updateAcompanhamentoAction,
 }: {
   createClienteAction: CockpitAction
   createContatoAction: CockpitAction
   createPropostaAction: CockpitAction
   formData: GkitNewFormData
-  initialPanel?: CockpitPanel
+  initialPanel?: CockpitPanel | null
   oportunidades: GkitNewOportunidade[]
+  tarefasPendentes: GkitNewListRow[]
+  tarefasPendentesScope: string
   updateAcompanhamentoAction: CockpitAction
 }) {
-  const [activePanel, setActivePanel] = useState<CockpitPanel>(initialPanel)
+  const [activePanel, setActivePanel] = useState<CockpitPanel | null>(initialPanel)
   const [status, setStatus] = useState('proposta_enviada')
   const propostaOptions = useMemo(() => orderedOportunidades(oportunidades), [oportunidades])
   const requiresDescription = status !== 'proposta_enviada'
@@ -87,7 +124,7 @@ export function GkitNewCockpit({
         <div className="suite-panel-heading">
           <div>
             <h2>Ordem do fluxo</h2>
-            <p>Escolha uma etapa; o formulario abre logo abaixo dos cards.</p>
+            <p>Escolha uma etapa para abrir o formulario; por padrao, o cockpit mostra a fila pendente.</p>
           </div>
         </div>
 
@@ -111,10 +148,12 @@ export function GkitNewCockpit({
       <section className="suite-panel gkit-new-cockpit-form-panel">
         <div className="suite-panel-heading">
           <div>
-            <h2>{panelTitle(activePanel)}</h2>
-            <p>{panelDescription(activePanel)}</p>
+            <h2>{activePanel ? panelTitle(activePanel) : 'Tarefas pendentes'}</h2>
+            <p>{activePanel ? panelDescription(activePanel) : tarefasPendentesScope}</p>
           </div>
         </div>
+
+        {!activePanel ? <PendingTaskList rows={tarefasPendentes} /> : null}
 
         {activePanel === 'contato' ? (
           <form action={createContatoAction} className="card module-form module-form-grid">

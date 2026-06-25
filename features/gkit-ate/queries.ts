@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import type {
   GkitAteAtendimento,
   GkitAteAtendimentoDetail,
+  GkitAteAtendimentoTipo,
   GkitAteDashboardData,
   GkitAteFormData,
   GkitAteHealth,
@@ -13,6 +14,7 @@ import type {
   GkitAteStatus,
   GkitAteTarefa,
   GkitAteTarefaStatus,
+  GkitAteTarefaTipo,
   GkitAteTone,
 } from '@/features/gkit-ate/types'
 
@@ -121,8 +123,8 @@ export async function getGkitAteHealth(): Promise<GkitAteHealth> {
   return schemaHealth(error) ?? { ok: true }
 }
 
-export async function requireGkitAteContext() {
-  const context = await requireModuleAccess('gkit-ate')
+export async function requireGkitAteContext(target?: string) {
+  const context = await requireModuleAccess('gkit-ate', target)
   const hasAccess =
     canAccess(context.permissions, 'gkit_ate.dashboard.read') ||
     canAccess(context.permissions, 'gkit_ate.atendimentos.read') ||
@@ -406,12 +408,24 @@ export async function getGkitAteTarefa(id: string): Promise<GkitAteTarefa> {
 }
 
 export async function getGkitAteFormData(): Promise<GkitAteFormData> {
-  const [atendimentoTipos, tarefaTipos] = await Promise.all([
+  const [atendimentos, atendimentoTipos, tarefaTipos] = await Promise.all([
+    admin()
+      .schema('gkit_ate')
+      .from('atendimentos')
+      .select('id,codigo_publico,titulo,cliente_nome,status')
+      .eq('status', 'aberto')
+      .order('data_criacao', { ascending: false })
+      .limit(500),
     admin().schema('gkit_ate').from('atendimento_tipos').select('id,nome').eq('ativo', true).order('nome', { ascending: true }).limit(300),
     admin().schema('gkit_ate').from('tarefa_tipos').select('id,nome,descricao_padrao').eq('ativo', true).order('nome', { ascending: true }).limit(300),
   ])
 
   return {
+    atendimentos: ((atendimentos.data ?? []) as Array<Record<string, any>>).map((row) => ({
+      id: String(row.id),
+      label: `${text(row.codigo_publico, 'ATE')} - ${text(row.titulo, 'Atendimento')} - ${text(row.cliente_nome, 'Cliente')}`,
+      status: atendimentoStatus(row.status),
+    })),
     atendimentoTipos: ((atendimentoTipos.data ?? []) as Array<Record<string, any>>).map((row) => ({
       id: String(row.id),
       label: text(row.nome, 'Tipo de atendimento'),
@@ -422,6 +436,48 @@ export async function getGkitAteFormData(): Promise<GkitAteFormData> {
       descricaoPadrao: text(row.descricao_padrao) || undefined,
     })),
   }
+}
+
+export async function listGkitAteAtendimentoTipos(): Promise<GkitAteAtendimentoTipo[]> {
+  const [tipos, tarefas] = await Promise.all([
+    admin().schema('gkit_ate').from('atendimento_tipos').select('id,nome,tarefa_tipo_id,ativo,criado_em').order('nome', { ascending: true }).limit(1000),
+    admin().schema('gkit_ate').from('tarefa_tipos').select('id,nome').limit(1000),
+  ])
+
+  if (tipos.error) return []
+  const tarefaMap = new Map<string, string>(
+    ((tarefas.data ?? []) as Array<Record<string, any>>).map((row) => [String(row.id), text(row.nome, 'Tarefa')]),
+  )
+
+  return ((tipos.data ?? []) as Array<Record<string, any>>).map((row) => {
+    const tarefaTipoId = text(row.tarefa_tipo_id) || null
+    return {
+      ativo: row.ativo !== false,
+      criado_em: text(row.criado_em),
+      id: String(row.id),
+      label: text(row.nome, 'Tipo de atendimento'),
+      tarefaTipoId,
+      tarefaTipoNome: tarefaTipoId ? tarefaMap.get(tarefaTipoId) ?? null : null,
+    }
+  })
+}
+
+export async function listGkitAteTarefaTipos(): Promise<GkitAteTarefaTipo[]> {
+  const { data, error } = await admin()
+    .schema('gkit_ate')
+    .from('tarefa_tipos')
+    .select('id,nome,descricao_padrao,ativo,criado_em')
+    .order('nome', { ascending: true })
+    .limit(1000)
+
+  if (error) return []
+  return ((data ?? []) as Array<Record<string, any>>).map((row) => ({
+    ativo: row.ativo !== false,
+    criado_em: text(row.criado_em),
+    descricaoPadrao: text(row.descricao_padrao, 'Descricao padrao'),
+    id: String(row.id),
+    label: text(row.nome, 'Tipo de tarefa'),
+  }))
 }
 
 export async function listGkitAteImportacoes(): Promise<GkitAteImportacao[]> {

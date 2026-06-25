@@ -49,7 +49,7 @@ export function GkitAteShell({
       product="GKIT ATE"
       title={title}
       usuario={usuario}
-      variantClassName="gkit-ate-shell"
+      variantClassName={active === 'cockpit' ? 'gkit-ate-shell gkit-ate-cockpit-page' : 'gkit-ate-shell'}
     >
       {children}
     </ModuleShell>
@@ -84,11 +84,102 @@ export function GkitAteSection({
 }
 
 export function GkitAteKpis({ data }: { data: GkitAteDashboardData }) {
-  return <OperationalKpiGrid className="suite-kpi-grid compact" items={data.cards} />
+  return <OperationalKpiGrid className="suite-kpi-grid compact gkit-ate-kpi-grid" items={data.cards} />
 }
 
 export function GkitAteQuickLinks({ items }: { items: OperationalQuickLink[] }) {
   return <OperationalQuickLinks classPrefix="gkit-ate" defaultLabel="Fluxo" items={items} />
+}
+
+export type GkitAteFilterField = {
+  label: string
+  name: string
+  options?: Array<{ label: string; value: string }>
+  placeholder?: string
+  type?: 'search' | 'select'
+  value: string
+}
+
+export function GkitAteFilterBar({
+  fields,
+  hiddenFields = [],
+  resetHref,
+  resultCount,
+  sort,
+  totalCount,
+}: {
+  fields: GkitAteFilterField[]
+  hiddenFields?: Array<{ name: string; value: string }>
+  resetHref: string
+  resultCount: number
+  sort: { dir: 'asc' | 'desc'; options: Array<{ label: string; value: string }>; value: string }
+  totalCount: number
+}) {
+  return (
+    <form className="gkit-ate-filter-bar" method="get">
+      {hiddenFields.map((field) => (
+        <input key={field.name} name={field.name} type="hidden" value={field.value} />
+      ))}
+
+      <div className="gkit-ate-filter-fields">
+        {fields.map((field) => (
+          <label key={field.name}>
+            <span>{field.label}</span>
+            {field.type === 'select' ? (
+              <select name={field.name} defaultValue={field.value}>
+                <option value="">{field.placeholder ?? 'Todos'}</option>
+                {(field.options ?? []).map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            ) : (
+              <input name={field.name} placeholder={field.placeholder ?? 'Buscar'} type="search" defaultValue={field.value} />
+            )}
+          </label>
+        ))}
+
+        <label>
+          <span>Ordenar por</span>
+          <select name="sort" defaultValue={sort.value}>
+            {sort.options.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          <span>Direcao</span>
+          <select name="dir" defaultValue={sort.dir}>
+            <option value="asc">Crescente</option>
+            <option value="desc">Decrescente</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="gkit-ate-filter-actions">
+        <span>{resultCount} de {totalCount}</span>
+        <button className="button" type="submit">Filtrar</button>
+        <Link className="button secondary" href={resetHref}>Limpar</Link>
+      </div>
+    </form>
+  )
+}
+
+export function GkitAteTabs({
+  items,
+}: {
+  items: Array<{ active: boolean; count: number; href: string; label: string }>
+}) {
+  return (
+    <nav aria-label="Cadastros do ATE" className="gkit-ate-tabs">
+      {items.map((item) => (
+        <Link aria-current={item.active ? 'page' : undefined} className={item.active ? 'active' : ''} href={item.href} key={item.href}>
+          <span>{item.label}</span>
+          <small>{item.count}</small>
+        </Link>
+      ))}
+    </nav>
+  )
 }
 
 export function GkitAteList({

@@ -14,6 +14,7 @@ import type {
   CicloAtendimentoTab,
   CicloAtaRecord,
   CicloCliente,
+  CicloCockpitData,
   CicloClienteFormData,
   CicloClienteIntegral,
   CicloClienteRecord,
@@ -35,6 +36,18 @@ import type {
   CicloTimelineItem,
 } from '@/features/ciclo/types'
 
+const cicloDocumentoPadrao = [
+  { tipoDocumento: 'contrato', titulo: 'Contrato' },
+  { tipoDocumento: 'cartao_cnpj', titulo: 'Cartao CNPJ' },
+  { tipoDocumento: 'ata_eleicao', titulo: 'Ata eleicao' },
+  { tipoDocumento: 'ata_previsao_orcamentaria', titulo: 'Ata previsao orcamentaria' },
+  { tipoDocumento: 'cpf_sindico', titulo: 'CPF sindico' },
+  { tipoDocumento: 'cnpj_empresa_sindico', titulo: 'CNPJ empresa sindico' },
+  { tipoDocumento: 'convencao', titulo: 'Convencao' },
+  { tipoDocumento: 'regulamento', titulo: 'Regulamento' },
+  { tipoDocumento: 'cadastro_unidade', titulo: 'Cadastro de unidade' },
+]
+
 type CicloContext = Awaited<ReturnType<typeof requireModuleAccess>>
 
 function admin() {
@@ -44,6 +57,14 @@ function admin() {
 function text(value: unknown, fallback = '') {
   if (value === null || value === undefined || value === '') return fallback
   return String(value)
+}
+
+function normalize(value: unknown) {
+  return text(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
 }
 
 function numberValue(value: unknown) {
@@ -159,8 +180,8 @@ function normalizeSeveridade(value: unknown): CicloAlerta['severidade'] {
   return 'media'
 }
 
-export async function requireCicloContext() {
-  const context = await requireModuleAccess('ciclo')
+export async function requireCicloContext(target?: string) {
+  const context = await requireModuleAccess('ciclo', target)
   const hasCicloAccess =
     canAccess(context.permissions, 'ciclo.dashboard.read') ||
     canAccess(context.permissions, 'ciclo.clientes.read') ||
@@ -987,6 +1008,128 @@ export async function getCicloDocumentoFormData(context: CicloContext): Promise<
       id: text(row.id),
       label: `${text(row.nome_fantasia ?? row.nome ?? row.razao_social, 'Cliente')} - ${text(row.documento, 'sem documento')}`,
     })),
+  }
+}
+
+function operatorNames(context: CicloContext) {
+  return new Set([
+    text(context.usuario.nome),
+    text(context.usuario.email),
+  ].filter(Boolean).map((value) => normalize(value)))
+}
+
+function isOperator(value: unknown, names: Set<string>) {
+  const normalized = normalize(value)
+  return normalized.length > 0 && names.has(normalized)
+}
+
+export async function getCicloCockpitData(context: CicloContext): Promise<CicloCockpitData> {
+  const [clienteFormData, documentoFormData] = await Promise.all([
+    getCicloClienteFormData(context),
+    getCicloDocumentoFormData(context),
+  ])
+  const clienteIds = documentoFormData.clientes.map((cliente) => cliente.id)
+  const allowedClienteIds = new Set(clienteIds)
+  const names = operatorNames(context)
+
+  const [documentosResult, ocorrenciasResult, atividadesResult] = await Promise.all([
+    clienteIds.length
+      ? admin()
+        .schema('ciclo')
+        .from('cliente_documentos')
+        .select('id,cliente_id,tipo_documento,titulo,status,validado,data_renovacao,observacoes')
+        .in('cliente_id', clienteIds)
+      : { data: [], error: null },
+    clienteIds.length
+      ? admin()
+        .schema('ciclo')
+        .from('ocorrencias')
+        .select('id,cliente_id,tipo,impacto,titulo,descricao,data_ocorrencia,metadata')
+        .in('cliente_id', clienteIds)
+        .order('created_at', { ascending: false })
+        .limit(200)
+      : { data: [], error: null },
+    clienteIds.length
+      ? admin()
+        .schema('ciclo')
+        .from('onboarding_cliente_atividades')
+        .select('id,cliente_id,ordem,descricao,responsavel,status,obrigatoria,concluido_em,observacoes')
+        .in('cliente_id', clienteIds)
+        .in('status', ['pendente', 'em_andamento'])
+        .order('ordem', { ascending: true })
+        .limit(300)
+      : { data: [], error: null },
+  ])
+
+  for (const result of [documentosResult, ocorrenciasResult, atividadesResult]) {
+    if (result.error) throw new Error(result.error.message)
+  }
+
+  const clienteMap = new Map(documentoFormData.clientes.map((cliente) => [cliente.id, cliente.label]))
+  const documentosByCliente = new Map<string, Map<string, Record<string, any>>>()
+
+  for (const row of (documentosResult.data ?? []) as Array<Record<string, any>>) {
+    const clienteId = text(row.cliente_id)
+    if (!allowedClienteIds.has(clienteId)) continue
+    const byTipo = documentosByCliente.get(clienteId) ?? new Map<string, Record<string, any>>()
+    byTipo.set(text(row.tipo_documento), row)
+    documentosByCliente.set(clienteId, byTipo)
+  }
+
+  const documentos = clienteIds.flatMap((clienteId) => {
+    const existing = documentosByCliente.get(clienteId) ?? new Map<string, Record<string, any>>()
+    return cicloDocumentoPadrao.map((documento) => {
+      const row = existing.get(documento.tipoDocumento)
+      return {
+        clienteId,
+        dataRenovacao: text(row?.data_renovacao) || null,
+        id: text(row?.id) || null,
+        observacoes: text(row?.observacoes) || null,
+        status: normalizeDocumentoStatus(row?.status),
+        tipoDocumento: documento.tipoDocumento,
+        titulo: text(row?.titulo, documento.titulo),
+        validado: Boolean(row?.validado),
+      }
+    })
+  })
+
+  const atividadeRows: CicloListRow[] = ((atividadesResult.data ?? []) as Array<Record<string, any>>)
+    .filter((row) => isOperator(row.responsavel, names))
+    .map((row) => ({
+      id: `onboarding-${text(row.id)}`,
+      title: text(row.descricao, 'Atividade de onboarding'),
+      subtitle: clienteMap.get(text(row.cliente_id)) ?? 'Cliente',
+      status: text(row.status, 'pendente'),
+      value: `#${numberValue(row.ordem)}`,
+      meta: text(row.responsavel, 'Responsavel'),
+      tone: listTone(text(row.status, 'pendente')),
+    }))
+
+  const ocorrenciaRows: CicloListRow[] = ((ocorrenciasResult.data ?? []) as Array<Record<string, any>>)
+    .filter((row) => {
+      const metadata = (row.metadata ?? {}) as Record<string, any>
+      const status = text(metadata.status, 'aberta')
+      return status !== 'resolvida' && status !== 'cancelada' && isOperator(metadata.responsavel, names)
+    })
+    .map((row) => {
+      const metadata = (row.metadata ?? {}) as Record<string, any>
+      const impacto = text(row.impacto, 'neutro')
+      return {
+        id: `ocorrencia-${text(row.id)}`,
+        title: text(row.titulo, 'Ocorrencia'),
+        subtitle: clienteMap.get(text(row.cliente_id)) ?? text(row.descricao, 'Cliente'),
+        status: text(metadata.status, 'aberta'),
+        value: text(metadata.prazo) || dateLabel(row.data_ocorrencia),
+        meta: text(metadata.responsavel, 'Responsavel'),
+        tone: impacto === 'critico' || impacto === 'alto' ? 'danger' as const : impacto === 'medio' ? 'warning' as const : 'primary' as const,
+      }
+    })
+
+  return {
+    clienteFormData,
+    documentoFormData,
+    documentos,
+    tarefas: [...atividadeRows, ...ocorrenciaRows].slice(0, 50),
   }
 }
 

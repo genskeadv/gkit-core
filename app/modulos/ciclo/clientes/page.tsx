@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
+import { moduleTarget } from '@/lib/auth/platform'
 import { buildClienteListFilters, filterAndSortClientes } from '@/features/ciclo/clientes-list'
 import { CicloClienteList, CicloKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloData, requireCicloContext } from '@/features/ciclo/queries'
@@ -9,8 +10,8 @@ type CicloClientesPageProps = {
 }
 
 export default async function CicloClientesPage({ searchParams }: CicloClientesPageProps) {
-  const context = await requireCicloContext()
   const params = await searchParams
+  const context = await requireCicloContext(moduleTarget('/modulos/ciclo/clientes', params))
   const data = await getCicloData(context)
   const canWrite = canAccess(context.permissions, 'ciclo.clientes.write')
   const filters = buildClienteListFilters(params)

@@ -1,5 +1,6 @@
 'use server'
 
+import { randomUUID } from 'crypto'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
@@ -163,6 +164,13 @@ function cleanPayload(payload: Record<string, unknown>) {
   return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined))
 }
 
+function optionalDate(formData: FormData, key: string) {
+  const value = text(formData, key)
+  if (!value) return null
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('Data invalida.')
+  return value
+}
+
 function titleCase(value: string) {
   return value
     .toLowerCase()
@@ -299,6 +307,40 @@ async function requireGkitAteWrite(permission = 'gkit_ate.importacoes.write') {
     throw new Error('Usuario sem permissao para gravar no GKIT ATE.')
   }
   return context
+}
+
+async function resolveTarefaTipo(formData: FormData, usuarioId: string, fallbackDescricao: string) {
+  const tarefaTipoId = text(formData, 'tarefa_tipo_id')
+  if (tarefaTipoId) {
+    const { data, error } = await admin()
+      .schema('gkit_ate')
+      .from('tarefa_tipos')
+      .select('id,nome,descricao_padrao')
+      .eq('id', tarefaTipoId)
+      .single()
+
+    if (error || !data) throw new Error(error?.message ?? 'Tipo de tarefa nao encontrado.')
+    return {
+      id: String(data.id),
+      descricao: String(data.descricao_padrao ?? fallbackDescricao),
+      nome: String(data.nome ?? fallbackDescricao),
+    }
+  }
+
+  const tipoNome = text(formData, 'tipo_tarefa') || fallbackDescricao
+  const created = await ensureTarefaTipo(tipoNome, usuarioId)
+  return {
+    id: created.id,
+    descricao: created.descricao,
+    nome: tipoNome,
+  }
+}
+
+function revalidateGkitAteCockpit() {
+  revalidatePath('/modulos/gkit-ate')
+  revalidatePath('/modulos/gkit-ate/atendimentos')
+  revalidatePath('/modulos/gkit-ate/cadastros')
+  revalidatePath('/modulos/gkit-ate/tarefas')
 }
 
 async function readAstreaRows(formData: FormData) {
@@ -624,12 +666,88 @@ export async function importarGkitAteAstreaXlsx(formData: FormData): Promise<Imp
   return result
 }
 
+export async function createGkitAteAtendimentoAction(formData: FormData) {
+  const context = await requireGkitAteWrite('gkit_ate.atendimentos.write')
+  const titulo = required(text(formData, 'titulo'), 'Titulo')
+  const clienteNome = required(text(formData, 'cliente_nome'), 'Cliente')
+  const descricaoTarefa = required(text(formData, 'descricao_tarefa'), 'Tarefa inicial')
+  const responsavel = text(formData, 'responsavel') || null
+  const atendimentoTipoId = text(formData, 'atendimento_tipo_id') || null
+  let atendimentoTipoNome = text(formData, 'tipo_atendimento') || null
+
+  if (atendimentoTipoId) {
+    const { data, error } = await admin()
+      .schema('gkit_ate')
+      .from('atendimento_tipos')
+      .select('id,nome')
+      .eq('id', atendimentoTipoId)
+      .single()
+
+    if (error || !data) throw new Error(error?.message ?? 'Tipo de atendimento nao encontrado.')
+    atendimentoTipoNome = String(data.nome ?? atendimentoTipoNome ?? '')
+  }
+
+  const tarefaTipo = await resolveTarefaTipo(formData, context.usuario.id, descricaoTarefa)
+  const saved = await admin()
+    .schema('gkit_ate')
+    .from('atendimentos')
+    .insert({
+      source_key: `manual:${randomUUID()}`,
+      atendimento_tipo_id: atendimentoTipoId,
+      tipo: atendimentoTipoNome,
+      titulo,
+      cliente_nome: clienteNome,
+      objeto: text(formData, 'objeto') || null,
+      observacoes: text(formData, 'observacoes') || null,
+      responsavel,
+      prazo_finalizacao: optionalDate(formData, 'prazo_finalizacao'),
+      data_criacao: new Date().toISOString(),
+      status: 'aberto',
+      criado_por: context.usuario.id,
+      atualizado_por: context.usuario.id,
+      metadata: { origem: 'cockpit_manual' },
+    })
+    .select('id')
+    .single()
+
+  if (saved.error || !saved.data) throw new Error(saved.error?.message ?? 'Nao foi possivel criar o atendimento.')
+
+  const atendimentoId = String(saved.data.id)
+  const tarefa = await admin()
+    .schema('gkit_ate')
+    .from('tarefas')
+    .insert({
+      atendimento_id: atendimentoId,
+      tarefa_tipo_id: tarefaTipo.id,
+      descricao: descricaoTarefa || tarefaTipo.descricao,
+      responsavel: text(formData, 'responsavel_tarefa') || responsavel,
+      data_prevista: optionalDate(formData, 'data_prevista') ?? optionalDate(formData, 'prazo_finalizacao'),
+      origem: 'manual',
+      criado_por: context.usuario.id,
+      atualizado_por: context.usuario.id,
+      metadata: { origem: 'cockpit_atendimento', tarefa_tipo: tarefaTipo.nome },
+    })
+
+  if (tarefa.error) {
+    await admin()
+      .schema('gkit_ate')
+      .from('atendimentos')
+      .delete()
+      .eq('id', atendimentoId)
+
+    throw new Error(tarefa.error.message)
+  }
+
+  revalidateGkitAteCockpit()
+  revalidatePath(`/modulos/gkit-ate/atendimentos/${atendimentoId}`)
+  redirect(`/modulos/gkit-ate/atendimentos/${atendimentoId}`)
+}
+
 export async function createGkitAteTarefaAction(formData: FormData) {
   const context = await requireGkitAteWrite('gkit_ate.tarefas.write')
   const atendimentoId = required(text(formData, 'atendimento_id'), 'Atendimento')
   const descricao = required(text(formData, 'descricao'), 'Descricao')
-  const tipoNome = text(formData, 'tipo_tarefa') || descricao
-  const tarefaTipo = await ensureTarefaTipo(tipoNome, context.usuario.id)
+  const tarefaTipo = await resolveTarefaTipo(formData, context.usuario.id, descricao)
 
   const { error } = await admin()
     .schema('gkit_ate')
@@ -647,8 +765,95 @@ export async function createGkitAteTarefaAction(formData: FormData) {
 
   if (error) throw new Error(error.message)
 
+  revalidatePath('/modulos/gkit-ate')
   revalidatePath('/modulos/gkit-ate/tarefas')
   revalidatePath(`/modulos/gkit-ate/atendimentos/${atendimentoId}`)
+
+  if (text(formData, 'return_to') === 'cockpit') {
+    redirect('/modulos/gkit-ate?painel=tarefa')
+  }
+}
+
+export async function createGkitAteAtendimentoTipoAction(formData: FormData) {
+  const context = await requireGkitAteWrite('gkit_ate.cadastros.write')
+  const nome = required(text(formData, 'nome'), 'Tipo de atendimento')
+  const slug = cadastroSlug(nome)
+  const tarefaTipoId = text(formData, 'tarefa_tipo_id') || null
+  const found = await admin()
+    .schema('gkit_ate')
+    .from('atendimento_tipos')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle()
+
+  if (found.error) throw new Error(found.error.message)
+
+  const payload = {
+    nome,
+    slug,
+    tarefa_tipo_id: tarefaTipoId,
+    ativo: true,
+    atualizado_por: context.usuario.id,
+  }
+
+  if (found.data?.id) {
+    const { error } = await admin()
+      .schema('gkit_ate')
+      .from('atendimento_tipos')
+      .update(payload)
+      .eq('id', found.data.id)
+    if (error) throw new Error(error.message)
+  } else {
+    const { error } = await admin()
+      .schema('gkit_ate')
+      .from('atendimento_tipos')
+      .insert({ ...payload, criado_por: context.usuario.id })
+    if (error) throw new Error(error.message)
+  }
+
+  revalidateGkitAteCockpit()
+  redirect('/modulos/gkit-ate?painel=tipo-atendimento')
+}
+
+export async function createGkitAteTarefaTipoAction(formData: FormData) {
+  const context = await requireGkitAteWrite('gkit_ate.cadastros.write')
+  const nome = required(text(formData, 'nome'), 'Tarefa de atendimento')
+  const descricaoPadrao = text(formData, 'descricao_padrao') || nome
+  const slug = cadastroSlug(nome)
+  const found = await admin()
+    .schema('gkit_ate')
+    .from('tarefa_tipos')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle()
+
+  if (found.error) throw new Error(found.error.message)
+
+  const payload = {
+    nome,
+    slug,
+    descricao_padrao: descricaoPadrao,
+    ativo: true,
+    atualizado_por: context.usuario.id,
+  }
+
+  if (found.data?.id) {
+    const { error } = await admin()
+      .schema('gkit_ate')
+      .from('tarefa_tipos')
+      .update(payload)
+      .eq('id', found.data.id)
+    if (error) throw new Error(error.message)
+  } else {
+    const { error } = await admin()
+      .schema('gkit_ate')
+      .from('tarefa_tipos')
+      .insert({ ...payload, criado_por: context.usuario.id })
+    if (error) throw new Error(error.message)
+  }
+
+  revalidateGkitAteCockpit()
+  redirect('/modulos/gkit-ate?painel=tipo-tarefa')
 }
 
 export async function completeGkitAteTarefaAction(formData: FormData) {

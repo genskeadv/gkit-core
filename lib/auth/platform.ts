@@ -166,8 +166,27 @@ export async function requirePlatformContext(next = '/plataforma'): Promise<{
   }
 }
 
-export async function requireModuleAccess(codigo: string) {
-  const context = await requirePlatformContext(`/modulos/${codigo}`)
+export type ModuleSearchParams = Record<string, string | string[] | undefined>
+
+export function moduleTarget(path: string, searchParams?: ModuleSearchParams | null) {
+  const query = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(searchParams ?? {})) {
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item) query.append(key, item)
+      })
+    } else if (value) {
+      query.set(key, value)
+    }
+  }
+
+  const suffix = query.toString()
+  return suffix ? `${path}?${suffix}` : path
+}
+
+export async function requireModuleAccess(codigo: string, target = `/modulos/${codigo}`) {
+  const context = await requirePlatformContext(target)
 
   if (context.usuario.tipo === 'admin_global' || context.permissions.includes('*')) {
     return context

@@ -164,8 +164,8 @@ function setupRow(health: GkitNewHealth): GkitNewListRow {
   }
 }
 
-export async function requireGkitNewContext() {
-  const context = await requireModuleAccess('gkit-new')
+export async function requireGkitNewContext(target?: string) {
+  const context = await requireModuleAccess('gkit-new', target)
   const hasAccess =
     canAccess(context.permissions, 'gkit_new.dashboard.read') ||
     canAccess(context.permissions, 'gkit_new.clientes.read') ||
@@ -177,6 +177,10 @@ export async function requireGkitNewContext() {
 
 export function canWriteGkitNew(permissions: string[], permission: string) {
   return canAccess(permissions, permission)
+}
+
+export function canSeeAllGkitNewTasks(usuarioTipo: string, permissions: string[]) {
+  return canAccess(permissions, 'gkit_new.gestao.read') || ['admin_global', 'admin_carteira', 'gestor'].includes(usuarioTipo)
 }
 
 export async function getGkitNewFormData(): Promise<GkitNewFormData> {
@@ -340,10 +344,28 @@ export async function listGkitNewOportunidades(): Promise<GkitNewOportunidade[]>
   })
 }
 
-export async function listGkitNewTarefas(): Promise<GkitNewTarefa[]> {
+export async function listGkitNewTarefas(options: {
+  limit?: number
+  responsavelId?: string
+  status?: GkitNewTarefa['status']
+} = {}): Promise<GkitNewTarefa[]> {
   const supabase = admin()
+  let tarefasQuery = supabase
+    .schema('gkit_new')
+    .from('tarefas')
+    .select('id,oportunidade_id,cliente_id,descricao,data_prevista,responsavel_id,status')
+    .order('data_prevista', { ascending: true })
+
+  if (options.status) {
+    tarefasQuery = tarefasQuery.eq('status', options.status)
+  }
+
+  if (options.responsavelId) {
+    tarefasQuery = tarefasQuery.eq('responsavel_id', options.responsavelId)
+  }
+
   const [tarefas, oportunidades, clientes, usuarios] = await Promise.all([
-    supabase.schema('gkit_new').from('tarefas').select('id,oportunidade_id,cliente_id,descricao,data_prevista,responsavel_id,status').order('data_prevista', { ascending: true }).limit(1000),
+    tarefasQuery.limit(options.limit ?? 1000),
     supabase.schema('gkit_new').from('oportunidades').select('id,descricao').limit(1000),
     supabase.schema('gkit_new').from('clientes').select('id,nome').limit(1000),
     supabase.schema('security').from('usuarios').select('id,nome,email').limit(1000),

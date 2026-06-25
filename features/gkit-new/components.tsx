@@ -105,6 +105,74 @@ export function GkitNewKpiCards({ cards }: { cards: Array<{ label: string; value
   return <OperationalKpiGrid className="suite-kpi-grid compact" items={cards} />
 }
 
+export type GkitNewFilterField = {
+  label: string
+  name: string
+  options?: Array<{ label: string; value: string }>
+  placeholder?: string
+  type?: 'search' | 'select'
+  value: string
+}
+
+export function GkitNewFilterBar({
+  fields,
+  resetHref,
+  resultCount,
+  sort,
+  totalCount,
+}: {
+  fields: GkitNewFilterField[]
+  resetHref: string
+  resultCount: number
+  sort: { dir: 'asc' | 'desc'; options: Array<{ label: string; value: string }>; value: string }
+  totalCount: number
+}) {
+  return (
+    <form className="gkit-new-filter-bar" method="get">
+      <div className="gkit-new-filter-fields">
+        {fields.map((field) => (
+          <label key={field.name}>
+            <span>{field.label}</span>
+            {field.type === 'select' ? (
+              <select name={field.name} defaultValue={field.value}>
+                <option value="">{field.placeholder ?? 'Todos'}</option>
+                {(field.options ?? []).map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            ) : (
+              <input name={field.name} placeholder={field.placeholder ?? 'Buscar'} type="search" defaultValue={field.value} />
+            )}
+          </label>
+        ))}
+
+        <label>
+          <span>Ordenar por</span>
+          <select name="sort" defaultValue={sort.value}>
+            {sort.options.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          <span>Direcao</span>
+          <select name="dir" defaultValue={sort.dir}>
+            <option value="asc">Crescente</option>
+            <option value="desc">Decrescente</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="gkit-new-filter-actions">
+        <span>{resultCount} de {totalCount}</span>
+        <button className="button" type="submit">Filtrar</button>
+        <Link className="button secondary" href={resetHref}>Limpar</Link>
+      </div>
+    </form>
+  )
+}
+
 export function GkitNewQuickLinks({ items }: { items: OperationalQuickLink[] }) {
   return <OperationalQuickLinks classPrefix="gkit-new" defaultLabel="Fluxo" items={items} />
 }
