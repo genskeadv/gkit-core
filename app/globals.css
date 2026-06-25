@@ -763,6 +763,18 @@ textarea {
   box-shadow: 0 0 0 4px rgba(53, 27, 64, 0.09);
 }
 
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus,
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--gkli-text);
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  caret-color: var(--gkli-text);
+  transition: background-color 9999s ease-out;
+}
+
 .label {
   display: block;
   font-size: 13px;
