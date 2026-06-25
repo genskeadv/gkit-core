@@ -13903,7 +13903,488 @@ a.button {
 }
 
 @media (max-width: 640px) {
-  .ciclo-document-checklist article {
+.ciclo-document-checklist article {
     grid-template-columns: 1fr;
+  }
+}
+
+/* GKIT Flex migrated module surface. */
+.gkit-flex-shell {
+  --suite-module-accent: #5d2f75;
+  --suite-module-accent-hover: #4f2764;
+  --suite-module-accent-soft: rgba(93, 47, 117, 0.09);
+  --suite-module-accent-line: rgba(93, 47, 117, 0.22);
+  --suite-module-card-radius: 8px;
+  --gkit-flex-line: rgba(148, 163, 184, 0.24);
+  --gkit-flex-muted: #5b6b86;
+  --gkit-flex-surface: rgba(255, 255, 255, 0.94);
+  --gkit-flex-text: #131927;
+  background: #f5f7fb;
+  color: var(--gkit-flex-text);
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.gkit-flex-bg {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(245, 247, 251, 0.98) 42%),
+    radial-gradient(circle at 12% 0%, rgba(93, 47, 117, 0.075), transparent 26rem),
+    radial-gradient(circle at 90% 10%, rgba(43, 122, 120, 0.045), transparent 22rem);
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+}
+
+.gkit-flex-sidebar {
+  background: rgba(255, 255, 255, 0.82);
+  border-right: 1px solid rgba(148, 163, 184, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 100vh;
+  padding: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.gkit-flex-sidebar-header,
+.gkit-flex-sidebar-footer {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--gkit-flex-line);
+  border-radius: var(--suite-module-card-radius);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+}
+
+.gkit-flex-sidebar-header {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  min-height: 74px;
+  padding: 12px 14px;
+  text-decoration: none;
+}
+
+.gkit-flex-sidebar-mark {
+  align-items: center;
+  background: var(--suite-module-accent);
+  border-radius: 8px;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 44px;
+  font-size: 18px;
+  font-weight: 700;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.gkit-flex-sidebar-header strong,
+.gkit-flex-sidebar-header small,
+.gkit-flex-sidebar-footer span {
+  display: block;
+  letter-spacing: 0;
+}
+
+.gkit-flex-sidebar-header strong {
+  color: var(--gkit-flex-text);
+  font-size: 14px;
+  font-weight: 450;
+}
+
+.gkit-flex-sidebar-header small,
+.gkit-flex-sidebar-footer span {
+  color: #344054;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.gkit-flex-sidebar nav {
+  display: grid;
+  gap: 10px;
+}
+
+.gkit-flex-sidebar nav a {
+  border-radius: var(--suite-module-card-radius);
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 400;
+  padding: 9px 10px;
+  text-decoration: none;
+}
+
+.gkit-flex-sidebar nav a:hover {
+  background: rgba(93, 47, 117, 0.08);
+}
+
+.gkit-flex-sidebar nav a.active {
+  background: var(--suite-module-accent);
+  box-shadow: 0 10px 22px rgba(93, 47, 117, 0.16);
+  color: #fff;
+}
+
+.gkit-flex-sidebar-footer {
+  margin-top: auto;
+  padding: 12px 14px;
+}
+
+.gkit-flex-shell .sidebar-badge {
+  background: rgba(93, 47, 117, 0.08);
+  border: 1px solid rgba(93, 47, 117, 0.14);
+  border-radius: 999px;
+  color: var(--suite-module-accent) !important;
+  display: inline-flex !important;
+  margin-top: 8px;
+  padding: 4px 8px;
+  width: fit-content;
+}
+
+.gkit-flex-main {
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.gkit-flex-shell .page-shell {
+  display: grid;
+  gap: 14px;
+  margin: 0 auto;
+  max-width: 1360px;
+  padding: 28px 24px;
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+.gkit-flex-shell .wide-shell {
+  max-width: 1460px;
+}
+
+.gkit-flex-shell .month-context-header,
+.gkit-flex-shell .dashboard-hero,
+.gkit-flex-shell .card,
+.gkit-flex-shell .metric,
+.gkit-flex-shell .module-card,
+.gkit-flex-shell .month-control-card,
+.gkit-flex-shell .upload-box,
+.gkit-flex-shell .preview-box,
+.gkit-flex-shell .empty-state,
+.gkit-flex-shell .checklist-item,
+.gkit-flex-shell .payable-import-box {
+  background: var(--gkit-flex-surface) !important;
+  border: 1px solid var(--gkit-flex-line) !important;
+  border-radius: var(--suite-module-card-radius) !important;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04) !important;
+}
+
+.gkit-flex-shell .month-context-header,
+.gkit-flex-shell .dashboard-hero {
+  min-height: 108px;
+  padding: 14px !important;
+  position: relative;
+}
+
+.gkit-flex-shell .month-context-header::before,
+.gkit-flex-shell .dashboard-hero::before {
+  background: var(--suite-module-accent);
+  content: "";
+  inset: 0 auto 0 0;
+  position: absolute;
+  width: 4px;
+}
+
+.gkit-flex-shell .month-context-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.gkit-flex-shell .month-context-side {
+  display: grid;
+  gap: 12px;
+  justify-items: end;
+}
+
+.gkit-flex-shell .month-context-statuses,
+.gkit-flex-shell .month-context-actions,
+.gkit-flex-shell .actions,
+.gkit-flex-shell .month-actions,
+.gkit-flex-shell .import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gkit-flex-shell .eyebrow,
+.gkit-flex-shell .metric-label,
+.gkit-flex-shell .field-label,
+.gkit-flex-shell th {
+  color: var(--gkit-flex-muted) !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.gkit-flex-shell h1 {
+  color: var(--gkit-flex-text);
+  font-size: clamp(21px, 2.2vw, 28px) !important;
+  font-weight: 450 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.08 !important;
+}
+
+.gkit-flex-shell h2,
+.gkit-flex-shell h3 {
+  color: var(--gkit-flex-text);
+  font-size: 15px !important;
+  font-weight: 450 !important;
+  letter-spacing: 0 !important;
+}
+
+.gkit-flex-shell p,
+.gkit-flex-shell .muted,
+.gkit-flex-shell .small-text {
+  color: var(--gkit-flex-muted);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
+.gkit-flex-shell .grid-2,
+.gkit-flex-shell .grid-3,
+.gkit-flex-shell .grid-4,
+.gkit-flex-shell .dashboard-metrics,
+.gkit-flex-shell .dashboard-cards,
+.gkit-flex-shell .dashboard-extra {
+  gap: 8px !important;
+  margin: 0 !important;
+}
+
+.gkit-flex-shell .grid-2,
+.gkit-flex-shell .grid-3,
+.gkit-flex-shell .grid-4 {
+  display: grid;
+}
+
+.gkit-flex-shell .grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gkit-flex-shell .grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gkit-flex-shell .grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.gkit-flex-shell .metric {
+  min-height: 74px;
+  padding: 9px 10px !important;
+}
+
+.gkit-flex-shell .metric-value,
+.gkit-flex-shell .module-main-value {
+  color: var(--gkit-flex-text) !important;
+  font-size: clamp(18px, 1.8vw, 22px) !important;
+  font-weight: 450 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.05 !important;
+  margin: 6px 0 0 !important;
+}
+
+.gkit-flex-shell .module-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 170px;
+  padding: 14px !important;
+  text-decoration: none;
+}
+
+.gkit-flex-shell .module-card:hover {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: var(--suite-module-accent-line) !important;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.075) !important;
+}
+
+.gkit-flex-shell .module-card-top,
+.gkit-flex-shell .month-control-card,
+.gkit-flex-shell .payable-import-box,
+.gkit-flex-shell .header-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.gkit-flex-shell .module-details {
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-flex-shell .primary-button,
+.gkit-flex-shell .secondary-button,
+.gkit-flex-shell .danger-button,
+.gkit-flex-shell .home-link,
+.gkit-flex-shell .status-pill,
+.gkit-flex-shell .card-cta {
+  border-radius: var(--suite-module-card-radius) !important;
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: 0;
+}
+
+.gkit-flex-shell .primary-button,
+.gkit-flex-shell .home-link {
+  background: var(--suite-module-accent) !important;
+  border: 1px solid var(--suite-module-accent) !important;
+  color: #fff !important;
+  cursor: pointer;
+  min-height: 36px;
+  padding: 9px 12px;
+}
+
+.gkit-flex-shell .secondary-button,
+.gkit-flex-shell .danger-button {
+  background: #fff !important;
+  border: 1px solid var(--gkit-flex-line) !important;
+  color: var(--gkit-flex-text) !important;
+  cursor: pointer;
+  min-height: 36px;
+  padding: 9px 12px;
+}
+
+.gkit-flex-shell button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.gkit-flex-shell .text-input,
+.gkit-flex-shell .inline-input,
+.gkit-flex-shell select,
+.gkit-flex-shell textarea,
+.gkit-flex-shell input[type="file"] {
+  border: 1px solid rgba(148, 163, 184, 0.35) !important;
+  border-radius: var(--suite-module-card-radius) !important;
+  color: var(--gkit-flex-text);
+  min-height: 36px;
+  padding: 8px 10px;
+}
+
+.gkit-flex-shell .table-wrap {
+  max-height: min(58vh, 620px);
+  overflow: auto;
+}
+
+.gkit-flex-shell table {
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 780px;
+  width: 100%;
+}
+
+.gkit-flex-shell th,
+.gkit-flex-shell td {
+  border-bottom: 1px solid var(--gkit-flex-line);
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.gkit-flex-shell .status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.gkit-flex-shell .status-aberto,
+.gkit-flex-shell .badge-paid {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.gkit-flex-shell .status-fechado,
+.gkit-flex-shell .badge-danger {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.gkit-flex-shell .status-nao_aberto,
+.gkit-flex-shell .status-aviso,
+.gkit-flex-shell .badge {
+  background: #fef3c7;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.gkit-flex-shell .success,
+.gkit-flex-shell .warning,
+.gkit-flex-shell .error {
+  border-radius: var(--suite-module-card-radius);
+  padding: 12px;
+}
+
+.gkit-flex-shell .success {
+  background: #e9f8ef;
+  border: 1px solid #bfe9cc;
+  color: #115e32;
+}
+
+.gkit-flex-shell .warning {
+  background: #fff6df;
+  border: 1px solid #f2d188;
+  color: #704500;
+}
+
+.gkit-flex-shell .error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+@media (max-width: 980px) {
+  .gkit-flex-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-flex-sidebar {
+    min-height: 0;
+    position: relative;
+  }
+
+  .gkit-flex-sidebar nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .gkit-flex-shell .page-shell {
+    padding: 18px 14px;
+  }
+
+  .gkit-flex-sidebar {
+    padding: 14px;
+  }
+
+  .gkit-flex-sidebar nav,
+  .gkit-flex-shell .grid-2,
+  .gkit-flex-shell .grid-3,
+  .gkit-flex-shell .grid-4 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .gkit-flex-shell .month-context-header,
+  .gkit-flex-shell .month-control-card,
+  .gkit-flex-shell .payable-import-box,
+  .gkit-flex-shell .header-row {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
