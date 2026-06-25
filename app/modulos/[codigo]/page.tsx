@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import { requireModuleAccess } from '@/lib/auth/platform'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const moduleArea: Record<string, string> = {
   ciclo: 'Governança',
   crm: 'Novos negócios',

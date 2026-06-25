@@ -35,5 +35,9 @@ export async function GET(request: NextRequest) {
       hasPublishableKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
       hasAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
     },
+  }, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate',
+    },
   })
 }

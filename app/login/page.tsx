@@ -4,6 +4,9 @@ import { canAccess, getUsuarioPermissionCodes } from '@/lib/auth/permissions'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type LoginPageProps = {
   searchParams?: Promise<{
     error?: string
