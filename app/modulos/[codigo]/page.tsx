@@ -39,6 +39,10 @@ export default async function ModuloPage({
     redirect('/modulos/gkit-flex')
   }
 
+  if (codigo === 'gkit_performa') {
+    redirect('/modulos/gkit-performa')
+  }
+
   if (codigo === 'intr' || codigo === 'fix' || codigo === 'flex') {
     redirect('/plataforma')
   }

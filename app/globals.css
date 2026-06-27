@@ -14545,3 +14545,180 @@ a.button {
     flex-direction: column;
   }
 }
+.gkit-performa-page {
+  display: grid;
+  gap: 18px;
+}
+
+.gkit-performa-import .suite-panel-heading,
+.gkit-performa-filters {
+  align-items: flex-start;
+}
+
+.gkit-performa-upload {
+  cursor: pointer;
+  min-width: 150px;
+  text-align: center;
+}
+
+.gkit-performa-upload input {
+  display: none;
+}
+
+.gkit-performa-import-status {
+  border: 1px solid var(--gkit-ate-line);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.gkit-performa-import-status span {
+  color: var(--gkit-ate-muted);
+  font-size: 0.9rem;
+}
+
+.gkit-performa-filter-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 100%;
+}
+
+.gkit-performa-filter-grid label {
+  display: grid;
+  gap: 6px;
+}
+
+.gkit-performa-filter-grid span {
+  color: var(--gkit-ate-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.gkit-performa-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+}
+
+.gkit-performa-table-wrap {
+  overflow: auto;
+  width: 100%;
+}
+
+.gkit-performa-table {
+  border-collapse: collapse;
+  min-width: 760px;
+  width: 100%;
+}
+
+.gkit-performa-table th,
+.gkit-performa-table td {
+  border-bottom: 1px solid var(--gkit-ate-line);
+  padding: 10px 9px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.gkit-performa-table th {
+  color: var(--gkit-ate-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.gkit-performa-table td {
+  color: var(--gkit-ate-text);
+  font-size: 0.9rem;
+}
+
+.gkit-performa-table tr.selected td {
+  background: rgba(12, 83, 93, 0.08);
+}
+
+.gkit-performa-row-button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+}
+
+.gkit-performa-row-button:hover {
+  text-decoration: underline;
+}
+
+.gkit-performa-detail {
+  align-self: start;
+}
+
+.gkit-performa-detail-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.gkit-performa-detail-grid span {
+  border: 1px solid var(--gkit-ate-line);
+  border-radius: 8px;
+  color: var(--gkit-ate-muted);
+  display: grid;
+  gap: 2px;
+  min-height: 68px;
+  padding: 10px;
+}
+
+.gkit-performa-detail-grid strong {
+  color: var(--gkit-ate-text);
+  font-size: 1.25rem;
+}
+
+.gkit-performa-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gkit-performa-tabs button {
+  background: transparent;
+  border: 1px solid var(--gkit-ate-line);
+  border-radius: 8px;
+  color: var(--gkit-ate-muted);
+  cursor: pointer;
+  padding: 8px 11px;
+}
+
+.gkit-performa-tabs button.active,
+.gkit-performa-tabs button:hover {
+  background: var(--gkit-ate-text);
+  border-color: var(--gkit-ate-text);
+  color: #fff;
+}
+
+@media (max-width: 1100px) {
+  .gkit-performa-filter-grid,
+  .gkit-performa-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-performa-detail {
+    align-self: stretch;
+  }
+}
+
+@media (max-width: 720px) {
+  .gkit-performa-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-performa-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-performa-table {
+    min-width: 680px;
+  }
+}

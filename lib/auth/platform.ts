@@ -30,10 +30,12 @@ const MODULE_PATHS: Record<string, string> = {
   'gkit-dir': '/modulos/gkit-dir',
   'gkit-flex': '/modulos/gkit-flex',
   'gkit-new': '/modulos/gkit-new',
+  'gkit-performa': '/modulos/gkit-performa',
   gkit_ate: '/modulos/gkit-ate',
   gkit_dir: '/modulos/gkit-dir',
   gkit_flex: '/modulos/gkit-flex',
   gkit_new: '/modulos/gkit-new',
+  gkit_performa: '/modulos/gkit-performa',
   intr: '/plataforma',
   colab: '/modulos/colab',
   din: '/plataforma',
@@ -68,6 +70,7 @@ function moduleCode(codigo: unknown) {
   if (value === 'gkit_ate') return 'gkit-ate'
   if (value === 'gkit_dir') return 'gkit-dir'
   if (value === 'gkit_flex') return 'gkit-flex'
+  if (value === 'gkit_performa') return 'gkit-performa'
   return value === 'gkit_new' ? 'gkit-new' : value
 }
 

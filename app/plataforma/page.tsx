@@ -30,6 +30,7 @@ const moduleMeta: Record<string, Pick<ModuleCard, 'area' | 'icon'>> = {
   'gkit-dir': { area: 'Diretório', icon: 'grid' },
   'gkit-flex': { area: 'Financial Xperience', icon: 'flex' },
   'gkit-new': { area: 'Novos negocios', icon: 'crm' },
+  'gkit-performa': { area: 'Performance', icon: 'clock' },
   intr: { area: 'Financial Xperience', icon: 'fix' },
   fix: { area: 'Financial Xperience', icon: 'fix' },
   flex: { area: 'Financial Xperience', icon: 'flex' },
@@ -73,6 +74,13 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
     area: 'Financial Xperience',
     icon: 'flex',
     href: '/modulos/gkit-flex',
+  },
+  'gkit-performa': {
+    nome: 'GKIT Performa',
+    descricao: 'Ranking de performance do time a partir da agenda operacional.',
+    area: 'Performance',
+    icon: 'clock',
+    href: '/modulos/gkit-performa',
   },
   colab: {
     nome: 'GKIT Colab',
