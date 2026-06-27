@@ -79,7 +79,7 @@ export function ColabProfile({ data }: { data: ColabData }) {
     return (
       <section className="suite-empty-card">
         <strong>Colaborador nao localizado</strong>
-        <span>O acesso ao Colab esta liberado no Core, mas o e-mail do usuario ainda nao tem cadastro ativo no Intr.</span>
+        <span>O acesso ao Colab esta liberado no Core, mas o e-mail do usuario ainda nao tem cadastro ativo no GKIT Flex.</span>
       </section>
     )
   }
@@ -160,12 +160,12 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
         <div className="suite-panel-heading">
           <div>
             <h2>Pendencias</h2>
-            <p>Vinculo do colaborador no Intr.</p>
+          <p>Vinculo do colaborador no GKIT Flex.</p>
           </div>
         </div>
         <div className="suite-empty-block warning">
           <strong>Cadastro nao localizado</strong>
-          <span>Seu acesso ao Colab esta ativo, mas o cadastro de colaborador ainda nao foi encontrado no Intr.</span>
+          <span>Seu acesso ao Colab esta ativo, mas o cadastro de colaborador ainda nao foi encontrado no GKIT Flex.</span>
         </div>
       </section>
     )
@@ -206,7 +206,7 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
       <div className="suite-panel-heading">
         <div>
           <h2>Pendencias</h2>
-          <p>Itens publicados pelo Intr para acompanhamento individual.</p>
+          <p>Itens publicados pelo GKIT Flex para acompanhamento individual.</p>
         </div>
       </div>
       {actions.length ? (
@@ -240,14 +240,14 @@ export function ColabModuleMap({ data }: { data: ColabData }) {
       href: '/modulos/colab/perfil',
       status: data.collaborator ? 'sincronizado' : 'pendente',
       title: 'Perfil',
-      description: data.collaborator ? `${data.collaborator.role} - ${data.collaborator.department}` : 'Cadastro pendente no Intr',
+      description: data.collaborator ? `${data.collaborator.role} - ${data.collaborator.department}` : 'Cadastro pendente no GKIT Flex',
       value: data.collaborator?.status ?? '-',
     },
     {
       href: '/modulos/colab/pagamentos',
       status: data.summary.pendingPayments ? 'pendente' : 'sincronizado',
       title: 'Pagamentos',
-      description: 'Demonstrativos vindos do Intr',
+      description: 'Demonstrativos vindos do GKIT Flex',
       value: String(data.payments.length),
     },
     {
@@ -261,7 +261,7 @@ export function ColabModuleMap({ data }: { data: ColabData }) {
       href: '/modulos/colab/beneficios',
       status: data.benefits.length ? 'ativo' : 'pendente',
       title: 'Beneficios',
-      description: 'Beneficios cadastrados no Intr',
+      description: 'Beneficios cadastrados no GKIT Flex',
       value: String(data.benefits.length),
     },
     {
@@ -293,7 +293,7 @@ export function ColabPayments({ data }: { data: ColabData }) {
       <div className="suite-panel-heading">
         <div>
           <h2>Pagamentos</h2>
-          <p>Demonstrativos financeiros derivados do Intr.</p>
+          <p>Demonstrativos financeiros derivados do GKIT Flex.</p>
         </div>
       </div>
       <div className="suite-table-list colab-record-list">
@@ -355,7 +355,7 @@ export function ColabBenefits({ data }: { data: ColabData }) {
           <strong>{benefit.monthlyValue ? currency(benefit.monthlyValue) : benefit.provider}</strong>
         </article>
       ))}
-      {!data.benefits.length ? <EmptyBlock label="Nenhum beneficio cadastrado no Intr." /> : null}
+      {!data.benefits.length ? <EmptyBlock label="Nenhum beneficio cadastrado no GKIT Flex." /> : null}
     </section>
   )
 }
@@ -416,7 +416,7 @@ export function ColabProfileDetails({ data }: { data: ColabData }) {
     return (
       <section className="suite-empty-card">
         <strong>Perfil nao localizado</strong>
-        <span>O e-mail do usuario ainda nao tem cadastro ativo no Intr.</span>
+        <span>O e-mail do usuario ainda nao tem cadastro ativo no GKIT Flex.</span>
       </section>
     )
   }

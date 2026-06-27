@@ -2,52 +2,49 @@
 
 ## Decisao
 
-O `gkli-core` passa a ser a base da suite unificada. Os antigos apps continuam existindo como referencia e fallback durante a transicao, mas a experiencia integrada nasce dentro do Core em rotas de modulo.
+O `gkit-core` e a base da suite unificada. Os modulos operacionais ativos vivem dentro do Core em rotas de modulo, compartilhando autenticacao, autorizacao, layout base e convencoes de acesso.
 
-## Rotas
+## Rotas principais
 
-- `/plataforma`: painel principal autenticado.
+- `/plataforma`: entrada autenticada e lista de modulos ativos.
 - `/admin`: administracao do Core.
-- `/modulos/painel`: painel modular sem menu lateral.
-- `/modulos/crm`: cockpit e telas iniciais do CRM.
-- `/modulos/ciclo`: cockpit e telas iniciais do Ciclo.
-- `/modulos/intr`: cockpit e colaboradores da Intranet.
-- `/modulos/colab`: portal individual do colaborador, sem menu lateral.
+- `/modulos/ciclo`: operacao de clientes e governanca.
+- `/modulos/colab`: portal individual do colaborador.
+- `/modulos/gkit-ate`: atendimentos e tarefas.
+- `/modulos/gkit-dir`: modulo diretivo.
+- `/modulos/gkit-flex`: financeiro operacional canonico.
+- `/modulos/gkit-new`: novos negocios.
+- `/modulos/gkit-performa`: performance operacional.
+
+Rotas de modulos removidos redirecionam para `/plataforma`.
 
 ## Controle de acesso
 
-O Core continua sendo a autoridade de acesso:
+O Core e a autoridade de acesso:
 
 - `security.usuarios` valida o usuario ativo.
-- `core.apps` define os modulos ativos.
+- `core.apps` define modulos ativos.
 - `security.usuario_app_acessos` libera modulos por usuario.
+- `security.usuario_carteiras` define escopo por carteira.
 - `security.perfis`, `security.perfil_permissoes` e `security.permissoes` mantem permissoes finas.
 
-O helper central e `requireModuleAccess(codigo)`, usado pelos modulos internos para impedir acesso solto.
+O helper central e `requireModuleAccess(codigo)`.
 
 ## Banco de dados
 
-Os schemas continuam separados:
+Schemas vivos principais:
 
 - `core`: apps, carteiras e configuracoes centrais.
 - `security`: usuarios, perfis, permissoes e acessos.
 - `audit`: eventos.
-- `crm`: entidades comerciais.
 - `ciclo`: entidades de governanca/cliente.
-- `gkli_intr` e views publicas `gkli_intr_*`: intranet e portal do colaborador.
+- `gkit_ate`: atendimentos e tarefas.
+- `gkit_new`: novos negocios.
+- `gkit_performa`: rankings gravados.
+- `public`: tabelas operacionais publicas do GKIT Flex e views/tabelas compartilhadas.
+
+Schemas legados removidos: `crm`, `flex` antigo e `gkli_intr`.
 
 ## UI/UX
 
-O padrao visual base e o `gkli-intr`: paleta roxa/cinza, surfaces brancas, cards operacionais e cabecalhos com gradiente.
-
-CRM, Ciclo, Intr e Core seguem experiencia operacional. Painel e Colab preservam caracteristicas proprias sem menu lateral.
-
-## Transicao
-
-A migracao deve continuar modulo por modulo:
-
-1. Manter as rotas atuais dos apps antigos enquanto o Core unificado ganha paridade.
-2. Migrar primeiro as telas de leitura e dashboards.
-3. Migrar acoes/formularios depois de validar permissoes e auditoria.
-4. Ao atingir paridade funcional, trocar os destinos externos por rotas internas no Core.
-5. Desativar deployments antigos somente depois de validacao em producao.
+A plataforma usa uma linguagem operacional comum: navegacao previsivel, telas densas mas legiveis, cards apenas para itens ou paineis reais, e foco em execucao. Modulos com fluxo proprio podem adaptar a navegacao, desde que preservem acesso e hierarquia visual da suite.

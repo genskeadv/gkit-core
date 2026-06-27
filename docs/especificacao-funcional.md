@@ -2,48 +2,30 @@
 
 ## Papel do app
 
-O GKIT Core e a fonte central de identidade, acesso, carteiras, perfis, permissoes e modulos da plataforma GKIT. Nenhum aplicativo operacional deve decidir sozinho se um usuario pode entrar: o Core determina o usuario ativo e os aplicativos liberados para ele.
-
-## Publico
-
-- Administrador global.
-- Administrador de carteira.
-- Gestores autorizados a consultar modulos e indicadores consolidados.
+O GKIT Core e a base central de identidade, acesso, carteiras, perfis, permissoes e modulos da plataforma GKIT. Nenhum modulo operacional decide sozinho se um usuario pode entrar: o Core valida usuario ativo, apps liberados e permissoes.
 
 ## Funcionalidades principais
 
 - Login central com Supabase Auth.
-- Painel administrativo em `/admin`.
-- Cadastro e edicao de usuarios em `security.usuarios`.
-- Vinculo de usuarios a apps em `security.usuario_app_acessos`.
-- Vinculo de usuarios a carteiras em `security.usuario_carteiras`.
-- Cadastro e edicao de apps em `core.apps`.
-- Cadastro e edicao de perfis e permissoes.
+- Plataforma de entrada em `/plataforma`.
+- Administracao em `/admin`.
+- Cadastro e edicao de usuarios, carteiras, apps, perfis e permissoes.
 - Auditoria administrativa em `audit.eventos`.
-- Plataforma de entrada em `/plataforma`, exibindo modulos conforme acesso.
-- Modulos operacionais nativos para `crm`, `ciclo`, `flex` e `colab`.
-- CRM com oportunidades, empresas, contatos, propostas, atividades e interacoes.
-- Ciclo com cliente, onboarding, regularidade, documentos, ocorrencias, contratos, atas e Cockpit Cliente Integral.
-- Flex como fluxo financeiro-operacional: receitas Omie, despesas planejadas e realizadas, extrato Banco Inter, calendário de contas a pagar, colaboradores, comissões e tarefas do operador.
-- Colab como portal individual do colaborador, alimentado por publicações do Flex.
+- Modulos operacionais ativos exibidos conforme acesso.
 
-## Documentacao por modulo
+## Modulos ativos
 
-- `docs/modulos/core.md`
-- `docs/modulos/crm.md`
-- `docs/modulos/ciclo.md`
-- `docs/modulos/flex.md`
-- `docs/modulos/colab.md`
-- `docs/modulos/painel.md`
+- `ciclo`: gestao operacional de clientes, documentos, regularidade, ocorrencias, contratos, atas e cockpit.
+- `colab`: portal individual do colaborador, conectado ao cadastro e historico publicados pelo GKIT Flex.
+- `gkit_ate`: atendimento consultivo e tarefas importadas/operadas a partir do fluxo ASTREA.
+- `gkit_dir`: modulo diretivo.
+- `gkit_flex`: financeiro operacional canonico, com comissoes, contas a pagar, cadastros, auditoria e dashboard.
+- `gkit_new`: novos negocios, oportunidades, contatos, tarefas e gestao.
+- `gkit_performa`: ranking de performance operacional a partir da agenda.
 
-## Apps controlados
+## Modulos removidos
 
-Atualmente o Core registra e controla:
-
-- `ciclo`
-- `crm`
-- `flex`
-- `colab`
+Os codigos `crm`, `din`, `fix`, `flex` antigo e `intr` foram removidos do banco, do menu e das rotas executaveis. Qualquer acesso legado a `/modulos/crm`, `/modulos/din`, `/modulos/fix`, `/modulos/flex` ou `/modulos/intr` redireciona para `/plataforma`.
 
 ## Regra de acesso
 
@@ -52,23 +34,22 @@ Atualmente o Core registra e controla:
 - `security.usuarios.status` precisa ser `ativo`.
 - Usuario `admin_global` acessa todos os modulos ativos.
 - Demais usuarios acessam apenas apps com vinculo ativo em `security.usuario_app_acessos`.
+- Permissoes finas continuam em `security.permissoes` e `security.perfil_permissoes`.
 
-## Fora de escopo atual
+## Documentacao por modulo
 
-- Migracao de dados antigos.
-- Documentos reais no Colab; hoje sao demonstrativos derivados de pagamentos e comissoes.
-- Autoatendimento financeiro completo no Colab.
-- Cobranca, que permanece independente.
+- `docs/modulos/core.md`
+- `docs/modulos/ciclo.md`
+- `docs/modulos/colab.md`
+- `docs/modulos/gkit-flex.md`
+- `docs/modulos/gkit-new.md`
+- `docs/modulos/gkit-performa.md`
+- `docs/modulos/painel.md`
 
 ## Estado validado
 
-- Build aprovado em 2026-05-21.
-- Base central validada em `ozmpzuarwkkeopnaurlp`.
-- Apps ativos controlados pelo Core: `ciclo`, `crm`, `flex`, `colab`.
-- Usuario temporario de teste criado apenas para validacao, com acesso aos 4 apps ativos, e removido ao final.
-- Plataforma ajustada para exibir os modulos na ordem definida no Core e com resumo dinamico dos apps liberados.
-- Build aprovado em 2026-05-22 com 83 rotas no app unificado naquele marco.
-- Flex passa a concentrar receitas, despesas, comissões, calendário de contas a pagar, pagamentos previstos, validações, tarefas do operador e fechamentos mensais.
-- Colab consumira perfil, pagamentos, comissoes, beneficios leves e documentos derivados de publicacoes do Flex.
-- Revisao UX/UI aplicada em 2026-05-24: marca visual atualizada, favicon, menus recolhiveis, telas desktop com rolagem interna e tipografia mais leve.
-- Build aprovado em 2026-05-24 com 81 rotas no app unificado.
+- Build aprovado apos limpeza fisica dos modulos removidos.
+- Banco com schemas legados removidos: `crm`, `flex` antigo e `gkli_intr`.
+- Build atual com 98 rotas no app unificado.
+- `supabase db lint --linked --level warning` sem erros de schema.
+- Advisor restante conhecido: leaked password protection desativado no Supabase Auth, ajuste feito no painel/config.

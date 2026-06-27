@@ -2,7 +2,7 @@
 
 ## Papel
 
-O Ciclo acompanha a vida operacional do cliente no dia a dia. Cliente conquistado no CRM entra como onboarding no Ciclo e passa a ser monitorado por documentos, alertas, regularidade, ocorrencias, contratos, atas e Cockpit Cliente Integral.
+O Ciclo acompanha a vida operacional do cliente no dia a dia. Clientes em implantacao entram em onboarding e passam a ser monitorados por documentos, alertas, regularidade, ocorrencias, contratos, atas e Cockpit Cliente Integral.
 
 ## Funcionalidades prontas
 
@@ -60,5 +60,5 @@ O Ciclo acompanha a vida operacional do cliente no dia a dia. Cliente conquistad
 - Importacao XLSX precisa ser validada com a primeira carga real de clientes.
 - Duplicidade, normalizacao de CNPJ, administradora e contatos devem ser acompanhados na primeira carga.
 - Automacoes e IA no Ciclo permanecem como etapa futura.
-- Necessario validar o fluxo completo CRM ganho -> onboarding Ciclo -> regularidade inicial.
+- Necessario validar o fluxo completo de entrada do cliente -> onboarding Ciclo -> regularidade inicial.
 - Historico de importacoes agora registra usuario e carteiras do lote; vale confirmar esse recorte com usuarios reais depois da primeira carga.

@@ -2,17 +2,16 @@
 
 ## Papel
 
-O Colab e o portal individual do colaborador. Ele consome dados do Intr e mostra perfil, pagamentos, comissoes, beneficios leves e documentos derivados.
+O Colab e o portal individual do colaborador. Ele usa o e-mail do usuario autenticado para encontrar o cadastro financeiro em `gkit_flex_colaboradores` e exibir perfil, beneficios, comissoes, pagamentos e documentos derivados do GKIT Flex.
 
 ## Funcionalidades prontas
 
 - Cockpit individual.
-- Pagamentos.
-- Comissoes.
-- Beneficios.
-- Documentos demonstrativos.
+- Pagamentos derivados do contas a pagar do GKIT Flex.
+- Comissoes calculadas por carteira no GKIT Flex.
+- Beneficios cadastrados no complemento financeiro do colaborador.
+- Documentos demonstrativos gerados a partir de pagamentos e comissoes.
 - Perfil do colaborador.
-- Vinculo por e-mail do usuario autenticado com colaborador ativo no Intr.
 
 ## Telas principais
 
@@ -25,26 +24,15 @@ O Colab e o portal individual do colaborador. Ele consome dados do Intr e mostra
 
 ## Base tecnica
 
-- Consome schema `gkli_intr`.
-- Pagamentos reais importados no Intr, incluindo recibos CLT/pro-labore em PDF, aparecem no Colab pelas views/resumos existentes.
+- Cadastro: `public.gkit_flex_colaboradores`.
+- Comissoes: `public.comissao_resumos` e `public.comissao_execucoes`.
+- Pagamentos: `public.contas_pagar_itens`.
 - Rotas: `app/modulos/colab/*`.
 - Dados: `features/colab/queries.ts`.
 - Componentes: `features/colab/components.tsx`.
-- Nao possui menu lateral; usa navegacao superior.
 
-## UX/UI atual
+## Pontos de atencao
 
-- Visual alinhado a suite, mas com caracteristica propria sem sidebar.
-- Conteudo em wrapper com rolagem interna no desktop.
-- Navegacao por abas superiores.
-- Navegacao rapida fixa no mobile para pagamentos, comissoes, beneficios, documentos e perfil.
-- Listas financeiras ajustadas para leitura em celular, com valor liquido em destaque leve.
-- Tipografia leve e status por pílulas.
-
-## Pontos fracos e atencao
-
-- Documentos reais/anexos ainda nao fazem parte do escopo atual.
-- Beneficios dependem de evolucao da modelagem no Intr.
-- O vinculo por e-mail precisa ser validado com colaboradores reais.
-- A exibicao de pagamentos depende do colaborador do Intr estar corretamente vinculado ao usuario do Colab.
-- Falta fluxo de autoatendimento ou solicitacoes do colaborador, caso isso entre no escopo.
+- O vinculo depende do e-mail do usuario Core estar associado ao colaborador em `gkit_flex_colaboradores`.
+- Comissoes sao associadas pela carteira do colaborador; se a carteira estiver inconsistente com a carteira da execucao de comissoes, o historico aparece vazio.
+- Documentos ainda sao demonstrativos derivados, nao anexos reais.

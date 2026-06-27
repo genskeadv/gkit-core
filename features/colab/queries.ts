@@ -27,6 +27,13 @@ function dateValue(...values: unknown[]) {
   return text(values.find(Boolean), new Date().toISOString())
 }
 
+function competenceLabel(value: unknown) {
+  if (!value) return 'Sem competencia'
+  const date = new Date(String(value))
+  if (Number.isNaN(date.getTime())) return String(value)
+  return new Intl.DateTimeFormat('pt-BR', { month: 'long', timeZone: 'UTC', year: 'numeric' }).format(date)
+}
+
 function mapCollaborator(row: Record<string, unknown>): ColabCollaborator {
   return {
     id: text(row.id),
@@ -38,6 +45,48 @@ function mapCollaborator(row: Record<string, unknown>): ColabCollaborator {
     manager: text(row.gestor_nome, 'Sem gestor'),
     status: text(row.status, 'ativo'),
     admissionDate: dateValue(row.data_admissao, row.admissao_em, row.criado_em),
+  }
+}
+
+function mapGkitFlexPayment(row: Record<string, unknown>): ColabPayment {
+  const amount = numberValue(row.valor_previsto)
+  const paid = Boolean(row.pago)
+
+  return {
+    id: text(row.id),
+    type: text(row.origem_tipo, 'Pagamento'),
+    description: text(row.descricao, 'Pagamento GKIT Flex'),
+    competence: competenceLabel(row.competencia),
+    grossAmount: amount,
+    discountAmount: 0,
+    netAmount: amount,
+    status: paid ? 'pago' : 'previsto',
+    paymentDate: dateValue(row.updated_at, row.created_at, row.competencia),
+    commissionId: text(row.origem_resumo_id) || null,
+  }
+}
+
+function mapGkitFlexCommission(
+  row: Record<string, unknown>,
+  executionsById: Map<string, Record<string, unknown>>,
+  paidSummaryIds: Set<string>,
+): ColabCommission {
+  const execution = executionsById.get(text(row.execucao_id))
+  const summaryId = text(row.id)
+  const paid = paidSummaryIds.has(summaryId)
+
+  return {
+    id: summaryId,
+    reference: competenceLabel(execution?.competencia ?? row.created_at),
+    origin: text(row.carteira, 'Carteira'),
+    client: text(row.carteira, 'Carteira'),
+    category: text(row.categoria, 'Sem categoria'),
+    baseAmount: numberValue(row.valor_apos_reducao || row.valor_recebido),
+    percentage: numberValue(row.percentual_comissao),
+    amount: numberValue(row.comissao_final),
+    status: paid ? 'paga' : text(execution?.status, 'calculada'),
+    createdAt: dateValue(row.created_at, execution?.created_at),
+    paidAt: paid ? dateValue(row.updated_at, execution?.created_at) : null,
   }
 }
 
@@ -198,8 +247,53 @@ export async function getColabData(userEmail: string): Promise<ColabData> {
 
   const sourceProfile = flexProfileResult.data as Record<string, unknown>
   const collaborator = mapCollaborator(sourceProfile)
-  const payments: ColabPayment[] = []
-  const commissions: ColabCommission[] = []
+  const carteiraNome = text(sourceProfile.time_nome)
+
+  const [commissionRowsResult, paymentRowsResult] = await Promise.all([
+    admin()
+      .from('comissao_resumos')
+      .select('id, execucao_id, categoria, carteira, valor_recebido, valor_apos_reducao, percentual_comissao, comissao_final, created_at')
+      .eq('carteira', carteiraNome)
+      .order('created_at', { ascending: false })
+      .limit(24),
+    admin()
+      .from('contas_pagar_itens')
+      .select('id, competencia, descricao, valor_previsto, pago, origem_tipo, origem_resumo_id, raw, created_at, updated_at')
+      .eq('origem_tipo', 'comissao')
+      .order('competencia', { ascending: false })
+      .limit(200),
+  ])
+
+  const commissionRows = commissionRowsResult.error
+    ? []
+    : ((commissionRowsResult.data ?? []) as Array<Record<string, unknown>>)
+
+  const executionIds = [...new Set(commissionRows.map((row) => text(row.execucao_id)).filter(Boolean))]
+  const executionsResult = executionIds.length
+    ? await admin()
+      .from('comissao_execucoes')
+      .select('id, competencia, status, created_at')
+      .in('id', executionIds)
+    : { data: [], error: null }
+
+  const executionsById = new Map(
+    (((executionsResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [text(row.id), row])),
+  )
+
+  const paymentRows = paymentRowsResult.error
+    ? []
+    : ((paymentRowsResult.data ?? []) as Array<Record<string, unknown>>)
+      .filter((row) => text((row.raw as Record<string, unknown> | null)?.carteira) === carteiraNome)
+      .slice(0, 24)
+
+  const paidSummaryIds = new Set(
+    paymentRows
+      .filter((row) => Boolean(row.pago) && row.origem_resumo_id)
+      .map((row) => text(row.origem_resumo_id)),
+  )
+
+  const payments = paymentRows.map(mapGkitFlexPayment)
+  const commissions = commissionRows.map((row) => mapGkitFlexCommission(row, executionsById, paidSummaryIds))
 
   return {
     collaborator,

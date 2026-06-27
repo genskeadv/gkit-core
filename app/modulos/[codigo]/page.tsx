@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import { requireModuleAccess } from '@/lib/auth/platform'
+import { isRetiredModuleCode } from '@/lib/auth/retired-modules'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -12,8 +13,6 @@ const moduleArea: Record<string, string> = {
   colab: 'Portal do colaborador',
   sind: 'Portal do síndico',
 }
-
-const RETIRED_MODULE_CODES = new Set(['crm', 'din', 'fix', 'flex', 'intr'])
 
 export default async function ModuloPage({
   params,
@@ -41,7 +40,7 @@ export default async function ModuloPage({
     redirect('/modulos/gkit-performa')
   }
 
-  if (RETIRED_MODULE_CODES.has(codigo)) {
+  if (isRetiredModuleCode(codigo)) {
     redirect('/plataforma')
   }
 
