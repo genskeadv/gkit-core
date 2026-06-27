@@ -34,13 +34,6 @@ function formatCurrency(value: number) {
   }).format(value || 0);
 }
 
-function monthStatusLabel(status: MonthStatus) {
-  if (status === 'aberto') return 'Mês aberto';
-  if (status === 'fechado') return 'Mês fechado';
-  if (status === 'indisponivel') return 'Supabase indisponível';
-  return 'Mês não aberto';
-}
-
 export function CommissionUploader() {
   const [contasReceber, setContasReceber] = useState<File | null>(null);
   const [competencia, setCompetencia] = useState(() => new Date().toISOString().slice(0, 7));

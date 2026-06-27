@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { GKIT_PERFORMA_STORAGE_KEY } from './performa-analyzer'
+import { GKIT_PERFORMA_STORAGE_KEY } from './storage'
 
 type AuditTab = 'units' | 'duplicates' | 'excluded'
 

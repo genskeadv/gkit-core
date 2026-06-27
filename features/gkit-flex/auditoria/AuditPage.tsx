@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { EmptyState, MetricCard, MonthContextHeader, StatusBadge } from '../ui/FlexUI';
+import { MonthContextHeader } from '../ui/FlexUI';
 
 type Status = 'ok' | 'aviso' | 'bloqueio';
 

@@ -145,7 +145,7 @@ function buildBenefits(collaborator: ColabCollaborator, row?: Record<string, unk
 }
 
 function buildDocuments(
-  collaborator: ColabCollaborator,
+  _collaborator: ColabCollaborator,
   payments: ColabPayment[],
   commissions: ColabCommission[],
 ): ColabDocument[] {

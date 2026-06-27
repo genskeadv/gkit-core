@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { EmptyState, MetricCard, MonthContextHeader, StatusBadge } from '../ui/FlexUI';
+import { EmptyState, MetricCard, MonthContextHeader } from '../ui/FlexUI';
 
 type MonthStatus = 'aberto' | 'fechado' | 'nao_aberto' | 'indisponivel';
 
@@ -47,13 +47,6 @@ const emptySummary: Summary = { total: 0, totalPago: 0, totalAberto: 0, quantida
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
-}
-
-function statusLabel(status: MonthStatus) {
-  if (status === 'aberto') return 'Mês aberto';
-  if (status === 'fechado') return 'Mês fechado';
-  if (status === 'indisponivel') return 'Supabase indisponível';
-  return 'Mês não aberto';
 }
 
 function normalizeMoneyInput(value: string) {

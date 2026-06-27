@@ -93,14 +93,6 @@ async function requireIntrWrite(permission: IntrWritePermission) {
   return context
 }
 
-type OfxTransaction = {
-  amount: number
-  date: string
-  fitId: string
-  memo: string
-  name: string
-}
-
 type OfxPaymentMatch = {
   dataExtrato: string
   diferenca: number

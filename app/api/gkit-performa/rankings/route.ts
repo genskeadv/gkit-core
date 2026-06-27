@@ -4,6 +4,8 @@ import { requireGkitPerformaApiAccess } from '@/features/gkit-performa/api-auth'
 
 export const runtime = 'nodejs'
 
+const MAX_RANKING_ITEMS = 500
+
 function admin() {
   return createSupabaseAdminClient() as any
 }
@@ -28,6 +30,10 @@ export async function POST(request: NextRequest) {
 
     if (!ranking.length) {
       return NextResponse.json({ error: 'Nao ha ranking para gravar.' }, { status: 400 })
+    }
+
+    if (ranking.length > MAX_RANKING_ITEMS) {
+      return NextResponse.json({ error: `Ranking limitado a ${MAX_RANKING_ITEMS} itens por gravacao.` }, { status: 400 })
     }
 
     const rankingTipo = payload?.rankingTipo === 'executor' ? 'executor' : 'responsavel'

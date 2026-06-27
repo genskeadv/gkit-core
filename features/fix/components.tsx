@@ -142,90 +142,12 @@ export function FixShell({
   )
 }
 
-function miniRows(rows: IntrListRow[], empty: string) {
-  if (!rows.length) return <div className="suite-empty-block">{empty}</div>
-  return (
-    <div className="suite-table-list">
-      {rows.slice(0, 5).map((row) => (
-        <article key={row.id}>
-          <div>
-            <h3>{row.title}</h3>
-            <p>{row.subtitle}</p>
-          </div>
-          <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
-          <strong>{row.value}</strong>
-          <small>{row.meta}</small>
-        </article>
-      ))}
-    </div>
-  )
-}
-
 function countRowsByStatus(rows: IntrListRow[], terms: string[]) {
   return rows.filter((row) => {
     const searchable = `${row.status} ${row.title} ${row.subtitle} ${row.meta}`.toLowerCase()
     return terms.some((term) => searchable.includes(term))
   }).length
 }
-
-function statusTone(status?: string): IntrListRow['tone'] {
-  const normalized = (status ?? '').toLowerCase()
-  if (normalized.includes('fechado') || normalized.includes('conclu')) return 'success'
-  if (normalized.includes('erro') || normalized.includes('rejeit') || normalized.includes('bloque')) return 'danger'
-  if (normalized.includes('pend') || normalized.includes('aberto') || normalized.includes('previsto')) return 'warning'
-  return 'primary'
-}
-
-function taskCard({
-  action,
-  count,
-  description,
-  href,
-  priority,
-  title,
-  tone = 'warning',
-}: {
-  action: string
-  count: number
-  description: string
-  href: string
-  priority: 'Alta' | 'Média' | 'Baixa'
-  title: string
-  tone?: IntrListRow['tone']
-}) {
-  if (!count) return null
-  return (
-    <Link className={`fix-task-card ${tone ?? 'primary'}`} href={href} key={title}>
-      <div className="fix-task-card-top">
-        <span>{priority}</span>
-        <strong>{count}</strong>
-      </div>
-      <h3>{title}</h3>
-      <p>{description}</p>
-      <small>{action}</small>
-    </Link>
-  )
-}
-
-function todaySummary({
-  comissoesPendentes,
-  extratos,
-  importacoesPendentes,
-  pagamentosPendentes,
-}: {
-  comissoesPendentes: number
-  extratos: IntrListRow[]
-  importacoesPendentes: number
-  pagamentosPendentes: number
-}) {
-  return [
-    { label: 'Vencem / exigem ação', value: pagamentosPendentes, href: '/modulos/fix/pagamentos' },
-    { label: 'Entraram na operação', value: extratos.length, href: '/modulos/fix/financeiro/extratos' },
-    { label: 'Aguardam conferência', value: comissoesPendentes, href: '/modulos/fix/comissoes/conferir' },
-    { label: 'Importações com alerta', value: importacoesPendentes, href: '/modulos/fix/importacoes' },
-  ]
-}
-
 
 function cleanTask({
   action,

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { GKIT_PERFORMA_STORAGE_KEY } from './storage'
 
 type AgendaRow = {
   ate: string
@@ -76,7 +77,6 @@ type RankingItem = {
 type RankingType = 'responsavel' | 'executor'
 
 const TODAY = new Date()
-export const GKIT_PERFORMA_STORAGE_KEY = 'gkit_performa_latest_import_v1'
 
 const LEGAL_KEYWORDS = [
   'CONTESTACAO',
