@@ -34,6 +34,6 @@ export function GkitPerformaShell({
   )
 }
 
-export function GkitPerformaPage() {
-  return <GkitPerformaAnalyzer />
+export function GkitPerformaPage({ canSave }: { canSave: boolean }) {
+  return <GkitPerformaAnalyzer canSave={canSave} />
 }

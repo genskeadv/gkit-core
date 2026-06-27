@@ -491,13 +491,16 @@ function download(filename: string, content: string, type: string) {
   URL.revokeObjectURL(url)
 }
 
-export function GkitPerformaAnalyzer() {
+export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
   const [active, setActive] = useState<ImportResult | null>(null)
   const [endDate, setEndDate] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [rankingType, setRankingType] = useState<RankingType>('responsavel')
   const [responsavel, setResponsavel] = useState('')
+  const [saveMessage, setSaveMessage] = useState('')
+  const [saveStatus, setSaveStatus] = useState<'error' | 'success' | ''>('')
+  const [saving, setSaving] = useState(false)
   const [selectedName, setSelectedName] = useState('')
   const [startDate, setStartDate] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -545,12 +548,76 @@ export function GkitPerformaAnalyzer() {
       setStartDate(inputDate(minDate(dates)))
       setEndDate(inputDate(maxDate(dates)))
       setResponsavel('')
+      setSaveMessage('')
+      setSaveStatus('')
       setSelectedName('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nao foi possivel processar a planilha.')
     } finally {
       setLoading(false)
       event.target.value = ''
+    }
+  }
+
+  async function saveRanking() {
+    if (!active || !ranking.length || saving) return
+
+    setSaveMessage('')
+    setSaveStatus('')
+    setSaving(true)
+
+    try {
+      const payload = {
+        fileName: active.fileName,
+        filters: {
+          endDate,
+          rankingType,
+          responsavel,
+          startDate,
+        },
+        ranking: ranking.map((item) => ({
+          abertasAtrasadas: item.abertasAtrasadas,
+          concluidas: item.concluidas,
+          mediaDias: item.mediaDias,
+          name: item.name,
+          noPrazo: item.noPrazo,
+          percentualConclusao: item.percentualConclusao,
+          percentualNoPrazo: item.percentualNoPrazo,
+          posicao: item.posicao,
+          score: item.score,
+          unidades: item.unidades,
+        })),
+        rankingTipo: rankingType,
+        sheetName: active.sheetName,
+        summary: {
+          ates: units.filter((unit) => unit.tipoUnidade === 'ATE').length,
+          atrasadas: overdue,
+          concluidas: concluded,
+          excluidas: excludedRows.length,
+          prazosJuridicos: units.filter((unit) => unit.tipoUnidade === 'PRAZO_JURIDICO').length,
+          registros: active.rows.length,
+          unidades: units.length,
+        },
+      }
+
+      const response = await fetch('/api/gkit-performa/rankings', {
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      })
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result?.error || 'Nao foi possivel gravar o ranking.')
+      }
+
+      setSaveStatus('success')
+      setSaveMessage(`Ranking gravado com ${result.total} item(ns).`)
+    } catch (err) {
+      setSaveStatus('error')
+      setSaveMessage(err instanceof Error ? err.message : 'Nao foi possivel gravar o ranking.')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -649,15 +716,29 @@ export function GkitPerformaAnalyzer() {
               <h2>Ranking</h2>
               <p>Score ponderado por volume, conclusao, prazo, velocidade e abertas atrasadas.</p>
             </div>
-            <button
-              className="button secondary"
-              disabled={!ranking.length}
-              onClick={() => download('ranking-gkit-performa.csv', toCsv(ranking), 'text/csv;charset=utf-8')}
-              type="button"
-            >
-              Exportar CSV
-            </button>
+            <div className="gkit-performa-ranking-actions">
+              {canSave ? (
+                <button
+                  className="button"
+                  disabled={!ranking.length || saving}
+                  onClick={saveRanking}
+                  type="button"
+                >
+                  {saving ? 'Gravando...' : 'Gravar ranking'}
+                </button>
+              ) : null}
+              <button
+                className="button secondary"
+                disabled={!ranking.length}
+                onClick={() => download('ranking-gkit-performa.csv', toCsv(ranking), 'text/csv;charset=utf-8')}
+                type="button"
+              >
+                Exportar CSV
+              </button>
+            </div>
           </div>
+
+          {saveMessage ? <div className={`gkit-performa-save-message ${saveStatus}`}>{saveMessage}</div> : null}
 
           <div className="gkit-performa-table-wrap">
             <table className="gkit-performa-table">

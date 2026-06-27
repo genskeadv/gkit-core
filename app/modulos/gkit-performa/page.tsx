@@ -1,4 +1,5 @@
 import { moduleTarget, type ModuleSearchParams } from '@/lib/auth/platform'
+import { canAccess } from '@/lib/auth/permissions'
 import { GkitPerformaPage, GkitPerformaShell } from '@/features/gkit-performa/components'
 import { requireGkitPerformaContext } from '@/features/gkit-performa/queries'
 
@@ -8,7 +9,7 @@ export default async function GkitPerformaRoute({ searchParams }: { searchParams
 
   return (
     <GkitPerformaShell active="performance" usuario={context.usuario}>
-      <GkitPerformaPage />
+      <GkitPerformaPage canSave={canAccess(context.permissions, 'gkit_performa.rankings.write')} />
     </GkitPerformaShell>
   )
 }

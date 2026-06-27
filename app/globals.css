@@ -14660,6 +14660,33 @@ a.button {
   background: rgba(12, 83, 93, 0.08);
 }
 
+.gkit-performa-ranking-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.gkit-performa-save-message {
+  border: 1px solid var(--gkit-ate-line);
+  border-radius: 8px;
+  color: var(--gkit-ate-muted);
+  margin-bottom: 12px;
+  padding: 10px 12px;
+}
+
+.gkit-performa-save-message.success {
+  background: #eefaf2;
+  border-color: #b9e7c5;
+  color: #11622c;
+}
+
+.gkit-performa-save-message.error {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #9f1239;
+}
+
 .gkit-performa-row-button {
   background: transparent;
   border: 0;

@@ -9,8 +9,10 @@ O GKIT Performa mede a performance operacional a partir da exportacao XLSX da Ag
 - Codigo do app no Core: `gkit_performa`.
 - Codigo canonico de rota: `gkit-performa`.
 - Permissao principal: `gkit_performa.dashboard.read`.
-- Processamento inicial em memoria, no navegador, sem gravar a planilha no banco.
+- Permissoes de ranking: `gkit_performa.rankings.read` e `gkit_performa.rankings.write`.
+- Processamento da planilha em memoria, no navegador, sem gravar a planilha bruta no banco.
 - A ultima importacao processada fica temporariamente no `localStorage` para alimentar a pagina de auditoria.
+- O botao `Gravar ranking` salva snapshots compactos no schema `gkit_performa`.
 
 ## Regra de consolidacao
 
@@ -33,4 +35,11 @@ O score usa a mesma ponderacao do MVP original:
 
 ## Proximo passo recomendado
 
-Depois de validar a regra com usuarios reais, persistir importacoes em um schema dedicado `gkit_performa` com lotes, registros, unidades consolidadas e snapshots de ranking.
+Depois de validar a regra com usuarios reais, evoluir os snapshots para comparativos visuais entre periodos, responsaveis e rankings gravados.
+
+## Persistencia
+
+Schema: `gkit_performa`.
+
+- `gkit_performa.ranking_lotes`: cabecalho do snapshot, arquivo, filtros, resumo e usuario que gravou.
+- `gkit_performa.ranking_itens`: linhas do ranking gravado, com posicao, nome, metricas e score.
