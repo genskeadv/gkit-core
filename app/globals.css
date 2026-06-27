@@ -14545,6 +14545,376 @@ a.button {
     flex-direction: column;
   }
 }
+
+/* GKIT Flex UI/UX refinement pass: quieter, denser and closer to the core modules. */
+.gkit-flex-shell {
+  --gkit-flex-line: rgba(148, 163, 184, 0.2);
+  --gkit-flex-muted: #647084;
+  --gkit-flex-surface: #fff;
+  --gkit-flex-text: #202635;
+  background: #f7f8fb;
+  font-size: 13px;
+}
+
+.gkit-flex-bg {
+  background: linear-gradient(180deg, #fbfcff 0%, #f7f8fb 54%, #f5f7fb 100%);
+}
+
+.gkit-flex-sidebar {
+  background: rgba(255, 255, 255, 0.92);
+  gap: 10px;
+  padding: 14px;
+  width: 232px;
+}
+
+.gkit-flex-sidebar-header,
+.gkit-flex-sidebar-footer,
+.gkit-flex-shell .month-context-header,
+.gkit-flex-shell .dashboard-hero,
+.gkit-flex-shell .card,
+.gkit-flex-shell .metric,
+.gkit-flex-shell .module-card,
+.gkit-flex-shell .month-control-card,
+.gkit-flex-shell .upload-box,
+.gkit-flex-shell .preview-box,
+.gkit-flex-shell .empty-state,
+.gkit-flex-shell .checklist-item,
+.gkit-flex-shell .payable-import-box {
+  border-color: var(--gkit-flex-line) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.gkit-flex-sidebar-header {
+  min-height: 58px;
+  padding: 9px 10px;
+}
+
+.gkit-flex-sidebar-mark {
+  border-radius: 7px;
+  flex-basis: 34px;
+  font-size: 14px;
+  height: 34px;
+  width: 34px;
+}
+
+.gkit-flex-sidebar nav {
+  gap: 4px;
+}
+
+.gkit-flex-sidebar nav a {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  min-height: 34px;
+  padding: 7px 9px;
+}
+
+.gkit-flex-sidebar nav a.active {
+  box-shadow: none;
+}
+
+.gkit-flex-sidebar-footer {
+  padding: 10px;
+}
+
+.gkit-flex-shell .page-shell {
+  gap: 10px;
+  max-width: 1320px;
+  padding: 16px;
+}
+
+.gkit-flex-shell .wide-shell {
+  max-width: 1380px;
+}
+
+.gkit-flex-shell .month-context-header,
+.gkit-flex-shell .dashboard-hero {
+  min-height: 82px;
+  padding: 12px !important;
+}
+
+.gkit-flex-shell .month-context-header::before,
+.gkit-flex-shell .dashboard-hero::before {
+  display: none;
+}
+
+.gkit-flex-shell h1 {
+  font-size: clamp(20px, 1.8vw, 25px) !important;
+  line-height: 1.12 !important;
+  margin: 0;
+}
+
+.gkit-flex-shell h2,
+.gkit-flex-shell h3 {
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+  margin: 0;
+}
+
+.gkit-flex-shell p,
+.gkit-flex-shell .muted,
+.gkit-flex-shell .small-text {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.gkit-flex-shell .eyebrow,
+.gkit-flex-shell .metric-label,
+.gkit-flex-shell .field-label,
+.gkit-flex-shell th {
+  font-size: 10px !important;
+  line-height: 1.2;
+}
+
+.gkit-flex-shell .month-context-main,
+.gkit-flex-shell .month-context-side {
+  display: grid;
+  gap: 6px;
+}
+
+.gkit-flex-shell .month-context-side {
+  gap: 8px;
+}
+
+.gkit-flex-shell .month-context-statuses,
+.gkit-flex-shell .month-context-actions,
+.gkit-flex-shell .actions,
+.gkit-flex-shell .month-actions,
+.gkit-flex-shell .import-actions {
+  gap: 6px;
+}
+
+.gkit-flex-shell .grid-2,
+.gkit-flex-shell .grid-3,
+.gkit-flex-shell .grid-4,
+.gkit-flex-shell .dashboard-metrics,
+.gkit-flex-shell .dashboard-cards,
+.gkit-flex-shell .dashboard-extra {
+  gap: 8px !important;
+}
+
+.gkit-flex-shell .grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.gkit-flex-shell .grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.gkit-flex-shell .grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
+}
+
+.gkit-flex-shell .metric {
+  display: grid;
+  gap: 4px;
+  min-height: 64px;
+  padding: 8px 10px !important;
+}
+
+.gkit-flex-shell .metric-value,
+.gkit-flex-shell .module-main-value {
+  font-size: clamp(17px, 1.45vw, 20px) !important;
+  line-height: 1.05 !important;
+  margin: 0 !important;
+  overflow-wrap: anywhere;
+}
+
+.gkit-flex-shell .metric .small-text {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gkit-flex-shell .module-card {
+  gap: 8px;
+  min-height: 112px;
+  padding: 10px !important;
+}
+
+.gkit-flex-shell .module-card:hover {
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.055) !important;
+  transform: translateY(-1px);
+}
+
+.gkit-flex-shell .module-card-top,
+.gkit-flex-shell .month-control-card,
+.gkit-flex-shell .payable-import-box,
+.gkit-flex-shell .header-row {
+  gap: 10px;
+}
+
+.gkit-flex-shell .module-details {
+  gap: 4px;
+}
+
+.gkit-flex-shell .primary-button,
+.gkit-flex-shell .secondary-button,
+.gkit-flex-shell .danger-button,
+.gkit-flex-shell .home-link,
+.gkit-flex-shell .card-cta {
+  align-items: center;
+  display: inline-flex;
+  font-size: 12px;
+  justify-content: center;
+  min-height: 32px !important;
+  padding: 7px 10px !important;
+  white-space: nowrap;
+}
+
+.gkit-flex-shell .status-pill,
+.gkit-flex-shell .badge {
+  border: 1px solid transparent;
+  border-radius: 999px !important;
+  font-size: 11px;
+  min-height: 24px;
+  padding: 3px 8px;
+}
+
+.gkit-flex-shell .status-nao_aberto,
+.gkit-flex-shell .status-aviso,
+.gkit-flex-shell .badge {
+  background: #f8fafc;
+  border-color: #d9e1ec;
+  color: #4b5565;
+}
+
+.gkit-flex-shell .warning {
+  background: #f8fafc;
+  border-color: #d9e1ec;
+  color: #455468;
+}
+
+.gkit-flex-shell .success {
+  background: #f1fbf5;
+  border-color: #ccebd6;
+  color: #14532d;
+}
+
+.gkit-flex-shell .error {
+  background: #fff5f5;
+  border-color: #f6c8c8;
+  color: #8a1f1f;
+}
+
+.gkit-flex-shell .text-input,
+.gkit-flex-shell .inline-input,
+.gkit-flex-shell select,
+.gkit-flex-shell textarea,
+.gkit-flex-shell input[type="date"],
+.gkit-flex-shell input[type="month"],
+.gkit-flex-shell input[type="number"],
+.gkit-flex-shell input[type="text"],
+.gkit-flex-shell input[type="search"],
+.gkit-flex-shell input[type="file"] {
+  appearance: none;
+  background: #fff !important;
+  border-color: #d8e0eb !important;
+  box-shadow: none !important;
+  color: var(--gkit-flex-text);
+  font-size: 12px;
+  min-height: 32px;
+  outline: none;
+  padding: 6px 9px;
+}
+
+.gkit-flex-shell .text-input:focus,
+.gkit-flex-shell .inline-input:focus,
+.gkit-flex-shell select:focus,
+.gkit-flex-shell textarea:focus,
+.gkit-flex-shell input:focus {
+  border-color: rgba(93, 47, 117, 0.45) !important;
+  box-shadow: 0 0 0 3px rgba(93, 47, 117, 0.08) !important;
+}
+
+.gkit-flex-shell input[type="file"] {
+  cursor: pointer;
+  padding: 5px 8px;
+}
+
+.gkit-flex-shell input[type="file"]::file-selector-button {
+  background: #f8fafc;
+  border: 1px solid #d8e0eb;
+  border-radius: 6px;
+  color: #273041;
+  cursor: pointer;
+  font: inherit;
+  margin-right: 10px;
+  min-height: 24px;
+  padding: 3px 8px;
+}
+
+.gkit-flex-shell label {
+  gap: 4px;
+}
+
+.gkit-flex-shell .gkit-flex-form {
+  gap: 12px;
+}
+
+.gkit-flex-shell .gkit-flex-form section,
+.gkit-flex-shell .master-data-section,
+.gkit-flex-shell .card {
+  gap: 8px;
+  padding: 12px !important;
+}
+
+.gkit-flex-shell .gkit-flex-check {
+  background: #fff;
+  font-size: 12px;
+  min-height: 32px;
+  padding: 6px 9px;
+}
+
+.gkit-flex-shell .table-wrap {
+  max-height: min(60vh, 560px);
+}
+
+.gkit-flex-shell table {
+  font-size: 12px;
+}
+
+.gkit-flex-shell th,
+.gkit-flex-shell td {
+  padding: 7px 9px;
+}
+
+.gkit-flex-shell tbody tr:hover {
+  background: #f9fafc;
+}
+
+@media (max-width: 980px) {
+  .gkit-flex-sidebar {
+    width: auto;
+  }
+
+  .gkit-flex-sidebar nav {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 760px) {
+  .gkit-flex-shell .page-shell {
+    padding: 12px;
+  }
+
+  .gkit-flex-shell .metric {
+    min-height: 58px;
+  }
+
+  .gkit-flex-shell .month-actions,
+  .gkit-flex-shell .import-actions,
+  .gkit-flex-shell .actions {
+    width: 100%;
+  }
+
+  .gkit-flex-shell .primary-button,
+  .gkit-flex-shell .secondary-button,
+  .gkit-flex-shell .danger-button {
+    width: 100%;
+  }
+}
 .gkit-performa-page {
   display: grid;
   gap: 18px;
