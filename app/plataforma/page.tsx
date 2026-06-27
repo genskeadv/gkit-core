@@ -31,11 +31,7 @@ const moduleMeta: Record<string, Pick<ModuleCard, 'area' | 'icon'>> = {
   'gkit-flex': { area: 'Financial Xperience', icon: 'flex' },
   'gkit-new': { area: 'Novos negocios', icon: 'crm' },
   'gkit-performa': { area: 'Performance', icon: 'clock' },
-  intr: { area: 'Financial Xperience', icon: 'fix' },
-  fix: { area: 'Financial Xperience', icon: 'fix' },
-  flex: { area: 'Financial Xperience', icon: 'flex' },
   colab: { area: 'Portal do colaborador', icon: 'grid' },
-  din: { area: 'Faturamento', icon: 'fix' },
   painel: { area: 'Entrada unificada', icon: 'grid' },
   sind: { area: 'Portal do síndico', icon: 'ciclo' },
 }
@@ -88,31 +84,10 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
     area: 'Portal do colaborador',
     icon: 'grid',
   },
-  din: {
-    nome: 'GKIT DIN',
-    descricao: 'Faturamento mensal: repasses, clientes do ciclo e exportacao Omie.',
-    area: 'Faturamento',
-    icon: 'fix',
-    href: '/modulos/din',
-  },
-  fix: {
-    nome: 'GKIT FIX',
-    descricao: 'Financial Xperience: pagamentos, extratos, conciliação e inteligência financeira.',
-    area: 'Financial Xperience',
-    icon: 'fix',
-    href: '/modulos/fix',
-  },
-  flex: {
-    nome: 'GKLI Flex',
-    descricao: 'Operação financeira interna, comissões, pagamentos e fechamento.',
-    area: 'Financial Xperience',
-    icon: 'flex',
-    href: '/modulos/flex',
-  },
 }
 
 function canonicalCode(codigo: string) {
-  return codigo === 'intr' || codigo === 'fix' || codigo === 'flex' ? 'din' : codigo
+  return codigo
 }
 
 function Icon({ name }: { name: IconName }) {
@@ -299,7 +274,7 @@ export default async function PlataformaPage() {
   const { usuario, permissions, modules } = await requirePlatformContext()
   const hasAdmin = canAccess(permissions, 'admin.dashboard.read')
   const integratedModules = uniqueModules(modules).filter((module) => (
-    module.codigo !== 'cobranca' && module.codigo !== 'fix' && module.codigo !== 'intr' && module.codigo !== 'flex' && module.codigo !== 'crm'
+    !['cobranca', 'crm', 'din', 'fix', 'flex', 'intr'].includes(module.codigo)
   ))
   const visibleModules: ModuleCard[] = hasAdmin
     ? [adminModule, ...integratedModules]

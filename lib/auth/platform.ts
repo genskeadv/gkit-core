@@ -24,8 +24,6 @@ export type PlatformModule = {
 const MODULE_PATHS: Record<string, string> = {
   ciclo: '/modulos/ciclo',
   core: '/admin',
-  crm: '/modulos/crm',
-  fix: '/plataforma',
   'gkit-ate': '/modulos/gkit-ate',
   'gkit-dir': '/modulos/gkit-dir',
   'gkit-flex': '/modulos/gkit-flex',
@@ -36,15 +34,10 @@ const MODULE_PATHS: Record<string, string> = {
   gkit_flex: '/modulos/gkit-flex',
   gkit_new: '/modulos/gkit-new',
   gkit_performa: '/modulos/gkit-performa',
-  intr: '/plataforma',
   colab: '/modulos/colab',
-  din: '/plataforma',
-  flex: '/plataforma',
   painel: '/modulos/painel',
   sind: '/modulos/sind',
 }
-
-const LEGACY_MODULE_CODES = new Set(['intr', 'fix', 'flex'])
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -88,9 +81,7 @@ function normalizeModule(app: any): PlatformModule {
 }
 
 function activePlatformModules(data: any[] | null): PlatformModule[] {
-  return (data ?? [])
-    .map(normalizeModule)
-    .filter((module) => !LEGACY_MODULE_CODES.has(module.codigo))
+  return (data ?? []).map(normalizeModule)
 }
 
 async function listActiveModulesFor(usuario: PlatformUsuario, permissions: string[]): Promise<PlatformModule[]> {

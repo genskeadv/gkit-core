@@ -4,9 +4,10 @@
 begin;
 
 create schema if not exists gkit_ate;
+create schema if not exists extensions;
 
 create extension if not exists pgcrypto;
-create extension if not exists unaccent;
+create extension if not exists unaccent with schema extensions;
 
 create or replace function gkit_ate.set_updated_at()
 returns trigger
@@ -22,9 +23,10 @@ create or replace function gkit_ate.normalizar_slug(value text)
 returns text
 language sql
 immutable
+set search_path = gkit_ate, extensions, pg_temp
 as $$
   select trim(both '-' from regexp_replace(
-    lower(unaccent(coalesce(value, ''))),
+    lower(extensions.unaccent(coalesce(value, ''))),
     '[^a-z0-9]+',
     '-',
     'g'

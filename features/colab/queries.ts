@@ -27,13 +27,6 @@ function dateValue(...values: unknown[]) {
   return text(values.find(Boolean), new Date().toISOString())
 }
 
-function competenceLabel(value: unknown) {
-  if (!value) return 'Sem competencia'
-  const date = new Date(String(value))
-  if (Number.isNaN(date.getTime())) return String(value)
-  return new Intl.DateTimeFormat('pt-BR', { month: 'long', timeZone: 'UTC', year: 'numeric' }).format(date)
-}
-
 function mapCollaborator(row: Record<string, unknown>): ColabCollaborator {
   return {
     id: text(row.id),
@@ -45,40 +38,6 @@ function mapCollaborator(row: Record<string, unknown>): ColabCollaborator {
     manager: text(row.gestor_nome, 'Sem gestor'),
     status: text(row.status, 'ativo'),
     admissionDate: dateValue(row.data_admissao, row.admissao_em, row.criado_em),
-  }
-}
-
-function mapPayment(row: Record<string, unknown>): ColabPayment {
-  return {
-    id: text(row.id),
-    type: text(row.pagamento_tipo_nome ?? row.tipo, 'Pagamento'),
-    description: text(row.descricao ?? row.comissao_cliente ?? row.comissao_categoria, 'Demonstrativo do Intr'),
-    competence: competenceLabel(row.competencia),
-    grossAmount: numberValue(row.valor_bruto),
-    discountAmount: numberValue(row.valor_descontos),
-    netAmount: numberValue(row.valor_liquido),
-    status: text(row.status, 'previsto'),
-    paymentDate: dateValue(row.data_pagamento, row.data_prevista, row.competencia, row.criado_em),
-    commissionId: text(row.comissao_id) || null,
-  }
-}
-
-function mapCommission(row: Record<string, unknown>): ColabCommission {
-  return {
-    id: text(row.id),
-    reference: competenceLabel(row.competencia),
-    origin: [row.cliente, row.categoria_snapshot ?? row.categoria, row.tipo_comissao_snapshot]
-      .map((item) => text(item))
-      .filter(Boolean)
-      .join(' - ') || 'Comissao',
-    client: text(row.cliente, 'Sem cliente'),
-    category: text(row.categoria_snapshot ?? row.categoria, 'Sem categoria'),
-    baseAmount: numberValue(row.valor_base),
-    percentage: numberValue(row.percentual),
-    amount: numberValue(row.valor_comissao),
-    status: text(row.status, 'calculada'),
-    createdAt: dateValue(row.criado_em, row.competencia),
-    paidAt: text(row.pago_em) || null,
   }
 }
 
@@ -227,58 +186,30 @@ async function getGkitFlexProfileByEmail(normalizedEmail: string) {
 export async function getColabData(userEmail: string): Promise<ColabData> {
   const normalizedEmail = userEmail.trim()
   const flexProfileResult = await getGkitFlexProfileByEmail(normalizedEmail)
-  const profileResult = await admin()
-    .from('gkli_intr_colaborador_detalhe')
-    .select('*')
-    .ilike('email', normalizedEmail)
-    .maybeSingle()
 
-  const sourceProfile = flexProfileResult.data ?? profileResult.data
-  const legacyProfile = profileResult.data as Record<string, unknown> | null
-
-  if ((flexProfileResult.error && profileResult.error) || !sourceProfile) {
+  if (flexProfileResult.error || !flexProfileResult.data) {
     return emptyData(
-      !flexProfileResult.error && !profileResult.error,
-      flexProfileResult.error || profileResult.error
+      !flexProfileResult.error,
+      flexProfileResult.error
         ? 'Nao foi possivel consultar o cadastro de colaboradores.'
         : 'O e-mail do usuario ainda nao esta vinculado a um colaborador ativo no GKIT Flex.',
     )
   }
 
-  const collaborator = mapCollaborator(sourceProfile as Record<string, unknown>)
-  const historyCollaboratorId = text(legacyProfile?.id || collaborator.id)
-
-  const [paymentsResult, commissionsResult] = await Promise.all([
-    admin()
-      .from('gkli_intr_pagamentos_resumo')
-      .select('*')
-      .eq('colaborador_id', historyCollaboratorId)
-      .neq('status', 'cancelado')
-      .order('competencia', { ascending: false })
-      .limit(24),
-    admin()
-      .from('gkli_intr_comissoes_resumo')
-      .select('*')
-      .eq('colaborador_id', historyCollaboratorId)
-      .neq('status', 'cancelada')
-      .order('competencia', { ascending: false })
-      .limit(24),
-  ])
-
-  const payments = paymentsResult.error ? [] : ((paymentsResult.data ?? []) as Array<Record<string, unknown>>).map(mapPayment)
-  const commissions = commissionsResult.error
-    ? []
-    : ((commissionsResult.data ?? []) as Array<Record<string, unknown>>).map(mapCommission)
+  const sourceProfile = flexProfileResult.data as Record<string, unknown>
+  const collaborator = mapCollaborator(sourceProfile)
+  const payments: ColabPayment[] = []
+  const commissions: ColabCommission[] = []
 
   return {
     collaborator,
     payments,
     commissions,
-    benefits: buildBenefits(collaborator, sourceProfile as Record<string, unknown>),
+    benefits: buildBenefits(collaborator, sourceProfile),
     documents: buildDocuments(collaborator, payments, commissions),
     databaseReady: true,
     source: {
-      label: flexProfileResult.data ? 'GKIT Flex' : 'GKIT Intr',
+      label: 'GKIT Flex',
       status: 'sincronizado',
       message: `Dados sincronizados pelo e-mail institucional ${collaborator.email}.`,
     },

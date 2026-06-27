@@ -9,13 +9,11 @@ export const revalidate = 0
 
 const moduleArea: Record<string, string> = {
   ciclo: 'Governança',
-  crm: 'Novos negócios',
-  intr: 'Financial Xperience',
-  fix: 'Financial Xperience',
-  flex: 'Financial Xperience',
   colab: 'Portal do colaborador',
   sind: 'Portal do síndico',
 }
+
+const RETIRED_MODULE_CODES = new Set(['crm', 'din', 'fix', 'flex', 'intr'])
 
 export default async function ModuloPage({
   params,
@@ -43,12 +41,12 @@ export default async function ModuloPage({
     redirect('/modulos/gkit-performa')
   }
 
-  if (codigo === 'intr' || codigo === 'fix' || codigo === 'flex') {
+  if (RETIRED_MODULE_CODES.has(codigo)) {
     redirect('/plataforma')
   }
 
-  const context = await requireModuleAccess(codigo === 'fix' ? 'intr' : codigo)
-  const lookupCodigo = codigo === 'fix' ? 'intr' : codigo
+  const context = await requireModuleAccess(codigo)
+  const lookupCodigo = codigo
   const modulo = context.modules.find((item) => item.codigo === lookupCodigo)
 
   if (!modulo) {

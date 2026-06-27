@@ -1,16 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
-const LEGACY_MODULE_PREFIXES = ['/modulos/intr', '/modulos/fix', '/modulos/flex']
+const RETIRED_MODULE_PREFIXES = ['/modulos/crm', '/modulos/din', '/modulos/fix', '/modulos/flex', '/modulos/intr']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const sessionResponse = await updateSession(request)
-  const isLegacyModule = LEGACY_MODULE_PREFIXES.some((prefix) => (
+  const isRetiredModule = RETIRED_MODULE_PREFIXES.some((prefix) => (
     pathname === prefix || pathname.startsWith(`${prefix}/`)
   ))
 
-  if (isLegacyModule) {
+  if (isRetiredModule) {
     const response = NextResponse.redirect(new URL('/plataforma', request.url))
     sessionResponse.cookies.getAll().forEach((cookie) => {
       response.cookies.set(cookie)
