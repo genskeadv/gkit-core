@@ -14561,8 +14561,32 @@ a.button {
   text-align: center;
 }
 
-.gkit-performa-upload input {
+.gkit-performa-file-input {
   display: none;
+}
+
+.gkit-performa-empty-state {
+  align-items: center;
+  border: 1px solid var(--gkit-ate-line);
+  border-radius: 8px;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.gkit-performa-empty-state div {
+  display: grid;
+  gap: 4px;
+}
+
+.gkit-performa-empty-state strong {
+  color: var(--gkit-ate-text);
+}
+
+.gkit-performa-empty-state span {
+  color: var(--gkit-ate-muted);
+  font-size: 0.92rem;
 }
 
 .gkit-performa-import-status {

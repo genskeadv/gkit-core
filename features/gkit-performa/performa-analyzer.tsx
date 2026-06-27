@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type ChangeEvent } from 'react'
+import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 
 type AgendaRow = {
   ate: string
@@ -501,6 +501,7 @@ export function GkitPerformaAnalyzer() {
   const [responsavel, setResponsavel] = useState('')
   const [selectedName, setSelectedName] = useState('')
   const [startDate, setStartDate] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const responsaveis = useMemo(() => {
     return [...new Set((active?.units ?? []).map((unit) => unit.responsavel).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
@@ -512,6 +513,7 @@ export function GkitPerformaAnalyzer() {
   const excludedRows = active?.rows.filter((row) => row.excluded) ?? []
   const concluded = units.filter((unit) => unit.concluida).length
   const overdue = units.filter((unit) => unit.atrasada).length
+  const hasImport = Boolean(active)
 
   async function onFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -560,10 +562,16 @@ export function GkitPerformaAnalyzer() {
             <h2>Importar agenda</h2>
             <p>Use a exportacao da Agenda em XLSX. O processamento acontece neste navegador.</p>
           </div>
-          <label className="button gkit-performa-upload">
-            <input accept=".xlsx,.xls" onChange={onFileChange} type="file" />
+          <input
+            accept=".xlsx,.xls"
+            className="gkit-performa-file-input"
+            onChange={onFileChange}
+            ref={fileInputRef}
+            type="file"
+          />
+          <button className="button gkit-performa-upload" onClick={() => fileInputRef.current?.click()} type="button">
             {loading ? 'Processando...' : 'Carregar XLSX'}
-          </label>
+          </button>
         </div>
         {active ? (
           <div className="gkit-performa-import-status">
@@ -571,65 +579,70 @@ export function GkitPerformaAnalyzer() {
             <span>{active.sheetName} - {active.rows.length} linha(s) - {fmtDate(active.importedAt)}</span>
           </div>
         ) : (
-          <div className="suite-empty-block">
-            <strong>Nenhuma agenda carregada</strong>
-            <span>Importe a planilha para gerar ranking, detalhes e auditoria.</span>
+          <div className="gkit-performa-empty-state">
+            <div>
+              <strong>Nenhuma agenda carregada</strong>
+              <span>Carregue a planilha para liberar filtros, ranking, detalhe e auditoria.</span>
+            </div>
+            <button className="button secondary" onClick={() => fileInputRef.current?.click()} type="button">
+              Selecionar arquivo
+            </button>
           </div>
         )}
         {error ? <div className="suite-empty-block danger">{error}</div> : null}
       </section>
 
-      <section className="suite-panel gkit-performa-filters">
-        <div className="gkit-performa-filter-grid">
-          <label>
-            <span>Periodo inicial</span>
-            <input onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
-          </label>
-          <label>
-            <span>Periodo final</span>
-            <input onChange={(event) => setEndDate(event.target.value)} type="date" value={endDate} />
-          </label>
-          <label>
-            <span>Responsavel</span>
-            <select onChange={(event) => setResponsavel(event.target.value)} value={responsavel}>
-              <option value="">Todos</option>
-              {responsaveis.map((name) => <option key={name} value={name}>{name}</option>)}
-            </select>
-          </label>
-          <label>
-            <span>Ranking</span>
-            <select onChange={(event) => setRankingType(event.target.value as RankingType)} value={rankingType}>
-              <option value="responsavel">Responsavel</option>
-              <option value="executor">Executor / envolvido</option>
-            </select>
-          </label>
-        </div>
-      </section>
+      {hasImport ? <section className="suite-panel gkit-performa-filters">
+          <div className="gkit-performa-filter-grid">
+            <label>
+              <span>Periodo inicial</span>
+              <input onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
+            </label>
+            <label>
+              <span>Periodo final</span>
+              <input onChange={(event) => setEndDate(event.target.value)} type="date" value={endDate} />
+            </label>
+            <label>
+              <span>Responsavel</span>
+              <select onChange={(event) => setResponsavel(event.target.value)} value={responsavel}>
+                <option value="">Todos</option>
+                {responsaveis.map((name) => <option key={name} value={name}>{name}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Ranking</span>
+              <select onChange={(event) => setRankingType(event.target.value as RankingType)} value={rankingType}>
+                <option value="responsavel">Responsavel</option>
+                <option value="executor">Executor / envolvido</option>
+              </select>
+            </label>
+          </div>
+        </section> : null}
 
-      <section className="suite-kpi-grid compact gkit-performa-kpis">
-        <article className="metric-card">
-          <span className="metric-label">Registros</span>
-          <strong className="metric-value">{active?.rows.length ?? 0}</strong>
-          <span className="metric-hint">linhas importadas</span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Unidades</span>
-          <strong className="metric-value">{units.length}</strong>
-          <span className="metric-hint">{units.filter((unit) => unit.tipoUnidade === 'ATE').length} ATEs</span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Concluidas</span>
-          <strong className="metric-value">{concluded}</strong>
-          <span className="metric-hint">{pct(units.length ? (concluded / units.length) * 100 : 0)}</span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Atrasadas</span>
-          <strong className="metric-value">{overdue}</strong>
-          <span className="metric-hint">{excludedRows.length} descartes auditados</span>
-        </article>
-      </section>
+      {hasImport ? <section className="suite-kpi-grid compact gkit-performa-kpis">
+          <article className="metric-card">
+            <span className="metric-label">Registros</span>
+            <strong className="metric-value">{active?.rows.length ?? 0}</strong>
+            <span className="metric-hint">linhas importadas</span>
+          </article>
+          <article className="metric-card">
+            <span className="metric-label">Unidades</span>
+            <strong className="metric-value">{units.length}</strong>
+            <span className="metric-hint">{units.filter((unit) => unit.tipoUnidade === 'ATE').length} ATEs</span>
+          </article>
+          <article className="metric-card">
+            <span className="metric-label">Concluidas</span>
+            <strong className="metric-value">{concluded}</strong>
+            <span className="metric-hint">{pct(units.length ? (concluded / units.length) * 100 : 0)}</span>
+          </article>
+          <article className="metric-card">
+            <span className="metric-label">Atrasadas</span>
+            <strong className="metric-value">{overdue}</strong>
+            <span className="metric-hint">{excludedRows.length} descartes auditados</span>
+          </article>
+        </section> : null}
 
-      <section className="gkit-performa-grid">
+      {hasImport ? <section className="gkit-performa-grid">
         <div className="suite-panel">
           <div className="suite-panel-heading">
             <div>
@@ -721,9 +734,9 @@ export function GkitPerformaAnalyzer() {
             <div className="suite-empty-block">Sem responsavel selecionado.</div>
           )}
         </aside>
-      </section>
+      </section> : null}
 
-      <section className="suite-panel">
+      {hasImport ? <section className="suite-panel">
         <div className="suite-panel-heading">
           <div>
             <h2>Auditoria</h2>
@@ -736,7 +749,7 @@ export function GkitPerformaAnalyzer() {
           </div>
         </div>
         <AuditTable duplicates={active?.duplicates ?? []} rows={excludedRows} tab={auditTab} units={units} />
-      </section>
+      </section> : null}
     </div>
   )
 }
