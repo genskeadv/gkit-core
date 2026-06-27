@@ -5,10 +5,12 @@ O GKIT Performa mede a performance operacional a partir da exportacao XLSX da Ag
 ## Escopo atual
 
 - Rota: `/modulos/gkit-performa`.
+- Rota de auditoria: `/modulos/gkit-performa/auditoria`.
 - Codigo do app no Core: `gkit_performa`.
 - Codigo canonico de rota: `gkit-performa`.
 - Permissao principal: `gkit_performa.dashboard.read`.
 - Processamento inicial em memoria, no navegador, sem gravar a planilha no banco.
+- A ultima importacao processada fica temporariamente no `localStorage` para alimentar a pagina de auditoria.
 
 ## Regra de consolidacao
 

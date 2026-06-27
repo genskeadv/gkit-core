@@ -14722,6 +14722,27 @@ a.button {
   color: #fff;
 }
 
+.gkit-performa-audit-callout {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.gkit-performa-audit-callout div {
+  display: grid;
+  gap: 4px;
+}
+
+.gkit-performa-audit-callout h2 {
+  margin: 0;
+}
+
+.gkit-performa-audit-callout p {
+  color: var(--gkit-ate-muted);
+  margin: 0;
+}
+
 @media (max-width: 1100px) {
   .gkit-performa-filter-grid,
   .gkit-performa-grid {
@@ -14740,6 +14761,11 @@ a.button {
 
   .gkit-performa-detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .gkit-performa-audit-callout {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .gkit-performa-table {

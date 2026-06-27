@@ -73,10 +73,10 @@ type RankingItem = {
   units: WorkUnit[]
 }
 
-type AuditTab = 'units' | 'duplicates' | 'excluded'
 type RankingType = 'responsavel' | 'executor'
 
 const TODAY = new Date()
+export const GKIT_PERFORMA_STORAGE_KEY = 'gkit_performa_latest_import_v1'
 
 const LEGAL_KEYWORDS = [
   'CONTESTACAO',
@@ -493,7 +493,6 @@ function download(filename: string, content: string, type: string) {
 
 export function GkitPerformaAnalyzer() {
   const [active, setActive] = useState<ImportResult | null>(null)
-  const [auditTab, setAuditTab] = useState<AuditTab>('units')
   const [endDate, setEndDate] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -542,6 +541,7 @@ export function GkitPerformaAnalyzer() {
 
       const dates = mappedRows.map((row) => row.data).filter((date): date is Date => Boolean(date))
       setActive(result)
+      localStorage.setItem(GKIT_PERFORMA_STORAGE_KEY, JSON.stringify(result))
       setStartDate(inputDate(minDate(dates)))
       setEndDate(inputDate(maxDate(dates)))
       setResponsavel('')
@@ -736,106 +736,15 @@ export function GkitPerformaAnalyzer() {
         </aside>
       </section> : null}
 
-      {hasImport ? <section className="suite-panel">
-        <div className="suite-panel-heading">
+      {hasImport ? (
+        <section className="suite-panel gkit-performa-audit-callout">
           <div>
             <h2>Auditoria</h2>
-            <p>Veja as unidades consolidadas, ATEs repetidos e linhas descartadas.</p>
+            <p>A lista completa de unidades, ATEs E/F e linhas excluidas fica em uma pagina propria.</p>
           </div>
-          <div className="gkit-performa-tabs">
-            <button className={auditTab === 'units' ? 'active' : ''} onClick={() => setAuditTab('units')} type="button">Unidades</button>
-            <button className={auditTab === 'duplicates' ? 'active' : ''} onClick={() => setAuditTab('duplicates')} type="button">ATEs E/F</button>
-            <button className={auditTab === 'excluded' ? 'active' : ''} onClick={() => setAuditTab('excluded')} type="button">Excluidas</button>
-          </div>
-        </div>
-        <AuditTable duplicates={active?.duplicates ?? []} rows={excludedRows} tab={auditTab} units={units} />
-      </section> : null}
-    </div>
-  )
-}
-
-function AuditTable({
-  duplicates,
-  rows,
-  tab,
-  units,
-}: {
-  duplicates: DuplicateATE[]
-  rows: AgendaRow[]
-  tab: AuditTab
-  units: WorkUnit[]
-}) {
-  if (tab === 'duplicates') {
-    return (
-      <div className="gkit-performa-table-wrap">
-        <table className="gkit-performa-table">
-          <thead>
-            <tr><th>ATE</th><th>Linhas</th><th>Coluna E</th><th>Coluna F</th><th>Responsaveis</th><th>Executores</th></tr>
-          </thead>
-          <tbody>
-            {duplicates.slice(0, 200).map((item) => (
-              <tr key={item.ate}>
-                <td>{item.ate}</td>
-                <td>{item.linhas}</td>
-                <td>{item.apareceE ? 'Sim' : 'Nao'}</td>
-                <td>{item.apareceF ? 'Sim' : 'Nao'}</td>
-                <td>{item.responsaveis}</td>
-                <td>{item.executores}</td>
-              </tr>
-            ))}
-            {!duplicates.length ? <tr><td className="empty" colSpan={6}>Sem duplicidades E/F.</td></tr> : null}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
-
-  if (tab === 'excluded') {
-    return (
-      <div className="gkit-performa-table-wrap">
-        <table className="gkit-performa-table">
-          <thead>
-            <tr><th>Linha</th><th>Tipo</th><th>Titulo</th><th>Atendimento</th><th>Responsavel</th><th>Motivo</th></tr>
-          </thead>
-          <tbody>
-            {rows.slice(0, 300).map((row) => (
-              <tr key={row.linhaOriginal}>
-                <td>{row.linhaOriginal}</td>
-                <td>{row.tipo}</td>
-                <td>{row.tituloE}</td>
-                <td>{row.tituloF}</td>
-                <td>{row.responsavel}</td>
-                <td>{row.reason}</td>
-              </tr>
-            ))}
-            {!rows.length ? <tr><td className="empty" colSpan={6}>Sem exclusoes.</td></tr> : null}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
-
-  return (
-    <div className="gkit-performa-table-wrap">
-      <table className="gkit-performa-table">
-        <thead>
-          <tr><th>ID</th><th>Tipo</th><th>Responsavel</th><th>Executor</th><th>Prazo</th><th>Status</th><th>Linhas</th></tr>
-        </thead>
-        <tbody>
-          {units.slice(0, 300).map((unit) => (
-            <tr key={unit.id}>
-              <td>{unit.id}</td>
-              <td>{unit.tipoUnidade}</td>
-              <td>{unit.responsavel}</td>
-              <td>{unit.executor}</td>
-              <td>{fmtDate(unit.dataPrazo)}</td>
-              <td>{unit.status}</td>
-              <td>{unit.linhasOrigem.join(', ')}</td>
-            </tr>
-          ))}
-          {!units.length ? <tr><td className="empty" colSpan={7}>Sem unidades.</td></tr> : null}
-        </tbody>
-      </table>
+          <a className="button secondary" href="/modulos/gkit-performa/auditoria">Abrir auditoria</a>
+        </section>
+      ) : null}
     </div>
   )
 }

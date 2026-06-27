@@ -5,18 +5,21 @@ import { GkitPerformaAnalyzer } from './performa-analyzer'
 
 const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-performa', title: 'Performance' },
+  { href: '/modulos/gkit-performa/auditoria', title: 'Auditoria' },
 ]
 
 export function GkitPerformaShell({
+  active = 'performance',
   children,
   usuario,
 }: {
+  active?: 'auditoria' | 'performance'
   children: ReactNode
   usuario: PlatformUsuario
 }) {
   return (
     <ModuleShell
-      activeHref="/modulos/gkit-performa"
+      activeHref={active === 'auditoria' ? '/modulos/gkit-performa/auditoria' : '/modulos/gkit-performa'}
       brand="Performance"
       description="Ranking operacional a partir da agenda, consolidando ATEs e prazos juridicos reais."
       eyebrow="GKIT Performa"

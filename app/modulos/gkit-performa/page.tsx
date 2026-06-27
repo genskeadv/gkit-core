@@ -7,7 +7,7 @@ export default async function GkitPerformaRoute({ searchParams }: { searchParams
   const context = await requireGkitPerformaContext(moduleTarget('/modulos/gkit-performa', params))
 
   return (
-    <GkitPerformaShell usuario={context.usuario}>
+    <GkitPerformaShell active="performance" usuario={context.usuario}>
       <GkitPerformaPage />
     </GkitPerformaShell>
   )
