@@ -12,7 +12,7 @@ export default async function GkitFlexEditarColaboradorPage({ params }: { params
   const data = await getGkitFlexColaboradorFormData(id);
 
   return (
-    <AppFrame>
+    <AppFrame usuario={context.usuario}>
       <GkitFlexColaboradorForm data={data} />
     </AppFrame>
   );

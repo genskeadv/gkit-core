@@ -1,4 +1,5 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '../audit';
 import { sanitizeCompetencia } from './dashboardPersistence';
 
 export type TrendDirection = 'up' | 'down' | 'stable' | 'new';
@@ -73,15 +74,6 @@ type MonthNumbers = {
   semCategoria: number;
   vencimentos: Map<number, number>;
 };
-
-function getSupabaseAdmin(): SupabaseClient | null {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceRoleKey) return null;
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
 
 function roundMoney(value: number): number {
   return Math.round((Number(value) || 0) * 100) / 100;

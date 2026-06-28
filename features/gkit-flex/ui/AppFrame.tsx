@@ -3,9 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { BrandLogo } from '@/features/shared/brand-logo';
+import type { PlatformUsuario } from '@/lib/auth/platform';
 
 const navItems = [
   { href: '/modulos/gkit-flex', label: 'Cockpit' },
+  { href: '/modulos/gkit-flex/previsoes', label: 'Previsoes' },
   { href: '/modulos/gkit-flex/receitas', label: 'Receitas' },
   { href: '/modulos/gkit-flex/pagamentos', label: 'Pagamentos' },
   { href: '/modulos/gkit-flex/colaboradores', label: 'Colaboradores' },
@@ -19,14 +22,14 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function AppFrame({ children }: { children: ReactNode }) {
+export function AppFrame({ children, usuario }: { children: ReactNode; usuario: PlatformUsuario }) {
   const pathname = usePathname();
 
   return (
-    <div className="gkit-flex-shell">
-      <aside className="gkit-flex-sidebar">
-        <Link className="gkit-flex-sidebar-header" href="/modulos/gkit-flex">
-          <div className="gkit-flex-sidebar-mark" aria-hidden="true">G</div>
+    <main className="module-shell gkit-flex-shell gkit-flex-operational-shell">
+      <aside className="module-sidebar gkit-flex-sidebar">
+        <Link className="module-sidebar-header gkit-flex-sidebar-header" href="/modulos/gkit-flex">
+          <BrandLogo className="module-sidebar-mark gkit-flex-sidebar-mark" label="Gestao mensal" />
           <div>
             <strong>GKIT Flex</strong>
             <small>Gestao mensal</small>
@@ -41,16 +44,18 @@ export function AppFrame({ children }: { children: ReactNode }) {
           ))}
         </nav>
 
-        <div className="gkit-flex-sidebar-footer">
-          <span>Operacao Flex</span>
-          <span className="sidebar-badge">Integrado ao Core</span>
+        <div className="module-sidebar-footer gkit-flex-sidebar-footer">
+          <span>{usuario.nome}</span>
+          <span className="sidebar-badge">{usuario.tipo.replace('_', ' ')}</span>
         </div>
       </aside>
 
-      <section className="gkit-flex-main">
-        <div className="gkit-flex-bg" />
-        {children}
+      <section className="module-main gkit-flex-main">
+        <div className="platform-bg gkit-flex-bg" />
+        <div className="module-page-content gkit-flex-module-content">
+          {children}
+        </div>
       </section>
-    </div>
+    </main>
   );
 }

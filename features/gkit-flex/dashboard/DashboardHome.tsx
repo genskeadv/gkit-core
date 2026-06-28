@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { EmptyState, MetricCard, MonthContextHeader, StatusBadge } from '../ui/FlexUI';
 
 type MonthStatus = 'aberto' | 'fechado' | 'nao_aberto';
-type ActionKey = 'receitas' | 'pagar' | 'comissoes' | 'colaboradores';
+type ActionKey = 'receitas' | 'pagar' | 'comparativo' | 'colaboradores';
 
 type SummaryRow = {
   categoria: string;
@@ -36,6 +36,15 @@ type PayablePreview = {
   valorImportadoManual: number;
   issues: ImportIssue[];
   sample: Array<{ categoria: string; valorPrevisto: number; pago: boolean }>;
+};
+
+type ComparisonRow = {
+  chave: string;
+  label: string;
+  previsto: number;
+  realizado: number;
+  diferenca: number;
+  variacaoPercentual: number | null;
 };
 
 type DashboardSummary = {
@@ -70,7 +79,30 @@ type DashboardSummary = {
     total: number;
     ativos: number;
     totalMensal: number;
-    pagamentos: Array<{ id: string; nome: string; carteira: string | null; total: number }>;
+    pagamentos: Array<{
+      id: string;
+      nome: string;
+      carteira: string | null;
+      receitaMes: number;
+      comissaoMes: number;
+      pagamentoBase: number;
+      total: number;
+    }>;
+  };
+  comparativo: {
+    resumo: {
+      totalReceitasPrevistas: number;
+      totalReceitasRealizadas: number;
+      diferencaReceitas: number;
+      totalPagamentosPrevistos: number;
+      totalPagamentosRealizados: number;
+      diferencaPagamentos: number;
+      saldoPrevisto: number;
+      saldoRealizado: number;
+      diferencaSaldo: number;
+    };
+    receitasPorTipo: ComparisonRow[];
+    pagamentosPorCategoria: ComparisonRow[];
   };
   saldo: {
     recebidoMenosPagarTotal: number;
@@ -85,6 +117,11 @@ function currentMonthValue() {
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+}
+
+function formatPercent(value: number | null) {
+  if (value === null) return '-';
+  return `${value > 0 ? '+' : ''}${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(value)}%`;
 }
 
 function formatCompetencia(value: string) {
@@ -295,9 +332,9 @@ export function DashboardHome() {
   }, [competenciaParam]);
 
   const recebido = data?.comissoes.latestExecution?.total_valor_recebido || 0;
-  const comissoes = data?.comissoes.latestExecution?.total_comissao || 0;
   const pagamentosEfetuadosTotal = data?.contasPagar.totalPago || 0;
   const colaboradoresTotal = data?.colaboradores.totalMensal || 0;
+  const comparativoSaldo = data?.comparativo.resumo.diferencaSaldo || 0;
   const monthNotOpened = data?.comissoes.status === 'nao_aberto' && data?.contasPagar.status === 'nao_aberto';
   const monthIsOpen = data?.comissoes.status === 'aberto' || data?.contasPagar.status === 'aberto';
   const monthIsClosed = data?.comissoes.status === 'fechado' || data?.contasPagar.status === 'fechado';
@@ -324,8 +361,8 @@ export function DashboardHome() {
       <section className="flex-cockpit-grid">
         <ActionCard active={active === 'receitas'} eyebrow="Importacao" title="Contas a receber" value={formatMoney(recebido)} helper="Previa da receita e gravacao" onClick={() => setActive('receitas')} />
         <ActionCard active={active === 'pagar'} eyebrow="Importacao" title="Pagamentos efetuados" value={formatMoney(pagamentosEfetuadosTotal)} helper={`${data?.contasPagar.quantidadePaga || 0} realizado(s)`} onClick={() => setActive('pagar')} />
-        <ActionCard active={active === 'comissoes'} eyebrow="Preview" title="Comissoes" value={formatMoney(comissoes)} helper={`${data?.comissoes.latestExecution?.audit_count || 0} apontamento(s)`} onClick={() => setActive('comissoes')} />
-        <ActionCard active={active === 'colaboradores'} eyebrow="Pagamentos" title="Colaboradores" value={formatMoney(colaboradoresTotal)} helper={`${data?.colaboradores.ativos || 0} ativo(s)`} onClick={() => setActive('colaboradores')} />
+        <ActionCard active={active === 'comparativo'} eyebrow="Fechamento" title="Comparativo" value={formatMoney(comparativoSaldo)} helper="previsto x realizado" onClick={() => setActive('comparativo')} />
+        <ActionCard active={active === 'colaboradores'} eyebrow="Equipe" title="Colaboradores" value={formatMoney(colaboradoresTotal)} helper="pagamentos e comissoes" onClick={() => setActive('colaboradores')} />
       </section>
 
       <section className="card flex-cockpit-panel">
@@ -390,22 +427,25 @@ export function DashboardHome() {
           </>
         ) : null}
 
-        {active === 'comissoes' ? (
+        {active === 'comparativo' ? (
           <>
             <div className="header-row compact-header">
               <div>
-                <p className="eyebrow">Comissoes</p>
-                <h2>Preview das comissoes do mes</h2>
-                <p className="muted small-text">Mostra a ultima receita gravada e as comissoes calculadas para a competencia.</p>
+                <p className="eyebrow">Comparativo</p>
+                <h2>Previsto x realizado por categoria</h2>
+                <p className="muted small-text">Leitura do mes aberto, comparando a previsao mensal com as receitas e pagamentos ja importados.</p>
               </div>
-              <a className="secondary-button" href={`/modulos/gkit-flex/comissoes?competencia=${competenciaParam}`}>Abrir detalhes</a>
+              <a className="secondary-button" href={`/modulos/gkit-flex/previsoes?competencia=${competenciaParam}`}>Abrir previsoes</a>
             </div>
             <section className="grid-3 dashboard-metrics">
-              <MetricCard label="Receita base" value={formatMoney(recebido)} />
-              <MetricCard label="Base reduzida" value={formatMoney(data?.comissoes.latestExecution?.total_base_reduzida || 0)} />
-              <MetricCard label="Comissao final" value={formatMoney(comissoes)} tone={comissoes ? 'good' : 'default'} />
+              <MetricCard label="Saldo previsto" value={formatMoney(data?.comparativo.resumo.saldoPrevisto || 0)} />
+              <MetricCard label="Saldo realizado" value={formatMoney(data?.comparativo.resumo.saldoRealizado || 0)} tone={(data?.comparativo.resumo.saldoRealizado || 0) < 0 ? 'warning' : 'good'} />
+              <MetricCard label="Diferenca" value={formatMoney(comparativoSaldo)} tone={comparativoSaldo < 0 ? 'warning' : 'good'} />
             </section>
-            <CategoryTable rows={(data?.comissoes.totalsByCategory || []).map((row) => ({ categoria: row.categoria, total: row.comissao_final, pago: 0, aberto: row.valor_recebido, quantidade: 0 }))} valueLabel="Comissao" empty="Nenhuma comissao calculada para o mes." />
+            <div className="forecast-comparison-grid">
+              <ComparisonTable title="Receitas por categoria" rows={data?.comparativo.receitasPorTipo || []} empty="Sem previsao ou receita realizada para comparar." />
+              <ComparisonTable title="Pagamentos por categoria" rows={data?.comparativo.pagamentosPorCategoria || []} empty="Sem previsao ou pagamento realizado para comparar." />
+            </div>
           </>
         ) : null}
 
@@ -414,15 +454,15 @@ export function DashboardHome() {
             <div className="header-row compact-header">
               <div>
                 <p className="eyebrow">Colaboradores</p>
-                <h2>Pagamentos por colaborador</h2>
-                <p className="muted small-text">Resumo dos pagamentos mensais cadastrados para colaboradores ativos no Flex.</p>
+                <h2>Receitas e pagamentos por colaborador</h2>
+                <p className="muted small-text">Linha por colaborador com receita do mes, comissoes calculadas e pagamento mensal estimado.</p>
               </div>
               <a className="secondary-button" href="/modulos/gkit-flex/colaboradores">Abrir colaboradores</a>
             </div>
             <section className="grid-3 dashboard-metrics">
-              <MetricCard label="Total mensal" value={formatMoney(colaboradoresTotal)} tone={colaboradoresTotal ? 'good' : 'default'} />
+              <MetricCard label="Pagamentos + comissoes" value={formatMoney(colaboradoresTotal)} tone={colaboradoresTotal ? 'good' : 'default'} />
               <MetricCard label="Colaboradores" value={data?.colaboradores.total || 0} help={`${data?.colaboradores.ativos || 0} ativo(s)`} />
-              <MetricCard label="Com pagamento" value={data?.colaboradores.pagamentos.length || 0} help="exibidos no resumo" />
+              <MetricCard label="Com movimento" value={data?.colaboradores.pagamentos.length || 0} help="exibidos no resumo" />
             </section>
             <CollaboratorTable rows={data?.colaboradores.pagamentos || []} />
           </>
@@ -431,6 +471,41 @@ export function DashboardHome() {
 
       {loading ? <p className="muted small-text">Atualizando cockpit...</p> : null}
     </main>
+  );
+}
+
+function ComparisonTable({ title, rows, empty }: { title: string; rows: ComparisonRow[]; empty: string }) {
+  if (!rows.length) return <EmptyState title={title} description={empty} />;
+  return (
+    <div className="forecast-comparison-panel">
+      <div className="header-row compact-header">
+        <h3>{title}</h3>
+      </div>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Categoria</th>
+              <th className="text-right">Previsto</th>
+              <th className="text-right">Realizado</th>
+              <th className="text-right">Diferenca</th>
+              <th className="text-right">Var.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.chave}>
+                <td>{row.label}</td>
+                <td className="text-right">{formatMoney(row.previsto)}</td>
+                <td className="text-right"><strong>{formatMoney(row.realizado)}</strong></td>
+                <td className={`text-right ${row.diferenca < 0 ? 'negative-value' : 'positive-value'}`}>{formatMoney(row.diferenca)}</td>
+                <td className="text-right">{formatPercent(row.variacaoPercentual)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
@@ -498,8 +573,12 @@ function CategoryTable({
   );
 }
 
-function CollaboratorTable({ rows }: { rows: Array<{ id: string; nome: string; carteira: string | null; total: number }> }) {
-  if (!rows.length) return <EmptyState title="Sem pagamentos cadastrados" description="Cadastre os dados financeiros dos colaboradores para ver o resumo aqui." />;
+function CollaboratorTable({
+  rows,
+}: {
+  rows: Array<{ id: string; nome: string; carteira: string | null; receitaMes: number; comissaoMes: number; pagamentoBase: number; total: number }>;
+}) {
+  if (!rows.length) return <EmptyState title="Sem movimento por colaborador" description="Importe receitas ou cadastre os dados financeiros dos colaboradores para ver o resumo aqui." />;
   return (
     <div className="table-wrap">
       <table>
@@ -507,6 +586,9 @@ function CollaboratorTable({ rows }: { rows: Array<{ id: string; nome: string; c
           <tr>
             <th>Colaborador</th>
             <th>Carteira</th>
+            <th className="text-right">Receita no mes</th>
+            <th className="text-right">Comissoes</th>
+            <th className="text-right">Pagamento base</th>
             <th className="text-right">Total</th>
           </tr>
         </thead>
@@ -515,6 +597,9 @@ function CollaboratorTable({ rows }: { rows: Array<{ id: string; nome: string; c
             <tr key={row.id}>
               <td><strong>{row.nome}</strong></td>
               <td>{row.carteira || '-'}</td>
+              <td className="text-right">{formatMoney(row.receitaMes)}</td>
+              <td className="text-right">{formatMoney(row.comissaoMes)}</td>
+              <td className="text-right">{formatMoney(row.pagamentoBase)}</td>
               <td className="text-right"><strong>{formatMoney(row.total)}</strong></td>
             </tr>
           ))}

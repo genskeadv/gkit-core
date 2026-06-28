@@ -15431,6 +15431,65 @@ a.button {
   width: 100%;
 }
 
+.gkit-flex-shell .forecast-workspace,
+.gkit-flex-shell .forecast-section {
+  display: grid;
+  gap: 14px;
+}
+
+.gkit-flex-shell .forecast-tabs {
+  background: rgba(245, 247, 251, 0.88);
+  border: 1px solid var(--gkit-flex-line);
+  border-radius: var(--suite-module-card-radius);
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  width: fit-content;
+}
+
+.gkit-flex-shell .forecast-tabs button {
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--suite-module-card-radius) - 2px);
+  color: var(--gkit-flex-muted);
+  cursor: pointer;
+  font: inherit;
+  min-height: 32px;
+  padding: 7px 12px;
+}
+
+.gkit-flex-shell .forecast-tabs button.active,
+.gkit-flex-shell .forecast-tabs button:hover {
+  background: #fff;
+  color: var(--gkit-flex-text);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.gkit-flex-shell .compact-button {
+  min-height: 30px !important;
+  padding: 5px 9px !important;
+}
+
+.gkit-flex-shell .short-input {
+  max-width: 76px;
+}
+
+.gkit-flex-shell .forecast-comparison-grid {
+  align-items: start;
+}
+
+.gkit-flex-shell .forecast-comparison-panel {
+  margin: 0;
+}
+
+.gkit-flex-shell .positive-value {
+  color: #0f7b46;
+}
+
+.gkit-flex-shell .negative-value {
+  color: #b42318;
+}
+
 @media (max-width: 980px) {
   .gkit-flex-shell .flex-cockpit-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -15821,5 +15880,231 @@ a.button {
 
   .gkit-performa-table {
     min-width: 680px;
+  }
+}
+
+/* Final cockpit parity pass: GKIT New is the visual source of truth. */
+.gkit-flex-operational-shell.gkit-flex-shell {
+  --new-accent: #5d2f75;
+  --new-accent-border: rgba(93, 47, 117, 0.22);
+  --new-accent-soft: rgba(93, 47, 117, 0.09);
+  --new-border: rgba(148, 163, 184, 0.24);
+  --new-ink: #131927;
+  --new-muted: #475569;
+  --new-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+  --new-shadow-soft: 0 10px 26px rgba(15, 23, 42, 0.04);
+  --new-surface: rgba(255, 255, 255, 0.94);
+  background: #f6f7fb;
+  grid-template-columns: 304px minmax(0, 1fr);
+}
+
+.gkit-flex-operational-shell .module-sidebar {
+  background: rgba(255, 255, 255, 0.88);
+  border-right: 1px solid var(--new-border);
+  box-shadow: 14px 0 44px rgba(15, 23, 42, 0.045);
+  gap: 14px;
+  padding: 24px;
+  width: auto !important;
+}
+
+.gkit-flex-operational-shell .module-sidebar-header,
+.gkit-flex-operational-shell .module-sidebar-footer {
+  background: var(--new-surface);
+  border-color: var(--new-border);
+  border-radius: 8px;
+  box-shadow: var(--new-shadow-soft);
+}
+
+.gkit-flex-operational-shell .module-sidebar-header strong,
+.gkit-flex-operational-shell .module-sidebar-header small,
+.gkit-flex-operational-shell .module-sidebar-footer span {
+  color: var(--new-ink);
+}
+
+.gkit-flex-operational-shell .module-sidebar-mark {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px var(--new-border);
+}
+
+.gkit-flex-operational-shell .module-sidebar nav {
+  gap: 8px;
+}
+
+.gkit-flex-operational-shell .module-sidebar a:not(.module-sidebar-header) {
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 450;
+  min-height: 44px;
+  padding: 12px 13px;
+}
+
+.gkit-flex-operational-shell .module-sidebar a.active {
+  background: var(--new-accent);
+  box-shadow: 0 10px 22px rgba(93, 47, 117, 0.18);
+  color: #fff;
+}
+
+.gkit-flex-operational-shell .module-main {
+  background: transparent;
+  padding: 16px 18px 22px;
+}
+
+.gkit-flex-operational-shell .module-page-content,
+.gkit-flex-operational-shell .page-shell {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  max-width: none;
+  padding: 0;
+  width: 100%;
+}
+
+.gkit-flex-operational-shell .month-context-header {
+  background: var(--new-surface) !important;
+  border: 1px solid var(--new-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--new-shadow) !important;
+  margin: 0 0 10px !important;
+  min-height: 134px;
+  padding: 14px 18px 10px !important;
+}
+
+.gkit-flex-operational-shell .month-context-header h1 {
+  color: var(--new-ink);
+  font-size: 30px !important;
+  font-weight: 500 !important;
+  line-height: 1.08 !important;
+}
+
+.gkit-flex-operational-shell .month-context-header p,
+.gkit-flex-operational-shell .month-context-header .eyebrow {
+  color: var(--new-muted) !important;
+  font-size: 13px !important;
+}
+
+.gkit-flex-operational-shell .flex-cockpit-grid {
+  gap: 10px !important;
+}
+
+.gkit-flex-operational-shell .flex-cockpit-card,
+.gkit-flex-operational-shell .flex-cockpit-panel,
+.gkit-flex-operational-shell .card,
+.gkit-flex-operational-shell .metric,
+.gkit-flex-operational-shell .empty-state {
+  background: var(--new-surface) !important;
+  border: 1px solid var(--new-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--new-shadow-soft) !important;
+}
+
+.gkit-flex-operational-shell .flex-cockpit-card {
+  min-height: 104px;
+  padding: 16px 18px !important;
+}
+
+.gkit-flex-operational-shell .flex-cockpit-card strong {
+  font-size: 18px !important;
+  font-weight: 500 !important;
+}
+
+.gkit-flex-operational-shell .module-main-value {
+  font-size: 24px !important;
+  font-weight: 500 !important;
+}
+
+.gkit-flex-operational-shell .flex-cockpit-panel {
+  padding: 16px !important;
+}
+
+.gkit-flex-operational-shell .button,
+.gkit-flex-operational-shell .primary-button,
+.gkit-flex-operational-shell .secondary-button,
+.gkit-flex-operational-shell button,
+.gkit-flex-operational-shell a.secondary-button {
+  border-radius: 8px !important;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.gkit-ate-cockpit-page .module-form.module-form-grid,
+.ciclo-shell .ciclo-cockpit-form-panel .module-form.module-form-grid {
+  align-items: start !important;
+  display: grid !important;
+  gap: 16px 18px !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  padding: 20px !important;
+}
+
+.gkit-ate-cockpit-page .module-form label,
+.ciclo-shell .ciclo-cockpit-form-panel .module-form label,
+.gkit-ate-cockpit-page .module-form .module-form-wide label,
+.ciclo-shell .ciclo-cockpit-form-panel .module-form .module-form-wide label {
+  align-items: stretch !important;
+  display: grid !important;
+  gap: 7px !important;
+  grid-template-columns: 1fr !important;
+  margin: 0 !important;
+}
+
+.gkit-ate-cockpit-page .module-form label span,
+.ciclo-shell .ciclo-cockpit-form-panel .module-form label span {
+  color: #475569 !important;
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  line-height: 1.25 !important;
+  min-width: 0 !important;
+}
+
+.gkit-ate-cockpit-page .module-form input,
+.gkit-ate-cockpit-page .module-form select,
+.gkit-ate-cockpit-page .module-form textarea,
+.ciclo-shell .ciclo-cockpit-form-panel .module-form input,
+.ciclo-shell .ciclo-cockpit-form-panel .module-form select,
+.ciclo-shell .ciclo-cockpit-form-panel .module-form textarea {
+  border: 1px solid rgba(148, 163, 184, 0.32) !important;
+  border-radius: 8px !important;
+  min-height: 48px !important;
+  padding: 10px 12px !important;
+  width: 100% !important;
+}
+
+.gkit-ate-cockpit-page .module-form textarea,
+.ciclo-shell .ciclo-cockpit-form-panel .module-form textarea {
+  min-height: 106px !important;
+}
+
+.gkit-ate-cockpit-page .module-form .module-form-wide,
+.ciclo-shell .ciclo-cockpit-form-panel .module-form .module-form-wide {
+  grid-column: 1 / -1 !important;
+}
+
+.gkit-ate-cockpit-page .module-form .form-actions,
+.ciclo-shell .ciclo-cockpit-form-panel .module-form .form-actions {
+  display: flex !important;
+  justify-content: flex-end !important;
+  margin-top: 2px !important;
+}
+
+@media (max-width: 1100px) {
+  .gkit-flex-operational-shell.gkit-flex-shell {
+    grid-template-columns: 304px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 920px) {
+  .gkit-flex-operational-shell.gkit-flex-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-flex-operational-shell .module-sidebar {
+    min-height: auto;
+    position: relative;
+  }
+
+  .gkit-ate-cockpit-page .module-form.module-form-grid,
+  .ciclo-shell .ciclo-cockpit-form-panel .module-form.module-form-grid {
+    grid-template-columns: 1fr !important;
   }
 }

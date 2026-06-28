@@ -3,10 +3,10 @@ import { CommissionUploader } from '@/features/gkit-flex/comissoes/CommissionUpl
 import { AppFrame } from '@/features/gkit-flex/ui/AppFrame'
 
 export default async function GkitFlexComissoesPage() {
-  await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/comissoes')
+  const context = await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/comissoes')
 
   return (
-    <AppFrame>
+    <AppFrame usuario={context.usuario}>
       <CommissionUploader />
     </AppFrame>
   )

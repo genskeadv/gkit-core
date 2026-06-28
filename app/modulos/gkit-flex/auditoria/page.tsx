@@ -3,10 +3,10 @@ import { AuditPage } from '@/features/gkit-flex/auditoria/AuditPage'
 import { AppFrame } from '@/features/gkit-flex/ui/AppFrame'
 
 export default async function GkitFlexAuditoriaPage() {
-  await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/auditoria')
+  const context = await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/auditoria')
 
   return (
-    <AppFrame>
+    <AppFrame usuario={context.usuario}>
       <AuditPage />
     </AppFrame>
   )

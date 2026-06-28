@@ -1,5 +1,5 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { logEvent } from '../audit';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin, logEvent } from '../audit';
 import type { CommissionProcessResult } from './types';
 
 type SaveExecutionInput = {
@@ -16,22 +16,6 @@ type SaveExecutionResult = {
 };
 
 type MonthStatus = 'aberto' | 'fechado' | 'nao_aberto';
-
-function getSupabaseAdmin(): SupabaseClient | null {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    return null;
-  }
-
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
-}
 
 function sumBy<T>(rows: T[], picker: (row: T) => number): number {
   return Math.round(rows.reduce((acc, row) => acc + picker(row), 0) * 100) / 100;

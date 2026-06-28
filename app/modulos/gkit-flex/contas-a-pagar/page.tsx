@@ -3,10 +3,10 @@ import { AccountsPayablePage } from '@/features/gkit-flex/contas-pagar/AccountsP
 import { AppFrame } from '@/features/gkit-flex/ui/AppFrame'
 
 export default async function GkitFlexContasAPagarPage() {
-  await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/contas-a-pagar')
+  const context = await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/contas-a-pagar')
 
   return (
-    <AppFrame>
+    <AppFrame usuario={context.usuario}>
       <AccountsPayablePage />
     </AppFrame>
   )

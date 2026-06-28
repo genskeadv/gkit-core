@@ -1,4 +1,5 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export type AuditAction =
   | 'abrir_mes'
@@ -9,27 +10,23 @@ export type AuditAction =
   | 'atualizar_conta_pagar'
   | 'calcular_comissoes'
   | 'snapshot'
+  | 'gerar_previsao'
+  | 'salvar_previsao'
   | 'extrair_cadastros'
   | 'preview_reclassificacao'
   | 'confirmar_reclassificacao';
 
 export function getSupabaseAdmin(): SupabaseClient | null {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) return null;
-
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
+  try {
+    return createSupabaseAdminClient() as SupabaseClient;
+  } catch {
+    return null;
+  }
 }
 
 export async function logEvent(params: {
   supabase: SupabaseClient;
-  modulo: 'contas_pagar' | 'comissoes' | 'dashboard' | 'cadastros';
+  modulo: 'contas_pagar' | 'comissoes' | 'dashboard' | 'cadastros' | 'previsoes';
   competencia?: string | null;
   action: AuditAction | string;
   entidadeTipo?: string | null;

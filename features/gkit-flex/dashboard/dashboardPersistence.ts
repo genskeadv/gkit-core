@@ -1,6 +1,8 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '../audit';
 import { closeCommissionMonth, openCommissionMonth } from '../comissoes/supabasePersistence';
 import { closePayableMonthAndCreateNext, openPayableMonth } from '../contas-pagar/payablePersistence';
+import { getMonthlyForecast, type ForecastComparisonRow } from '../previsoes/forecastPersistence';
 
 type MonthStatus = 'aberto' | 'fechado' | 'nao_aberto';
 
@@ -53,28 +55,32 @@ type DashboardSummary = {
       id: string;
       nome: string;
       carteira: string | null;
+      receitaMes: number;
+      comissaoMes: number;
+      pagamentoBase: number;
       total: number;
     }>;
+  };
+  comparativo: {
+    resumo: {
+      totalReceitasPrevistas: number;
+      totalReceitasRealizadas: number;
+      diferencaReceitas: number;
+      totalPagamentosPrevistos: number;
+      totalPagamentosRealizados: number;
+      diferencaPagamentos: number;
+      saldoPrevisto: number;
+      saldoRealizado: number;
+      diferencaSaldo: number;
+    };
+    receitasPorTipo: ForecastComparisonRow[];
+    pagamentosPorCategoria: ForecastComparisonRow[];
   };
   saldo: {
     recebidoMenosPagarTotal: number;
     recebidoMenosPagarAberto: number;
   };
 };
-
-function getSupabaseAdmin(): SupabaseClient | null {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) return null;
-
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
-}
 
 function roundMoney(value: number): number {
   return Math.round((value || 0) * 100) / 100;
@@ -134,6 +140,21 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
       totalMensal: 0,
       pagamentos: [],
     },
+    comparativo: {
+      resumo: {
+        totalReceitasPrevistas: 0,
+        totalReceitasRealizadas: 0,
+        diferencaReceitas: 0,
+        totalPagamentosPrevistos: 0,
+        totalPagamentosRealizados: 0,
+        diferencaPagamentos: 0,
+        saldoPrevisto: 0,
+        saldoRealizado: 0,
+        diferencaSaldo: 0,
+      },
+      receitasPorTipo: [],
+      pagamentosPorCategoria: [],
+    },
     saldo: {
       recebidoMenosPagarTotal: 0,
       recebidoMenosPagarAberto: 0,
@@ -159,6 +180,8 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
       canEdit: payableMonth.status === 'aberto',
     },
   };
+
+  const commissionByCarteira = new Map<string, { receitaMes: number; comissaoMes: number }>();
 
   const { data: latestExecution, error: latestError } = await supabase
     .from('comissao_execucoes')
@@ -188,7 +211,7 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
 
     const { data: rows, error: categoryError } = await supabase
       .from('comissao_resumos')
-      .select('categoria, valor_recebido, comissao_final')
+      .select('categoria, carteira, valor_recebido, comissao_final')
       .eq('execucao_id', latestExecution.id);
 
     if (categoryError) throw new Error(`Erro ao consultar categorias de comissao: ${categoryError.message}`);
@@ -207,6 +230,14 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
       current.comissao_final = roundMoney(current.comissao_final + Number(row.comissao_final || 0));
 
       byCategory.set(categoria, current);
+
+      const carteira = String(row.carteira || '').trim();
+      if (carteira) {
+        const wallet = commissionByCarteira.get(carteira) || { receitaMes: 0, comissaoMes: 0 };
+        wallet.receitaMes = roundMoney(wallet.receitaMes + Number(row.valor_recebido || 0));
+        wallet.comissaoMes = roundMoney(wallet.comissaoMes + Number(row.comissao_final || 0));
+        commissionByCarteira.set(carteira, wallet);
+      }
     }
 
     summary.comissoes.totalsByCategory = Array.from(byCategory.values()).sort((a, b) =>
@@ -282,7 +313,7 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
 
   const collaboratorPayments = colaboradorRows
     .map((row) => {
-      const total = roundMoney(
+      const pagamentoBase = roundMoney(
         Number(row.salario || 0) +
         Number(row.participacao_honorarios || 0) +
         Number(row.pro_labore || 0) +
@@ -290,19 +321,29 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
         Number(row.outros_vencimentos || 0) +
         Number(row.beneficio_valor || 0),
       );
+      const carteira = row.carteira_id ? carteiras.get(String(row.carteira_id)) || null : null;
+      const variable = carteira ? commissionByCarteira.get(carteira) : null;
+      const comissaoMes = roundMoney(variable?.comissaoMes || 0);
+      const receitaMes = roundMoney(variable?.receitaMes || 0);
       return {
         id: String(row.id),
         nome: usuarios.get(String(row.usuario_id)) || 'Colaborador sem nome',
-        carteira: row.carteira_id ? carteiras.get(String(row.carteira_id)) || null : null,
-        total,
+        carteira,
+        receitaMes,
+        comissaoMes,
+        pagamentoBase,
+        total: roundMoney(pagamentoBase + comissaoMes),
       };
     })
-    .filter((row) => row.total > 0)
-    .sort((a, b) => b.total - a.total);
+    .filter((row) => row.total > 0 || row.receitaMes > 0)
+    .sort((a, b) => b.receitaMes - a.receitaMes || b.total - a.total);
   summary.colaboradores.total = colaboradorRows.length;
   summary.colaboradores.ativos = colaboradorRows.filter((row) => row.status === 'ativo').length;
   summary.colaboradores.totalMensal = roundMoney(collaboratorPayments.reduce((acc, row) => acc + row.total, 0));
   summary.colaboradores.pagamentos = collaboratorPayments.slice(0, 8);
+
+  const forecast = await getMonthlyForecast(competencia);
+  summary.comparativo = forecast.comparativo;
 
   const totalRecebido = summary.comissoes.latestExecution?.total_valor_recebido || 0;
 
