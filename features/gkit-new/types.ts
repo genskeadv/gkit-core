@@ -66,6 +66,7 @@ export type GkitNewOportunidade = {
   motivo_encerramento_antecipado: string | null
   responsavel_id: string | null
   responsavel_nome: string
+  criado_em: string
   tarefas_pendentes: number
   tarefas_total: number
 }

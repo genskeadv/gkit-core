@@ -7,13 +7,11 @@ import {
 import { GkitNewCockpit } from '@/features/gkit-new/cockpit'
 import { GkitNewHealthNotice, GkitNewShell } from '@/features/gkit-new/components'
 import {
-  canSeeAllGkitNewTasks,
   getGkitNewFormData,
   getGkitNewHealth,
   listGkitNewOportunidades,
-  listGkitNewTarefas,
+  propostasAbertasRows,
   requireGkitNewContext,
-  tarefaRows,
 } from '@/features/gkit-new/queries'
 import { moduleTarget } from '@/lib/auth/platform'
 
@@ -32,16 +30,10 @@ export default async function GkitNewPage({
 }) {
   const params = await searchParams
   const context = await requireGkitNewContext(moduleTarget('/modulos/gkit-new', params))
-  const canSeeAllTasks = canSeeAllGkitNewTasks(context.usuario.tipo, context.permissions)
-  const [health, formData, oportunidades, tarefasPendentes] = await Promise.all([
+  const [health, formData, oportunidades] = await Promise.all([
     getGkitNewHealth(),
     getGkitNewFormData(),
     listGkitNewOportunidades(),
-    listGkitNewTarefas({
-      limit: 50,
-      responsavelId: canSeeAllTasks ? undefined : context.usuario.id,
-      status: 'pendente',
-    }),
   ])
 
   return (
@@ -59,8 +51,7 @@ export default async function GkitNewPage({
         formData={formData}
         initialPanel={initialPanel(params?.panel ?? params?.painel)}
         oportunidades={oportunidades}
-        tarefasPendentes={tarefaRows(tarefasPendentes)}
-        tarefasPendentesScope={canSeeAllTasks ? 'Todas as tarefas pendentes' : `Pendencias de ${context.usuario.nome}`}
+        propostasAbertas={propostasAbertasRows(oportunidades)}
         updateAcompanhamentoAction={updateGkitNewAcompanhamentoAction}
       />
     </GkitNewShell>

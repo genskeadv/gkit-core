@@ -1,11 +1,13 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import { GkitAteSubmitButton } from '@/features/gkit-ate/submit-button'
 import type { GkitAteFormData, GkitAteListRow } from '@/features/gkit-ate/types'
 
 type CockpitPanel = 'atendimento' | 'tarefa' | 'tipo-atendimento' | 'tipo-tarefa'
 type CockpitAction = (formData: FormData) => Promise<void>
+const atendimentoPageSize = 5
 
 const panels: Array<{
   id: CockpitPanel
@@ -47,35 +49,58 @@ function panelDescription(panel: CockpitPanel) {
   return panels.find((item) => item.id === panel)?.description ?? ''
 }
 
-function PendingTaskList({ rows }: { rows: GkitAteListRow[] }) {
+function OpenAtendimentoList({ rows }: { rows: GkitAteListRow[] }) {
+  const [page, setPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(rows.length / atendimentoPageSize))
+  const safePage = Math.min(page, totalPages)
+  const visibleRows = rows.slice((safePage - 1) * atendimentoPageSize, safePage * atendimentoPageSize)
+
   if (!rows.length) {
-    return <div className="suite-empty-block success">Nenhuma tarefa pendente para o ATE.</div>
+    return <div className="suite-empty-block success">Nenhum atendimento aberto no momento.</div>
   }
 
   return (
-    <div className="suite-table-list compact gkit-ate-table-list" role="list">
-      {rows.map((row) => {
-        const content = (
-          <>
-            <div>
-              <h3>{row.title}</h3>
-              <p>{row.subtitle}</p>
-            </div>
-            <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
-            <strong>{row.value}</strong>
-            <small>{row.meta}</small>
-          </>
-        )
+    <>
+      <div className="suite-table-list compact gkit-ate-table-list" role="list">
+        {visibleRows.map((row) => {
+          const content = (
+            <>
+              <div>
+                <h3>{row.title}</h3>
+                <p>{row.subtitle}</p>
+              </div>
+              <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+              <strong>{row.value}</strong>
+              <small>{row.meta}</small>
+            </>
+          )
 
-        return row.detailHref ? (
-          <Link className="suite-row-link" href={row.detailHref} key={row.id} role="listitem">
-            {content}
-          </Link>
-        ) : (
-          <article key={row.id} role="listitem">{content}</article>
-        )
-      })}
-    </div>
+          return row.detailHref ? (
+            <Link className="suite-row-link" href={row.detailHref} key={row.id} role="listitem">
+              {content}
+            </Link>
+          ) : (
+            <article key={row.id} role="listitem">{content}</article>
+          )
+        })}
+      </div>
+
+      {totalPages > 1 ? (
+        <div className="gkit-ate-cockpit-pagination">
+          <span>
+            {((safePage - 1) * atendimentoPageSize) + 1}-{Math.min(safePage * atendimentoPageSize, rows.length)} de {rows.length}
+          </span>
+          <div>
+            <button disabled={safePage === 1} onClick={() => setPage((current) => Math.max(1, current - 1))} type="button">
+              Anterior
+            </button>
+            <button disabled={safePage === totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} type="button">
+              Proxima
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </>
   )
 }
 
@@ -86,7 +111,7 @@ export function GkitAteCockpit({
   createTarefaTipoAction,
   formData,
   initialPanel = null,
-  tarefasPendentes,
+  atendimentosAbertos,
 }: {
   createAtendimentoAction: CockpitAction
   createAtendimentoTipoAction: CockpitAction
@@ -94,7 +119,7 @@ export function GkitAteCockpit({
   createTarefaTipoAction: CockpitAction
   formData: GkitAteFormData
   initialPanel?: CockpitPanel | null
-  tarefasPendentes: GkitAteListRow[]
+  atendimentosAbertos: GkitAteListRow[]
 }) {
   const activePanel = initialPanel
 
@@ -104,7 +129,7 @@ export function GkitAteCockpit({
         <div className="suite-panel-heading">
           <div>
             <h2>Ordem do fluxo</h2>
-            <p>Escolha uma etapa para abrir o formulario; por padrao, o cockpit mostra a fila pendente.</p>
+            <p>Escolha uma etapa para abrir o formulario; por padrao, o cockpit mostra os atendimentos abertos.</p>
           </div>
         </div>
 
@@ -127,12 +152,12 @@ export function GkitAteCockpit({
       <section className="suite-panel gkit-ate-cockpit-form-panel">
         <div className="suite-panel-heading">
           <div>
-            <h2>{activePanel ? panelTitle(activePanel) : 'Tarefas pendentes'}</h2>
-            <p>{activePanel ? panelDescription(activePanel) : 'Pendencias abertas dos atendimentos consultivos.'}</p>
+            <h2>{activePanel ? panelTitle(activePanel) : 'Atendimentos abertos'}</h2>
+            <p>{activePanel ? panelDescription(activePanel) : 'Atendimentos consultivos ainda nao encerrados.'}</p>
           </div>
         </div>
 
-        {!activePanel ? <PendingTaskList rows={tarefasPendentes} /> : null}
+        {!activePanel ? <OpenAtendimentoList rows={atendimentosAbertos} /> : null}
 
         {activePanel === 'atendimento' ? (
           <form action={createAtendimentoAction} className="card module-form module-form-grid">

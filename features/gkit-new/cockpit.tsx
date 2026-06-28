@@ -7,6 +7,7 @@ import type { GkitNewFormData, GkitNewListRow, GkitNewOportunidade } from '@/fea
 
 type CockpitPanel = 'contato' | 'cliente' | 'proposta' | 'acompanhamento'
 type CockpitAction = (formData: FormData) => Promise<void>
+const proposalPageSize = 5
 
 const panels: Array<{
   id: CockpitPanel
@@ -60,35 +61,58 @@ function orderedOportunidades(oportunidades: GkitNewOportunidade[]) {
   return [...oportunidades].sort((a, b) => a.descricao.localeCompare(b.descricao, 'pt-BR'))
 }
 
-function PendingTaskList({ rows }: { rows: GkitNewListRow[] }) {
+function OpenProposalList({ rows }: { rows: GkitNewListRow[] }) {
+  const [page, setPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(rows.length / proposalPageSize))
+  const safePage = Math.min(page, totalPages)
+  const visibleRows = rows.slice((safePage - 1) * proposalPageSize, safePage * proposalPageSize)
+
   if (!rows.length) {
-    return <div className="suite-empty-block success">Nenhuma tarefa pendente para este contexto.</div>
+    return <div className="suite-empty-block success">Nenhuma proposta em aberto no momento.</div>
   }
 
   return (
-    <div className="suite-table-list compact gkit-new-table-list" role="list">
-      {rows.map((row) => {
-        const content = (
-          <>
-            <div>
-              <h3>{row.title}</h3>
-              <p>{row.subtitle}</p>
-            </div>
-            <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
-            <strong>{row.value}</strong>
-            <small>{row.meta}</small>
-          </>
-        )
+    <>
+      <div className="suite-table-list compact gkit-new-table-list" role="list">
+        {visibleRows.map((row) => {
+          const content = (
+            <>
+              <div>
+                <h3>{row.title}</h3>
+                <p>{row.subtitle}</p>
+              </div>
+              <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+              <strong>{row.value}</strong>
+              <small>{row.meta}</small>
+            </>
+          )
 
-        return row.detailHref ? (
-          <Link className="suite-row-link" href={row.detailHref} key={row.id} role="listitem">
-            {content}
-          </Link>
-        ) : (
-          <article key={row.id} role="listitem">{content}</article>
-        )
-      })}
-    </div>
+          return row.detailHref ? (
+            <Link className="suite-row-link" href={row.detailHref} key={row.id} role="listitem">
+              {content}
+            </Link>
+          ) : (
+            <article key={row.id} role="listitem">{content}</article>
+          )
+        })}
+      </div>
+
+      {totalPages > 1 ? (
+        <div className="gkit-new-cockpit-pagination">
+          <span>
+            {((safePage - 1) * proposalPageSize) + 1}-{Math.min(safePage * proposalPageSize, rows.length)} de {rows.length}
+          </span>
+          <div>
+            <button disabled={safePage === 1} onClick={() => setPage((current) => Math.max(1, current - 1))} type="button">
+              Anterior
+            </button>
+            <button disabled={safePage === totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} type="button">
+              Proxima
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </>
   )
 }
 
@@ -99,8 +123,7 @@ export function GkitNewCockpit({
   formData,
   initialPanel = null,
   oportunidades,
-  tarefasPendentes,
-  tarefasPendentesScope,
+  propostasAbertas,
   updateAcompanhamentoAction,
 }: {
   createClienteAction: CockpitAction
@@ -109,8 +132,7 @@ export function GkitNewCockpit({
   formData: GkitNewFormData
   initialPanel?: CockpitPanel | null
   oportunidades: GkitNewOportunidade[]
-  tarefasPendentes: GkitNewListRow[]
-  tarefasPendentesScope: string
+  propostasAbertas: GkitNewListRow[]
   updateAcompanhamentoAction: CockpitAction
 }) {
   const activePanel = initialPanel
@@ -124,7 +146,7 @@ export function GkitNewCockpit({
         <div className="suite-panel-heading">
           <div>
             <h2>Ordem do fluxo</h2>
-            <p>Escolha uma etapa para abrir o formulario; por padrao, o cockpit mostra a fila pendente.</p>
+            <p>Escolha uma etapa para abrir o formulario; por padrao, o cockpit mostra as propostas em aberto.</p>
           </div>
         </div>
 
@@ -147,12 +169,12 @@ export function GkitNewCockpit({
       <section className="suite-panel gkit-new-cockpit-form-panel">
         <div className="suite-panel-heading">
           <div>
-            <h2>{activePanel ? panelTitle(activePanel) : 'Tarefas pendentes'}</h2>
-            <p>{activePanel ? panelDescription(activePanel) : tarefasPendentesScope}</p>
+            <h2>{activePanel ? panelTitle(activePanel) : 'Ultimas propostas em aberto'}</h2>
+            <p>{activePanel ? panelDescription(activePanel) : 'Propostas criadas recentemente e ainda nao finalizadas.'}</p>
           </div>
         </div>
 
-        {!activePanel ? <PendingTaskList rows={tarefasPendentes} /> : null}
+        {!activePanel ? <OpenProposalList rows={propostasAbertas} /> : null}
 
         {activePanel === 'contato' ? (
           <form action={createContatoAction} className="card module-form module-form-grid">

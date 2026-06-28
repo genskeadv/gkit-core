@@ -1102,6 +1102,41 @@ export async function getCicloCockpitData(context: CicloContext): Promise<CicloC
     })
   })
 
+  const clientesDocumentacaoPendente: CicloListRow[] = []
+
+  for (const clienteId of clienteIds) {
+    const documentosCliente = documentos.filter((documento) => documento.clienteId === clienteId)
+    const vencidos = documentosCliente.filter((documento) => documento.status === 'vencido').length
+    const pendentes = documentosCliente.filter((documento) => documento.status === 'pendente').length
+    const totalPendente = vencidos + pendentes
+    if (!totalPendente) continue
+
+    const validos = documentosCliente.filter((documento) => documento.status === 'validado' || documento.validado).length
+    const recebidos = documentosCliente.filter((documento) => documento.status === 'recebido').length
+    const metaOk = validos + recebidos
+    const status = vencidos ? 'vencido' : 'pendente'
+    const detalhe = [
+      pendentes ? `${pendentes} pendente${pendentes > 1 ? 's' : ''}` : '',
+      vencidos ? `${vencidos} vencido${vencidos > 1 ? 's' : ''}` : '',
+    ].filter(Boolean).join(' / ')
+
+    clientesDocumentacaoPendente.push({
+      id: `documentacao-${clienteId}`,
+      title: clienteMap.get(clienteId) ?? 'Cliente',
+      subtitle: detalhe || 'Documentacao pendente',
+      status,
+      value: String(totalPendente),
+      meta: `${metaOk}/${documentosCliente.length} documentos ok`,
+      detailHref: `/modulos/ciclo/clientes/${clienteId}/cockpit`,
+      tone: vencidos ? 'danger' as const : 'warning' as const,
+    })
+  }
+
+  clientesDocumentacaoPendente.sort((a, b) => {
+    const toneRank = (row: CicloListRow) => row.tone === 'danger' ? 0 : 1
+    return toneRank(a) - toneRank(b) || Number(b.value) - Number(a.value) || a.title.localeCompare(b.title)
+  })
+
   const atividadeRows: CicloListRow[] = ((atividadesResult.data ?? []) as Array<Record<string, any>>)
     .filter((row) => isOperator(row.responsavel, names))
     .map((row) => ({
@@ -1136,6 +1171,7 @@ export async function getCicloCockpitData(context: CicloContext): Promise<CicloC
 
   return {
     clienteFormData,
+    clientesDocumentacaoPendente,
     documentoFormData,
     documentos,
     tarefas: [...atividadeRows, ...ocorrenciaRows].slice(0, 50),

@@ -338,6 +338,7 @@ export async function listGkitNewOportunidades(): Promise<GkitNewOportunidade[]>
       motivo_encerramento_antecipado: text(row.motivo_encerramento_antecipado) || null,
       responsavel_id: text(row.responsavel_id) || null,
       responsavel_nome: usuarioMap.get(text(row.responsavel_id)) ?? 'Sem responsável',
+      criado_em: text(row.criado_em),
       tarefas_pendentes: tarefasPorOportunidade[oportunidadeId]?.pendentes ?? 0,
       tarefas_total: tarefasPorOportunidade[oportunidadeId]?.total ?? 0,
     }
@@ -470,6 +471,24 @@ export function oportunidadeRows(oportunidades: GkitNewOportunidade[]): GkitNewL
     detailHref: `/modulos/gkit-new/oportunidades/${oportunidade.id}`,
     tone: tone(oportunidade.status),
   }))
+}
+
+export function propostasAbertasRows(oportunidades: GkitNewOportunidade[], limit = 8): GkitNewListRow[] {
+  const finalStatuses = new Set<GkitNewOportunidadeStatus>(['aprovada', 'rejeitada', 'cancelada', 'encerrada'])
+
+  return oportunidades
+    .filter((oportunidade) => !finalStatuses.has(oportunidade.status))
+    .slice(0, limit)
+    .map((oportunidade) => ({
+      id: oportunidade.id,
+      title: oportunidade.descricao,
+      subtitle: `${oportunidade.cliente_nome} - ${oportunidade.contato_nome}`,
+      status: statusLabel(oportunidade.status),
+      value: formatBRL(oportunidade.valor),
+      meta: `Criada em ${dateTimeLabel(oportunidade.criado_em || oportunidade.data)}`,
+      detailHref: `/modulos/gkit-new/oportunidades/${oportunidade.id}`,
+      tone: tone(oportunidade.status),
+    }))
 }
 
 export function tarefaRows(tarefas: GkitNewTarefa[]): GkitNewListRow[] {

@@ -28,6 +28,8 @@ const documentoStatusLabel: Record<string, string> = {
   vencido: 'Vencido',
 }
 
+const clientesDocumentacaoPageSize = 5
+
 function panelTitle(panel: CockpitPanel) {
   return panels.find((item) => item.id === panel)?.title ?? 'Cockpit'
 }
@@ -36,23 +38,56 @@ function panelDescription(panel: CockpitPanel) {
   return panels.find((item) => item.id === panel)?.description ?? ''
 }
 
-function PendingTaskList({ rows }: { rows: CicloListRow[] }) {
-  if (!rows.length) return <div className="suite-empty-block">Nenhuma tarefa atribuida ao operador logado.</div>
+function PendingDocumentClientList({ rows }: { rows: CicloListRow[] }) {
+  const [page, setPage] = useState(1)
+  const pageCount = Math.max(1, Math.ceil(rows.length / clientesDocumentacaoPageSize))
+  const currentPage = Math.min(page, pageCount)
+  const start = (currentPage - 1) * clientesDocumentacaoPageSize
+  const visibleRows = rows.slice(start, start + clientesDocumentacaoPageSize)
+
+  if (!rows.length) return <div className="suite-empty-block">Nenhum cliente com documentacao pendente no momento.</div>
 
   return (
-    <div className="suite-table-list compact" role="list">
-      {rows.map((row) => (
-        <article key={row.id} role="listitem">
+    <>
+      <div className="suite-table-list compact" role="list">
+        {visibleRows.map((row) => {
+          const content = (
+            <>
+              <div>
+                <h3>{row.title}</h3>
+                <p>{row.subtitle}</p>
+              </div>
+              <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+              <strong>{row.value}</strong>
+              <small>{row.meta}</small>
+            </>
+          )
+
+          return row.detailHref ? (
+            <Link href={row.detailHref} key={row.id} role="listitem">
+              {content}
+            </Link>
+          ) : (
+            <article key={row.id} role="listitem">
+              {content}
+            </article>
+          )
+        })}
+      </div>
+      {pageCount > 1 ? (
+        <div className="ciclo-cockpit-pagination">
+          <span>{start + 1}-{Math.min(start + clientesDocumentacaoPageSize, rows.length)} de {rows.length}</span>
           <div>
-            <h3>{row.title}</h3>
-            <p>{row.subtitle}</p>
+            <button disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} type="button">
+              Anterior
+            </button>
+            <button disabled={currentPage === pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))} type="button">
+              Proxima
+            </button>
           </div>
-          <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
-          <strong>{row.value}</strong>
-          <small>{row.meta}</small>
-        </article>
-      ))}
-    </div>
+        </div>
+      ) : null}
+    </>
   )
 }
 
@@ -84,7 +119,7 @@ export function CicloCockpit({
         <div className="suite-panel-heading">
           <div>
             <h2>Ordem do fluxo</h2>
-            <p>Escolha uma etapa para abrir o formulario; por padrao, o cockpit mostra tarefas do operador.</p>
+            <p>Escolha uma etapa para abrir o formulario; por padrao, o cockpit mostra clientes com documentacao pendente.</p>
           </div>
         </div>
 
@@ -107,12 +142,12 @@ export function CicloCockpit({
       <section className="suite-panel ciclo-cockpit-form-panel">
         <div className="suite-panel-heading">
           <div>
-            <h2>{activePanel ? panelTitle(activePanel) : 'Tarefas do operador'}</h2>
-            <p>{activePanel ? panelDescription(activePanel) : 'Pendencias atribuidas ao usuario logado.'}</p>
+            <h2>{activePanel ? panelTitle(activePanel) : 'Clientes com documentacao pendente'}</h2>
+            <p>{activePanel ? panelDescription(activePanel) : 'Clientes com checklist documental pendente ou vencido.'}</p>
           </div>
         </div>
 
-        {!activePanel ? <PendingTaskList rows={data.tarefas} /> : null}
+        {!activePanel ? <PendingDocumentClientList rows={data.clientesDocumentacaoPendente} /> : null}
 
         {activePanel === 'cliente' ? (
           <form action={createClienteAction} className="card module-form module-form-grid">

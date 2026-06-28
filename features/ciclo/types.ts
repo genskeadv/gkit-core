@@ -70,6 +70,7 @@ export type CicloListRow = {
   status: string
   value: string
   meta: string
+  detailHref?: string
   tone?: 'primary' | 'success' | 'warning' | 'danger'
 }
 
@@ -156,6 +157,7 @@ export type CicloCockpitDocumento = {
 
 export type CicloCockpitData = {
   clienteFormData: CicloClienteFormData
+  clientesDocumentacaoPendente: CicloListRow[]
   documentoFormData: CicloDocumentoFormData
   documentos: CicloCockpitDocumento[]
   tarefas: CicloListRow[]

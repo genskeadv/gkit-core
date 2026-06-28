@@ -6,7 +6,7 @@ import {
 } from '@/features/gkit-ate/actions'
 import { GkitAteCockpit } from '@/features/gkit-ate/cockpit'
 import { GkitAteHealthNotice, GkitAteShell } from '@/features/gkit-ate/components'
-import { getGkitAteFormData, getGkitAteHealth, listGkitAteTarefas, requireGkitAteContext, tarefaRows } from '@/features/gkit-ate/queries'
+import { atendimentoRows, getGkitAteFormData, getGkitAteHealth, listGkitAteAtendimentos, requireGkitAteContext } from '@/features/gkit-ate/queries'
 import { moduleTarget } from '@/lib/auth/platform'
 
 type CockpitPanel = 'atendimento' | 'tarefa' | 'tipo-atendimento' | 'tipo-tarefa'
@@ -24,12 +24,12 @@ export default async function GkitAtePage({
 }) {
   const params = await searchParams
   const context = await requireGkitAteContext(moduleTarget('/modulos/gkit-ate', params))
-  const [health, formData, tarefas] = await Promise.all([
+  const [health, formData, atendimentos] = await Promise.all([
     getGkitAteHealth(),
     getGkitAteFormData(),
-    listGkitAteTarefas(),
+    listGkitAteAtendimentos(),
   ])
-  const tarefasPendentes = tarefas.filter((item) => item.status === 'pendente' || item.status === 'em_andamento').slice(0, 50)
+  const atendimentosAbertos = atendimentos.filter((item) => item.status === 'aberto')
 
   return (
     <GkitAteShell
@@ -46,7 +46,7 @@ export default async function GkitAtePage({
         createTarefaTipoAction={createGkitAteTarefaTipoAction}
         formData={formData}
         initialPanel={initialPanel(params?.panel ?? params?.painel)}
-        tarefasPendentes={tarefaRows(tarefasPendentes)}
+        atendimentosAbertos={atendimentoRows(atendimentosAbertos)}
       />
     </GkitAteShell>
   )
