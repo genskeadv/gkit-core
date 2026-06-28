@@ -16469,9 +16469,32 @@ a.button {
   border: 1px solid rgba(93, 47, 117, 0.18) !important;
   border-radius: 8px !important;
   box-shadow: none !important;
+  cursor: pointer !important;
+  display: grid !important;
   gap: 3px !important;
+  grid-auto-rows: max-content !important;
   min-height: 83px !important;
   padding: 9px 28px 9px 10px !important;
+  position: relative !important;
+  text-align: left !important;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease !important;
+}
+
+.gkit-flex-operational-shell .flex-cockpit-card::after {
+  color: var(--parity-accent) !important;
+  content: ">" !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  position: absolute !important;
+  right: 12px !important;
+  top: 12px !important;
+}
+
+.gkit-flex-operational-shell .flex-cockpit-card.active,
+.gkit-flex-operational-shell .flex-cockpit-card:hover {
+  background: rgba(93, 47, 117, 0.08) !important;
+  border-color: rgba(93, 47, 117, 0.28) !important;
+  transform: translateY(-1px) !important;
 }
 
 .ciclo-command-panel .ciclo-quick-card span,
@@ -16504,9 +16527,10 @@ a.button {
 
 .gkit-flex-operational-shell .module-main-value {
   color: var(--parity-ink) !important;
-  font-size: 14px !important;
-  line-height: 1 !important;
-  margin: 0 !important;
+  font-size: 12px !important;
+  font-weight: 450 !important;
+  line-height: 1.25 !important;
+  margin: 1px 0 0 !important;
 }
 
 .ciclo-shell .metric-card,
@@ -16610,8 +16634,8 @@ a.button {
 .ciclo-shell .module-page-hero .platform-kicker,
 .gkit-flex-operational-shell .month-context-header .eyebrow {
   color: #5b6b86 !important;
-  font-size: 12px !important;
-  font-weight: 450 !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
   line-height: 1.3 !important;
   margin: 0 0 6px !important;
   text-transform: none !important;
@@ -16621,7 +16645,7 @@ a.button {
 .ciclo-shell .module-page-hero h1,
 .gkit-flex-operational-shell .month-context-header h1 {
   color: #131927 !important;
-  font-size: 30px !important;
+  font-size: 28px !important;
   font-weight: 450 !important;
   line-height: 1.08 !important;
   margin: 0 !important;
@@ -16631,9 +16655,13 @@ a.button {
 .ciclo-shell .module-page-hero p:not(.platform-kicker),
 .gkit-flex-operational-shell .month-context-header .muted {
   color: #5b6b86 !important;
-  font-size: 13px !important;
+  font-size: 12px !important;
   line-height: 1.35 !important;
   margin: 6px 0 0 !important;
+  max-width: none !important;
+}
+
+.gkit-flex-operational-shell .month-context-main {
   max-width: none !important;
 }
 
@@ -16689,6 +16717,50 @@ a.button {
 
 .gkit-flex-operational-shell .month-context-toolbar .month-context-actions {
   width: auto !important;
+}
+
+.gkit-flex-operational-shell .gkit-flex-sidebar-header small,
+.gkit-flex-operational-shell .module-sidebar-header small {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #5b6b86 !important;
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  line-height: 1.25 !important;
+  margin: 2px 0 0 !important;
+  padding: 0 !important;
+  text-transform: none !important;
+  width: auto !important;
+}
+
+.gkit-flex-operational-shell .module-sidebar nav {
+  gap: 18px !important;
+}
+
+.gkit-flex-operational-shell .module-sidebar a:not(.module-sidebar-header) {
+  align-items: center !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  font-size: 15px !important;
+  font-weight: 400 !important;
+  justify-content: space-between !important;
+  min-height: 44px !important;
+  padding: 12px 13px !important;
+  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease !important;
+}
+
+.gkit-flex-operational-shell .module-sidebar a:not(.module-sidebar-header):not(.active) {
+  background: #e9e7eb !important;
+  box-shadow: none !important;
+  color: #1f2937 !important;
+}
+
+.gkit-flex-operational-shell .module-sidebar a:not(.module-sidebar-header):not(.active):hover {
+  background: rgba(93, 47, 117, 0.09) !important;
+  color: #5d2f75 !important;
 }
 
 @media (max-width: 760px) {
