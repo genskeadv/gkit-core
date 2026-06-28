@@ -59,14 +59,6 @@ function text(value: unknown, fallback = '') {
   return String(value)
 }
 
-function normalize(value: unknown) {
-  return text(value)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-}
-
 function numberValue(value: unknown) {
   const parsed = Number(value ?? 0)
   return Number.isFinite(parsed) ? parsed : 0
@@ -1020,18 +1012,6 @@ export async function getCicloDocumentoFormData(context: CicloContext): Promise<
   }
 }
 
-function operatorNames(context: CicloContext) {
-  return new Set([
-    text(context.usuario.nome),
-    text(context.usuario.email),
-  ].filter(Boolean).map((value) => normalize(value)))
-}
-
-function isOperator(value: unknown, names: Set<string>) {
-  const normalized = normalize(value)
-  return normalized.length > 0 && names.has(normalized)
-}
-
 export async function getCicloCockpitData(context: CicloContext): Promise<CicloCockpitData> {
   const [clienteFormData, documentoFormData] = await Promise.all([
     getCicloClienteFormData(context),
@@ -1039,40 +1019,16 @@ export async function getCicloCockpitData(context: CicloContext): Promise<CicloC
   ])
   const clienteIds = documentoFormData.clientes.map((cliente) => cliente.id)
   const allowedClienteIds = new Set(clienteIds)
-  const names = operatorNames(context)
 
-  const [documentosResult, ocorrenciasResult, atividadesResult] = await Promise.all([
-    clienteIds.length
-      ? admin()
-        .schema('ciclo')
-        .from('cliente_documentos')
-        .select('id,cliente_id,tipo_documento,titulo,status,validado,data_renovacao,observacoes')
-        .in('cliente_id', clienteIds)
-      : { data: [], error: null },
-    clienteIds.length
-      ? admin()
-        .schema('ciclo')
-        .from('ocorrencias')
-        .select('id,cliente_id,tipo,impacto,titulo,descricao,data_ocorrencia,metadata')
-        .in('cliente_id', clienteIds)
-        .order('created_at', { ascending: false })
-        .limit(200)
-      : { data: [], error: null },
-    clienteIds.length
-      ? admin()
-        .schema('ciclo')
-        .from('onboarding_cliente_atividades')
-        .select('id,cliente_id,ordem,descricao,responsavel,status,obrigatoria,concluido_em,observacoes')
-        .in('cliente_id', clienteIds)
-        .in('status', ['pendente', 'em_andamento'])
-        .order('ordem', { ascending: true })
-        .limit(300)
-      : { data: [], error: null },
-  ])
+  const documentosResult = clienteIds.length
+    ? await admin()
+      .schema('ciclo')
+      .from('cliente_documentos')
+      .select('id,cliente_id,tipo_documento,titulo,status,validado,data_renovacao,observacoes')
+      .in('cliente_id', clienteIds)
+    : { data: [], error: null }
 
-  for (const result of [documentosResult, ocorrenciasResult, atividadesResult]) {
-    if (result.error) throw new Error(result.error.message)
-  }
+  if (documentosResult.error) throw new Error(documentosResult.error.message)
 
   const clienteMap = new Map(documentoFormData.clientes.map((cliente) => [cliente.id, cliente.label]))
   const documentosByCliente = new Map<string, Map<string, Record<string, any>>>()
@@ -1137,44 +1093,11 @@ export async function getCicloCockpitData(context: CicloContext): Promise<CicloC
     return toneRank(a) - toneRank(b) || Number(b.value) - Number(a.value) || a.title.localeCompare(b.title)
   })
 
-  const atividadeRows: CicloListRow[] = ((atividadesResult.data ?? []) as Array<Record<string, any>>)
-    .filter((row) => isOperator(row.responsavel, names))
-    .map((row) => ({
-      id: `onboarding-${text(row.id)}`,
-      title: text(row.descricao, 'Atividade de onboarding'),
-      subtitle: clienteMap.get(text(row.cliente_id)) ?? 'Cliente',
-      status: text(row.status, 'pendente'),
-      value: `#${numberValue(row.ordem)}`,
-      meta: text(row.responsavel, 'Responsavel'),
-      tone: listTone(text(row.status, 'pendente')),
-    }))
-
-  const ocorrenciaRows: CicloListRow[] = ((ocorrenciasResult.data ?? []) as Array<Record<string, any>>)
-    .filter((row) => {
-      const metadata = (row.metadata ?? {}) as Record<string, any>
-      const status = text(metadata.status, 'aberta')
-      return status !== 'resolvida' && status !== 'cancelada' && isOperator(metadata.responsavel, names)
-    })
-    .map((row) => {
-      const metadata = (row.metadata ?? {}) as Record<string, any>
-      const impacto = text(row.impacto, 'neutro')
-      return {
-        id: `ocorrencia-${text(row.id)}`,
-        title: text(row.titulo, 'Ocorrencia'),
-        subtitle: clienteMap.get(text(row.cliente_id)) ?? text(row.descricao, 'Cliente'),
-        status: text(metadata.status, 'aberta'),
-        value: text(metadata.prazo) || dateLabel(row.data_ocorrencia),
-        meta: text(metadata.responsavel, 'Responsavel'),
-        tone: impacto === 'critico' || impacto === 'alto' ? 'danger' as const : impacto === 'medio' ? 'warning' as const : 'primary' as const,
-      }
-    })
-
   return {
     clienteFormData,
     clientesDocumentacaoPendente,
     documentoFormData,
     documentos,
-    tarefas: [...atividadeRows, ...ocorrenciaRows].slice(0, 50),
   }
 }
 

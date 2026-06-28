@@ -160,7 +160,6 @@ export type CicloCockpitData = {
   clientesDocumentacaoPendente: CicloListRow[]
   documentoFormData: CicloDocumentoFormData
   documentos: CicloCockpitDocumento[]
-  tarefas: CicloListRow[]
 }
 
 export type CicloClienteRecord = {

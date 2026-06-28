@@ -49,7 +49,7 @@ function PendingDocumentClientList({ rows }: { rows: CicloListRow[] }) {
 
   return (
     <>
-      <div className="suite-table-list compact" role="list">
+      <div className="suite-table-list compact ciclo-cockpit-table-list" role="list">
         {visibleRows.map((row) => {
           const content = (
             <>

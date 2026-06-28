@@ -10634,6 +10634,15 @@ a.button {
   margin: 0;
 }
 
+.gkit-new-cockpit-form-panel .gkit-new-table-list,
+.gkit-ate-cockpit-form-panel .gkit-ate-table-list,
+.ciclo-cockpit-form-panel .ciclo-cockpit-table-list {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+  scrollbar-gutter: auto;
+}
+
 .gkit-new-cockpit-pagination,
 .gkit-ate-cockpit-pagination,
 .ciclo-cockpit-pagination {
