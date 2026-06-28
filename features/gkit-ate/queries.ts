@@ -246,7 +246,7 @@ export function atendimentoRows(atendimentos: GkitAteAtendimento[]): GkitAteList
     title: item.titulo,
     subtitle: `${item.codigo_publico} - ${item.cliente_nome} - ${item.responsavel ?? 'Sem responsavel'}`,
     status: statusLabel(item.status),
-    value: item.tipo ?? item.astrea_codigo ?? 'ASTREA',
+    value: item.responsavel ?? 'Sem responsavel',
     meta: `${item.tarefas_pendentes}/${item.tarefas_total} tarefa(s) pendente(s)`,
     detailHref: `/modulos/gkit-ate/atendimentos/${item.id}`,
     tone: tone(item.status),
