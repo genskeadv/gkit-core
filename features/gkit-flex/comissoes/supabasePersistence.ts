@@ -141,6 +141,30 @@ async function requireOpenMonth(supabase: SupabaseClient, competencia: string): 
   return data.id as string;
 }
 
+async function replaceOpenMonthExecution(supabase: SupabaseClient, competencia: string) {
+  const { data, error } = await supabase
+    .from('comissao_execucoes')
+    .select('id')
+    .eq('competencia', competencia)
+    .eq('status', 'processado');
+
+  if (error) throw new Error(`Erro ao consultar execuções anteriores: ${error.message}`);
+
+  const executionIds = (data || []).map((row) => row.id as string).filter(Boolean);
+  if (!executionIds.length) return 0;
+
+  const deleteTables = ['comissao_auditoria', 'comissao_lancamentos', 'comissao_resumos'];
+  for (const table of deleteTables) {
+    const { error: childError } = await supabase.from(table).delete().in('execucao_id', executionIds);
+    if (childError) throw new Error(`Erro ao substituir ${table}: ${childError.message}`);
+  }
+
+  const { error: executionError } = await supabase.from('comissao_execucoes').delete().in('id', executionIds);
+  if (executionError) throw new Error(`Erro ao substituir execuções anteriores: ${executionError.message}`);
+
+  return executionIds.length;
+}
+
 export async function saveCommissionExecution(input: SaveExecutionInput): Promise<SaveExecutionResult> {
   const supabase = getSupabaseAdmin();
 
@@ -154,6 +178,7 @@ export async function saveCommissionExecution(input: SaveExecutionInput): Promis
 
   const competencia = sanitizeCompetencia(input.competencia);
   const competenciaId = await requireOpenMonth(supabase, competencia);
+  const replacedExecutions = await replaceOpenMonthExecution(supabase, competencia);
   const totalValorRecebido = sumBy(input.result.summaries, (row) => row.valorRecebido);
   const totalBaseReduzida = sumBy(input.result.summaries, (row) => row.valorAposReducao);
   const totalComissao = sumBy(input.result.summaries, (row) => row.comissaoFinal);
@@ -238,7 +263,7 @@ export async function saveCommissionExecution(input: SaveExecutionInput): Promis
     if (error) throw new Error(`Erro ao gravar auditoria no Supabase: ${error.message}`);
   }
 
-  await logEvent({ supabase, modulo: 'comissoes', competencia, action: 'calcular_comissoes', entidadeTipo: 'comissao_execucao', entidadeId: executionId, detalhe: { contasFileName: input.contasFileName, clientesFileName: input.clientesFileName, totalValorRecebido, totalBaseReduzida, totalComissao, auditCount: input.result.auditRows.length } });
+  await logEvent({ supabase, modulo: 'comissoes', competencia, action: 'calcular_comissoes', entidadeTipo: 'comissao_execucao', entidadeId: executionId, detalhe: { contasFileName: input.contasFileName, clientesFileName: input.clientesFileName, totalValorRecebido, totalBaseReduzida, totalComissao, auditCount: input.result.auditRows.length, replacedExecutions } });
 
   return { executionId, saved: true };
 }

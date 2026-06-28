@@ -1,4 +1,4 @@
-import { requireGkitFlexApiAccess } from '@/features/gkit-flex/api-auth';
+﻿import { requireGkitFlexApiAccess } from '@/features/gkit-flex/api-auth';
 import { NextRequest } from 'next/server';
 import { updatePayableItem } from '@/features/gkit-flex/contas-pagar/payablePersistence';
 
@@ -21,6 +21,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     return Response.json(result);
   } catch (error) {
     console.error('[contas-pagar/itens/[id]][PATCH]', error);
-    return Response.json({ error: error instanceof Error ? error.message : 'Erro ao atualizar conta a pagar.' }, { status: 500 });
+    return Response.json({ error: error instanceof Error ? error.message : 'Erro ao atualizar pagamento.' }, { status: 500 });
   }
 }
+

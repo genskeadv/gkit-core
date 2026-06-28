@@ -37,6 +37,24 @@ type DashboardSummary = {
     quantidadePaga: number;
     quantidadeComissoes: number;
     totalComissoesNoPagar: number;
+    totalsByCategory: Array<{
+      categoria: string;
+      total: number;
+      pago: number;
+      aberto: number;
+      quantidade: number;
+    }>;
+  };
+  colaboradores: {
+    total: number;
+    ativos: number;
+    totalMensal: number;
+    pagamentos: Array<{
+      id: string;
+      nome: string;
+      carteira: string | null;
+      total: number;
+    }>;
   };
   saldo: {
     recebidoMenosPagarTotal: number;
@@ -108,6 +126,13 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
       quantidadePaga: 0,
       quantidadeComissoes: 0,
       totalComissoesNoPagar: 0,
+      totalsByCategory: [],
+    },
+    colaboradores: {
+      total: 0,
+      ativos: 0,
+      totalMensal: 0,
+      pagamentos: [],
     },
     saldo: {
       recebidoMenosPagarTotal: 0,
@@ -192,7 +217,7 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
   if (payableMonth.row?.id) {
     const { data: payables, error: payablesError } = await supabase
       .from('contas_pagar_itens')
-      .select('valor_previsto, pago, origem_tipo')
+      .select('valor_previsto, pago, origem_tipo, categoria')
       .eq('competencia_id', payableMonth.row.id);
 
     if (payablesError) throw new Error(`Erro ao consultar contas a pagar: ${payablesError.message}`);
@@ -203,6 +228,18 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
       rows.filter((row) => Boolean(row.pago)).reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0),
     );
     const commissionRows = rows.filter((row) => row.origem_tipo === 'comissao');
+    const byCategory = new Map<string, { categoria: string; total: number; pago: number; aberto: number; quantidade: number }>();
+
+    for (const row of rows) {
+      const categoria = String(row.categoria || 'Sem categoria');
+      const value = Number(row.valor_previsto || 0);
+      const current = byCategory.get(categoria) || { categoria, total: 0, pago: 0, aberto: 0, quantidade: 0 };
+      current.total = roundMoney(current.total + value);
+      current.quantidade += 1;
+      if (row.pago) current.pago = roundMoney(current.pago + value);
+      else current.aberto = roundMoney(current.aberto + value);
+      byCategory.set(categoria, current);
+    }
 
     summary.contasPagar.total = total;
     summary.contasPagar.totalPago = totalPago;
@@ -213,7 +250,59 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
     summary.contasPagar.totalComissoesNoPagar = roundMoney(
       commissionRows.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0),
     );
+    summary.contasPagar.totalsByCategory = Array.from(byCategory.values()).sort((a, b) => b.total - a.total);
   }
+
+  const { data: colaboradores, error: colaboradoresError } = await supabase
+    .from('gkit_flex_colaboradores')
+    .select('id, usuario_id, carteira_id, status, salario, participacao_honorarios, pro_labore, ajuda_custo, outros_vencimentos, beneficio_valor')
+    .order('updated_at', { ascending: false })
+    .limit(1000);
+
+  if (colaboradoresError) throw new Error(`Erro ao consultar colaboradores Flex: ${colaboradoresError.message}`);
+
+  const colaboradorRows = (colaboradores || []) as Array<Record<string, unknown>>;
+  const usuarioIds = [...new Set(colaboradorRows.map((row) => row.usuario_id).filter(Boolean).map(String))];
+  const carteiraIds = [...new Set(colaboradorRows.map((row) => row.carteira_id).filter(Boolean).map(String))];
+
+  const [usuariosResult, carteirasResult] = await Promise.all([
+    usuarioIds.length
+      ? supabase.schema('security').from('usuarios').select('id, nome').in('id', usuarioIds)
+      : Promise.resolve({ data: [], error: null }),
+    carteiraIds.length
+      ? supabase.schema('core').from('carteiras').select('id, nome').in('id', carteiraIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (usuariosResult.error) throw new Error(`Erro ao consultar usuários: ${usuariosResult.error.message}`);
+  if (carteirasResult.error) throw new Error(`Erro ao consultar carteiras: ${carteirasResult.error.message}`);
+
+  const usuarios = new Map(((usuariosResult.data || []) as Array<Record<string, unknown>>).map((row) => [String(row.id), String(row.nome || 'Sem nome')]));
+  const carteiras = new Map(((carteirasResult.data || []) as Array<Record<string, unknown>>).map((row) => [String(row.id), String(row.nome || '')]));
+
+  const collaboratorPayments = colaboradorRows
+    .map((row) => {
+      const total = roundMoney(
+        Number(row.salario || 0) +
+        Number(row.participacao_honorarios || 0) +
+        Number(row.pro_labore || 0) +
+        Number(row.ajuda_custo || 0) +
+        Number(row.outros_vencimentos || 0) +
+        Number(row.beneficio_valor || 0),
+      );
+      return {
+        id: String(row.id),
+        nome: usuarios.get(String(row.usuario_id)) || 'Colaborador sem nome',
+        carteira: row.carteira_id ? carteiras.get(String(row.carteira_id)) || null : null,
+        total,
+      };
+    })
+    .filter((row) => row.total > 0)
+    .sort((a, b) => b.total - a.total);
+  summary.colaboradores.total = colaboradorRows.length;
+  summary.colaboradores.ativos = colaboradorRows.filter((row) => row.status === 'ativo').length;
+  summary.colaboradores.totalMensal = roundMoney(collaboratorPayments.reduce((acc, row) => acc + row.total, 0));
+  summary.colaboradores.pagamentos = collaboratorPayments.slice(0, 8);
 
   const totalRecebido = summary.comissoes.latestExecution?.total_valor_recebido || 0;
 

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { EmptyState, MetricCard, MonthContextHeader } from '../ui/FlexUI';
@@ -71,7 +71,7 @@ export function AccountsPayablePage() {
 
   const categories = useMemo(() => {
     const set = new Set(items.map((item) => item.categoria).filter(Boolean));
-    ['Pessoal', 'Impostos', 'Operacional', 'Despesas do negócio', 'Sem categoria'].forEach((category) => set.add(category));
+    ['Pessoal', 'Impostos', 'Operacional', 'Despesas do negÃ³cio', 'Sem categoria'].forEach((category) => set.add(category));
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }, [items]);
 
@@ -81,13 +81,13 @@ export function AccountsPayablePage() {
       setError(null);
       const statusResponse = await fetch(`/api/gkit-flex/contas-pagar/competencia?competencia=${selectedCompetencia}`, { cache: 'no-store' });
       const statusPayload = await statusResponse.json();
-      if (!statusResponse.ok) throw new Error(statusPayload?.error || 'Não foi possível consultar o mês.');
+      if (!statusResponse.ok) throw new Error(statusPayload?.error || 'NÃ£o foi possÃ­vel consultar o mÃªs.');
 
       setMonthStatus(statusPayload.configured ? (statusPayload.status || 'nao_aberto') : 'indisponivel');
 
       const itemsResponse = await fetch(`/api/gkit-flex/contas-pagar/itens?competencia=${selectedCompetencia}`, { cache: 'no-store' });
       const itemsPayload = await itemsResponse.json();
-      if (!itemsResponse.ok) throw new Error(itemsPayload?.error || 'Não foi possível carregar contas a pagar.');
+      if (!itemsResponse.ok) throw new Error(itemsPayload?.error || 'NÃ£o foi possÃ­vel carregar contas a pagar.');
 
       setItems(itemsPayload.rows || []);
       setSummary(itemsPayload.summary || emptySummary);
@@ -95,7 +95,7 @@ export function AccountsPayablePage() {
       setMonthStatus('indisponivel');
       setItems([]);
       setSummary(emptySummary);
-      setError(err instanceof Error ? err.message : 'Erro inesperado ao carregar contas a pagar.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao carregar pagamentos.');
     } finally {
       setLoading(false);
     }
@@ -116,11 +116,11 @@ export function AccountsPayablePage() {
         body: JSON.stringify({ competencia, action }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Não foi possível abrir/reabrir o mês.');
-      setMessage(action === 'abrir' ? 'Mês aberto para importação e edição.' : 'Mês reaberto para ajustes.');
+      if (!response.ok) throw new Error(payload?.error || 'NÃ£o foi possÃ­vel abrir/reabrir o mÃªs.');
+      setMessage(action === 'abrir' ? 'MÃªs aberto para importaÃ§Ã£o e ediÃ§Ã£o.' : 'MÃªs reaberto para ajustes.');
       await loadMonth(competencia);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado ao abrir/reabrir mês.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao abrir/reabrir mÃªs.');
     } finally {
       setLoading(false);
     }
@@ -140,13 +140,13 @@ export function AccountsPayablePage() {
 
       const response = await fetch('/api/gkit-flex/contas-pagar/preview', { method: 'POST', body: formData });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Não foi possível gerar a prévia da importação.');
+      if (!response.ok) throw new Error(payload?.error || 'NÃ£o foi possÃ­vel gerar a prÃ©via da importaÃ§Ã£o.');
 
       setPreview(payload.preview || null);
-      setMessage('Prévia gerada. Revise os impactos antes de confirmar a sobrescrita do mês aberto.');
+      setMessage('PrÃ©via gerada. Revise os impactos antes de confirmar a sobrescrita do mÃªs aberto.');
     } catch (err) {
       setPreview(null);
-      setError(err instanceof Error ? err.message : 'Erro inesperado ao gerar prévia.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao gerar prÃ©via.');
     } finally {
       setLoading(false);
     }
@@ -165,11 +165,11 @@ export function AccountsPayablePage() {
 
       const response = await fetch('/api/gkit-flex/contas-pagar/importar', { method: 'POST', body: formData });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Não foi possível importar contas a pagar.');
+      if (!response.ok) throw new Error(payload?.error || 'NÃ£o foi possÃ­vel importar contas a pagar.');
 
       setItems(payload.rows || []);
       setSummary(payload.summary || emptySummary);
-      setMessage(`Importação concluída. ${payload.imported || 0} contas importadas. Snapshot criado antes da sobrescrita e auditoria gravada.`);
+      setMessage(`ImportaÃ§Ã£o concluÃ­da. ${payload.imported || 0} contas importadas. Snapshot criado antes da sobrescrita e auditoria gravada.`);
       setFile(null);
       setPreview(null);
     } catch (err) {
@@ -209,8 +209,8 @@ export function AccountsPayablePage() {
         body: JSON.stringify(patch),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Não foi possível salvar a linha.');
-      setMessage('Alteração salva.');
+      if (!response.ok) throw new Error(payload?.error || 'NÃ£o foi possÃ­vel salvar a linha.');
+      setMessage('AlteraÃ§Ã£o salva.');
       await loadMonth(competencia);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado ao salvar linha.');
@@ -229,7 +229,7 @@ export function AccountsPayablePage() {
 
   async function closeMonth() {
     try {
-      const confirmed = window.confirm('Fechar este mês? Isso bloqueará alterações e criará o contas a pagar do próximo mês a partir da lista atual.');
+      const confirmed = window.confirm('Fechar este mÃªs? Isso bloquearÃ¡ alteraÃ§Ãµes e criarÃ¡ o contas a pagar do prÃ³ximo mÃªs a partir da lista atual.');
       if (!confirmed) return;
 
       setLoading(true);
@@ -241,11 +241,11 @@ export function AccountsPayablePage() {
         body: JSON.stringify({ competencia }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Não foi possível fechar o mês.');
-      setMessage(`Mês fechado. Próximo mês criado (${String(payload.nextCompetencia).slice(0, 7)}) com ${payload.copied} contas.`);
+      if (!response.ok) throw new Error(payload?.error || 'NÃ£o foi possÃ­vel fechar o mÃªs.');
+      setMessage(`MÃªs fechado. PrÃ³ximo mÃªs criado (${String(payload.nextCompetencia).slice(0, 7)}) com ${payload.copied} contas.`);
       await loadMonth(competencia);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado ao fechar mês.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao fechar mÃªs.');
     } finally {
       setLoading(false);
     }
@@ -254,45 +254,45 @@ export function AccountsPayablePage() {
   return (
     <main className="page-shell wide-shell">
       <MonthContextHeader
-        title="Contas a pagar"
-        description="Importe, revise, edite e feche as despesas mensais. A exportação vira o próprio modelo de importação; novas despesas e categorias nascem no Excel."
+        title="Pagamentos efetuados"
+        description="Importe, revise, edite e feche as despesas mensais. A exportaÃ§Ã£o vira o prÃ³prio modelo de importaÃ§Ã£o; novas despesas e categorias nascem no Excel."
         competencia={competencia}
         onCompetenciaChange={setCompetencia}
         primaryStatus={{ label: 'Status', status: monthStatus }}
       >
         <a className="secondary-button" href="/">Home</a>
-        {monthStatus === 'nao_aberto' && <button type="button" className="secondary-button" onClick={() => openMonth('abrir')} disabled={loading}>Abrir mês</button>}
-        {monthStatus === 'aberto' && <button type="button" className="danger-button" onClick={closeMonth} disabled={loading}>Fechar mês</button>}
-        {monthStatus === 'fechado' && <button type="button" className="secondary-button" onClick={() => openMonth('reabrir')} disabled={loading}>Reabrir mês</button>}
+        {monthStatus === 'nao_aberto' && <button type="button" className="secondary-button" onClick={() => openMonth('abrir')} disabled={loading}>Abrir mÃªs</button>}
+        {monthStatus === 'aberto' && <button type="button" className="danger-button" onClick={closeMonth} disabled={loading}>Fechar mÃªs</button>}
+        {monthStatus === 'fechado' && <button type="button" className="secondary-button" onClick={() => openMonth('reabrir')} disabled={loading}>Reabrir mÃªs</button>}
       </MonthContextHeader>
 
       <section className="card">
 
-        {monthStatus === 'nao_aberto' && <div className="warning">Abra o mês para importar a planilha e editar as contas a pagar.</div>}
-        {monthStatus === 'fechado' && <div className="warning">Mês fechado. A lista está protegida contra alterações até reabrir.</div>}
-        {monthStatus === 'indisponivel' && <div className="warning">Supabase indisponível. Confira o .env.local e execute o schema v6.</div>}
+        {monthStatus === 'nao_aberto' && <div className="warning">Abra o mÃªs para importar a planilha e editar as contas a pagar.</div>}
+        {monthStatus === 'fechado' && <div className="warning">MÃªs fechado. A lista estÃ¡ protegida contra alteraÃ§Ãµes atÃ© reabrir.</div>}
+        {monthStatus === 'indisponivel' && <div className="warning">Supabase indisponÃ­vel. Confira o .env.local e execute o schema v6.</div>}
         {error && <div className="error">{error}</div>}
         {message && <div className="success">{message}</div>}
 
         <div className="grid-3">
-          <MetricCard label="Total previsto" value={formatCurrency(summary.total)} help={`${summary.quantidade} contas no mês`} />
-          <MetricCard label="Total pago" value={formatCurrency(summary.totalPago)} help={`${summary.quantidadePaga} contas pagas`} tone="good" />
-          <MetricCard label="Em aberto" value={formatCurrency(summary.totalAberto)} help="Valor ainda não marcado como pago" tone={summary.totalAberto > 0 ? 'warning' : 'good'} />
+          <MetricCard label="Previsão do mês" value={formatCurrency(summary.total)} help={`${summary.quantidade} contas no mÃªs`} />
+          <MetricCard label="Pagamentos efetuados" value={formatCurrency(summary.totalPago)} help={`${summary.quantidadePaga} pagamentos realizados`} tone="good" />
+          <MetricCard label="Diferença" value={formatCurrency(summary.totalAberto)} help="Valor ainda nÃ£o marcado como pago" tone={summary.totalAberto > 0 ? 'warning' : 'good'} />
         </div>
 
         <section className="payable-import-box">
           <div>
-            <h2>Importar / exportar planilha</h2>
-            <p className="muted small-text">A exportação gera uma aba "Contas a Pagar" que pode ser editada e importada novamente. Para criar novas despesas ou categorias, inclua novas linhas nessa planilha.</p>
+            <h2>Importar extrato realizado</h2>
+            <p className="muted small-text">A exportaÃ§Ã£o gera uma aba "Contas a Pagar" que pode ser editada e importada novamente. Para criar novas despesas ou categorias, inclua novas linhas nessa planilha.</p>
           </div>
           <div className="import-actions">
-            <button type="button" className="secondary-button" onClick={exportFile} disabled={loading || monthStatus === 'indisponivel'}>Exportar modelo do mês</button>
+            <button type="button" className="secondary-button" onClick={exportFile} disabled={loading || monthStatus === 'indisponivel'}>Exportar modelo do mÃªs</button>
             <input type="file" accept=".xlsx,.xls,.csv" onChange={(event) => { setFile(event.target.files?.[0] || null); setPreview(null); }} disabled={!canEdit || loading} />
             <button type="button" className="secondary-button" onClick={generatePreview} disabled={!file || !canEdit || loading}>
-              Gerar prévia
+              Gerar prÃ©via
             </button>
             <button type="button" className="primary-button" onClick={importFile} disabled={!file || !preview || !canEdit || loading || preview.linhasComErro > 0}>
-              Confirmar importação
+              Confirmar importaÃ§Ã£o
             </button>
           </div>
         </section>
@@ -301,37 +301,37 @@ export function AccountsPayablePage() {
           <section className="preview-box">
             <div className="header-row">
               <div>
-                <h2>Prévia da importação</h2>
-                <p className="muted small-text">Arquivo: {preview.arquivo}. A confirmação vai sobrescrever somente itens manuais/importados do mês aberto; comissões automáticas são preservadas e sincronizadas.</p>
+                <h2>PrÃ©via da importaÃ§Ã£o</h2>
+                <p className="muted small-text">Arquivo: {preview.arquivo}. A confirmaÃ§Ã£o vai sobrescrever somente itens manuais/importados do mÃªs aberto; comissÃµes automÃ¡ticas sÃ£o preservadas e sincronizadas.</p>
               </div>
               {preview.linhasComErro > 0 ? <span className="badge badge-danger">Bloqueada</span> : <span className="badge badge-paid">Pronta para confirmar</span>}
             </div>
             <div className="preview-impact">
-              <strong>A importação irá:</strong>
-              <span>+ Criar {preview.itensNovos} despesa(s) nova(s)</span>
-              <span>~ Alterar {preview.itensAlterados} despesa(s)</span>
-              <span>- Remover {preview.itensRemovidos} despesa(s) manual(is) que não vieram na planilha</span>
-              <span>= Preservar {preview.itensAtuaisComissao} comissão(ões) automática(s)</span>
+              <strong>A importaÃ§Ã£o irÃ¡:</strong>
+              <span>+ Criar {preview.itensNovos} pagamento(s) nova(s)</span>
+              <span>~ Alterar {preview.itensAlterados} pagamento(s)</span>
+              <span>- Remover {preview.itensRemovidos} pagamento(s) importado(s) que nÃ£o vieram na planilha</span>
+              <span>= Preservar {preview.itensAtuaisComissao} comissÃ£o(Ãµes) automÃ¡tica(s)</span>
             </div>
             <div className="grid-3">
-              <MetricCard label="Linhas válidas" value={preview.linhasValidas} help={`${preview.linhasComErro} linha(s) com erro`} tone={preview.linhasComErro > 0 ? 'danger' : 'good'} />
+              <MetricCard label="Linhas vÃ¡lidas" value={preview.linhasValidas} help={`${preview.linhasComErro} linha(s) com erro`} tone={preview.linhasComErro > 0 ? 'danger' : 'good'} />
               <MetricCard label="Novos / alterados" value={`${preview.itensNovos} / ${preview.itensAlterados}`} help="Impacto na lista manual" />
-              <MetricCard label="Removidos" value={preview.itensRemovidos} help="Não vieram na nova planilha" tone={preview.itensRemovidos > 0 ? 'warning' : 'default'} />
+              <MetricCard label="Removidos" value={preview.itensRemovidos} help="NÃ£o vieram na nova planilha" tone={preview.itensRemovidos > 0 ? 'warning' : 'default'} />
             </div>
             <div className="grid-3">
-              <MetricCard label="Valor atual manual" value={formatCurrency(preview.valorAtualManual)} />
-              <MetricCard label="Valor importado" value={formatCurrency(preview.valorImportadoManual)} />
-              <MetricCard label="Diferença" value={formatCurrency(preview.diferencaValorManual)} tone={preview.diferencaValorManual === 0 ? 'default' : 'warning'} />
+              <MetricCard label="Previsão atual" value={formatCurrency(preview.valorAtualManual)} />
+              <MetricCard label="Realizado importado" value={formatCurrency(preview.valorImportadoManual)} />
+              <MetricCard label="DiferenÃ§a" value={formatCurrency(preview.diferencaValorManual)} tone={preview.diferencaValorManual === 0 ? 'default' : 'warning'} />
             </div>
             {!!preview.issues?.length && (
               <div className="audit-list">
                 <h3>Auditoria da planilha</h3>
                 {preview.issues.slice(0, 12).map((issue, index) => (
                   <div key={`${issue.linha}-${index}`} className={issue.severidade === 'erro' ? 'audit-row audit-error' : 'audit-row audit-warning'}>
-                    Linha {issue.linha}: {issue.campo ? `${issue.campo} — ` : ''}{issue.mensagem}
+                    Linha {issue.linha}: {issue.campo ? `${issue.campo} â€” ` : ''}{issue.mensagem}
                   </div>
                 ))}
-                {preview.issues.length > 12 && <p className="muted small-text">Mais {preview.issues.length - 12} ocorrência(s) registradas na auditoria.</p>}
+                {preview.issues.length > 12 && <p className="muted small-text">Mais {preview.issues.length - 12} ocorrÃªncia(s) registradas na auditoria.</p>}
               </div>
             )}
           </section>
@@ -339,8 +339,8 @@ export function AccountsPayablePage() {
 
         <div className="header-row payable-header-row">
           <div>
-            <h2>Lista do mês</h2>
-            <p className="muted small-text">{summary.quantidade} contas, {summary.quantidadePaga} marcadas como pagas.</p>
+            <h2>Lista do mÃªs</h2>
+            <p className="muted small-text">{summary.quantidade} lançamentos, {summary.quantidadePaga} marcados como pagos.</p>
           </div>
         </div>
 
@@ -350,7 +350,7 @@ export function AccountsPayablePage() {
               <tr>
                 <th>Pago</th>
                 <th>Venc.</th>
-                <th>Descrição</th>
+                <th>DescriÃ§Ã£o</th>
                 <th>Categoria</th>
                 <th>Centro</th>
                 <th className="text-right">Valor</th>
@@ -377,7 +377,7 @@ export function AccountsPayablePage() {
                       onChange={(event) => updateLocal(item.id, { descricao: event.target.value })}
                       onBlur={(event) => saveItem(item.id, { descricao: event.target.value })}
                     />
-                    {item.origem_tipo === 'comissao' && <span className="badge badge-commission">Comissão calculada</span>}
+                    {item.origem_tipo === 'comissao' && <span className="badge badge-commission">ComissÃ£o calculada</span>}
                   </td>
                   <td>
                     <input
@@ -404,7 +404,7 @@ export function AccountsPayablePage() {
               ))}
               {!items.length && (
                 <tr>
-                  <td colSpan={7}><EmptyState title="Nenhuma conta a pagar neste mês" description="Abra o mês e importe uma planilha, ou feche o mês anterior para criar a próxima competência automaticamente." /></td>
+                  <td colSpan={7}><EmptyState title="Nenhuma conta a pagar neste mÃªs" description="Abra o mÃªs e importe uma planilha, ou feche o mÃªs anterior para criar a prÃ³xima competÃªncia automaticamente." /></td>
                 </tr>
               )}
             </tbody>
@@ -417,3 +417,4 @@ export function AccountsPayablePage() {
     </main>
   );
 }
+

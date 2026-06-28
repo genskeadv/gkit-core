@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -6,9 +6,10 @@ import type { ReactNode } from 'react';
 
 const navItems = [
   { href: '/modulos/gkit-flex', label: 'Cockpit' },
-  { href: '/modulos/gkit-flex/comissoes', label: 'Receber' },
-  { href: '/modulos/gkit-flex/contas-a-pagar', label: 'Pagar' },
+  { href: '/modulos/gkit-flex/receitas', label: 'Receitas' },
+  { href: '/modulos/gkit-flex/pagamentos', label: 'Pagamentos' },
   { href: '/modulos/gkit-flex/colaboradores', label: 'Colaboradores' },
+  { href: '/modulos/gkit-flex/comissoes', label: 'Comiss\u00f5es' },
   { href: '/modulos/gkit-flex/cadastros', label: 'Cadastros' },
   { href: '/modulos/gkit-flex/auditoria', label: 'Auditoria' },
 ];

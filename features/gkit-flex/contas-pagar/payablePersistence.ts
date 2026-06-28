@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+﻿import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PayableImportIssue, PayableImportPreview, PayableImportRow, PayableItem, PayableMonthStatus, PayableSummary } from './types';
 import { getSupabaseAdmin, logEvent } from '../audit';
 import { buildPayablesExportWorkbook } from './payableProcessor';
@@ -35,21 +35,21 @@ function validatePayableRows(rows: PayableImportRow[]): PayableImportIssue[] {
 
   for (const row of rows) {
     if (!row.descricao.trim()) {
-      issues.push({ linha: row.linha, severidade: 'erro', campo: 'Descrição', mensagem: 'Descrição vazia.' });
+      issues.push({ linha: row.linha, severidade: 'erro', campo: 'DescriÃ§Ã£o', mensagem: 'DescriÃ§Ã£o vazia.' });
     }
     if (!row.vencimentoDia) {
-      issues.push({ linha: row.linha, severidade: 'aviso', campo: 'Vencimento', mensagem: 'Vencimento sem dia válido entre 1 e 31. O texto original será preservado.' });
+      issues.push({ linha: row.linha, severidade: 'aviso', campo: 'Vencimento', mensagem: 'Vencimento sem dia vÃ¡lido entre 1 e 31. O texto original serÃ¡ preservado.' });
     }
     if (!Number.isFinite(Number(row.valorPrevisto)) || Number(row.valorPrevisto) < 0) {
-      issues.push({ linha: row.linha, severidade: 'erro', campo: 'Valor previsto', mensagem: 'Valor previsto inválido ou negativo.' });
+      issues.push({ linha: row.linha, severidade: 'erro', campo: 'Valor', mensagem: 'Valor invÃ¡lido ou negativo.' });
     }
     if (!row.categoria.trim()) {
-      issues.push({ linha: row.linha, severidade: 'aviso', campo: 'Categoria', mensagem: 'Categoria vazia; será gravada como Sem categoria.' });
+      issues.push({ linha: row.linha, severidade: 'aviso', campo: 'Categoria', mensagem: 'Categoria vazia; serÃ¡ gravada como Sem categoria.' });
     }
 
     const key = itemBusinessKey(row);
     if (seen.has(key)) {
-      issues.push({ linha: row.linha, severidade: 'aviso', mensagem: 'Possível despesa duplicada na planilha importada.' });
+      issues.push({ linha: row.linha, severidade: 'aviso', mensagem: 'PossÃ­vel despesa duplicada na planilha importada.' });
     }
     seen.add(key);
   }
@@ -70,7 +70,7 @@ async function createPayableSnapshot(supabase: SupabaseClient, competenciaId: st
     .eq('competencia_id', competenciaId)
     .order('created_at', { ascending: true });
 
-  if (itensError) throw new Error(`Erro ao criar snapshot do contas a pagar: ${itensError.message}`);
+  if (itensError) throw new Error(`Erro ao criar snapshot do pagamentos: ${itensError.message}`);
 
   const { data: snapshot, error } = await supabase.from('contas_pagar_snapshots').insert({
     competencia_id: competenciaId,
@@ -80,7 +80,7 @@ async function createPayableSnapshot(supabase: SupabaseClient, competenciaId: st
     payload: { competencia: month?.competencia, status: month?.status, itens: itens || [], detalhe },
   }).select('id').single();
 
-  if (error) throw new Error(`Erro ao gravar snapshot do contas a pagar: ${error.message}`);
+  if (error) throw new Error(`Erro ao gravar snapshot do pagamentos: ${error.message}`);
 
   await logEvent({
     supabase,
@@ -114,7 +114,7 @@ async function getMonthRow(supabase: SupabaseClient, competencia: string) {
     .eq('competencia', competencia)
     .maybeSingle();
 
-  if (error) throw new Error(`Erro ao consultar competência de contas a pagar: ${error.message}`);
+  if (error) throw new Error(`Erro ao consultar competÃªncia de pagamentos: ${error.message}`);
   return data;
 }
 
@@ -140,14 +140,14 @@ export async function getPayableMonthStatus(competenciaInput: string) {
 
 export async function openPayableMonth(competenciaInput: string, mode: 'abrir' | 'reabrir' = 'abrir') {
   const supabase = getSupabaseAdmin();
-  if (!supabase) throw new Error('Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+  if (!supabase) throw new Error('Supabase nÃ£o configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
 
   const competencia = sanitizeCompetencia(competenciaInput);
   const current = await getPayableMonthStatus(competencia);
 
   if (current.status === 'aberto') return current;
   if (current.status === 'fechado' && mode !== 'reabrir') {
-    throw new Error('Esta competência está fechada. Use reabrir mês para liberar alterações.');
+    throw new Error('Esta competÃªncia estÃ¡ fechada. Use reabrir mÃªs para liberar alteraÃ§Ãµes.');
   }
 
   if (current.status === 'nao_aberto') {
@@ -156,13 +156,13 @@ export async function openPayableMonth(competenciaInput: string, mode: 'abrir' |
       status: 'aberto',
       opened_at: new Date().toISOString(),
     });
-    if (error) throw new Error(`Erro ao abrir contas a pagar: ${error.message}`);
+    if (error) throw new Error(`Erro ao abrir pagamentos: ${error.message}`);
   } else {
     const { error } = await supabase
       .from('contas_pagar_competencias')
       .update({ status: 'aberto', closed_at: null, reopened_at: new Date().toISOString() })
       .eq('competencia', competencia);
-    if (error) throw new Error(`Erro ao reabrir contas a pagar: ${error.message}`);
+    if (error) throw new Error(`Erro ao reabrir pagamentos: ${error.message}`);
   }
 
   await logEvent({ supabase, modulo: 'contas_pagar', competencia, action: mode === 'reabrir' ? 'reabrir_mes' : 'abrir_mes', detalhe: { mode } });
@@ -171,21 +171,21 @@ export async function openPayableMonth(competenciaInput: string, mode: 'abrir' |
 
 async function requireOpenPayableMonth(supabase: SupabaseClient, competencia: string): Promise<string> {
   const row = await getMonthRow(supabase, competencia);
-  if (!row) throw new Error('Competência ainda não aberta. Abra o mês antes de importar ou editar contas a pagar.');
-  if (row.status !== 'aberto') throw new Error('Competência fechada. Reabra o mês antes de alterar contas a pagar.');
+  if (!row) throw new Error('CompetÃªncia ainda nÃ£o aberta. Abra o mÃªs antes de importar ou editar pagamentos.');
+  if (row.status !== 'aberto') throw new Error('CompetÃªncia fechada. Reabra o mÃªs antes de alterar pagamentos.');
   return row.id as string;
 }
 
 
 async function syncCommissionPayables(supabase: SupabaseClient, competencia: string, competenciaId: string) {
-  // Só sincroniza comissões para mês aberto. Mês fechado é histórico imutável.
+  // SÃ³ sincroniza comissÃµes para mÃªs aberto. MÃªs fechado Ã© histÃ³rico imutÃ¡vel.
   const { data: month, error: monthError } = await supabase
     .from('contas_pagar_competencias')
     .select('status')
     .eq('id', competenciaId)
     .maybeSingle();
 
-  if (monthError) throw new Error(`Erro ao validar mês para sincronizar comissões: ${monthError.message}`);
+  if (monthError) throw new Error(`Erro ao validar mÃªs para sincronizar comissÃµes: ${monthError.message}`);
   if (!month || month.status !== 'aberto') return { synced: false, inserted: 0 };
 
   const { data: latestExecution, error: executionError } = await supabase
@@ -197,7 +197,7 @@ async function syncCommissionPayables(supabase: SupabaseClient, competencia: str
     .limit(1)
     .maybeSingle();
 
-  if (executionError) throw new Error(`Erro ao consultar comissões calculadas: ${executionError.message}`);
+  if (executionError) throw new Error(`Erro ao consultar comissÃµes calculadas: ${executionError.message}`);
 
   const { data: existingCommissionItems, error: existingCommissionError } = await supabase
     .from('contas_pagar_itens')
@@ -205,7 +205,7 @@ async function syncCommissionPayables(supabase: SupabaseClient, competencia: str
     .eq('competencia_id', competenciaId)
     .eq('origem_tipo', 'comissao');
 
-  if (existingCommissionError) throw new Error(`Erro ao preservar pagamentos de comissão: ${existingCommissionError.message}`);
+  if (existingCommissionError) throw new Error(`Erro ao preservar pagamentos de comissÃ£o: ${existingCommissionError.message}`);
 
   const paidBySummaryId = new Map(
     (existingCommissionItems || [])
@@ -213,14 +213,14 @@ async function syncCommissionPayables(supabase: SupabaseClient, competencia: str
       .map((item) => [String(item.origem_resumo_id), Boolean(item.pago)]),
   );
 
-  // Remove os itens automáticos anteriores. Os itens manuais/importados ficam preservados.
+  // Remove os itens automÃ¡ticos anteriores. Os itens manuais/importados ficam preservados.
   const { error: deleteError } = await supabase
     .from('contas_pagar_itens')
     .delete()
     .eq('competencia_id', competenciaId)
     .eq('origem_tipo', 'comissao');
 
-  if (deleteError) throw new Error(`Erro ao atualizar contas de comissão: ${deleteError.message}`);
+  if (deleteError) throw new Error(`Erro ao atualizar contas de comissÃ£o: ${deleteError.message}`);
 
   if (!latestExecution?.id) return { synced: true, inserted: 0 };
 
@@ -232,16 +232,16 @@ async function syncCommissionPayables(supabase: SupabaseClient, competencia: str
     .order('categoria', { ascending: true })
     .order('carteira', { ascending: true });
 
-  if (summaryError) throw new Error(`Erro ao consultar resumo de comissões: ${summaryError.message}`);
+  if (summaryError) throw new Error(`Erro ao consultar resumo de comissÃµes: ${summaryError.message}`);
 
   const rows = (summaries || []).map((summary) => ({
     competencia_id: competenciaId,
     competencia,
-    descricao: `Comissão - ${summary.categoria} - ${summary.carteira}`,
+    descricao: `ComissÃ£o - ${summary.categoria} - ${summary.carteira}`,
     vencimento_dia: 30,
     vencimento_texto: '30',
     valor_previsto: roundMoney(Number(summary.comissao_final || 0)),
-    categoria: 'Comissões',
+    categoria: 'ComissÃµes',
     centro: 'Pessoal',
     pago: paidBySummaryId.get(String(summary.id)) ?? false,
     origem_tipo: 'comissao',
@@ -258,15 +258,26 @@ async function syncCommissionPayables(supabase: SupabaseClient, competencia: str
 
   if (rows.length) {
     const { error: insertError } = await supabase.from('contas_pagar_itens').insert(rows);
-    if (insertError) throw new Error(`Erro ao inserir comissões no contas a pagar: ${insertError.message}`);
+    if (insertError) throw new Error(`Erro ao inserir comissÃµes no pagamentos: ${insertError.message}`);
   }
 
   return { synced: true, inserted: rows.length };
 }
 
+export async function syncCommissionPayablesForCompetencia(competenciaInput: string) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error('Supabase nÃ£o configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+
+  const competencia = sanitizeCompetencia(competenciaInput);
+  const row = await getMonthRow(supabase, competencia);
+  if (!row || row.status !== 'aberto') return { synced: false, inserted: 0 };
+
+  return syncCommissionPayables(supabase, competencia, row.id as string);
+}
+
 export async function previewPayablesImport(competenciaInput: string, rows: PayableImportRow[], fileName: string): Promise<PayableImportPreview> {
   const supabase = getSupabaseAdmin();
-  if (!supabase) throw new Error('Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+  if (!supabase) throw new Error('Supabase nÃ£o configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
 
   const competencia = sanitizeCompetencia(competenciaInput);
   const competenciaId = await requireOpenPayableMonth(supabase, competencia);
@@ -280,7 +291,7 @@ export async function previewPayablesImport(competenciaInput: string, rows: Paya
     .select('id, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, pago, origem_tipo')
     .eq('competencia_id', competenciaId);
 
-  if (error) throw new Error(`Erro ao montar prévia da importação: ${error.message}`);
+  if (error) throw new Error(`Erro ao montar prÃ©via da importaÃ§Ã£o: ${error.message}`);
 
   const manualCurrent = (currentRows || []).filter((row) => row.origem_tipo !== 'comissao') as PayableItem[];
   const commissionCurrent = (currentRows || []).filter((row) => row.origem_tipo === 'comissao') as PayableItem[];
@@ -361,7 +372,7 @@ export async function previewPayablesImport(competenciaInput: string, rows: Paya
 
 export async function importPayables(competenciaInput: string, rows: PayableImportRow[], fileName: string) {
   const supabase = getSupabaseAdmin();
-  if (!supabase) throw new Error('Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+  if (!supabase) throw new Error('Supabase nÃ£o configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
 
   const competencia = sanitizeCompetencia(competenciaInput);
   const competenciaId = await requireOpenPayableMonth(supabase, competencia);
@@ -369,7 +380,7 @@ export async function importPayables(competenciaInput: string, rows: PayableImpo
   const fatalIssues = issues.filter((issue) => issue.severidade === 'erro');
 
   if (fatalIssues.length) {
-    throw new Error(`Importação bloqueada: ${fatalIssues.length} linha(s) com erro. Faça a prévia para ver a auditoria antes de confirmar.`);
+    throw new Error(`ImportaÃ§Ã£o bloqueada: ${fatalIssues.length} linha(s) com erro. FaÃ§a a prÃ©via para ver a auditoria antes de confirmar.`);
   }
 
   const snapshotId = await createPayableSnapshot(supabase, competenciaId, 'antes_importacao_contas_pagar', {
@@ -385,7 +396,7 @@ export async function importPayables(competenciaInput: string, rows: PayableImpo
     .eq('competencia_id', competenciaId)
     .or('origem_tipo.is.null,origem_tipo.neq.comissao');
 
-  if (deleteError) throw new Error(`Erro ao sobrescrever contas a pagar abertas: ${deleteError.message}`);
+  if (deleteError) throw new Error(`Erro ao sobrescrever pagamentos abertas: ${deleteError.message}`);
 
   if (rows.length) {
     const { error: insertError } = await supabase.from('contas_pagar_itens').insert(rows.map((row) => ({
@@ -403,7 +414,7 @@ export async function importPayables(competenciaInput: string, rows: PayableImpo
       raw: row.raw,
     })));
 
-    if (insertError) throw new Error(`Erro ao importar contas a pagar: ${insertError.message}`);
+    if (insertError) throw new Error(`Erro ao importar pagamentos: ${insertError.message}`);
   }
 
   await supabase.from('contas_pagar_importacoes').insert({
@@ -456,14 +467,14 @@ export async function listPayables(competenciaInput: string) {
     .order('vencimento_dia', { ascending: true, nullsFirst: false })
     .order('descricao', { ascending: true });
 
-  if (error) throw new Error(`Erro ao listar contas a pagar: ${error.message}`);
+  if (error) throw new Error(`Erro ao listar pagamentos: ${error.message}`);
   const rows = (data || []) as PayableItem[];
   return { configured: true, competencia, status: status.status, rows, summary: summarize(rows) };
 }
 
 export async function updatePayableItem(id: string, patch: Partial<Pick<PayableItem, 'descricao' | 'valor_previsto' | 'categoria' | 'pago'>>) {
   const supabase = getSupabaseAdmin();
-  if (!supabase) throw new Error('Supabase não configurado.');
+  if (!supabase) throw new Error('Supabase nÃ£o configurado.');
 
   const { data: item, error: readError } = await supabase
     .from('contas_pagar_itens')
@@ -471,10 +482,10 @@ export async function updatePayableItem(id: string, patch: Partial<Pick<PayableI
     .eq('id', id)
     .single();
 
-  if (readError) throw new Error(`Conta a pagar não encontrada: ${readError.message}`);
+  if (readError) throw new Error(`Pagamento nÃ£o encontrada: ${readError.message}`);
   await requireOpenPayableMonth(supabase, item.competencia as string);
   if ((item as { origem_tipo?: string | null }).origem_tipo === 'comissao' && (patch.descricao !== undefined || patch.valor_previsto !== undefined || patch.categoria !== undefined)) {
-    throw new Error('Itens automáticos de comissão não podem ter descrição, categoria ou valor alterados manualmente. Recalcule as comissões para corrigir a origem.');
+    throw new Error('Itens automÃ¡ticos de comissÃ£o nÃ£o podem ter descriÃ§Ã£o, categoria ou valor alterados manualmente. Recalcule as comissÃµes para corrigir a origem.');
   }
 
   const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -488,7 +499,7 @@ export async function updatePayableItem(id: string, patch: Partial<Pick<PayableI
     .update(payload)
     .eq('id', id);
 
-  if (error) throw new Error(`Erro ao atualizar conta a pagar: ${error.message}`);
+  if (error) throw new Error(`Erro ao atualizar pagamento: ${error.message}`);
   if (patch.pago !== undefined && (item as { origem_tipo?: string | null }).origem_tipo === 'comissao') {
     await syncCicloRegularidadePagamentos(supabase, item.competencia as string);
   }
@@ -498,12 +509,12 @@ export async function updatePayableItem(id: string, patch: Partial<Pick<PayableI
 
 export async function closePayableMonthAndCreateNext(competenciaInput: string) {
   const supabase = getSupabaseAdmin();
-  if (!supabase) throw new Error('Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+  if (!supabase) throw new Error('Supabase nÃ£o configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
 
   const competencia = sanitizeCompetencia(competenciaInput);
   const current = await getPayableMonthStatus(competencia);
-  if (!current.row) throw new Error('Esta competência ainda não foi aberta.');
-  if (current.status !== 'aberto') throw new Error('Esta competência já está fechada ou não permite fechamento.');
+  if (!current.row) throw new Error('Esta competÃªncia ainda nÃ£o foi aberta.');
+  if (current.status !== 'aberto') throw new Error('Esta competÃªncia jÃ¡ estÃ¡ fechada ou nÃ£o permite fechamento.');
 
   await syncCommissionPayables(supabase, competencia, current.row.id as string);
   await syncCicloRegularidadePagamentos(supabase, competencia);
@@ -530,16 +541,16 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
       })
       .select('id, competencia, status, opened_at, closed_at, created_at')
       .single();
-    if (error) throw new Error(`Erro ao criar contas a pagar do próximo mês: ${error.message}`);
+    if (error) throw new Error(`Erro ao criar pagamentos do prÃ³ximo mÃªs: ${error.message}`);
     nextRow = data;
   } else if (nextRow.status === 'fechado') {
-    throw new Error('O próximo mês já existe e está fechado. Não vou sobrescrever histórico fechado.');
+    throw new Error('O prÃ³ximo mÃªs jÃ¡ existe e estÃ¡ fechado. NÃ£o vou sobrescrever histÃ³rico fechado.');
   } else {
     const { error: deleteNextError } = await supabase
       .from('contas_pagar_itens')
       .delete()
       .eq('competencia_id', nextRow.id);
-    if (deleteNextError) throw new Error(`Erro ao substituir contas do próximo mês: ${deleteNextError.message}`);
+    if (deleteNextError) throw new Error(`Erro ao substituir contas do prÃ³ximo mÃªs: ${deleteNextError.message}`);
   }
 
   const itemsToCopy = (currentItems || []).filter((item) => item.origem_tipo !== 'comissao');
@@ -559,7 +570,7 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
       origem_item_id: item.id,
       raw: item.raw || {},
     })));
-    if (copyError) throw new Error(`Erro ao copiar contas para o próximo mês: ${copyError.message}`);
+    if (copyError) throw new Error(`Erro ao copiar contas para o prÃ³ximo mÃªs: ${copyError.message}`);
   }
 
   await createPayableSnapshot(supabase, current.row.id as string, 'antes_fechamento_contas_pagar', { proximo_mes: next, itens_copiados: itemsToCopy.length });
@@ -569,7 +580,7 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
     .update({ status: 'fechado', closed_at: new Date().toISOString() })
     .eq('id', current.row.id);
 
-  if (closeError) throw new Error(`Erro ao fechar contas a pagar: ${closeError.message}`);
+  if (closeError) throw new Error(`Erro ao fechar pagamentos: ${closeError.message}`);
   await logEvent({ supabase, modulo: 'contas_pagar', competencia, action: 'fechar_mes', detalhe: { nextCompetencia: next, copied: itemsToCopy.length } });
 
   return { closed: competencia, nextCompetencia: next, copied: itemsToCopy.length, skippedCommissions: (currentItems?.length || 0) - itemsToCopy.length };
@@ -578,7 +589,7 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
 
 export async function exportPayablesWorkbook(competenciaInput: string) {
   const result = await listPayables(competenciaInput);
-  if (!result.configured) throw new Error('Supabase não configurado.');
+  if (!result.configured) throw new Error('Supabase nÃ£o configurado.');
 
   const buffer = buildPayablesExportWorkbook({
     competencia: result.competencia,
@@ -592,3 +603,4 @@ export async function exportPayablesWorkbook(competenciaInput: string) {
     filename: `contas-a-pagar-${result.competencia.slice(0, 7)}.xlsx`,
   };
 }
+

@@ -15052,6 +15052,523 @@ a.button {
     width: 100%;
   }
 }
+
+/* GKIT Flex consistency pass: one spacing and typography system across all Flex pages. */
+.gkit-flex-shell {
+  --gkit-flex-gap: 12px;
+  --gkit-flex-gap-sm: 8px;
+  --gkit-flex-panel-pad: 14px;
+  --gkit-flex-control-h: 34px;
+  --gkit-flex-radius: 8px;
+  --suite-module-card-radius: var(--gkit-flex-radius);
+}
+
+.gkit-flex-shell .page-shell,
+.gkit-flex-shell .wide-shell,
+.gkit-flex-shell .dashboard-page,
+.gkit-flex-shell .audit-page,
+.gkit-flex-shell .master-data-page {
+  gap: var(--gkit-flex-gap) !important;
+  padding: 18px !important;
+}
+
+.gkit-flex-shell .month-context-header,
+.gkit-flex-shell .dashboard-hero,
+.gkit-flex-shell .card,
+.gkit-flex-shell .metric,
+.gkit-flex-shell .module-card,
+.gkit-flex-shell .month-control-card,
+.gkit-flex-shell .upload-box,
+.gkit-flex-shell .preview-box,
+.gkit-flex-shell .empty-state,
+.gkit-flex-shell .checklist-item,
+.gkit-flex-shell .payable-import-box,
+.gkit-flex-shell .master-data-section,
+.gkit-flex-shell .preview-panel {
+  border-radius: var(--gkit-flex-radius) !important;
+  padding: var(--gkit-flex-panel-pad) !important;
+}
+
+.gkit-flex-shell .card,
+.gkit-flex-shell .master-data-section,
+.gkit-flex-shell .preview-box,
+.gkit-flex-shell .preview-panel {
+  display: grid;
+  gap: var(--gkit-flex-gap) !important;
+}
+
+.gkit-flex-shell .month-context-header {
+  align-items: center;
+  display: grid;
+  gap: var(--gkit-flex-gap);
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.gkit-flex-shell .month-context-main,
+.gkit-flex-shell .month-context-side,
+.gkit-flex-shell .month-context-statuses,
+.gkit-flex-shell .month-context-actions {
+  gap: var(--gkit-flex-gap-sm);
+}
+
+.gkit-flex-shell .month-context-side {
+  align-items: end;
+  min-width: min(100%, 260px);
+}
+
+.gkit-flex-shell .month-context-actions,
+.gkit-flex-shell .month-actions,
+.gkit-flex-shell .actions,
+.gkit-flex-shell .import-actions,
+.gkit-flex-shell .action-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gkit-flex-gap-sm) !important;
+}
+
+.gkit-flex-shell .header-row,
+.gkit-flex-shell .compact-header,
+.gkit-flex-shell .module-card-top,
+.gkit-flex-shell .month-control-card,
+.gkit-flex-shell .payable-import-box {
+  align-items: center;
+  display: grid;
+  gap: var(--gkit-flex-gap);
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.gkit-flex-shell .grid-2,
+.gkit-flex-shell .grid-3,
+.gkit-flex-shell .grid-4,
+.gkit-flex-shell .dashboard-metrics,
+.gkit-flex-shell .dashboard-cards,
+.gkit-flex-shell .dashboard-extra,
+.gkit-flex-shell .form-grid,
+.gkit-flex-shell .checklist-grid,
+.gkit-flex-shell .mini-kpis,
+.gkit-flex-shell .preview-impact,
+.gkit-flex-shell .category-list {
+  gap: var(--gkit-flex-gap) !important;
+}
+
+.gkit-flex-shell .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.gkit-flex-shell .checklist-grid,
+.gkit-flex-shell .mini-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.gkit-flex-shell .preview-impact {
+  background: #f8fafc;
+  border: 1px solid var(--gkit-flex-line);
+  border-radius: var(--gkit-flex-radius);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  padding: 12px;
+}
+
+.gkit-flex-shell .category-list {
+  display: grid;
+}
+
+.gkit-flex-shell .category-row,
+.gkit-flex-shell .mini-kpis > div,
+.gkit-flex-shell .audit-row {
+  align-items: center;
+  border-bottom: 1px solid var(--gkit-flex-line);
+  display: grid;
+  gap: var(--gkit-flex-gap-sm);
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 34px;
+  padding: 7px 0;
+}
+
+.gkit-flex-shell .category-row:last-child,
+.gkit-flex-shell .mini-kpis > div:last-child {
+  border-bottom: 0;
+}
+
+.gkit-flex-shell h1 {
+  font-size: 24px !important;
+  font-weight: 500 !important;
+  line-height: 1.15 !important;
+}
+
+.gkit-flex-shell h2 {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+}
+
+.gkit-flex-shell h3 {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+}
+
+.gkit-flex-shell p,
+.gkit-flex-shell .muted,
+.gkit-flex-shell .small-text {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  margin: 0;
+}
+
+.gkit-flex-shell .eyebrow,
+.gkit-flex-shell .metric-label,
+.gkit-flex-shell .field-label,
+.gkit-flex-shell th {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+.gkit-flex-shell .metric {
+  gap: 5px;
+  min-height: 76px;
+}
+
+.gkit-flex-shell .metric-value,
+.gkit-flex-shell .module-main-value {
+  font-size: 20px !important;
+  font-weight: 500 !important;
+  line-height: 1.1 !important;
+}
+
+.gkit-flex-shell .module-card {
+  gap: var(--gkit-flex-gap-sm);
+  min-height: 126px;
+}
+
+.gkit-flex-shell .module-details {
+  gap: 5px;
+}
+
+.gkit-flex-shell .gkit-flex-form,
+.gkit-flex-shell .gkit-flex-form section {
+  gap: var(--gkit-flex-gap) !important;
+}
+
+.gkit-flex-shell .gkit-flex-filters {
+  align-items: end;
+  gap: var(--gkit-flex-gap-sm) !important;
+  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) auto;
+  min-width: 0;
+}
+
+.gkit-flex-shell label,
+.gkit-flex-shell .field-label,
+.gkit-flex-shell .dashboard-month {
+  display: grid;
+  gap: 5px !important;
+}
+
+.gkit-flex-shell .text-input,
+.gkit-flex-shell .inline-input,
+.gkit-flex-shell select,
+.gkit-flex-shell textarea,
+.gkit-flex-shell input[type="date"],
+.gkit-flex-shell input[type="month"],
+.gkit-flex-shell input[type="number"],
+.gkit-flex-shell input[type="text"],
+.gkit-flex-shell input[type="search"],
+.gkit-flex-shell input[type="file"] {
+  border-radius: var(--gkit-flex-radius) !important;
+  font-size: 12px !important;
+  min-height: var(--gkit-flex-control-h) !important;
+  padding: 7px 10px !important;
+}
+
+.gkit-flex-shell textarea {
+  min-height: 82px !important;
+}
+
+.gkit-flex-shell .primary-button,
+.gkit-flex-shell .secondary-button,
+.gkit-flex-shell .danger-button,
+.gkit-flex-shell .home-link,
+.gkit-flex-shell .card-cta {
+  border-radius: var(--gkit-flex-radius) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  min-height: var(--gkit-flex-control-h) !important;
+  padding: 7px 11px !important;
+}
+
+.gkit-flex-shell .status-pill,
+.gkit-flex-shell .badge,
+.gkit-flex-shell .sidebar-badge {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  min-height: 24px !important;
+  padding: 3px 8px !important;
+}
+
+.gkit-flex-shell .upload-box {
+  align-content: start;
+  display: grid;
+  gap: 7px;
+  min-height: 112px;
+}
+
+.gkit-flex-shell .upload-title {
+  color: var(--gkit-flex-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.gkit-flex-shell .upload-help,
+.gkit-flex-shell .selected-file {
+  color: var(--gkit-flex-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.gkit-flex-shell .table-wrap {
+  border: 1px solid var(--gkit-flex-line);
+  border-radius: var(--gkit-flex-radius);
+  max-height: min(58vh, 560px);
+  overflow: auto;
+}
+
+.gkit-flex-shell table {
+  font-size: 12px !important;
+  min-width: 840px;
+}
+
+.gkit-flex-shell th,
+.gkit-flex-shell td {
+  padding: 8px 10px !important;
+  vertical-align: middle;
+}
+
+.gkit-flex-shell td strong,
+.gkit-flex-shell .category-row strong,
+.gkit-flex-shell .mini-kpis strong {
+  color: var(--gkit-flex-text);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.gkit-flex-shell .editable-table .inline-input {
+  min-width: 0;
+  width: 100%;
+}
+
+.gkit-flex-shell .description-input {
+  min-width: 240px;
+}
+
+.gkit-flex-shell .money-input {
+  max-width: 116px;
+  text-align: right;
+}
+
+.gkit-flex-shell .success,
+.gkit-flex-shell .warning,
+.gkit-flex-shell .error {
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 10px 12px !important;
+}
+
+.gkit-flex-shell .flex-cockpit-page {
+  align-content: start;
+}
+
+.gkit-flex-shell .flex-cockpit-grid {
+  display: grid;
+  gap: var(--gkit-flex-gap);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.gkit-flex-shell .flex-cockpit-card {
+  align-items: start;
+  background: #fff;
+  border: 1px solid var(--gkit-flex-line);
+  border-radius: var(--gkit-flex-radius);
+  color: var(--gkit-flex-text);
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  min-height: 132px;
+  padding: 14px;
+  text-align: left;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.gkit-flex-shell .flex-cockpit-card:hover,
+.gkit-flex-shell .flex-cockpit-card.active {
+  border-color: rgba(111, 45, 138, .45);
+  box-shadow: 0 12px 28px rgba(31, 41, 55, .08);
+  transform: translateY(-1px);
+}
+
+.gkit-flex-shell .flex-cockpit-card strong {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.gkit-flex-shell .flex-cockpit-panel {
+  min-height: 360px;
+}
+
+.gkit-flex-shell .flex-cockpit-import-row {
+  align-items: center;
+  display: grid;
+  gap: var(--gkit-flex-gap-sm);
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+}
+
+.gkit-flex-shell .flex-cockpit-import-row input[type="file"] {
+  width: 100%;
+}
+
+@media (max-width: 980px) {
+  .gkit-flex-shell .flex-cockpit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gkit-flex-shell .month-context-header,
+  .gkit-flex-shell .header-row,
+  .gkit-flex-shell .compact-header,
+  .gkit-flex-shell .module-card-top,
+  .gkit-flex-shell .month-control-card,
+  .gkit-flex-shell .payable-import-box {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-flex-shell .month-context-side {
+    align-items: stretch;
+    justify-items: stretch;
+  }
+
+  .gkit-flex-shell .gkit-flex-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .gkit-flex-shell .page-shell,
+  .gkit-flex-shell .wide-shell,
+  .gkit-flex-shell .dashboard-page,
+  .gkit-flex-shell .audit-page,
+  .gkit-flex-shell .master-data-page {
+    padding: 12px !important;
+  }
+
+  .gkit-flex-shell .flex-cockpit-grid,
+  .gkit-flex-shell .flex-cockpit-import-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Final header normalization for ATE and Flex. */
+.gkit-ate-shell .module-page-hero,
+.gkit-flex-shell .month-context-header {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(203, 213, 225, 0.78) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.055) !important;
+  color: #101827 !important;
+  min-height: 0 !important;
+  padding: 14px 16px !important;
+}
+
+.gkit-ate-shell .module-page-hero::before,
+.gkit-flex-shell .month-context-header::before {
+  background: #5d2f75 !important;
+  border-radius: 999px !important;
+  bottom: auto !important;
+  height: 18px !important;
+  left: 0 !important;
+  opacity: 1 !important;
+  top: 16px !important;
+  width: 4px !important;
+}
+
+.gkit-ate-shell .module-page-hero-main,
+.gkit-flex-shell .month-context-header {
+  align-items: center !important;
+  display: grid !important;
+  gap: 12px !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+}
+
+.gkit-ate-shell .module-page-hero-title,
+.gkit-ate-shell .module-page-hero-title > div,
+.gkit-flex-shell .month-context-main {
+  display: grid !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+}
+
+.gkit-ate-shell .module-page-hero .platform-kicker,
+.gkit-flex-shell .month-context-header .eyebrow {
+  color: #4f2764 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  text-transform: uppercase !important;
+}
+
+.gkit-ate-shell .module-page-hero h1,
+.gkit-flex-shell .month-context-header h1 {
+  color: #0f172a !important;
+  font-size: 24px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.15 !important;
+  margin: 0 !important;
+}
+
+.gkit-ate-shell .module-page-hero p:not(.platform-kicker),
+.gkit-flex-shell .month-context-header .muted {
+  color: #475569 !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+  margin: 0 !important;
+  max-width: 980px !important;
+}
+
+.gkit-ate-shell .module-page-actions,
+.gkit-flex-shell .month-context-side {
+  align-items: end !important;
+  display: grid !important;
+  gap: 8px !important;
+  justify-items: end !important;
+}
+
+.gkit-flex-shell .month-context-statuses {
+  color: #475569 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  font-size: 12px !important;
+  gap: 8px !important;
+}
+
+@media (max-width: 760px) {
+  .gkit-ate-shell .module-page-hero-main,
+  .gkit-flex-shell .month-context-header {
+    align-items: stretch !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .gkit-ate-shell .module-page-actions,
+  .gkit-flex-shell .month-context-side {
+    align-items: stretch !important;
+    justify-items: stretch !important;
+  }
+}
 .gkit-performa-page {
   display: grid;
   gap: 18px;
