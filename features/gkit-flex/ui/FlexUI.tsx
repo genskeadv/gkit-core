@@ -49,30 +49,34 @@ export function MonthContextHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <section className="month-context-header">
-      <div className="month-context-main">
-        <p className="eyebrow">GKIT Flex</p>
-        <h1>{title}</h1>
-        <p className="muted">{description}</p>
+    <>
+      <section className="month-context-header">
+        <div className="month-context-main">
+          <p className="eyebrow">GKIT Flex</p>
+          <h1>{title}</h1>
+          <p className="muted">{description}</p>
+        </div>
+      </section>
+      <section className="month-context-toolbar">
         <div className="month-context-statuses">
           {primaryStatus ? <span>{primaryStatus.label}: <StatusBadge status={primaryStatus.status} compact /></span> : null}
           {secondaryStatus ? <span>{secondaryStatus.label}: <StatusBadge status={secondaryStatus.status} compact /></span> : null}
         </div>
-      </div>
-      <div className="month-context-side">
-        <label className="field-label dashboard-month">
-          Competencia
-          <input
-            className="text-input"
-            type="month"
-            value={competencia}
-            disabled={!onCompetenciaChange}
-            onChange={(event) => onCompetenciaChange?.(event.target.value)}
-          />
-        </label>
-        {children ? <div className="month-context-actions">{children}</div> : null}
-      </div>
-    </section>
+        <div className="month-context-side">
+          <label className="field-label dashboard-month">
+            Competencia
+            <input
+              className="text-input"
+              type="month"
+              value={competencia}
+              disabled={!onCompetenciaChange}
+              onChange={(event) => onCompetenciaChange?.(event.target.value)}
+            />
+          </label>
+          {children ? <div className="month-context-actions">{children}</div> : null}
+        </div>
+      </section>
+    </>
   );
 }
 
