@@ -80,7 +80,7 @@ export default async function ModuloPage({
 
           <div className="module-actions">
             {canOpenAdmin ? <Link className="button" href="/admin">Admin Core</Link> : null}
-            <Link className="button secondary" href="/logout">Sair</Link>
+            <a className="button secondary" href="/logout">Sair</a>
           </div>
         </section>
       </div>

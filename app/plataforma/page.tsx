@@ -313,7 +313,7 @@ export default async function PlataformaPage() {
             <span className="platform-user-status">Sessão ativa</span>
             <span className="platform-user-name">{usuario.nome}</span>
             <span>{usuario.email}</span>
-            <Link className="button secondary" href="/logout">Sair</Link>
+            <a className="button secondary" href="/logout">Sair</a>
           </div>
         </header>
 
