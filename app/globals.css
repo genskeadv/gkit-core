@@ -16087,6 +16087,83 @@ a.button {
   margin-top: 2px !important;
 }
 
+.ciclo-shell .ciclo-document-checklist {
+  gap: 8px !important;
+}
+
+.ciclo-shell .ciclo-document-checklist article {
+  align-items: center !important;
+  gap: 14px !important;
+  grid-template-columns: minmax(260px, 1fr) 82px 82px minmax(180px, 238px) !important;
+  min-height: 72px;
+  padding: 12px 16px !important;
+}
+
+.ciclo-shell .ciclo-document-checklist article > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.ciclo-shell .ciclo-document-checklist .checkbox-row {
+  align-items: center !important;
+  display: grid !important;
+  gap: 6px !important;
+  grid-template-columns: 18px minmax(0, 1fr) !important;
+  justify-content: start !important;
+}
+
+.ciclo-shell .ciclo-document-checklist .checkbox-row input[type="checkbox"] {
+  appearance: none;
+  background: #fff;
+  border: 1px solid rgba(93, 47, 117, 0.35) !important;
+  border-radius: 5px !important;
+  cursor: pointer;
+  display: inline-grid !important;
+  height: 18px !important;
+  margin: 0 !important;
+  min-height: 18px !important;
+  padding: 0 !important;
+  place-content: center;
+  width: 18px !important;
+}
+
+.ciclo-shell .ciclo-document-checklist .checkbox-row input[type="checkbox"]::before {
+  background: #fff;
+  clip-path: polygon(14% 44%, 0 60%, 39% 100%, 100% 19%, 84% 4%, 36% 68%);
+  content: "";
+  height: 11px;
+  transform: scale(0);
+  transform-origin: center;
+  transition: transform 120ms ease;
+  width: 11px;
+}
+
+.ciclo-shell .ciclo-document-checklist .checkbox-row input[type="checkbox"]:checked {
+  background: #2d2038;
+  border-color: #2d2038 !important;
+}
+
+.ciclo-shell .ciclo-document-checklist .checkbox-row input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+.ciclo-shell .ciclo-document-checklist .checkbox-row span {
+  color: #475569 !important;
+  font-size: 12px !important;
+  line-height: 1.1 !important;
+}
+
+.ciclo-shell .ciclo-document-checklist label:not(.checkbox-row) {
+  display: grid !important;
+  gap: 6px !important;
+  grid-template-columns: 1fr !important;
+}
+
+.ciclo-shell .ciclo-document-checklist label:not(.checkbox-row) input[type="date"] {
+  min-height: 40px !important;
+  padding: 8px 10px !important;
+}
+
 @media (max-width: 1100px) {
   .gkit-flex-operational-shell.gkit-flex-shell {
     grid-template-columns: 304px minmax(0, 1fr);
@@ -16105,6 +16182,308 @@ a.button {
 
   .gkit-ate-cockpit-page .module-form.module-form-grid,
   .ciclo-shell .ciclo-cockpit-form-panel .module-form.module-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .ciclo-shell .ciclo-document-checklist article {
+    grid-template-columns: minmax(0, 1fr) 82px 82px !important;
+  }
+
+  .ciclo-shell .ciclo-document-checklist label:not(.checkbox-row) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Ciclo/Flex final parity with the approved GKIT New shell. */
+.ciclo-shell,
+.gkit-flex-operational-shell {
+  --parity-accent: #5d2f75;
+  --parity-accent-border: rgba(93, 47, 117, 0.22);
+  --parity-accent-soft: rgba(93, 47, 117, 0.09);
+  --parity-border: rgba(148, 163, 184, 0.24);
+  --parity-ink: #131927;
+  --parity-muted: #667085;
+  --parity-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+  --parity-shadow-soft: 0 10px 26px rgba(15, 23, 42, 0.045);
+  --parity-surface: rgba(255, 255, 255, 0.94);
+  --parity-surface-2: #f9fafc;
+  background: linear-gradient(180deg, #fbfcff 0%, #f5f7fb 44%, #f7f8fb 100%) !important;
+  color: var(--parity-ink) !important;
+}
+
+.ciclo-shell *,
+.gkit-flex-operational-shell * {
+  letter-spacing: 0 !important;
+}
+
+.ciclo-shell :where(strong, b, h1, h2, h3, h4, .metric-value, .module-main-value, .button, .suite-pill, .ciclo-pill),
+.gkit-flex-operational-shell :where(strong, b, h1, h2, h3, h4, .metric-value, .module-main-value, .button, .status-pill) {
+  font-weight: 500 !important;
+}
+
+.ciclo-shell .module-sidebar,
+.gkit-flex-operational-shell .module-sidebar {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-right: 1px solid var(--parity-border) !important;
+  box-shadow: 14px 0 44px rgba(15, 23, 42, 0.045) !important;
+  gap: 14px !important;
+  padding: 20px !important;
+}
+
+.ciclo-shell .module-sidebar-header,
+.ciclo-shell .module-sidebar-footer,
+.gkit-flex-operational-shell .module-sidebar-header,
+.gkit-flex-operational-shell .module-sidebar-footer {
+  background: var(--parity-surface) !important;
+  border: 1px solid var(--parity-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--parity-shadow-soft) !important;
+}
+
+.ciclo-shell .module-sidebar-header,
+.gkit-flex-operational-shell .module-sidebar-header {
+  gap: 14px !important;
+  min-height: 62px !important;
+  padding: 10px 12px !important;
+}
+
+.ciclo-shell .module-sidebar-mark,
+.gkit-flex-operational-shell .module-sidebar-mark {
+  background: #fff !important;
+  border-radius: 8px !important;
+  box-shadow: inset 0 0 0 1px var(--parity-border) !important;
+  flex: 0 0 44px !important;
+  height: 44px !important;
+  width: 44px !important;
+}
+
+.ciclo-shell .module-sidebar-header strong,
+.gkit-flex-operational-shell .module-sidebar-header strong {
+  color: var(--parity-ink) !important;
+  font-size: 16px !important;
+  line-height: 1.2 !important;
+}
+
+.ciclo-shell .module-sidebar-header small,
+.ciclo-shell .module-sidebar-footer span,
+.gkit-flex-operational-shell .module-sidebar-header small,
+.gkit-flex-operational-shell .module-sidebar-footer span {
+  color: var(--parity-muted) !important;
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+}
+
+.ciclo-shell .module-sidebar nav,
+.gkit-flex-operational-shell .module-sidebar nav {
+  display: grid !important;
+  gap: 8px !important;
+}
+
+.ciclo-shell .module-sidebar a:not(.module-sidebar-header),
+.gkit-flex-operational-shell .module-sidebar a:not(.module-sidebar-header) {
+  align-items: center !important;
+  border-radius: 8px !important;
+  color: #1f2937 !important;
+  display: flex !important;
+  font-size: 15px !important;
+  font-weight: 450 !important;
+  min-height: 44px !important;
+  padding: 12px 13px !important;
+}
+
+.ciclo-shell .module-sidebar a.active,
+.gkit-flex-operational-shell .module-sidebar a.active {
+  background: var(--parity-accent) !important;
+  box-shadow: 0 10px 22px rgba(93, 47, 117, 0.18) !important;
+  color: #fff !important;
+}
+
+.ciclo-shell .sidebar-badge,
+.gkit-flex-operational-shell .sidebar-badge {
+  background: var(--parity-accent-soft) !important;
+  border: 1px solid rgba(93, 47, 117, 0.14) !important;
+  color: var(--parity-accent) !important;
+  font-size: 12px !important;
+}
+
+.ciclo-shell .module-main,
+.gkit-flex-operational-shell .module-main {
+  background: transparent !important;
+  padding: 16px 18px 22px !important;
+}
+
+.ciclo-shell .module-page-content,
+.gkit-flex-operational-shell .module-page-content {
+  display: grid !important;
+  gap: 10px !important;
+  max-width: none !important;
+  width: 100% !important;
+}
+
+.ciclo-shell .module-page-hero,
+.gkit-flex-operational-shell .month-context-header {
+  background: var(--parity-surface) !important;
+  border: 1px solid var(--parity-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--parity-shadow) !important;
+  margin-bottom: 10px !important;
+  min-height: 134px !important;
+  padding: 14px 18px 10px !important;
+}
+
+.ciclo-shell .module-page-hero h1,
+.gkit-flex-operational-shell .month-context-header h1 {
+  color: var(--parity-ink) !important;
+  font-size: clamp(22px, 2.4vw, 30px) !important;
+  line-height: 1.08 !important;
+}
+
+.ciclo-shell .module-page-hero p,
+.ciclo-shell .module-page-hero .platform-kicker,
+.gkit-flex-operational-shell .month-context-header p,
+.gkit-flex-operational-shell .month-context-header .eyebrow {
+  color: var(--parity-muted) !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+}
+
+.ciclo-shell .suite-panel,
+.ciclo-shell .card,
+.ciclo-shell .ciclo-panel,
+.gkit-flex-operational-shell .card,
+.gkit-flex-operational-shell .flex-cockpit-panel,
+.gkit-flex-operational-shell .metric,
+.gkit-flex-operational-shell .empty-state {
+  background: var(--parity-surface) !important;
+  border: 1px solid var(--parity-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--parity-shadow-soft) !important;
+}
+
+.ciclo-shell .suite-panel,
+.ciclo-shell .ciclo-cockpit-form-panel,
+.gkit-flex-operational-shell .flex-cockpit-panel {
+  padding: 12px !important;
+}
+
+.ciclo-shell .suite-panel-heading,
+.gkit-flex-operational-shell .header-row.compact-header {
+  align-items: end !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14) !important;
+  margin-bottom: 10px !important;
+  padding-bottom: 9px !important;
+}
+
+.ciclo-shell .suite-panel-heading h2,
+.gkit-flex-operational-shell .header-row h2 {
+  color: var(--parity-ink) !important;
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+}
+
+.ciclo-shell .suite-panel-heading p,
+.gkit-flex-operational-shell .header-row p,
+.gkit-flex-operational-shell .muted,
+.gkit-flex-operational-shell .small-text {
+  color: var(--parity-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+.ciclo-command-panel .ciclo-quick-grid,
+.gkit-flex-operational-shell .flex-cockpit-grid {
+  display: grid !important;
+  gap: 8px !important;
+  grid-template-columns: repeat(4, minmax(132px, 1fr)) !important;
+}
+
+.ciclo-command-panel .ciclo-quick-card,
+.gkit-flex-operational-shell .flex-cockpit-card {
+  background: var(--parity-surface-2) !important;
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  min-height: 104px !important;
+  padding: 12px 32px 12px 12px !important;
+}
+
+.ciclo-command-panel .ciclo-quick-card span,
+.gkit-flex-operational-shell .flex-cockpit-card .eyebrow {
+  background: var(--parity-accent-soft) !important;
+  border-radius: 999px !important;
+  color: var(--parity-accent) !important;
+  display: inline-flex !important;
+  font-size: 11px !important;
+  line-height: 1.1 !important;
+  padding: 3px 7px !important;
+  width: fit-content !important;
+}
+
+.ciclo-command-panel .ciclo-quick-card h3,
+.gkit-flex-operational-shell .flex-cockpit-card strong {
+  color: var(--parity-ink) !important;
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+  margin: 4px 0 3px !important;
+}
+
+.ciclo-command-panel .ciclo-quick-card p,
+.gkit-flex-operational-shell .flex-cockpit-card .small-text {
+  color: var(--parity-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.32 !important;
+}
+
+.gkit-flex-operational-shell .module-main-value {
+  color: var(--parity-ink) !important;
+  font-size: clamp(18px, 2vw, 23px) !important;
+  line-height: 1 !important;
+  margin: 6px 0 !important;
+}
+
+.ciclo-shell .metric-card,
+.gkit-flex-operational-shell .metric {
+  background: linear-gradient(180deg, #fff, #fbfcff) !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  min-height: 78px !important;
+  padding: 10px !important;
+}
+
+.ciclo-shell .metric-label,
+.ciclo-shell .metric-hint,
+.gkit-flex-operational-shell .metric-label,
+.gkit-flex-operational-shell .metric-hint {
+  color: var(--parity-muted) !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+}
+
+.ciclo-shell .metric-value,
+.gkit-flex-operational-shell .metric-value {
+  color: var(--parity-ink) !important;
+  font-size: clamp(18px, 2vw, 23px) !important;
+  line-height: 1 !important;
+  margin: 6px 0 !important;
+}
+
+@media (max-width: 1100px) {
+  .ciclo-shell .module-sidebar,
+  .gkit-flex-operational-shell .module-sidebar {
+    padding: 10px !important;
+  }
+
+  .ciclo-command-panel .ciclo-quick-grid,
+  .gkit-flex-operational-shell .flex-cockpit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .ciclo-command-panel .ciclo-quick-grid,
+  .gkit-flex-operational-shell .flex-cockpit-grid {
     grid-template-columns: 1fr !important;
   }
 }
