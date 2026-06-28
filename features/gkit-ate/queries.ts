@@ -244,7 +244,7 @@ export function atendimentoRows(atendimentos: GkitAteAtendimento[]): GkitAteList
   return atendimentos.map((item) => ({
     id: item.id,
     title: item.titulo,
-    subtitle: `${item.codigo_publico} - ${item.cliente_nome} - ${item.responsavel ?? 'Sem responsavel'}`,
+    subtitle: `${item.codigo_publico} - ${item.cliente_nome}`,
     status: statusLabel(item.status),
     value: item.responsavel ?? 'Sem responsavel',
     meta: `${item.tarefas_pendentes}/${item.tarefas_total} tarefa(s) pendente(s)`,

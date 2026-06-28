@@ -10676,6 +10676,53 @@ a.button {
   text-align: right;
 }
 
+.gkit-new-cockpit-form-panel .gkit-new-table-list h3,
+.gkit-ate-cockpit-form-panel .gkit-ate-table-list h3,
+.ciclo-cockpit-form-panel .ciclo-cockpit-row h3 {
+  color: #111827 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.28 !important;
+}
+
+.gkit-new-cockpit-form-panel .gkit-new-table-list p,
+.gkit-ate-cockpit-form-panel .gkit-ate-table-list p,
+.ciclo-cockpit-form-panel .ciclo-cockpit-row p {
+  color: #52627a !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.32 !important;
+}
+
+.gkit-new-cockpit-form-panel .gkit-new-table-list strong,
+.gkit-ate-cockpit-form-panel .gkit-ate-table-list strong,
+.ciclo-cockpit-form-panel .ciclo-cockpit-row strong {
+  color: #334155 !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.25 !important;
+}
+
+.gkit-new-cockpit-form-panel .gkit-new-table-list small,
+.gkit-ate-cockpit-form-panel .gkit-ate-table-list small,
+.ciclo-cockpit-form-panel .ciclo-cockpit-row small {
+  color: #52627a !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.25 !important;
+}
+
+.gkit-new-cockpit-form-panel .gkit-new-table-list .suite-pill,
+.gkit-ate-cockpit-form-panel .gkit-ate-table-list .suite-pill {
+  font-size: 11px !important;
+  font-weight: 450 !important;
+  line-height: 1.2 !important;
+}
+
 .gkit-new-cockpit-pagination,
 .gkit-ate-cockpit-pagination,
 .ciclo-cockpit-pagination {
@@ -13697,6 +13744,13 @@ a.button {
 .gkit-ate-shell .suite-table-list strong,
 .gkit-ate-shell .suite-table-list small {
   text-align: right;
+}
+
+.gkit-ate-cockpit-form-panel .gkit-ate-table-list strong {
+  color: #334155;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.25;
 }
 
 .gkit-ate-shell .suite-empty-block {
