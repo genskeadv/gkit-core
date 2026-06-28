@@ -133,6 +133,8 @@ export type CicloAtendimentoDashboard = {
 export type CicloFormOption = {
   id: string
   label: string
+  meta?: string
+  shortLabel?: string
 }
 
 export type CicloClienteFormData = {

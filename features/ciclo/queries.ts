@@ -985,6 +985,7 @@ export async function getCicloClienteIntegral(id: string, context: CicloContext)
 
 export async function getCicloDocumentoFormData(context: CicloContext): Promise<CicloDocumentoFormData> {
   const formData = await getCicloClienteFormData(context)
+  const carteiraMap = new Map(formData.carteiras.map((carteira) => [carteira.id, carteira.label]))
   const clientesResult = context.usuario.tipo === 'admin_global'
     ? await admin()
       .schema('ciclo')
@@ -1005,10 +1006,16 @@ export async function getCicloDocumentoFormData(context: CicloContext): Promise<
       : { data: [], error: null }
 
   return {
-    clientes: ((clientesResult.data ?? []) as Array<Record<string, any>>).map((row) => ({
-      id: text(row.id),
-      label: `${text(row.nome_fantasia ?? row.nome ?? row.razao_social, 'Cliente')} - ${text(row.documento, 'sem documento')}`,
-    })),
+    clientes: ((clientesResult.data ?? []) as Array<Record<string, any>>).map((row) => {
+      const carteiraId = text(row.carteira_id)
+      const nome = text(row.nome_fantasia ?? row.nome ?? row.razao_social, 'Cliente')
+      return {
+        id: text(row.id),
+        label: `${nome} - ${text(row.documento, 'sem documento')}`,
+        meta: carteiraMap.get(carteiraId) ?? 'Sem carteira',
+        shortLabel: nome,
+      }
+    }),
   }
 }
 
@@ -1030,7 +1037,7 @@ export async function getCicloCockpitData(context: CicloContext): Promise<CicloC
 
   if (documentosResult.error) throw new Error(documentosResult.error.message)
 
-  const clienteMap = new Map(documentoFormData.clientes.map((cliente) => [cliente.id, cliente.label]))
+  const clienteMap = new Map(documentoFormData.clientes.map((cliente) => [cliente.id, cliente.shortLabel ?? cliente.label]))
   const documentosByCliente = new Map<string, Map<string, Record<string, any>>>()
 
   for (const row of (documentosResult.data ?? []) as Array<Record<string, any>>) {
@@ -1075,14 +1082,15 @@ export async function getCicloCockpitData(context: CicloContext): Promise<CicloC
       pendentes ? `${pendentes} pendente${pendentes > 1 ? 's' : ''}` : '',
       vencidos ? `${vencidos} vencido${vencidos > 1 ? 's' : ''}` : '',
     ].filter(Boolean).join(' / ')
+    const carteira = documentoFormData.clientes.find((cliente) => cliente.id === clienteId)?.meta ?? 'Sem carteira'
 
     clientesDocumentacaoPendente.push({
       id: `documentacao-${clienteId}`,
       title: clienteMap.get(clienteId) ?? 'Cliente',
-      subtitle: detalhe || 'Documentacao pendente',
+      subtitle: `Carteira: ${carteira}`,
       status,
-      value: String(totalPendente),
-      meta: `${metaOk}/${documentosCliente.length} documentos ok`,
+      value: detalhe || 'Documentacao pendente',
+      meta: `${metaOk} de ${documentosCliente.length} ok`,
       detailHref: `/modulos/ciclo/clientes/${clienteId}/cockpit`,
       tone: vencidos ? 'danger' as const : 'warning' as const,
     })
@@ -1090,7 +1098,7 @@ export async function getCicloCockpitData(context: CicloContext): Promise<CicloC
 
   clientesDocumentacaoPendente.sort((a, b) => {
     const toneRank = (row: CicloListRow) => row.tone === 'danger' ? 0 : 1
-    return toneRank(a) - toneRank(b) || Number(b.value) - Number(a.value) || a.title.localeCompare(b.title)
+    return toneRank(a) - toneRank(b) || Number.parseInt(b.value, 10) - Number.parseInt(a.value, 10) || a.title.localeCompare(b.title)
   })
 
   return {

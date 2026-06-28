@@ -57,18 +57,17 @@ function PendingDocumentClientList({ rows }: { rows: CicloListRow[] }) {
                 <h3>{row.title}</h3>
                 <p>{row.subtitle}</p>
               </div>
-              <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
               <strong>{row.value}</strong>
               <small>{row.meta}</small>
             </>
           )
 
           return row.detailHref ? (
-            <Link href={row.detailHref} key={row.id} role="listitem">
+            <Link className="ciclo-cockpit-row" href={row.detailHref} key={row.id} role="listitem">
               {content}
             </Link>
           ) : (
-            <article key={row.id} role="listitem">
+            <article className="ciclo-cockpit-row" key={row.id} role="listitem">
               {content}
             </article>
           )
