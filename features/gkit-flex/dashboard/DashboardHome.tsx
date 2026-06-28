@@ -33,7 +33,7 @@ type PayablePreview = {
   itensNovos: number;
   itensAlterados: number;
   itensRemovidos: number;
-  valorRealizado importadoManual: number;
+  valorImportadoManual: number;
   issues: ImportIssue[];
   sample: Array<{ categoria: string; valorPrevisto: number; pago: boolean }>;
 };
@@ -254,11 +254,11 @@ export function DashboardHome() {
       formData.append('competencia', competenciaParam);
       const response = await fetch('/api/gkit-flex/contas-pagar/preview', { method: 'POST', body: formData });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'NÃ£o foi possÃ­vel gerar a prÃ©via de contas a pagar.');
+      if (!response.ok) throw new Error(payload.error || 'NÃ£o foi possÃ­vel gerar a prÃ©via de pagamentos.');
       setPayablePreview(payload.preview);
-      setSuccess('PrÃ©via de contas a pagar gerada. Confira o resumo por categoria.');
+      setSuccess('PrÃ©via de pagamentos gerada. Confira o realizado do mÃªs por categoria.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao gerar prÃ©via de contas a pagar.');
+      setError(err instanceof Error ? err.message : 'Erro ao gerar prÃ©via de pagamentos.');
     } finally {
       setActionLoading('');
     }
@@ -275,7 +275,7 @@ export function DashboardHome() {
       formData.append('competencia', competenciaParam);
       const response = await fetch('/api/gkit-flex/contas-pagar/importar', { method: 'POST', body: formData });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'NÃ£o foi possÃ­vel gravar contas a pagar.');
+      if (!response.ok) throw new Error(payload.error || 'NÃ£o foi possÃ­vel gravar pagamentos.');
       setSuccess(`Pagamentos gravados. ${payload.imported || 0} linha(s) importada(s).`);
       setPayableFile(null);
       setPayablePreview(null);
@@ -296,7 +296,7 @@ export function DashboardHome() {
 
   const recebido = data?.comissoes.latestExecution?.total_valor_recebido || 0;
   const comissoes = data?.comissoes.latestExecution?.total_comissao || 0;
-  const contasPagarTotal = data?.contasPagar.total || 0;
+  const pagamentosEfetuadosTotal = data?.contasPagar.totalPago || 0;
   const colaboradoresTotal = data?.colaboradores.totalMensal || 0;
   const monthNotOpened = data?.comissoes.status === 'nao_aberto' && data?.contasPagar.status === 'nao_aberto';
   const monthIsOpen = data?.comissoes.status === 'aberto' || data?.contasPagar.status === 'aberto';
@@ -306,7 +306,7 @@ export function DashboardHome() {
     <main className="page-shell dashboard-page flex-cockpit-page">
       <MonthContextHeader
         title="Cockpit Flex"
-        description="Central de execuÃ§Ã£o mensal: importar receitas, revisar contas a pagar, conferir comissÃµes e pagamentos por colaborador."
+        description="Central de execuÃ§Ã£o mensal: importar receitas, gravar pagamentos efetuados, conferir comissÃµes e pagamentos por colaborador."
         competencia={competencia}
         onCompetenciaChange={setCompetencia}
         primaryStatus={{ label: 'Receitas', status: data?.comissoes.status || 'nao_aberto' }}
@@ -323,7 +323,7 @@ export function DashboardHome() {
 
       <section className="flex-cockpit-grid">
         <ActionCard active={active === 'receitas'} eyebrow="ImportaÃ§Ã£o" title="Contas a receber" value={formatMoney(recebido)} helper="PrÃ©via da receita e gravaÃ§Ã£o" onClick={() => setActive('receitas')} />
-        <ActionCard active={active === 'pagar'} eyebrow="ImportaÃ§Ã£o" title="Pagamentos efetuados" value={formatMoney(contasPagarTotal)} helper={`${data?.contasPagar.quantidade || 0} lançamento(s)`} onClick={() => setActive('pagar')} />
+        <ActionCard active={active === 'pagar'} eyebrow="ImportaÃ§Ã£o" title="Pagamentos efetuados" value={formatMoney(pagamentosEfetuadosTotal)} helper={`${data?.contasPagar.quantidadePaga || 0} realizado(s)`} onClick={() => setActive('pagar')} />
         <ActionCard active={active === 'comissoes'} eyebrow="Preview" title="ComissÃµes" value={formatMoney(comissoes)} helper={`${data?.comissoes.latestExecution?.audit_count || 0} apontamento(s)`} onClick={() => setActive('comissoes')} />
         <ActionCard active={active === 'colaboradores'} eyebrow="Pagamentos" title="Colaboradores" value={formatMoney(colaboradoresTotal)} helper={`${data?.colaboradores.ativos || 0} ativo(s)`} onClick={() => setActive('colaboradores')} />
       </section>
@@ -364,8 +364,8 @@ export function DashboardHome() {
             <div className="header-row compact-header">
               <div>
                 <p className="eyebrow">Pagamentos</p>
-                <h2>Importar extrato do mÃªs</h2>
-                <p className="muted small-text">A prÃ©via mostra o impacto da importaÃ§Ã£o e o resumo por categoria antes da gravaÃ§Ã£o.</p>
+                <h2>Importar pagamentos efetuados no mÃªs</h2>
+                <p className="muted small-text">A prÃ©via compara o extrato realizado com a previsÃ£o atual antes da gravaÃ§Ã£o.</p>
               </div>
               <StatusBadge status={data?.contasPagar.status || 'nao_aberto'} label={data?.contasPagar.canEdit ? 'Aberto' : 'Bloqueado'} />
             </div>
@@ -377,7 +377,7 @@ export function DashboardHome() {
             {payablePreview ? (
               <>
                 <section className="grid-4 dashboard-metrics">
-                  <MetricCard label="Realizado importado" value={formatMoney(payablePreview.valorRealizado importadoManual)} help={payablePreview.arquivo} />
+                  <MetricCard label="Realizado importado" value={formatMoney(payablePreview.valorImportadoManual)} help={payablePreview.arquivo} />
                   <MetricCard label="Novos" value={payablePreview.itensNovos} help="pagamentos novos" />
                   <MetricCard label="Alterados" value={payablePreview.itensAlterados} help="lançamentos existentes" />
                   <MetricCard label="Erros" value={payablePreview.linhasComErro} help={`${payablePreview.linhasValidas} linha(s) vÃ¡lidas`} tone={payablePreview.linhasComErro ? 'danger' : 'good'} />
@@ -385,7 +385,7 @@ export function DashboardHome() {
                 <CategoryTable rows={payablePreviewByCategory} valueLabel="Realizado preview" />
               </>
             ) : (
-              <CategoryTable rows={data?.contasPagar.totalsByCategory || []} valueLabel="Previsão atual" empty="Importe um extrato para ver a prÃ©via por categoria." />
+              <CategoryTable rows={data?.contasPagar.totalsByCategory || []} valueLabel="PrevisÃ£o atual" empty="Importe o extrato de pagamentos efetuados para ver a prÃ©via por categoria." />
             )}
           </>
         ) : null}
