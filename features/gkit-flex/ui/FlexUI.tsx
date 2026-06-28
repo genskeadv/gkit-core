@@ -12,11 +12,11 @@ export function formatMonthLabel(value: string) {
 export function statusLabel(status: MonthStatus) {
   if (status === 'aberto') return 'Aberto';
   if (status === 'fechado') return 'Fechado';
-  if (status === 'indisponivel') return 'Indisponível';
+  if (status === 'indisponivel') return 'Indisponivel';
   if (status === 'ok') return 'OK';
-  if (status === 'aviso') return 'Atenção';
+  if (status === 'aviso') return 'Atencao';
   if (status === 'bloqueio') return 'Bloqueio';
-  return 'Não aberto';
+  return 'Nao aberto';
 }
 
 export function statusClass(status: MonthStatus) {
@@ -61,7 +61,7 @@ export function MonthContextHeader({
       </div>
       <div className="month-context-side">
         <label className="field-label dashboard-month">
-          Competência
+          Competencia
           <input
             className="text-input"
             type="month"

@@ -12,7 +12,7 @@ export async function GET() {
   } catch (error) {
     console.error('[comissoes/execucoes]', error);
     return Response.json(
-      { error: error instanceof Error ? error.message : 'Erro ao listar execuções.' },
+      { error: error instanceof Error ? error.message : 'Erro ao listar execucoes.' },
       { status: 500 },
     );
   }

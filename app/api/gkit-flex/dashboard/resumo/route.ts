@@ -10,6 +10,6 @@ export async function GET(request: NextRequest) {
     const data = await getDashboardSummary(competencia);
     return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao carregar resumo do mês.' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao carregar resumo do mes.' }, { status: 500 });
   }
 }

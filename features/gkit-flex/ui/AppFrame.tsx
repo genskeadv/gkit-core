@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -29,11 +29,11 @@ export function AppFrame({ children }: { children: ReactNode }) {
           <div className="gkit-flex-sidebar-mark" aria-hidden="true">G</div>
           <div>
             <strong>GKIT Flex</strong>
-            <small>Gestão mensal</small>
+            <small>Gestao mensal</small>
           </div>
         </Link>
 
-        <nav aria-label="Navegação GKIT Flex">
+        <nav aria-label="Navegacao GKIT Flex">
           {navItems.map((item) => (
             <Link className={isActive(pathname, item.href) ? 'active' : ''} href={item.href} key={item.href}>
               <span>{item.label}</span>
@@ -42,7 +42,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="gkit-flex-sidebar-footer">
-          <span>Operação Flex</span>
+          <span>Operacao Flex</span>
           <span className="sidebar-badge">Integrado ao Core</span>
         </div>
       </aside>

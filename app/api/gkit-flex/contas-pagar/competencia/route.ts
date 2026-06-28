@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     return Response.json(result);
   } catch (error) {
     console.error('[contas-pagar/competencia][GET]', error);
-    return Response.json({ error: error instanceof Error ? error.message : 'Erro ao consultar competência.' }, { status: 500 });
+    return Response.json({ error: error instanceof Error ? error.message : 'Erro ao consultar competencia.' }, { status: 500 });
   }
 }
 
@@ -26,13 +26,13 @@ export async function POST(request: NextRequest) {
     const action = String(payload?.action || 'abrir');
 
     if (!['abrir', 'reabrir'].includes(action)) {
-      return Response.json({ error: 'Ação inválida. Use abrir ou reabrir. O fechamento usa /api/gkit-flex/contas-pagar/fechar.' }, { status: 400 });
+      return Response.json({ error: 'Acao invalida. Use abrir ou reabrir. O fechamento usa /api/gkit-flex/contas-pagar/fechar.' }, { status: 400 });
     }
 
     const result = await openPayableMonth(competencia, action as 'abrir' | 'reabrir');
     return Response.json(result);
   } catch (error) {
     console.error('[contas-pagar/competencia][POST]', error);
-    return Response.json({ error: error instanceof Error ? error.message : 'Erro ao atualizar competência.' }, { status: 500 });
+    return Response.json({ error: error instanceof Error ? error.message : 'Erro ao atualizar competencia.' }, { status: 500 });
   }
 }

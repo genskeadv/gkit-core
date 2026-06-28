@@ -10,6 +10,6 @@ export async function POST(request: Request) {
     const payload = await confirmReclassification(body);
     return NextResponse.json(payload);
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao confirmar reclassificação.' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao confirmar reclassificacao.' }, { status: 500 });
   }
 }

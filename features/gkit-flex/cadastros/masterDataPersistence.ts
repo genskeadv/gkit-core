@@ -25,7 +25,7 @@ type DiscoveredValue = {
 };
 
 function assertConfigured(supabase: SupabaseClient | null): asserts supabase is SupabaseClient {
-  if (!supabase) throw new Error('Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+  if (!supabase) throw new Error('Supabase nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
 }
 
 async function upsertCadastro(supabase: SupabaseClient, item: DiscoveredValue) {
@@ -164,7 +164,7 @@ export async function extractCadastrosFromOperationalData() {
     .from('contas_pagar_itens')
     .select('categoria, centro')
     .limit(5000);
-  if (payableError) throw new Error(`Erro ao ler contas a pagar: ${payableError.message}`);
+  if (payableError) throw new Error(`Erro ao ler pagamentos: ${payableError.message}`);
 
   discovered.push(...countValues((payables || []) as Array<Record<string, unknown>>, 'categoria', 'categoria', 'contas_pagar'));
   discovered.push(...countValues((payables || []) as Array<Record<string, unknown>>, 'centro', 'centro', 'contas_pagar'));
@@ -173,7 +173,7 @@ export async function extractCadastrosFromOperationalData() {
     .from('comissao_resumos')
     .select('carteira, categoria')
     .limit(5000);
-  if (commissionError) throw new Error(`Erro ao ler comissões: ${commissionError.message}`);
+  if (commissionError) throw new Error(`Erro ao ler comissoes: ${commissionError.message}`);
 
   discovered.push(...countValues((commissionRows || []) as Array<Record<string, unknown>>, 'carteira', 'carteira', 'comissoes'));
   discovered.push(...countValues((commissionRows || []) as Array<Record<string, unknown>>, 'categoria', 'categoria', 'comissoes'));

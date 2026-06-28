@@ -1,4 +1,4 @@
-﻿import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx';
 import type { PayableImportRow, PayableItem, PayableSummary } from './types';
 
 function normalizeText(value: unknown): string {
@@ -74,7 +74,7 @@ function findHeaderRow(rows: unknown[][]): number {
   });
 
   if (bestScore < 5 || bestIndex < 0) {
-    throw new Error('NÃ£o encontrei a linha de cabeÃ§alho. A planilha precisa ter colunas como DescriÃ§Ã£o, Vencimento, Valor, Categoria e Centro.');
+    throw new Error('Nao encontrei a linha de cabecalho. A planilha precisa ter colunas como Descricao, Vencimento, Valor, Categoria e Centro.');
   }
 
   return bestIndex;
@@ -90,7 +90,7 @@ export async function parsePayablesWorkbook(file: File): Promise<PayableImportRo
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
   const sheetName = workbook.SheetNames[0];
-  if (!sheetName) throw new Error('A planilha nÃ£o tem abas para leitura.');
+  if (!sheetName) throw new Error('A planilha nao tem abas para leitura.');
 
   const sheet = workbook.Sheets[sheetName];
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false, defval: '' });
@@ -98,7 +98,7 @@ export async function parsePayablesWorkbook(file: File): Promise<PayableImportRo
   const headerRow = rows[headerIndex] || [];
   const headers = headerRow.map(normalizeText);
 
-  const descricaoIndex = findColumn(headers, ['descricao', 'descriÃ§Ã£o', 'fornecedor']);
+  const descricaoIndex = findColumn(headers, ['descricao', 'descricao', 'fornecedor']);
   const vencimentoIndex = findColumn(headers, ['vencimento', 'dia']);
   const valorIndex = findColumn(headers, ['valor previsto', 'valor']);
   const categoriaIndex = findColumn(headers, ['categoria']);
@@ -107,13 +107,13 @@ export async function parsePayablesWorkbook(file: File): Promise<PayableImportRo
   const origemIndex = findColumn(headers, ['origem', 'tipo origem', 'origem tipo']);
 
   const missing: string[] = [];
-  if (descricaoIndex < 0) missing.push('DescriÃ§Ã£o');
+  if (descricaoIndex < 0) missing.push('Descricao');
   if (vencimentoIndex < 0) missing.push('Vencimento');
   if (valorIndex < 0) missing.push('Valor');
   if (categoriaIndex < 0) missing.push('Categoria');
 
   if (missing.length) {
-    throw new Error(`Colunas obrigatÃ³rias nÃ£o encontradas: ${missing.join(', ')}.`);
+    throw new Error(`Colunas obrigatorias nao encontradas: ${missing.join(', ')}.`);
   }
 
   const dataRows = rows.slice(headerIndex + 1);
@@ -149,7 +149,7 @@ export async function parsePayablesWorkbook(file: File): Promise<PayableImportRo
   });
 
   if (!parsed.length) {
-    throw new Error('NÃ£o encontrei pagamentos vÃ¡lidas na planilha.');
+    throw new Error('Nao encontrei pagamentos validos na planilha.');
   }
 
   return parsed;
@@ -157,7 +157,7 @@ export async function parsePayablesWorkbook(file: File): Promise<PayableImportRo
 
 
 function formatPaid(value: boolean): string {
-  return value ? 'Sim' : 'NÃ£o';
+  return value ? 'Sim' : 'Nao';
 }
 
 export function buildPayablesExportWorkbook(params: {
@@ -171,7 +171,7 @@ export function buildPayablesExportWorkbook(params: {
   const workbook = XLSX.utils.book_new();
 
   const importSheetRows = manualRows.map((row) => ({
-    DescriÃ§Ã£o: row.descricao,
+    'Descricao': row.descricao,
     Vencimento: row.vencimento_dia ?? row.vencimento_texto ?? '',
     'Valor': Number(row.valor_previsto || 0),
     Categoria: row.categoria || 'Sem categoria',
@@ -181,12 +181,12 @@ export function buildPayablesExportWorkbook(params: {
   }));
 
   const importSheet = XLSX.utils.json_to_sheet(importSheetRows.length ? importSheetRows : [{
-    DescriÃ§Ã£o: '',
+    'Descricao': '',
     Vencimento: '',
     'Valor': 0,
     Categoria: '',
     Centro: '',
-    Pago: 'NÃ£o',
+    Pago: 'Nao',
     Origem: 'importacao',
   }]);
   importSheet['!cols'] = [
@@ -201,27 +201,27 @@ export function buildPayablesExportWorkbook(params: {
   XLSX.utils.book_append_sheet(workbook, importSheet, 'Pagamentos');
 
   const summarySheet = XLSX.utils.json_to_sheet([
-    { Indicador: 'CompetÃªncia', Valor: params.competencia.slice(0, 7) },
-    { Indicador: 'Previsão do mês', Valor: params.summary.total },
+    { Indicador: 'Competencia', Valor: params.competencia.slice(0, 7) },
+    { Indicador: 'Previsao do mes', Valor: params.summary.total },
     { Indicador: 'Pagamentos efetuados', Valor: params.summary.totalPago },
-    { Indicador: 'Diferença', Valor: params.summary.totalAberto },
-    { Indicador: 'Quantidade de contas', Valor: params.summary.quantidade },
+    { Indicador: 'Diferenca', Valor: params.summary.totalAberto },
+    { Indicador: 'Quantidade de lancamentos', Valor: params.summary.quantidade },
     { Indicador: 'Quantidade paga', Valor: params.summary.quantidadePaga },
-    { Indicador: 'ObservaÃ§Ã£o', Valor: 'A primeira aba serve como modelo de importaÃ§Ã£o. Novas despesas e categorias devem ser criadas incluindo novas linhas nessa aba.' },
-    { Indicador: 'ComissÃµes', Valor: 'ComissÃµes automÃ¡ticas ficam em aba separada e nÃ£o sÃ£o importadas pela rotina.' },
+    { Indicador: 'Observacao', Valor: 'A primeira aba serve como modelo de importacao. Novas despesas e categorias devem ser criadas incluindo novas linhas nessa aba.' },
+    { Indicador: 'Comissoes', Valor: 'Comissoes automaticas ficam em aba separada e nao sao importadas pela rotina.' },
   ]);
   summarySheet['!cols'] = [{ wch: 28 }, { wch: 90 }];
   XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumo');
 
   if (commissionRows.length) {
     const commissionSheet = XLSX.utils.json_to_sheet(commissionRows.map((row) => ({
-      DescriÃ§Ã£o: row.descricao,
+      'Descricao': row.descricao,
       Vencimento: row.vencimento_dia ?? row.vencimento_texto ?? '',
       'Valor': Number(row.valor_previsto || 0),
-      Categoria: row.categoria || 'ComissÃµes',
+      Categoria: row.categoria || 'Comissoes',
       Centro: row.centro || 'Pessoal',
       Pago: formatPaid(Boolean(row.pago)),
-      Origem: 'ComissÃ£o calculada',
+      Origem: 'Comissao calculada',
     })));
     commissionSheet['!cols'] = [
       { wch: 56 },
@@ -232,7 +232,7 @@ export function buildPayablesExportWorkbook(params: {
       { wch: 10 },
       { wch: 20 },
     ];
-    XLSX.utils.book_append_sheet(workbook, commissionSheet, 'ComissÃµes automÃ¡ticas');
+    XLSX.utils.book_append_sheet(workbook, commissionSheet, 'Comissoes automaticas');
   }
 
   return XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' }) as Buffer;

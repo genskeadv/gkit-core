@@ -46,10 +46,10 @@ export function suggestCanonicalName(tipo: CadastroTipo, value: string): string 
     'pessoal': 'Pessoal',
     'impostos': 'Impostos',
     'operacional': 'Operacional',
-    'despesas do negocio': 'Despesas do negócio',
-    'despesa do negocio': 'Despesas do negócio',
-    'comissoes': 'Comissões',
-    'comissao': 'Comissões',
+    'despesas do negocio': 'Despesas do negocio',
+    'despesa do negocio': 'Despesas do negocio',
+    'comissoes': 'Comissoes',
+    'comissao': 'Comissoes',
     'sem categoria': 'Sem categoria',
   };
 

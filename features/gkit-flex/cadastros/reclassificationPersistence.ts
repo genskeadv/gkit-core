@@ -30,7 +30,7 @@ export type ReclassificationImpact = {
 };
 
 function assertConfigured(supabase: SupabaseClient | null): asserts supabase is SupabaseClient {
-  if (!supabase) throw new Error('Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+  if (!supabase) throw new Error('Supabase nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
 }
 
 function uniq(values: string[]) {
@@ -43,7 +43,7 @@ async function loadCadastroWithAliases(supabase: SupabaseClient, id: string) {
     .select('id, tipo, nome, status, metadata')
     .eq('id', id)
     .single();
-  if (error) throw new Error(`Cadastro não encontrado: ${error.message}`);
+  if (error) throw new Error(`Cadastro nao encontrado: ${error.message}`);
 
   const { data: aliases, error: aliasError } = await supabase
     .from('gkit_cadastro_aliases')
@@ -86,9 +86,9 @@ export async function previewReclassification(input: ReclassificationRequest): P
   const avisos: string[] = [];
 
   if (origem.tipo !== destino.tipo) bloqueios.push('Origem e destino precisam ser do mesmo tipo.');
-  if (origem.tipo !== input.tipo) bloqueios.push('O tipo informado não confere com o cadastro de origem.');
-  if (destino.status !== 'ativo') avisos.push('O destino está inativo. A reclassificação ainda pode ser feita, mas o ideal é usar destino ativo.');
-  if (origem.status === 'inativo') avisos.push('A origem já está inativa. Talvez ela já tenha sido fundida antes.');
+  if (origem.tipo !== input.tipo) bloqueios.push('O tipo informado nao confere com o cadastro de origem.');
+  if (destino.status !== 'ativo') avisos.push('O destino esta inativo. A reclassificacao ainda pode ser feita, mas o ideal e usar destino ativo.');
+  if (origem.status === 'inativo') avisos.push('A origem ja esta inativa. Talvez ela ja tenha sido fundida antes.');
 
   const nomesAfetados = uniq([origem.nome, ...origem.aliases]);
 
@@ -175,10 +175,10 @@ export async function confirmReclassification(input: ReclassificationRequest) {
 
   const preview = await previewReclassification(input);
   if (preview.bloqueios.length) {
-    throw new Error(`Reclassificação bloqueada: ${preview.bloqueios.join(' ')}`);
+    throw new Error(`Reclassificacao bloqueada: ${preview.bloqueios.join(' ')}`);
   }
 
-  const motivo = String(input.motivo || '').trim() || 'Reclassificação manual v14';
+  const motivo = String(input.motivo || '').trim() || 'Reclassificacao manual v14';
   const nomesAfetados = preview.nomesAfetados;
   const destinoNome = preview.destino.nome;
 
@@ -238,7 +238,7 @@ export async function confirmReclassification(input: ReclassificationRequest) {
     bloqueios: preview.bloqueios,
     avisos: preview.avisos,
   });
-  if (logError) throw new Error(`Erro ao gravar histórico da reclassificação: ${logError.message}`);
+  if (logError) throw new Error(`Erro ao gravar historico da reclassificacao: ${logError.message}`);
 
   await logEvent({
     supabase,

@@ -57,7 +57,7 @@ export async function getCommissionMonthStatus(competenciaInput: string) {
     .eq('competencia', competencia)
     .maybeSingle();
 
-  if (error) throw new Error(`Erro ao consultar competência no Supabase: ${error.message}`);
+  if (error) throw new Error(`Erro ao consultar competencia no Supabase: ${error.message}`);
 
   if (!data) {
     return { configured: true, competencia, status: 'nao_aberto' as MonthStatus, canProcess: false, row: null };
@@ -74,7 +74,7 @@ export async function getCommissionMonthStatus(competenciaInput: string) {
 
 export async function openCommissionMonth(competenciaInput: string, mode: 'abrir' | 'reabrir' = 'abrir') {
   const supabase = getSupabaseAdmin();
-  if (!supabase) throw new Error('Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+  if (!supabase) throw new Error('Supabase nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
 
   const competencia = sanitizeCompetencia(competenciaInput);
   const current = await getCommissionMonthStatus(competencia);
@@ -82,7 +82,7 @@ export async function openCommissionMonth(competenciaInput: string, mode: 'abrir
   if (current.status === 'aberto') return current;
 
   if (current.status === 'fechado' && mode !== 'reabrir') {
-    throw new Error('Esta competência está fechada. Use reabrir mês para liberar novo processamento.');
+    throw new Error('Esta competencia esta fechada. Use reabrir mes para liberar novo processamento.');
   }
 
   if (current.status === 'nao_aberto') {
@@ -91,13 +91,13 @@ export async function openCommissionMonth(competenciaInput: string, mode: 'abrir
       status: 'aberto',
       opened_at: new Date().toISOString(),
     });
-    if (error) throw new Error(`Erro ao abrir competência: ${error.message}`);
+    if (error) throw new Error(`Erro ao abrir competencia: ${error.message}`);
   } else {
     const { error } = await supabase
       .from('comissao_competencias')
       .update({ status: 'aberto', closed_at: null, reopened_at: new Date().toISOString() })
       .eq('competencia', competencia);
-    if (error) throw new Error(`Erro ao reabrir competência: ${error.message}`);
+    if (error) throw new Error(`Erro ao reabrir competencia: ${error.message}`);
   }
 
   await logEvent({ supabase, modulo: 'comissoes', competencia, action: mode === 'reabrir' ? 'reabrir_mes' : 'abrir_mes', detalhe: { mode } });
@@ -106,13 +106,13 @@ export async function openCommissionMonth(competenciaInput: string, mode: 'abrir
 
 export async function closeCommissionMonth(competenciaInput: string) {
   const supabase = getSupabaseAdmin();
-  if (!supabase) throw new Error('Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+  if (!supabase) throw new Error('Supabase nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
 
   const competencia = sanitizeCompetencia(competenciaInput);
   const current = await getCommissionMonthStatus(competencia);
 
   if (current.status === 'nao_aberto') {
-    throw new Error('Esta competência ainda não foi aberta. Não há mês para fechar.');
+    throw new Error('Esta competencia ainda nao foi aberta. Nao ha mes para fechar.');
   }
 
   if (current.status === 'fechado') return current;
@@ -122,7 +122,7 @@ export async function closeCommissionMonth(competenciaInput: string) {
     .update({ status: 'fechado', closed_at: new Date().toISOString() })
     .eq('competencia', competencia);
 
-  if (error) throw new Error(`Erro ao fechar competência: ${error.message}`);
+  if (error) throw new Error(`Erro ao fechar competencia: ${error.message}`);
   await logEvent({ supabase, modulo: 'comissoes', competencia, action: 'fechar_mes' });
   return getCommissionMonthStatus(competencia);
 }
@@ -134,9 +134,9 @@ async function requireOpenMonth(supabase: SupabaseClient, competencia: string): 
     .eq('competencia', competencia)
     .maybeSingle();
 
-  if (error) throw new Error(`Erro ao validar competência: ${error.message}`);
-  if (!data) throw new Error('Competência ainda não aberta. Abra o mês antes de calcular comissões.');
-  if (data.status !== 'aberto') throw new Error('Competência fechada. Reabra o mês antes de recalcular ou importar novas planilhas.');
+  if (error) throw new Error(`Erro ao validar competencia: ${error.message}`);
+  if (!data) throw new Error('Competencia ainda nao aberta. Abra o mes antes de calcular comissoes.');
+  if (data.status !== 'aberto') throw new Error('Competencia fechada. Reabra o mes antes de recalcular ou importar novas planilhas.');
 
   return data.id as string;
 }
@@ -148,7 +148,7 @@ async function replaceOpenMonthExecution(supabase: SupabaseClient, competencia: 
     .eq('competencia', competencia)
     .eq('status', 'processado');
 
-  if (error) throw new Error(`Erro ao consultar execuções anteriores: ${error.message}`);
+  if (error) throw new Error(`Erro ao consultar execucoes anteriores: ${error.message}`);
 
   const executionIds = (data || []).map((row) => row.id as string).filter(Boolean);
   if (!executionIds.length) return 0;
@@ -160,7 +160,7 @@ async function replaceOpenMonthExecution(supabase: SupabaseClient, competencia: 
   }
 
   const { error: executionError } = await supabase.from('comissao_execucoes').delete().in('id', executionIds);
-  if (executionError) throw new Error(`Erro ao substituir execuções anteriores: ${executionError.message}`);
+  if (executionError) throw new Error(`Erro ao substituir execucoes anteriores: ${executionError.message}`);
 
   return executionIds.length;
 }
@@ -172,7 +172,7 @@ export async function saveCommissionExecution(input: SaveExecutionInput): Promis
     return {
       executionId: null,
       saved: false,
-      warning: 'Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY para gravar a execução.',
+      warning: 'Supabase nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY para gravar a execucao.',
     };
   }
 
@@ -200,7 +200,7 @@ export async function saveCommissionExecution(input: SaveExecutionInput): Promis
     .single();
 
   if (executionError) {
-    throw new Error(`Erro ao gravar execução no Supabase: ${executionError.message}`);
+    throw new Error(`Erro ao gravar execucao no Supabase: ${executionError.message}`);
   }
 
   const executionId = execution.id as string;
@@ -243,7 +243,7 @@ export async function saveCommissionExecution(input: SaveExecutionInput): Promis
           raw: row.raw,
         })),
       );
-      if (error) throw new Error(`Erro ao gravar lançamentos no Supabase: ${error.message}`);
+      if (error) throw new Error(`Erro ao gravar lancamentos no Supabase: ${error.message}`);
     }
   }
 
@@ -280,7 +280,7 @@ export async function listCommissionExecutions() {
     .order('created_at', { ascending: false })
     .limit(20);
 
-  if (error) throw new Error(`Erro ao consultar execuções no Supabase: ${error.message}`);
+  if (error) throw new Error(`Erro ao consultar execucoes no Supabase: ${error.message}`);
   return { configured: true, rows: data ?? [] };
 }
 

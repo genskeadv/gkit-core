@@ -10,6 +10,6 @@ export async function GET(request: NextRequest) {
     const data = await getDashboardIntelligence(competencia);
     return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao carregar inteligência financeira.' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao carregar inteligencia financeira.' }, { status: 500 });
   }
 }

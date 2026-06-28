@@ -76,7 +76,7 @@ export function GkitFlexColaboradoresPage({
         <div className="month-context-main">
           <p className="eyebrow">GKIT Flex</p>
           <h1>Colaboradores</h1>
-          <p className="muted">Cadastro financeiro dos usuários Core que participam de pagamentos, comissões e integração com Colab.</p>
+          <p className="muted">Cadastro financeiro dos usuarios Core que participam de pagamentos, comissoes e integracao com Colab.</p>
           <div className="month-context-statuses">
             <span>Base: <StatusBadge status="ok" label="Core" compact /></span>
             <span>Destino: <StatusBadge status="aviso" label="Colab" compact /></span>
@@ -91,9 +91,9 @@ export function GkitFlexColaboradoresPage({
 
       <section className="grid-4">
         <MetricCard label="Colaboradores" value={data.resumo.total} help="com complemento Flex" />
-        <MetricCard label="Ativos" value={data.resumo.ativos} help="aptos para operação" tone={data.resumo.ativos ? 'good' : 'warning'} />
-        <MetricCard label="Recebem comissão" value={data.resumo.recebemComissao} help="marcados para apuração" />
-        <MetricCard label="Custo mensal" value={formatMoney(data.resumo.custoMensal)} help="salário, benefícios e extras" />
+        <MetricCard label="Ativos" value={data.resumo.ativos} help="aptos para operacao" tone={data.resumo.ativos ? 'good' : 'warning'} />
+        <MetricCard label="Recebem comissao" value={data.resumo.recebemComissao} help="marcados para apuracao" />
+        <MetricCard label="Custo mensal" value={formatMoney(data.resumo.custoMensal)} help="salario, beneficios e extras" />
       </section>
 
       <section className="card">
@@ -149,12 +149,12 @@ export function GkitFlexColaboradoresPage({
                     <td className="text-right">{formatMoney(row.total_mensal)}</td>
                     <td className="small-text muted">
                       {[
-                        row.recebe_salario ? 'Salário' : '',
-                        row.recebe_participacao_honorarios ? 'Honorários' : '',
+                        row.recebe_salario ? 'Salario' : '',
+                        row.recebe_participacao_honorarios ? 'Honorarios' : '',
                         row.recebe_pro_labore ? 'Pro-labore' : '',
-                        row.recebe_beneficios ? 'Benefícios' : '',
+                        row.recebe_beneficios ? 'Beneficios' : '',
                         row.recebe_outros ? 'Outros' : '',
-                        row.recebe_comissoes ? 'Comissões' : '',
+                        row.recebe_comissoes ? 'Comissoes' : '',
                       ].filter(Boolean).join(', ') || '-'}
                     </td>
                     <td className="text-right">
@@ -168,7 +168,7 @@ export function GkitFlexColaboradoresPage({
         ) : (
           <EmptyState
             title="Nenhum colaborador encontrado"
-            description="Cadastre o complemento financeiro dos usuários Core para destravar pagamentos, comissões e Colab."
+            description="Cadastre o complemento financeiro dos usuarios Core para destravar pagamentos, comissoes e Colab."
             action={canWrite ? <Link className="primary-button" href="/modulos/gkit-flex/colaboradores/novo">Novo colaborador</Link> : null}
           />
         )}
@@ -187,7 +187,7 @@ export function GkitFlexColaboradorForm({ data }: { data: GkitFlexColaboradorFor
         <div className="month-context-main">
           <p className="eyebrow">GKIT Flex</p>
           <h1>{colaborador ? 'Editar colaborador' : 'Novo colaborador'}</h1>
-          <p className="muted">Vincule um usuário Core aos dados financeiros usados pelo Flex e pelo Colab.</p>
+          <p className="muted">Vincule um usuario Core aos dados financeiros usados pelo Flex e pelo Colab.</p>
         </div>
         <div className="month-context-side">
           <Link className="secondary-button" href="/modulos/gkit-flex/colaboradores">Voltar</Link>
@@ -198,10 +198,10 @@ export function GkitFlexColaboradorForm({ data }: { data: GkitFlexColaboradorFor
         {colaborador ? <input type="hidden" name="id" value={colaborador.id} /> : null}
 
         <section>
-          <p className="eyebrow">Identificação</p>
+          <p className="eyebrow">Identificacao</p>
           <div className="grid-3">
             <label className="field-label">
-              Usuário Core
+              Usuario Core
               <select name="usuario_id" defaultValue={colaborador?.usuario_id ?? ''} required>
                 <SelectOptions options={data.usuarios} placeholder="Selecione" />
               </select>
@@ -261,7 +261,7 @@ export function GkitFlexColaboradorForm({ data }: { data: GkitFlexColaboradorFor
               <input className="text-input" name="tipo_conta" defaultValue={colaborador?.tipo_conta ?? ''} />
             </label>
             <label className="field-label">
-              Início
+              Inicio
               <input className="text-input" type="date" name="data_inicio" defaultValue={colaborador?.data_inicio ?? ''} />
             </label>
             <label className="field-label">
@@ -279,33 +279,33 @@ export function GkitFlexColaboradorForm({ data }: { data: GkitFlexColaboradorFor
         <section>
           <p className="eyebrow">Recebimentos mensais</p>
           <div className="grid-3">
-            <MoneyField name="salario" label="Salário" value={colaborador?.salario} />
-            <MoneyField name="participacao_honorarios" label="Participação honorários" value={colaborador?.participacao_honorarios} />
+            <MoneyField name="salario" label="Salario" value={colaborador?.salario} />
+            <MoneyField name="participacao_honorarios" label="Participacao honorarios" value={colaborador?.participacao_honorarios} />
             <MoneyField name="pro_labore" label="Pro-labore" value={colaborador?.pro_labore} />
             <MoneyField name="ajuda_custo" label="Ajuda de custo" value={colaborador?.ajuda_custo} />
             <MoneyField name="outros_vencimentos" label="Outros vencimentos" value={colaborador?.outros_vencimentos} />
-            <MoneyField name="beneficio_valor" label="Benefícios" value={colaborador?.beneficio_valor} />
+            <MoneyField name="beneficio_valor" label="Beneficios" value={colaborador?.beneficio_valor} />
           </div>
           <label className="field-label">
-            Descrição dos benefícios
+            Descricao dos beneficios
             <input className="text-input" name="beneficio_descricao" defaultValue={colaborador?.beneficio_descricao ?? ''} />
           </label>
         </section>
 
         <section>
-          <p className="eyebrow">Tipos aplicáveis</p>
+          <p className="eyebrow">Tipos aplicaveis</p>
           <div className="gkit-flex-checks">
-            <CheckField name="recebe_salario" label="Salário" defaultChecked={checkboxDefault(colaborador, 'recebe_salario')} />
-            <CheckField name="recebe_participacao_honorarios" label="Honorários" defaultChecked={checkboxDefault(colaborador, 'recebe_participacao_honorarios')} />
+            <CheckField name="recebe_salario" label="Salario" defaultChecked={checkboxDefault(colaborador, 'recebe_salario')} />
+            <CheckField name="recebe_participacao_honorarios" label="Honorarios" defaultChecked={checkboxDefault(colaborador, 'recebe_participacao_honorarios')} />
             <CheckField name="recebe_pro_labore" label="Pro-labore" defaultChecked={checkboxDefault(colaborador, 'recebe_pro_labore')} />
-            <CheckField name="recebe_beneficios" label="Benefícios" defaultChecked={checkboxDefault(colaborador, 'recebe_beneficios')} />
+            <CheckField name="recebe_beneficios" label="Beneficios" defaultChecked={checkboxDefault(colaborador, 'recebe_beneficios')} />
             <CheckField name="recebe_outros" label="Outros" defaultChecked={checkboxDefault(colaborador, 'recebe_outros')} />
-            <CheckField name="recebe_comissoes" label="Comissões" defaultChecked={checkboxDefault(colaborador, 'recebe_comissoes', true)} />
+            <CheckField name="recebe_comissoes" label="Comissoes" defaultChecked={checkboxDefault(colaborador, 'recebe_comissoes', true)} />
           </div>
         </section>
 
         <label className="field-label">
-          Observações
+          Observacoes
           <textarea name="observacoes" rows={4} defaultValue={colaborador?.observacoes ?? ''} />
         </label>
 

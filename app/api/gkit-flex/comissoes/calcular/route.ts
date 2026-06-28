@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[comissoes/calcular]', error);
     return Response.json(
-      { error: error instanceof Error ? error.message : 'Erro ao calcular comissões.' },
+      { error: error instanceof Error ? error.message : 'Erro ao calcular comissoes.' },
       { status: 500 },
     );
   }

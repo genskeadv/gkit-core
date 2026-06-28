@@ -1,4 +1,4 @@
-﻿import { requireGkitFlexApiAccess } from '@/features/gkit-flex/api-auth';
+import { requireGkitFlexApiAccess } from '@/features/gkit-flex/api-auth';
 import { NextRequest } from 'next/server';
 import { parsePayablesWorkbook } from '@/features/gkit-flex/contas-pagar/payableProcessor';
 import { previewPayablesImport } from '@/features/gkit-flex/contas-pagar/payablePersistence';
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ preview });
   } catch (error) {
     console.error('[contas-pagar/preview][POST]', error);
-    return Response.json({ error: error instanceof Error ? error.message : 'Erro ao gerar prÃ©via de pagamentos.' }, { status: 500 });
+    return Response.json({ error: error instanceof Error ? error.message : 'Erro ao gerar previa de pagamentos.' }, { status: 500 });
   }
 }
 

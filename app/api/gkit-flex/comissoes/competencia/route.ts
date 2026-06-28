@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[comissoes/competencia][GET]', error);
     return Response.json(
-      { error: error instanceof Error ? error.message : 'Erro ao consultar competência.' },
+      { error: error instanceof Error ? error.message : 'Erro ao consultar competencia.' },
       { status: 500 },
     );
   }
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const action = String(payload?.action || '');
 
     if (!['abrir', 'fechar', 'reabrir'].includes(action)) {
-      return Response.json({ error: 'Ação inválida. Use abrir, fechar ou reabrir.' }, { status: 400 });
+      return Response.json({ error: 'Acao invalida. Use abrir, fechar ou reabrir.' }, { status: 400 });
     }
 
     const result = action === 'fechar'
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[comissoes/competencia][POST]', error);
     return Response.json(
-      { error: error instanceof Error ? error.message : 'Erro ao atualizar competência.' },
+      { error: error instanceof Error ? error.message : 'Erro ao atualizar competencia.' },
       { status: 500 },
     );
   }

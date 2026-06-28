@@ -20,8 +20,8 @@ export const COMMISSION_RULES: CommissionRule[] = [
   },
   {
     key: 'mensalidade_assessoria',
-    label: 'Mensalidade de Assessoria Jurídica',
-    categoryMatchers: ['mensalidade de assessoria juridica', 'mensalidade de assessoria jurídica', 'assessoria juridica', 'assessoria jurídica'],
+    label: 'Mensalidade de Assessoria Juridica',
+    categoryMatchers: ['mensalidade de assessoria juridica', 'mensalidade de assessoria juridica', 'assessoria juridica', 'assessoria juridica'],
     reductionRate: 0.14,
     commissionRate: 0.015,
     splitBy: 1,
@@ -29,17 +29,17 @@ export const COMMISSION_RULES: CommissionRule[] = [
 ];
 
 const RECEIVABLE_ALIASES = {
-  cliente: ['cliente', 'cliente (nome fantasia)', 'cliente (razao social)', 'cliente (razão social)', 'razao social', 'razão social', 'nome completo', 'nome fantasia', 'nome abreviado'],
+  cliente: ['cliente', 'cliente (nome fantasia)', 'cliente (razao social)', 'cliente (razao social)', 'razao social', 'razao social', 'nome completo', 'nome fantasia', 'nome abreviado'],
   documento: ['cliente (cnpj/cpf)', 'cliente (cnpj / cpf)', 'cnpj/cpf', 'cnpj / cpf', 'cnpj', 'cpf', 'documento'],
   categoria: ['categoria', 'tipo', 'tipo de receita'],
-  situacao: ['situação', 'situacao', 'status'],
+  situacao: ['situacao', 'situacao', 'status'],
   valorRecebido: ['valor recebido', 'recebido', 'valor pago'],
 };
 
 const CLIENT_ALIASES = {
-  cliente: ['razao social / nome completo', 'razão social / nome completo', 'razao social', 'razão social', 'nome completo', 'nome fantasia / nome abreviado', 'nome fantasia', 'nome abreviado'],
+  cliente: ['razao social / nome completo', 'razao social / nome completo', 'razao social', 'razao social', 'nome completo', 'nome fantasia / nome abreviado', 'nome fantasia', 'nome abreviado'],
   documento: ['cnpj/cpf', 'cnpj / cpf', 'cnpj', 'cpf', 'documento'],
-  vendedor: ['vendedor padrão', 'vendedor padrao', 'vendedor (padrão)', 'vendedor (padrao)', 'vendedor', 'carteira'],
+  vendedor: ['vendedor padrao', 'vendedor padrao', 'vendedor (padrao)', 'vendedor (padrao)', 'vendedor', 'carteira'],
 };
 
 function normalizeText(value: unknown): string {
@@ -182,10 +182,10 @@ function makeClientMaps(clientRows: ClientInputRow[]) {
   const sellerColumn = findColumn(headers, CLIENT_ALIASES.vendedor);
 
   if (!docColumn && !clientColumn) {
-    throw new Error('Não encontrei coluna de CNPJ/CPF nem nome do cliente na planilha de clientes ativos. Confira se a planilha exportada tem cabeçalho.');
+    throw new Error('Nao encontrei coluna de CNPJ/CPF nem nome do cliente na planilha de clientes ativos. Confira se a planilha exportada tem cabecalho.');
   }
   if (!sellerColumn) {
-    throw new Error('Não encontrei a coluna de vendedor/carteira na planilha de clientes ativos. Procurei por “Vendedor (padrão)” ou “Vendedor padrão”.');
+    throw new Error('Nao encontrei a coluna de vendedor/carteira na planilha de clientes ativos. Procurei por "Vendedor (padrao)" ou "Vendedor padrao".');
   }
 
   const byDocument = new Map<string, string>();
@@ -212,10 +212,10 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
   const receivableRows = readFirstSheetRows(receivablesBuffer, Object.values(RECEIVABLE_ALIASES)) as ReceivableInputRow[];
 
   if (!receivableRows.length) {
-    throw new Error('Não encontrei lançamentos na planilha de contas a receber.');
+    throw new Error('Nao encontrei lancamentos na planilha de contas a receber.');
   }
   if (!clientRows.length) {
-    throw new Error('Não encontrei clientes na planilha de clientes ativos.');
+    throw new Error('Nao encontrei clientes na planilha de clientes ativos.');
   }
 
   const receivableHeaders = Object.keys(receivableRows[0] ?? {});
@@ -232,7 +232,7 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
   ].filter(([, value]) => !value).map(([name]) => name);
 
   if (missing.length) {
-    throw new Error(`Não encontrei coluna(s) obrigatória(s) na planilha de contas a receber: ${missing.join(', ')}.`);
+    throw new Error(`Nao encontrei coluna(s) obrigatoria(s) na planilha de contas a receber: ${missing.join(', ')}.`);
   }
 
   const clientMaps = makeClientMaps(clientRows);
@@ -256,9 +256,9 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
       if (normalizedCliente && clientMaps.byName.has(normalizedCliente)) {
         vendedor = clientMaps.byName.get(normalizedCliente) || 'Sem vendedor';
         criterioMatch = 'nome_cliente';
-        observacao = 'Cruzamento feito por nome porque CNPJ/CPF não bateu.';
+        observacao = 'Cruzamento feito por nome porque CNPJ/CPF nao bateu.';
       } else {
-        observacao = 'Cliente não encontrado na base de clientes ativos.';
+        observacao = 'Cliente nao encontrado na base de clientes ativos.';
       }
     }
 
@@ -341,7 +341,7 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
     .sort((a, b) => a.categoria.localeCompare(b.categoria) || b.valorRecebido - a.valorRecebido);
 
   if (!summaries.length) {
-    throw new Error('Não encontrei valores recebidos nas categorias com regra de comissão: Repasse de Acordos Judiciais ou Mensalidade de Assessoria Jurídica.');
+    throw new Error('Nao encontrei valores recebidos nas categorias com regra de comissao: Repasse de Acordos Judiciais ou Mensalidade de Assessoria Juridica.');
   }
 
   return { enrichedRows, summaries, auditRows };
@@ -363,30 +363,30 @@ export function buildCommissionWorkbook(result: CommissionProcessResult): Buffer
   const resumo = result.summaries.map((row) => ({
     Categoria: row.categoria,
     Carteira: row.carteira,
-    'Qtde. lançamentos': row.quantidadeLancamentos,
+    'Qtde. lancamentos': row.quantidadeLancamentos,
     'Valor recebido': row.valorRecebido,
-    'Redução %': row.reducaoPercentual,
-    'Valor redução': row.valorReducao,
-    'Valor após redução': row.valorAposReducao,
-    'Comissão %': row.percentualComissao,
-    'Comissão total': row.comissaoTotal,
+    'Reducao %': row.reducaoPercentual,
+    'Valor reducao': row.valorReducao,
+    'Valor apos reducao': row.valorAposReducao,
+    'Comissao %': row.percentualComissao,
+    'Comissao total': row.comissaoTotal,
     Divisor: row.divisor,
-    'Comissão final': row.comissaoFinal,
+    'Comissao final': row.comissaoFinal,
   }));
 
   const acordos = resumo.filter((row) => row.Categoria === 'Repasse de Acordos Judiciais');
-  const mensalidade = resumo.filter((row) => row.Categoria === 'Mensalidade de Assessoria Jurídica');
+  const mensalidade = resumo.filter((row) => row.Categoria === 'Mensalidade de Assessoria Juridica');
 
   const enriquecida = result.enrichedRows.map((row) => ({
     Linha: row.linha,
     Cliente: row.cliente,
     'CNPJ/CPF': row.documento,
     Categoria: row.categoria,
-    Situação: row.situacao,
+    Situacao: row.situacao,
     'Valor recebido': row.valorRecebido,
     Carteira: row.vendedor,
-    'Critério de match': row.criterioMatch,
-    Observação: row.observacao,
+    'Criterio de match': row.criterioMatch,
+    Observacao: row.observacao,
   }));
 
   const auditoria = result.auditRows.map((row) => ({
@@ -399,7 +399,7 @@ export function buildCommissionWorkbook(result: CommissionProcessResult): Buffer
     Problema: row.problema,
   }));
 
-  makeSheet(workbook, 'Resumo Comissões', resumo);
+  makeSheet(workbook, 'Resumo Comissoes', resumo);
   makeSheet(workbook, 'Acordos Judiciais', acordos);
   makeSheet(workbook, 'Mensalidade Assessoria', mensalidade);
   makeSheet(workbook, 'Contas com Carteira', enriquecida);

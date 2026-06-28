@@ -1,4 +1,4 @@
-﻿import { requireGkitFlexApiAccess } from '@/features/gkit-flex/api-auth';
+import { requireGkitFlexApiAccess } from '@/features/gkit-flex/api-auth';
 import { NextRequest } from 'next/server';
 import { updatePayableItem } from '@/features/gkit-flex/contas-pagar/payablePersistence';
 

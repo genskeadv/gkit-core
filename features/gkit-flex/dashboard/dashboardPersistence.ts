@@ -171,7 +171,7 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
     .limit(1)
     .maybeSingle();
 
-  if (latestError) throw new Error(`Erro ao consultar última execução de comissões: ${latestError.message}`);
+  if (latestError) throw new Error(`Erro ao consultar ultima execucao de comissoes: ${latestError.message}`);
 
   if (latestExecution) {
     summary.comissoes.latestExecution = {
@@ -191,7 +191,7 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
       .select('categoria, valor_recebido, comissao_final')
       .eq('execucao_id', latestExecution.id);
 
-    if (categoryError) throw new Error(`Erro ao consultar categorias de comissão: ${categoryError.message}`);
+    if (categoryError) throw new Error(`Erro ao consultar categorias de comissao: ${categoryError.message}`);
 
     const byCategory = new Map<string, { categoria: string; valor_recebido: number; comissao_final: number }>();
 
@@ -220,7 +220,7 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
       .select('valor_previsto, pago, origem_tipo, categoria')
       .eq('competencia_id', payableMonth.row.id);
 
-    if (payablesError) throw new Error(`Erro ao consultar contas a pagar: ${payablesError.message}`);
+    if (payablesError) throw new Error(`Erro ao consultar pagamentos: ${payablesError.message}`);
 
     const rows = payables || [];
     const total = roundMoney(rows.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0));
@@ -274,7 +274,7 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
       : Promise.resolve({ data: [], error: null }),
   ]);
 
-  if (usuariosResult.error) throw new Error(`Erro ao consultar usuários: ${usuariosResult.error.message}`);
+  if (usuariosResult.error) throw new Error(`Erro ao consultar usuarios: ${usuariosResult.error.message}`);
   if (carteirasResult.error) throw new Error(`Erro ao consultar carteiras: ${carteirasResult.error.message}`);
 
   const usuarios = new Map(((usuariosResult.data || []) as Array<Record<string, unknown>>).map((row) => [String(row.id), String(row.nome || 'Sem nome')]));
@@ -333,20 +333,20 @@ export async function updateDashboardMonth(competenciaInput: string, action: 'ab
     return { ok: true, action, competencia, comissoes, contasPagar };
   }
 
-  // Fechamento operacional: fecha comissões e contas a pagar. O contas a pagar cria o próximo mês
-  // com base nos itens recorrentes/importados e sem copiar as comissões.
+  // Fechamento operacional: fecha comissoes e pagamentos. A rotina cria o proximo mes
+  // com base nos itens recorrentes/importados e sem copiar as comissoes.
   const results: Record<string, unknown> = { ok: true, action, competencia };
 
   try {
     results.comissoes = await closeCommissionMonth(competencia);
   } catch (error) {
-    results.comissoesWarning = error instanceof Error ? error.message : 'Não foi possível fechar comissões.';
+    results.comissoesWarning = error instanceof Error ? error.message : 'Nao foi possivel fechar comissoes.';
   }
 
   try {
     results.contasPagar = await closePayableMonthAndCreateNext(competencia);
   } catch (error) {
-    results.contasPagarWarning = error instanceof Error ? error.message : 'Não foi possível fechar contas a pagar.';
+    results.contasPagarWarning = error instanceof Error ? error.message : 'Nao foi possivel fechar pagamentos.';
   }
 
   return results;

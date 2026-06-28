@@ -46,7 +46,7 @@ export async function logEvent(params: {
   });
 
   if (error) {
-    // Não interrompe a rotina principal por falha no log; registra no console do servidor.
+    // Nao interrompe a rotina principal por falha no log; registra no console do servidor.
     console.warn('[gkit_eventos] falha ao registrar evento:', error.message);
   }
 }

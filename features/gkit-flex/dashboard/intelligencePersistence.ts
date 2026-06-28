@@ -120,7 +120,7 @@ async function latestExecutionForMonth(supabase: SupabaseClient, competencia: st
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (error) throw new Error(`Erro ao consultar execução de ${competencia}: ${error.message}`);
+  if (error) throw new Error(`Erro ao consultar execucao de ${competencia}: ${error.message}`);
   return data as null | { id: string; total_valor_recebido: number; total_comissao: number; created_at: string };
 }
 
@@ -130,7 +130,7 @@ async function payableMonthId(supabase: SupabaseClient, competencia: string) {
     .select('id, status')
     .eq('competencia', competencia)
     .maybeSingle();
-  if (error) throw new Error(`Erro ao consultar contas a pagar de ${competencia}: ${error.message}`);
+  if (error) throw new Error(`Erro ao consultar pagamentos de ${competencia}: ${error.message}`);
   return data as null | { id: string; status: string };
 }
 
@@ -156,7 +156,7 @@ async function monthNumbers(supabase: SupabaseClient, competencia: string): Prom
       .from('contas_pagar_itens')
       .select('valor_previsto, pago, origem_tipo, categoria, vencimento_dia')
       .eq('competencia_id', month.id);
-    if (error) throw new Error(`Erro ao consultar itens de contas a pagar: ${error.message}`);
+    if (error) throw new Error(`Erro ao consultar itens de pagamentos: ${error.message}`);
 
     for (const row of payables || []) {
       const value = Number(row.valor_previsto || 0);
@@ -178,10 +178,10 @@ async function monthNumbers(supabase: SupabaseClient, competencia: string): Prom
 function buildComparativo(atual: MonthNumbers, anterior: MonthNumbers): IntelligenceMetric[] {
   return [
     { key: 'recebido', label: 'Total recebido', ...variation(atual.recebido, anterior.recebido) },
-    { key: 'pagar', label: 'Contas a pagar', ...variation(atual.pagar, anterior.pagar) },
+    { key: 'pagar', label: 'Pagamentos', ...variation(atual.pagar, anterior.pagar) },
     { key: 'pago', label: 'Total pago', ...variation(atual.pago, anterior.pago) },
     { key: 'aberto', label: 'Em aberto', ...variation(atual.aberto, anterior.aberto) },
-    { key: 'comissoes', label: 'Comissões calculadas', ...variation(atual.comissoes, anterior.comissoes) },
+    { key: 'comissoes', label: 'Comissoes calculadas', ...variation(atual.comissoes, anterior.comissoes) },
     { key: 'saldo', label: 'Saldo operacional', ...variation(atual.saldo, anterior.saldo) },
   ];
 }
@@ -249,18 +249,18 @@ async function expenseDashboard(supabase: SupabaseClient, competencia: string, f
 function buildAlerts(atual: MonthNumbers, projection: MonthNumbers, categorias: ExpenseDashboardRow[], centros: ExpenseDashboardRow[]): FinancialAlert[] {
   const alerts: FinancialAlert[] = [];
   if (atual.saldo < 0) {
-    alerts.push({ severidade: 'bloqueio', titulo: 'Saldo operacional negativo', detalhe: 'O total de contas a pagar supera o total recebido nesta competência.', valor: atual.saldo });
+    alerts.push({ severidade: 'bloqueio', titulo: 'Saldo operacional negativo', detalhe: 'O total de pagamentos supera o total recebido nesta competencia.', valor: atual.saldo });
   }
   if (atual.semCategoria > 0) {
-    alerts.push({ severidade: 'aviso', titulo: 'Despesas sem categoria', detalhe: `${atual.semCategoria} item(ns) do contas a pagar estão sem categoria.` });
+    alerts.push({ severidade: 'aviso', titulo: 'Despesas sem categoria', detalhe: `${atual.semCategoria} item(ns) dos pagamentos estao sem categoria.` });
   }
   if (Math.abs(atual.comissoes - atual.comissoesNoPagar) > 0.02) {
-    alerts.push({ severidade: 'aviso', titulo: 'Comissões não sincronizadas', detalhe: 'O total de comissões calculadas difere do total de comissões no contas a pagar.', valor: roundMoney(atual.comissoes - atual.comissoesNoPagar) });
+    alerts.push({ severidade: 'aviso', titulo: 'Comissoes nao sincronizadas', detalhe: 'O total de comissoes calculadas difere do total de comissoes nos pagamentos.', valor: roundMoney(atual.comissoes - atual.comissoesNoPagar) });
   }
 
   const biggestDue = Array.from(atual.vencimentos.entries()).sort((a, b) => b[1] - a[1])[0];
   if (biggestDue && atual.pagar > 0 && biggestDue[1] / atual.pagar >= 0.3) {
-    alerts.push({ severidade: 'aviso', titulo: 'Concentração de vencimentos', detalhe: `O dia ${String(biggestDue[0]).padStart(2, '0')} concentra ${roundMoney((biggestDue[1] / atual.pagar) * 100)}% do contas a pagar.`, valor: biggestDue[1] });
+    alerts.push({ severidade: 'aviso', titulo: 'Concentracao de vencimentos', detalhe: `O dia ${String(biggestDue[0]).padStart(2, '0')} concentra ${roundMoney((biggestDue[1] / atual.pagar) * 100)}% dos pagamentos.`, valor: biggestDue[1] });
   }
 
   const biggestCenter = centros[0];
@@ -274,7 +274,7 @@ function buildAlerts(atual: MonthNumbers, projection: MonthNumbers, categorias: 
   }
 
   if (projection.itensPagar > 0) {
-    alerts.push({ severidade: 'info', titulo: 'Próximo mês projetado', detalhe: `A próxima competência já tem ${projection.itensPagar} item(ns) previstos em contas a pagar.`, valor: projection.pagar });
+    alerts.push({ severidade: 'info', titulo: 'Proximo mes projetado', detalhe: `A proxima competencia ja tem ${projection.itensPagar} item(ns) previstos em pagamentos.`, valor: projection.pagar });
   }
 
   return alerts.slice(0, 8);
@@ -299,7 +299,7 @@ export async function getDashboardIntelligence(competenciaInput?: string | null)
       contasEmAberto: 0,
       comissoesPrevistas: 0,
       itensPrevistos: 0,
-      observacoes: ['Supabase não configurado.'],
+      observacoes: ['Supabase nao configurado.'],
     },
     alertas: [],
     carteiras: [],
@@ -332,8 +332,8 @@ export async function getDashboardIntelligence(competenciaInput?: string | null)
       comissoesPrevistas: proximo.comissoes,
       itensPrevistos: proximo.itensPagar,
       observacoes: [
-        proximo.itensPagar ? 'Projeção baseada no contas a pagar já criado para a próxima competência.' : 'Ainda não há contas a pagar criadas para a próxima competência.',
-        'Comissões do próximo mês só entram após novo cálculo da competência.',
+        proximo.itensPagar ? 'Projecao baseada nos pagamentos ja criados para a proxima competencia.' : 'Ainda nao ha pagamentos criados para a proxima competencia.',
+        'Comissoes do proximo mes so entram apos novo calculo da competencia.',
       ],
     },
     alertas: buildAlerts(atual, proximo, categorias, centros),
