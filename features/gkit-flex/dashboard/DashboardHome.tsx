@@ -385,7 +385,7 @@ export function DashboardHome() {
               <>
                 <section className="grid-3 dashboard-metrics">
                   <MetricCard label="Receita" value={formatMoney(receivablePreview.totals.valorRecebido)} help={receivablePreview.arquivo} tone="good" />
-                  <MetricCard label="Base reduzida" value={formatMoney(receivablePreview.totals.valorAposReducao)} help="apos redutores" />
+                  <MetricCard label="Base comissionavel" value={formatMoney(receivablePreview.totals.valorAposReducao)} help="apos redutores" />
                   <MetricCard label="Comissoes" value={formatMoney(receivablePreview.totals.comissaoFinal)} help={`${receivablePreview.auditCount} apontamento(s)`} />
                 </section>
                 <PreviewTable rows={receivablePreview.resumo} />

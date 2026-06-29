@@ -9,14 +9,58 @@ import { syncCommissionPayablesForCompetencia } from '@/features/gkit-flex/conta
 export const runtime = 'nodejs';
 
 function buildResumo(result: CommissionProcessResult) {
-  return result.summaries.map((row) => ({
-    categoria: row.categoria,
-    carteira: row.carteira,
-    quantidadeLancamentos: row.quantidadeLancamentos,
-    valorRecebido: row.valorRecebido,
-    valorAposReducao: row.valorAposReducao,
-    comissaoFinal: row.comissaoFinal,
-  }));
+  const commissionSummaries = result.summaries.map((row) => ({ ...row, normalizedCategoria: normalizeText(row.categoria) }));
+  const byKey = new Map<string, {
+    categoria: string;
+    carteira: string;
+    quantidadeLancamentos: number;
+    valorRecebido: number;
+    valorAposReducao: number;
+    comissaoFinal: number;
+  }>();
+
+  for (const row of result.enrichedRows) {
+    if (row.valorRecebido <= 0) continue;
+
+    const normalizedCategoria = normalizeText(row.categoria);
+    const matchingCommission = commissionSummaries.find((summary) => (
+      normalizedCategoria &&
+      summary.carteira === row.vendedor &&
+      (summary.normalizedCategoria.includes(normalizedCategoria) || normalizedCategoria.includes(summary.normalizedCategoria))
+    ));
+    const categoria = matchingCommission?.categoria || row.categoria || 'Sem categoria';
+    const carteira = row.vendedor || 'Sem vendedor';
+    const key = `${categoria}::${carteira}`;
+    const current = byKey.get(key) || {
+      categoria,
+      carteira,
+      quantidadeLancamentos: 0,
+      valorRecebido: 0,
+      valorAposReducao: 0,
+      comissaoFinal: 0,
+    };
+
+    current.quantidadeLancamentos += 1;
+    current.valorRecebido = roundMoney(current.valorRecebido + row.valorRecebido);
+    byKey.set(key, current);
+  }
+
+  for (const row of result.summaries) {
+    const key = `${row.categoria}::${row.carteira}`;
+    const current = byKey.get(key) || {
+      categoria: row.categoria,
+      carteira: row.carteira,
+      quantidadeLancamentos: row.quantidadeLancamentos,
+      valorRecebido: row.valorRecebido,
+      valorAposReducao: 0,
+      comissaoFinal: 0,
+    };
+    current.valorAposReducao = row.valorAposReducao;
+    current.comissaoFinal = row.comissaoFinal;
+    byKey.set(key, current);
+  }
+
+  return Array.from(byKey.values()).sort((a, b) => a.categoria.localeCompare(b.categoria) || b.valorRecebido - a.valorRecebido);
 }
 
 function buildTotals(resumo: ReturnType<typeof buildResumo>) {
@@ -28,6 +72,19 @@ function buildTotals(resumo: ReturnType<typeof buildResumo>) {
     }),
     { valorRecebido: 0, valorAposReducao: 0, comissaoFinal: 0 },
   );
+}
+
+function normalizeText(value: unknown): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+function roundMoney(value: number): number {
+  return Math.round((value || 0) * 100) / 100;
 }
 
 export async function POST(request: NextRequest) {

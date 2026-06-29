@@ -172,19 +172,22 @@ async function actualsForMonth(supabase: ReturnType<typeof getSupabaseAdmin>, co
     .maybeSingle();
 
   let receitasPorTipo: Array<{ tipo: string; valor: number }> = [];
+  let receitasRealizadas = roundMoney(Number(latestExecution?.total_valor_recebido || 0));
   if (latestExecution?.id) {
-    const { data: summaries, error: summaryError } = await supabase
-      .from('comissao_resumos')
+    const { data: launches, error: launchError } = await supabase
+      .from('comissao_lancamentos')
       .select('categoria, valor_recebido')
-      .eq('execucao_id', latestExecution.id);
-    if (summaryError) throw new Error(`Erro ao consultar receitas realizadas: ${summaryError.message}`);
+      .eq('execucao_id', latestExecution.id)
+      .gt('valor_recebido', 0);
+    if (launchError) throw new Error(`Erro ao consultar receitas realizadas: ${launchError.message}`);
 
     const byTipo = new Map<string, number>();
-    for (const row of summaries || []) {
+    for (const row of launches || []) {
       const tipo = String(row.categoria || 'Sem tipo');
       byTipo.set(tipo, roundMoney((byTipo.get(tipo) || 0) + Number(row.valor_recebido || 0)));
     }
     receitasPorTipo = Array.from(byTipo.entries()).map(([tipo, valor]) => ({ tipo, valor })).sort((a, b) => b.valor - a.valor);
+    receitasRealizadas = roundMoney((launches || []).reduce((acc, row) => acc + Number(row.valor_recebido || 0), 0)) || receitasRealizadas;
   }
 
   const { data: payableMonth } = await supabase
@@ -212,7 +215,7 @@ async function actualsForMonth(supabase: ReturnType<typeof getSupabaseAdmin>, co
   }
 
   return {
-    receitasRealizadas: roundMoney(Number(latestExecution?.total_valor_recebido || 0)),
+    receitasRealizadas,
     pagamentosRealizados,
     receitasPorTipo,
     pagamentosPorCategoria,
@@ -309,9 +312,10 @@ async function seedRevenueForecast(supabase: NonNullable<ReturnType<typeof getSu
   if (!latestExecution?.id) return 0;
 
   const { data: rows, error } = await supabase
-    .from('comissao_resumos')
+    .from('comissao_lancamentos')
     .select('categoria, valor_recebido')
-    .eq('execucao_id', latestExecution.id);
+    .eq('execucao_id', latestExecution.id)
+    .gt('valor_recebido', 0);
   if (error) throw new Error(`Erro ao consultar tipos de receita do mes anterior: ${error.message}`);
 
   const byTipo = new Map<string, number>();

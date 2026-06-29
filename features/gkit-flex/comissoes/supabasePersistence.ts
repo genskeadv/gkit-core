@@ -163,7 +163,7 @@ export async function saveCommissionExecution(input: SaveExecutionInput): Promis
   const competencia = sanitizeCompetencia(input.competencia);
   const competenciaId = await requireOpenMonth(supabase, competencia);
   const replacedExecutions = await replaceOpenMonthExecution(supabase, competencia);
-  const totalValorRecebido = sumBy(input.result.summaries, (row) => row.valorRecebido);
+  const totalValorRecebido = sumBy(input.result.enrichedRows.filter((row) => row.valorRecebido > 0), (row) => row.valorRecebido);
   const totalBaseReduzida = sumBy(input.result.summaries, (row) => row.valorAposReducao);
   const totalComissao = sumBy(input.result.summaries, (row) => row.comissaoFinal);
 

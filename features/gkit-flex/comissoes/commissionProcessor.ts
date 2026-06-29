@@ -340,8 +340,8 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
     })
     .sort((a, b) => a.categoria.localeCompare(b.categoria) || b.valorRecebido - a.valorRecebido);
 
-  if (!summaries.length) {
-    throw new Error('Nao encontrei valores recebidos nas categorias com regra de comissao: Repasse de Acordos Judiciais ou Mensalidade de Assessoria Juridica.');
+  if (!enrichedRows.some((row) => row.valorRecebido > 0)) {
+    throw new Error('Nao encontrei valores recebidos na planilha de contas a receber.');
   }
 
   return { enrichedRows, summaries, auditRows };

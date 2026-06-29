@@ -86,6 +86,15 @@ function roundMoney(value: number): number {
   return Math.round((value || 0) * 100) / 100;
 }
 
+function normalizeText(value: unknown): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
 export function sanitizeCompetencia(value?: string | null): string {
   if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value.slice(0, 10);
   if (value && /^\d{4}-\d{2}$/.test(value)) return `${value}-01`;
@@ -209,16 +218,38 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
       created_at: latestExecution.created_at as string,
     };
 
-    const { data: rows, error: categoryError } = await supabase
-      .from('comissao_resumos')
-      .select('categoria, carteira, valor_recebido, comissao_final')
-      .eq('execucao_id', latestExecution.id);
+    const [summaryResult, launchesResult] = await Promise.all([
+      supabase
+        .from('comissao_resumos')
+        .select('categoria, carteira, valor_recebido, comissao_final')
+        .eq('execucao_id', latestExecution.id),
+      supabase
+        .from('comissao_lancamentos')
+        .select('categoria, carteira, valor_recebido')
+        .eq('execucao_id', latestExecution.id)
+        .gt('valor_recebido', 0),
+    ]);
 
-    if (categoryError) throw new Error(`Erro ao consultar categorias de comissao: ${categoryError.message}`);
+    if (summaryResult.error) throw new Error(`Erro ao consultar categorias de comissao: ${summaryResult.error.message}`);
+    if (launchesResult.error) throw new Error(`Erro ao consultar receitas realizadas: ${launchesResult.error.message}`);
 
     const byCategory = new Map<string, { categoria: string; valor_recebido: number; comissao_final: number }>();
+    const commissionByCategory = new Map<string, number>();
 
-    for (const row of rows || []) {
+    for (const row of summaryResult.data || []) {
+      const categoria = String(row.categoria || 'Sem categoria');
+      const categoryKey = normalizeText(categoria);
+      commissionByCategory.set(categoryKey, roundMoney((commissionByCategory.get(categoryKey) || 0) + Number(row.comissao_final || 0)));
+
+      const carteira = String(row.carteira || '').trim();
+      if (carteira) {
+        const wallet = commissionByCarteira.get(carteira) || { receitaMes: 0, comissaoMes: 0 };
+        wallet.comissaoMes = roundMoney(wallet.comissaoMes + Number(row.comissao_final || 0));
+        commissionByCarteira.set(carteira, wallet);
+      }
+    }
+
+    for (const row of launchesResult.data || []) {
       const categoria = String(row.categoria || 'Sem categoria');
       const current = byCategory.get(categoria) || {
         categoria,
@@ -227,7 +258,7 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
       };
 
       current.valor_recebido = roundMoney(current.valor_recebido + Number(row.valor_recebido || 0));
-      current.comissao_final = roundMoney(current.comissao_final + Number(row.comissao_final || 0));
+      current.comissao_final = commissionByCategory.get(normalizeText(categoria)) || 0;
 
       byCategory.set(categoria, current);
 
@@ -235,14 +266,16 @@ export async function getDashboardSummary(competenciaInput?: string | null): Pro
       if (carteira) {
         const wallet = commissionByCarteira.get(carteira) || { receitaMes: 0, comissaoMes: 0 };
         wallet.receitaMes = roundMoney(wallet.receitaMes + Number(row.valor_recebido || 0));
-        wallet.comissaoMes = roundMoney(wallet.comissaoMes + Number(row.comissao_final || 0));
         commissionByCarteira.set(carteira, wallet);
       }
     }
 
-    summary.comissoes.totalsByCategory = Array.from(byCategory.values()).sort((a, b) =>
-      a.categoria.localeCompare(b.categoria),
-    );
+    const totalReceitaLancamentos = roundMoney((launchesResult.data || []).reduce((acc, row) => acc + Number(row.valor_recebido || 0), 0));
+    if (totalReceitaLancamentos) {
+      summary.comissoes.latestExecution.total_valor_recebido = totalReceitaLancamentos;
+    }
+
+    summary.comissoes.totalsByCategory = Array.from(byCategory.values()).sort((a, b) => b.valor_recebido - a.valor_recebido);
   }
 
   if (payableMonth.row?.id) {
