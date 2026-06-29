@@ -5376,13 +5376,17 @@ tbody tr:hover {
 
 .gkit-jur-process-list .suite-row-link,
 .gkit-jur-movement-list .suite-row-link,
-.gkit-jur-audit-list article {
+.gkit-jur-audit-list article,
+.gkit-jur-document-list article,
+.gkit-jur-task-list article {
   grid-template-columns: minmax(280px, 1.7fr) minmax(96px, auto) minmax(160px, 0.8fr) minmax(140px, 0.7fr);
 }
 
 .gkit-jur-process-list h3,
 .gkit-jur-movement-list h3,
-.gkit-jur-audit-list h3 {
+.gkit-jur-audit-list h3,
+.gkit-jur-document-list h3,
+.gkit-jur-task-list h3 {
   font-size: 13px !important;
   font-weight: 450 !important;
   line-height: 1.25 !important;
@@ -5393,7 +5397,11 @@ tbody tr:hover {
 .gkit-jur-movement-list p,
 .gkit-jur-movement-list small,
 .gkit-jur-audit-list p,
-.gkit-jur-audit-list small {
+.gkit-jur-audit-list small,
+.gkit-jur-document-list p,
+.gkit-jur-document-list small,
+.gkit-jur-task-list p,
+.gkit-jur-task-list small {
   font-size: 12px !important;
   line-height: 1.35 !important;
 }
@@ -5430,6 +5438,86 @@ tbody tr:hover {
 
 .gkit-jur-process-form {
   margin: 0;
+}
+
+.gkit-jur-document-form,
+.gkit-jur-event-form,
+.gkit-jur-task-form {
+  margin: 0 0 12px;
+}
+
+.gkit-jur-document-list article {
+  grid-template-columns: minmax(260px, 1.6fr) minmax(150px, 0.7fr) minmax(100px, auto) minmax(92px, auto);
+}
+
+.gkit-jur-task-list article {
+  grid-template-columns: minmax(260px, 1.5fr) auto minmax(150px, 0.7fr) minmax(100px, auto) minmax(160px, auto);
+}
+
+.gkit-jur-task-head,
+.gkit-jur-task-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gkit-jur-task-actions {
+  justify-content: flex-end;
+}
+
+.gkit-jur-task-actions form {
+  margin: 0;
+}
+
+.gkit-jur-timeline-list {
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-jur-timeline-item {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  min-height: 70px;
+  padding: 10px 12px;
+}
+
+.gkit-jur-timeline-item > span:first-child {
+  align-self: stretch;
+  background: rgba(106, 50, 130, 0.28);
+  border-radius: 999px;
+  width: 4px;
+}
+
+.gkit-jur-timeline-item.warning > span:first-child,
+.gkit-jur-timeline-item.danger > span:first-child {
+  background: rgba(180, 83, 9, 0.48);
+}
+
+.gkit-jur-timeline-item h3,
+.gkit-jur-timeline-item p,
+.gkit-jur-timeline-item small {
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.gkit-jur-timeline-item h3 {
+  color: var(--new-ink);
+  font-size: 13px;
+  font-weight: 450;
+  line-height: 1.25;
+}
+
+.gkit-jur-timeline-item p,
+.gkit-jur-timeline-item small {
+  color: var(--new-muted);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .gkit-jur-pendencia-grid {
@@ -5535,20 +5623,114 @@ tbody tr:hover {
 .gkit-jur-inbox-copilot-popup {
   bottom: 20px;
   box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
-  max-width: min(360px, calc(100vw - 40px));
+  max-width: min(340px, calc(100vw - 40px));
+  padding: 12px;
   position: fixed;
   right: 20px;
-  width: 360px;
+  width: 340px;
   z-index: 30;
 }
 
 .gkit-jur-inbox-copilot-popup .suite-panel-heading {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  margin-bottom: 8px;
   padding-bottom: 8px;
+}
+
+.gkit-jur-inbox-copilot-popup .suite-panel-heading p {
+  display: none;
+}
+
+.gkit-jur-agent-carousel {
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-jur-agent-carousel > input {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.gkit-jur-inbox-copilot-popup .gkit-jur-next-actions {
+  display: block;
+}
+
+.gkit-jur-agent-slide {
+  display: none;
+  gap: 8px;
+}
+
+#gkit-jur-agent-action-0:checked ~ .gkit-jur-next-actions .slide-0,
+#gkit-jur-agent-action-1:checked ~ .gkit-jur-next-actions .slide-1,
+#gkit-jur-agent-action-2:checked ~ .gkit-jur-next-actions .slide-2,
+#gkit-jur-agent-action-3:checked ~ .gkit-jur-next-actions .slide-3,
+#gkit-jur-agent-action-4:checked ~ .gkit-jur-next-actions .slide-4,
+#gkit-jur-agent-action-5:checked ~ .gkit-jur-next-actions .slide-5 {
+  display: grid;
+}
+
+.gkit-jur-inbox-copilot-popup .gkit-jur-agent-action-card {
+  min-height: 132px;
+}
+
+.gkit-jur-agent-action-head {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.gkit-jur-agent-action-head small {
+  color: var(--new-muted);
+  font-size: 11px !important;
+  font-weight: 600;
+}
+
+.gkit-jur-inbox-copilot-popup .gkit-jur-next-actions p {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  overflow: hidden;
+}
+
+.gkit-jur-inbox-copilot-popup .gkit-jur-next-actions small {
+  margin-top: auto;
+}
+
+.gkit-jur-agent-carousel-controls {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr auto 1fr;
+}
+
+.gkit-jur-agent-carousel-controls label {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  color: var(--new-ink);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 9px 10px;
+  text-align: center;
+}
+
+.gkit-jur-agent-carousel-controls label:hover {
+  background: rgba(106, 50, 130, 0.08);
+  border-color: rgba(106, 50, 130, 0.24);
+}
+
+.gkit-jur-agent-carousel-controls span {
+  color: var(--new-muted);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .gkit-jur-inbox-queues nav,
 .gkit-jur-next-actions,
 .gkit-jur-inbox-list,
+.gkit-jur-inbox-filter,
 .gkit-jur-agent-form {
   display: grid;
   gap: 8px;
@@ -5557,6 +5739,8 @@ tbody tr:hover {
 .gkit-jur-inbox-queues nav a,
 .gkit-jur-next-actions a,
 .gkit-jur-inbox-item,
+.gkit-jur-inbox-content,
+.gkit-jur-inbox-meta,
 .gkit-jur-agent-list article {
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(148, 163, 184, 0.22);
@@ -5617,6 +5801,20 @@ tbody tr:hover {
   grid-template-columns: 34px minmax(0, 1fr) minmax(190px, 0.5fr);
   min-height: 86px;
   padding: 12px;
+}
+
+.gkit-jur-inbox-item.actionable {
+  grid-template-columns: 34px minmax(0, 1.15fr) minmax(170px, 0.45fr) minmax(240px, 0.75fr);
+}
+
+.gkit-jur-inbox-content,
+.gkit-jur-inbox-meta {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  min-width: 0;
+  padding: 0;
+  text-decoration: none;
 }
 
 .gkit-jur-inbox-rank {
@@ -5696,13 +5894,98 @@ tbody tr:hover {
   height: 100%;
 }
 
+.gkit-jur-inbox-filter {
+  align-items: end;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  grid-template-columns: repeat(2, minmax(180px, 1fr)) auto;
+  margin-bottom: 8px;
+  padding-bottom: 12px;
+}
+
+.gkit-jur-inbox-filter label,
+.gkit-jur-inbox-plan-form label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.gkit-jur-inbox-filter label span,
+.gkit-jur-inbox-plan-form label span {
+  color: var(--new-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gkit-jur-inbox-filter select,
+.gkit-jur-inbox-plan-form input,
+.gkit-jur-inbox-plan-form select {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  border-radius: var(--suite-module-card-radius, 8px);
+  color: var(--new-ink);
+  font-size: 13px;
+  min-height: 40px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.gkit-jur-inbox-filter-actions,
+.gkit-jur-inbox-action-buttons {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.gkit-jur-inbox-action-buttons form {
+  margin: 0;
+}
+
+.gkit-jur-inbox-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-jur-inbox-actions details {
+  justify-self: end;
+  position: relative;
+}
+
+.gkit-jur-inbox-actions summary {
+  color: var(--new-muted);
+  cursor: pointer;
+  font-size: 12px;
+  list-style: none;
+  text-align: right;
+}
+
+.gkit-jur-inbox-actions summary::-webkit-details-marker {
+  display: none;
+}
+
+.gkit-jur-inbox-plan-form {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: var(--suite-module-card-radius, 8px);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  min-width: 260px;
+  padding: 10px;
+  position: absolute;
+  right: 0;
+  z-index: 6;
+}
+
 .gkit-jur-next-actions a {
   display: grid;
   gap: 6px;
   padding: 12px;
 }
 
-.gkit-jur-next-actions .suite-pill {
+.gkit-jur-agent-action-head .suite-pill {
   justify-self: start;
 }
 
@@ -5798,9 +6081,17 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
+  .gkit-jur-inbox-filter,
+  .gkit-jur-inbox-item.actionable {
+    grid-template-columns: 1fr;
+  }
+
   .gkit-jur-process-list .suite-row-link,
   .gkit-jur-movement-list .suite-row-link,
   .gkit-jur-audit-list article,
+  .gkit-jur-document-list article,
+  .gkit-jur-task-list article,
+  .gkit-jur-timeline-item,
   .gkit-jur-suggestion-row,
   .gkit-jur-inbox-item,
   .gkit-jur-agent-list article,
@@ -5811,6 +6102,23 @@ tbody tr:hover {
   .gkit-jur-inbox-meta {
     justify-items: start;
     text-align: left;
+  }
+
+  .gkit-jur-inbox-filter-actions,
+  .gkit-jur-inbox-action-buttons {
+    justify-content: flex-start;
+  }
+
+  .gkit-jur-inbox-actions details,
+  .gkit-jur-inbox-actions summary {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .gkit-jur-inbox-plan-form {
+    min-width: 0;
+    position: static;
+    width: 100%;
   }
 
   .gkit-jur-suggestion-row input[type='checkbox'] {

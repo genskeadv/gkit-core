@@ -3,15 +3,22 @@ import type { ReactNode } from 'react'
 import { ModuleShell, type ModuleNavGroup } from '@/features/shared/module-shell'
 import type { PlatformUsuario } from '@/lib/auth/platform'
 import {
+  gkitJurDocumentoTipoOptions,
+  gkitJurEventoTipoOptions,
   gkitJurMonitoramentoOptions,
   gkitJurStatusOptions,
+  gkitJurTarefaPrioridadeOptions,
+  gkitJurTarefaStatusOptions,
+  gkitJurTarefaTipoOptions,
 } from './queries'
 import type {
   GkitJurAgenteData,
   GkitJurAuditoriaData,
   GkitJurDashboardMetrics,
+  GkitJurDocumento,
   GkitJurFormData,
   GkitJurInboxData,
+  GkitJurInboxFilaId,
   GkitJurInboxItem,
   GkitJurInboxPrioridade,
   GkitJurMovimentacoesData,
@@ -22,6 +29,8 @@ import type {
   GkitJurProcessListItem,
   GkitJurSaneamentoSuggestion,
   GkitJurSelectOption,
+  GkitJurTarefa,
+  GkitJurTimelineItem,
 } from './types'
 
 type GkitJurTab = 'inbox' | 'processos' | 'pendencias' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria'
@@ -84,16 +93,18 @@ export function GkitJurSection({
   children,
   className,
   description,
+  id,
   title,
 }: {
   action?: ReactNode
   children: ReactNode
   className?: string
   description?: string
+  id?: string
   title: string
 }) {
   return (
-    <section className={className ? `suite-panel ${className}` : 'suite-panel'}>
+    <section className={className ? `suite-panel ${className}` : 'suite-panel'} id={id}>
       <div className="suite-panel-heading">
         <div>
           <h2>{title}</h2>
@@ -109,6 +120,15 @@ export function GkitJurSection({
 function formatDate(value: string | null) {
   if (!value) return '-'
   return new Date(value).toLocaleDateString('pt-BR')
+}
+
+function formatDateTimeLocal(value: string | null) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const offset = date.getTimezoneOffset()
+  const local = new Date(date.getTime() - offset * 60_000)
+  return local.toISOString().slice(0, 16)
 }
 
 function statusLabel(value: string) {
@@ -154,11 +174,29 @@ function priorityTone(priority: GkitJurInboxPrioridade) {
   return 'muted'
 }
 
-function InboxItemCard({ item, index }: { item: GkitJurInboxItem; index: number }) {
+function InboxItemCard({
+  canWrite,
+  formData,
+  item,
+  index,
+  planejamentoAction,
+  returnTo,
+  statusAction,
+}: {
+  canWrite: boolean
+  formData: GkitJurFormData
+  item: GkitJurInboxItem
+  index: number
+  planejamentoAction: (formData: FormData) => Promise<void>
+  returnTo: string
+  statusAction: (formData: FormData) => Promise<void>
+}) {
+  const isTask = item.tipo === 'tarefa' && item.entidadeId && item.processoId
+
   return (
-    <Link className="gkit-jur-inbox-item" href={item.acaoUrl}>
+    <article className={isTask ? 'gkit-jur-inbox-item actionable' : 'gkit-jur-inbox-item'}>
       <span className="gkit-jur-inbox-rank">{index + 1}</span>
-      <div>
+      <Link className="gkit-jur-inbox-content" href={item.acaoUrl}>
         <div className="gkit-jur-inbox-item-head">
           <span className={`suite-pill ${priorityTone(item.prioridade)}`}>{item.prioridade}</span>
           <span>{item.origem}</span>
@@ -167,20 +205,90 @@ function InboxItemCard({ item, index }: { item: GkitJurInboxItem; index: number 
         <h3>{item.titulo}</h3>
         <p>{item.subtitulo}</p>
         <small>{item.motivo}</small>
-      </div>
-      <div className="gkit-jur-inbox-meta">
+      </Link>
+      <Link className="gkit-jur-inbox-meta" href={item.acaoUrl}>
         <strong>{item.acaoLabel}</strong>
         <span>{item.responsavelNome || item.carteiraNome || 'Sem dono definido'}</span>
         <small>{formatDate(item.dataReferencia)}</small>
         <div className="gkit-jur-score" aria-label={`Score ${item.score}`}>
           <span style={{ width: `${Math.min(100, Math.max(0, item.score))}%` }} />
         </div>
-      </div>
-    </Link>
+      </Link>
+      {isTask && canWrite ? (
+        <div className="gkit-jur-inbox-actions">
+          <div className="gkit-jur-inbox-action-buttons">
+            {item.status === 'aberta' ? (
+              <form action={statusAction}>
+                <input name="tarefa_id" type="hidden" value={item.entidadeId ?? ''} />
+                <input name="processo_id" type="hidden" value={item.processoId ?? ''} />
+                <input name="status" type="hidden" value="em_andamento" />
+                <input name="return_to" type="hidden" value={returnTo} />
+                <button className="button secondary" type="submit">Iniciar</button>
+              </form>
+            ) : null}
+            <form action={statusAction}>
+              <input name="tarefa_id" type="hidden" value={item.entidadeId ?? ''} />
+              <input name="processo_id" type="hidden" value={item.processoId ?? ''} />
+              <input name="status" type="hidden" value="concluida" />
+              <input name="return_to" type="hidden" value={returnTo} />
+              <button className="button primary-button" type="submit">Concluir</button>
+            </form>
+          </div>
+          <details>
+            <summary>Remarcar / delegar</summary>
+            <form action={planejamentoAction} className="gkit-jur-inbox-plan-form">
+              <input name="tarefa_id" type="hidden" value={item.entidadeId ?? ''} />
+              <input name="processo_id" type="hidden" value={item.processoId ?? ''} />
+              <input name="return_to" type="hidden" value={returnTo} />
+              <label>
+                <span>Prazo</span>
+                <input name="prazo_at" type="datetime-local" defaultValue={formatDateTimeLocal(item.prazoAt)} />
+              </label>
+              <label>
+                <span>Responsavel</span>
+                <select name="responsavel_id" defaultValue={item.responsavelId ?? ''}>
+                  {optionList(formData.responsaveis, item.responsavelNome || 'Herdar do processo')}
+                </select>
+              </label>
+              <label>
+                <span>Prioridade</span>
+                <select name="prioridade" defaultValue={item.prioridade}>
+                  {gkitJurTarefaPrioridadeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+              <button className="button secondary" type="submit">Salvar</button>
+            </form>
+          </details>
+        </div>
+      ) : null}
+    </article>
   )
 }
 
-export function GkitJurInboxPage({ data }: { data: GkitJurInboxData }) {
+function inboxHref(data: GkitJurInboxData, fila: GkitJurInboxFilaId) {
+  const params = new URLSearchParams()
+  if (fila !== 'hoje') params.set('fila', fila)
+  if (data.filters.carteiraId) params.set('carteira_id', data.filters.carteiraId)
+  if (data.filters.responsavelId) params.set('responsavel_id', data.filters.responsavelId)
+  const query = params.toString()
+  return query ? `/modulos/gkit-jur/inbox?${query}` : '/modulos/gkit-jur/inbox'
+}
+
+export function GkitJurInboxPage({
+  canWrite,
+  data,
+  planejamentoAction,
+  returnTo,
+  statusAction,
+}: {
+  canWrite: boolean
+  data: GkitJurInboxData
+  planejamentoAction: (formData: FormData) => Promise<void>
+  returnTo: string
+  statusAction: (formData: FormData) => Promise<void>
+}) {
   return (
     <>
       <section className="suite-kpi-grid compact">
@@ -195,9 +303,9 @@ export function GkitJurInboxPage({ data }: { data: GkitJurInboxData }) {
           <span className="metric-hint">risco ou bloqueio</span>
         </article>
         <article className="metric-card">
-          <span className="metric-label">Automacoes</span>
-          <strong className="metric-value">{data.metrics.automacoes}</strong>
-          <span className="metric-hint">pedem intervencao</span>
+          <span className="metric-label">Tarefas</span>
+          <strong className="metric-value">{data.metrics.prazos}</strong>
+          <span className="metric-hint">providencias abertas</span>
         </article>
         <article className="metric-card">
           <span className="metric-label">Pendencias</span>
@@ -216,7 +324,7 @@ export function GkitJurInboxPage({ data }: { data: GkitJurInboxData }) {
           </div>
           <nav>
             {data.filas.map((fila) => (
-              <Link className={fila.id === data.selected ? 'active' : ''} href={`/modulos/gkit-jur/inbox?fila=${fila.id}`} key={fila.id}>
+              <Link className={fila.id === data.selected ? 'active' : ''} href={inboxHref(data, fila.id)} key={fila.id}>
                 <span>
                   <strong>{fila.title}</strong>
                   <small>{fila.description}</small>
@@ -232,10 +340,40 @@ export function GkitJurInboxPage({ data }: { data: GkitJurInboxData }) {
           title="Caixa de entrada"
           description="Itens priorizados por risco, pendencia, ausencia de dono e automacao."
         >
+          <form className="gkit-jur-inbox-filter" method="get">
+            {data.selected !== 'hoje' ? <input name="fila" type="hidden" value={data.selected} /> : null}
+            <Field label="Carteira">
+              <select name="carteira_id" defaultValue={data.filters.carteiraId}>
+                {optionList(data.filterOptions.carteiras, 'Todas as carteiras')}
+              </select>
+            </Field>
+            <Field label="Responsavel">
+              <select name="responsavel_id" defaultValue={data.filters.responsavelId}>
+                {optionList(data.filterOptions.responsaveis, 'Todos os responsaveis')}
+              </select>
+            </Field>
+            <div className="gkit-jur-inbox-filter-actions">
+              <button className="button secondary" type="submit">Filtrar</button>
+              <Link className="button secondary" href={inboxHref({ ...data, filters: { carteiraId: '', responsavelId: '' } }, data.selected)}>Limpar</Link>
+            </div>
+          </form>
           {data.items.length ? (
             <div className="gkit-jur-inbox-list" role="list">
               {data.items.map((item, index) => (
-                <InboxItemCard index={index} item={item} key={item.id} />
+                <InboxItemCard
+                  canWrite={canWrite}
+                  formData={{
+                    carteiras: data.filterOptions.carteiras,
+                    clientes: [],
+                    responsaveis: data.filterOptions.responsaveis,
+                  }}
+                  index={index}
+                  item={item}
+                  key={item.id}
+                  planejamentoAction={planejamentoAction}
+                  returnTo={returnTo}
+                  statusAction={statusAction}
+                />
               ))}
             </div>
           ) : (
@@ -251,15 +389,44 @@ export function GkitJurInboxPage({ data }: { data: GkitJurInboxData }) {
             <p>Melhores proximas acoes.</p>
           </div>
         </div>
-        <div className="gkit-jur-next-actions">
-          {data.proximasAcoes.map((action) => (
-            <Link href={action.href} key={action.title}>
-              <span className={`suite-pill ${priorityTone(action.priority)}`}>{action.count}</span>
-              <strong>{action.title}</strong>
-              <p>{action.description}</p>
-              <small>{action.label}</small>
-            </Link>
+        <div className="gkit-jur-agent-carousel">
+          {data.proximasAcoes.map((action, index) => (
+            <input
+              defaultChecked={index === 0}
+              id={`gkit-jur-agent-action-${index}`}
+              key={`control-${action.title}`}
+              name="gkit-jur-agent-action"
+              type="radio"
+            />
           ))}
+          <div className="gkit-jur-next-actions">
+            {data.proximasAcoes.map((action, index) => {
+              const total = data.proximasAcoes.length
+              const previous = index === 0 ? total - 1 : index - 1
+              const next = index === total - 1 ? 0 : index + 1
+
+              return (
+                <article className={`gkit-jur-agent-slide slide-${index}`} key={action.title}>
+                  <Link className="gkit-jur-agent-action-card" href={action.href}>
+                    <div className="gkit-jur-agent-action-head">
+                      <span className={`suite-pill ${priorityTone(action.priority)}`}>{action.count}</span>
+                      <small>{index + 1}/{total}</small>
+                    </div>
+                    <strong>{action.title}</strong>
+                    <p>{action.description}</p>
+                    <small>{action.label}</small>
+                  </Link>
+                  {total > 1 ? (
+                    <div className="gkit-jur-agent-carousel-controls">
+                      <label htmlFor={`gkit-jur-agent-action-${previous}`}>Anterior</label>
+                      <span>{index + 1}/{total}</span>
+                      <label htmlFor={`gkit-jur-agent-action-${next}`}>Proximo</label>
+                    </div>
+                  ) : null}
+                </article>
+              )
+            })}
+          </div>
         </div>
       </aside>
     </>
@@ -470,16 +637,120 @@ function optionList(options: GkitJurSelectOption[], emptyLabel: string) {
   )
 }
 
+function optionLabel(options: GkitJurSelectOption[], value: string) {
+  return options.find((option) => option.value === value)?.label ?? statusLabel(value)
+}
+
+function GkitJurTarefaList({
+  canWrite,
+  rows,
+  updateAction,
+}: {
+  canWrite: boolean
+  rows: GkitJurTarefa[]
+  updateAction: (formData: FormData) => Promise<void>
+}) {
+  return (
+    <div className="suite-table-list compact gkit-jur-task-list" role="list">
+      {rows.map((row) => (
+        <article key={row.id} role="listitem">
+          <div>
+            <div className="gkit-jur-task-head">
+              <span className={`suite-pill ${priorityTone(row.prioridade)}`}>{row.prioridade}</span>
+              <small>{optionLabel(gkitJurTarefaTipoOptions, row.tipo)}</small>
+            </div>
+            <h3>{row.titulo}</h3>
+            {row.descricao ? <p>{row.descricao}</p> : null}
+          </div>
+          <span className="suite-pill primary">{optionLabel(gkitJurTarefaStatusOptions, row.status)}</span>
+          <strong>{row.responsavelNome || row.carteiraNome || 'Sem dono definido'}</strong>
+          <small>{row.prazoAt ? formatDate(row.prazoAt) : 'Sem prazo'}</small>
+          {canWrite ? (
+            <div className="gkit-jur-task-actions">
+              {row.status === 'aberta' ? (
+                <form action={updateAction}>
+                  <input name="tarefa_id" type="hidden" value={row.id} />
+                  <input name="processo_id" type="hidden" value={row.processoId} />
+                  <input name="status" type="hidden" value="em_andamento" />
+                  <button className="button secondary" type="submit">Iniciar</button>
+                </form>
+              ) : null}
+              <form action={updateAction}>
+                <input name="tarefa_id" type="hidden" value={row.id} />
+                <input name="processo_id" type="hidden" value={row.processoId} />
+                <input name="status" type="hidden" value="concluida" />
+                <button className="button primary-button" type="submit">Concluir</button>
+              </form>
+            </div>
+          ) : null}
+        </article>
+      ))}
+    </div>
+  )
+}
+
+function GkitJurTimelineList({ rows }: { rows: GkitJurTimelineItem[] }) {
+  return (
+    <div className="gkit-jur-timeline-list" role="list">
+      {rows.map((row) => (
+        <article className={`gkit-jur-timeline-item ${priorityTone(row.prioridade)}`} key={row.id} role="listitem">
+          <span />
+          <div>
+            <div className="gkit-jur-task-head">
+              <small>{statusLabel(row.tipo)}</small>
+              <small>{formatDate(row.dataReferencia)}</small>
+              <span className="suite-pill muted">{statusLabel(row.status)}</span>
+            </div>
+            <h3>{row.titulo}</h3>
+            {row.descricao ? <p>{row.descricao}</p> : null}
+          </div>
+          {row.href ? <Link className="button secondary" href={row.href}>Abrir</Link> : null}
+        </article>
+      ))}
+    </div>
+  )
+}
+
+function GkitJurDocumentoList({ rows }: { rows: GkitJurDocumento[] }) {
+  return (
+    <div className="suite-table-list compact gkit-jur-document-list" role="list">
+      {rows.map((row) => (
+        <article key={row.id} role="listitem">
+          <div>
+            <div className="gkit-jur-task-head">
+              <small>{optionLabel(gkitJurDocumentoTipoOptions, row.tipo)}</small>
+              <span className="suite-pill muted">{statusLabel(row.status)}</span>
+            </div>
+            <h3>{row.titulo}</h3>
+            {row.descricao ? <p>{row.descricao}</p> : null}
+          </div>
+          <strong>{row.responsavelNome || row.carteiraNome || 'Sem dono definido'}</strong>
+          <small>{row.dataDocumento ? formatDate(row.dataDocumento) : 'Sem data'}</small>
+          {row.urlExterna ? <Link className="button secondary" href={row.urlExterna}>Abrir</Link> : <span />}
+        </article>
+      ))}
+    </div>
+  )
+}
+
 export function GkitJurProcessDetailPage({
   action,
   canWrite,
+  createDocumentoAction,
+  createEventoAction,
+  createTarefaAction,
   data,
+  updateTarefaStatusAction,
 }: {
   action: (formData: FormData) => Promise<void>
   canWrite: boolean
+  createDocumentoAction: (formData: FormData) => Promise<void>
+  createEventoAction: (formData: FormData) => Promise<void>
+  createTarefaAction: (formData: FormData) => Promise<void>
   data: GkitJurProcessDetailData
+  updateTarefaStatusAction: (formData: FormData) => Promise<void>
 }) {
-  const { formData, movimentacoes, processo } = data
+  const { documentos, formData, movimentacoes, processo, tarefas, timeline } = data
 
   return (
     <>
@@ -562,6 +833,159 @@ export function GkitJurProcessDetailPage({
             {processo.urlProcesso ? <Link className="button secondary" href={processo.urlProcesso}>Abrir origem</Link> : null}
           </div>
         </form>
+      </GkitJurSection>
+
+      <GkitJurSection
+        className="gkit-jur-task-panel"
+        title="Tarefas do processo"
+        description="Providencias manuais agora; depois a integracao passa a criar tarefas nesta mesma fila."
+        id="tarefas"
+      >
+        {canWrite ? (
+          <form action={createTarefaAction} className="card module-form module-form-grid gkit-jur-task-form">
+            <input name="processo_id" type="hidden" value={processo.id} />
+            <Field label="Tipo">
+              <select name="tipo" defaultValue="providencia_interna">
+                {gkitJurTarefaTipoOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Prioridade">
+              <select name="prioridade" defaultValue="media">
+                {gkitJurTarefaPrioridadeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Prazo">
+              <input name="prazo_at" type="datetime-local" />
+            </Field>
+            <Field label="Responsavel">
+              <select name="responsavel_id" defaultValue={processo.responsavelId ?? ''}>
+                {optionList(formData.responsaveis, processo.responsavelNome || 'Herdar do processo')}
+              </select>
+            </Field>
+            <div className="module-form-wide">
+              <Field label="Titulo">
+                <input name="titulo" placeholder="Ex.: Revisar movimentacao, preparar peticao, confirmar prazo" />
+              </Field>
+            </div>
+            <div className="module-form-wide">
+              <Field label="Descricao">
+                <textarea name="descricao" placeholder="Contexto operacional para quem vai executar." />
+              </Field>
+            </div>
+            <div className="form-actions module-form-wide">
+              <button className="button primary-button" type="submit">Criar tarefa</button>
+            </div>
+          </form>
+        ) : null}
+
+        {tarefas.length ? (
+          <GkitJurTarefaList canWrite={canWrite} rows={tarefas} updateAction={updateTarefaStatusAction} />
+        ) : (
+          <div className="suite-empty-block success">Nenhuma tarefa aberta para este processo.</div>
+        )}
+      </GkitJurSection>
+
+      <GkitJurSection
+        className="gkit-jur-timeline-panel"
+        title="Timeline operacional"
+        description="Eventos relevantes do processo, combinando registros manuais, tarefas, documentos e movimentacoes."
+        id="timeline"
+      >
+        {canWrite ? (
+          <form action={createEventoAction} className="card module-form module-form-grid gkit-jur-event-form">
+            <input name="processo_id" type="hidden" value={processo.id} />
+            <Field label="Tipo">
+              <select name="tipo" defaultValue="providencia_interna">
+                {gkitJurEventoTipoOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Data">
+              <input name="data_evento" type="datetime-local" />
+            </Field>
+            <Field label="Responsavel">
+              <select name="responsavel_id" defaultValue={processo.responsavelId ?? ''}>
+                {optionList(formData.responsaveis, processo.responsavelNome || 'Herdar do processo')}
+              </select>
+            </Field>
+            <div className="module-form-wide">
+              <Field label="Titulo">
+                <input name="titulo" placeholder="Ex.: Protocolo realizado, contato com cliente, audiencia designada" />
+              </Field>
+            </div>
+            <div className="module-form-wide">
+              <Field label="Descricao">
+                <textarea name="descricao" placeholder="Contexto curto para a linha do tempo." />
+              </Field>
+            </div>
+            <div className="form-actions module-form-wide">
+              <button className="button primary-button" type="submit">Registrar evento</button>
+            </div>
+          </form>
+        ) : null}
+
+        {timeline.length ? (
+          <GkitJurTimelineList rows={timeline} />
+        ) : (
+          <div className="suite-empty-block">Nenhum evento na timeline deste processo.</div>
+        )}
+      </GkitJurSection>
+
+      <GkitJurSection
+        className="gkit-jur-document-panel"
+        title="Documentos do processo"
+        description="Referencias documentais do caso; upload e integracao entram depois sobre esta mesma base."
+        id="documentos"
+      >
+        {canWrite ? (
+          <form action={createDocumentoAction} className="card module-form module-form-grid gkit-jur-document-form">
+            <input name="processo_id" type="hidden" value={processo.id} />
+            <Field label="Tipo">
+              <select name="tipo" defaultValue="documento_interno">
+                {gkitJurDocumentoTipoOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Data">
+              <input name="data_documento" type="datetime-local" />
+            </Field>
+            <Field label="Responsavel">
+              <select name="responsavel_id" defaultValue={processo.responsavelId ?? ''}>
+                {optionList(formData.responsaveis, processo.responsavelNome || 'Herdar do processo')}
+              </select>
+            </Field>
+            <div className="module-form-wide">
+              <Field label="Titulo">
+                <input name="titulo" placeholder="Ex.: Peticao inicial, decisao, comprovante, procuracao" />
+              </Field>
+            </div>
+            <div className="module-form-wide">
+              <Field label="Link externo">
+                <input name="url_externa" placeholder="https://..." />
+              </Field>
+            </div>
+            <div className="module-form-wide">
+              <Field label="Descricao">
+                <textarea name="descricao" placeholder="Observacao curta sobre o documento." />
+              </Field>
+            </div>
+            <div className="form-actions module-form-wide">
+              <button className="button primary-button" type="submit">Registrar documento</button>
+            </div>
+          </form>
+        ) : null}
+
+        {documentos.length ? (
+          <GkitJurDocumentoList rows={documentos} />
+        ) : (
+          <div className="suite-empty-block">Nenhum documento registrado para este processo.</div>
+        )}
       </GkitJurSection>
 
       <GkitJurSection title="Movimentacoes" description="Historico ja preparado para receber as sincronizacoes futuras.">

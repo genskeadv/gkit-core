@@ -1,5 +1,6 @@
+import { updateGkitJurTarefaPlanejamentoAction, updateGkitJurTarefaStatusAction } from '@/features/gkit-jur/actions'
 import { GkitJurInboxPage, GkitJurShell } from '@/features/gkit-jur/components'
-import { getGkitJurInbox, requireGkitJurContext } from '@/features/gkit-jur/queries'
+import { canWriteGkitJur, getGkitJurInbox, requireGkitJurContext } from '@/features/gkit-jur/queries'
 import { moduleTarget, type ModuleSearchParams } from '@/lib/auth/platform'
 
 export default async function GkitJurInboxRoute({ searchParams }: { searchParams?: Promise<ModuleSearchParams> }) {
@@ -16,7 +17,13 @@ export default async function GkitJurInboxRoute({ searchParams }: { searchParams
       title="Inbox operacional"
       usuario={context.usuario}
     >
-      <GkitJurInboxPage data={data} />
+      <GkitJurInboxPage
+        canWrite={canWriteGkitJur(context.permissions)}
+        data={data}
+        planejamentoAction={updateGkitJurTarefaPlanejamentoAction}
+        returnTo={moduleTarget('/modulos/gkit-jur/inbox', params)}
+        statusAction={updateGkitJurTarefaStatusAction}
+      />
     </GkitJurShell>
   )
 }

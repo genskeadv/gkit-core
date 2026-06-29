@@ -4,9 +4,47 @@ export type GkitJurMonitoramentoStatus = 'monitorando' | 'pausado' | 'erro' | 'n
 
 export type GkitJurSyncStatus = 'sucesso' | 'erro' | 'sem_resultado' | 'parcial' | 'timeout';
 
-export type GkitJurInboxFilaId = 'hoje' | 'criticos' | 'pendencias' | 'automacao' | 'sem-retorno';
+export type GkitJurInboxFilaId = 'hoje' | 'tarefas' | 'criticos' | 'pendencias' | 'automacao' | 'sem-retorno';
 
 export type GkitJurInboxPrioridade = 'critica' | 'alta' | 'media' | 'baixa';
+
+export type GkitJurTarefaStatus = 'aberta' | 'em_andamento' | 'aguardando_terceiro' | 'concluida' | 'cancelada';
+
+export type GkitJurTarefaTipo =
+  | 'prazo'
+  | 'publicacao'
+  | 'movimentacao_relevante'
+  | 'documento_pendente'
+  | 'providencia_interna'
+  | 'audiencia'
+  | 'cumprimento'
+  | 'revisao';
+
+export type GkitJurDocumentoStatus = 'ativo' | 'arquivado' | 'cancelado';
+
+export type GkitJurDocumentoTipo =
+  | 'peticao'
+  | 'publicacao'
+  | 'decisao'
+  | 'ata'
+  | 'comprovante'
+  | 'documento_interno'
+  | 'contrato'
+  | 'procuracao'
+  | 'outro';
+
+export type GkitJurEventoTipo =
+  | 'publicacao'
+  | 'intimacao'
+  | 'despacho'
+  | 'decisao'
+  | 'audiencia'
+  | 'prazo'
+  | 'protocolo'
+  | 'contato'
+  | 'providencia_interna'
+  | 'documento'
+  | 'nota';
 
 export type GkitJurAgenteExecucaoStatus =
   | 'pendente'
@@ -118,10 +156,72 @@ export type GkitJurMovimentacao = {
   geraAlerta: boolean;
 };
 
+export type GkitJurTarefa = {
+  id: string;
+  processoId: string;
+  tipo: GkitJurTarefaTipo;
+  titulo: string;
+  descricao: string | null;
+  status: GkitJurTarefaStatus;
+  prioridade: GkitJurInboxPrioridade;
+  prazoAt: string | null;
+  origem: string;
+  carteiraId: string | null;
+  carteiraNome: string | null;
+  responsavelId: string | null;
+  responsavelNome: string | null;
+  createdAt: string;
+};
+
+export type GkitJurDocumento = {
+  id: string;
+  processoId: string;
+  tipo: GkitJurDocumentoTipo;
+  titulo: string;
+  descricao: string | null;
+  status: GkitJurDocumentoStatus;
+  dataDocumento: string | null;
+  urlExterna: string | null;
+  storagePath: string | null;
+  origem: string;
+  carteiraNome: string | null;
+  responsavelNome: string | null;
+  createdAt: string;
+};
+
+export type GkitJurEventoProcesso = {
+  id: string;
+  processoId: string;
+  tipo: GkitJurEventoTipo;
+  titulo: string;
+  descricao: string | null;
+  dataEvento: string;
+  origem: string;
+  carteiraNome: string | null;
+  responsavelNome: string | null;
+  createdAt: string;
+};
+
+export type GkitJurTimelineItem = {
+  id: string;
+  tipo: 'evento' | 'documento' | 'tarefa' | 'movimentacao';
+  titulo: string;
+  descricao: string | null;
+  dataReferencia: string | null;
+  status: string;
+  origem: string;
+  prioridade: GkitJurInboxPrioridade;
+  href: string | null;
+};
+
 export type GkitJurProcessDetailData = {
+  documentos: GkitJurDocumento[];
+  eventos: GkitJurEventoProcesso[];
   formData: GkitJurFormData;
   movimentacoes: GkitJurMovimentacao[];
   processo: GkitJurProcessDetail;
+  tarefas: GkitJurTarefa[];
+  timeline: GkitJurTimelineItem[];
 };
 
 export type GkitJurPendenciaGroup = {
@@ -187,6 +287,10 @@ export type GkitJurInboxItem = {
   prioridade: GkitJurInboxPrioridade;
   score: number;
   dataReferencia: string | null;
+  prazoAt: string | null;
+  processoId: string | null;
+  carteiraId: string | null;
+  responsavelId: string | null;
   responsavelNome: string | null;
   carteiraNome: string | null;
   entidadeTipo: string;
@@ -194,6 +298,11 @@ export type GkitJurInboxItem = {
   acaoLabel: string;
   acaoUrl: string;
   motivo: string;
+};
+
+export type GkitJurInboxFilters = {
+  carteiraId: string;
+  responsavelId: string;
 };
 
 export type GkitJurInboxFila = {
@@ -205,6 +314,11 @@ export type GkitJurInboxFila = {
 
 export type GkitJurInboxData = {
   selected: GkitJurInboxFilaId;
+  filters: GkitJurInboxFilters;
+  filterOptions: {
+    carteiras: GkitJurSelectOption[];
+    responsaveis: GkitJurSelectOption[];
+  };
   filas: GkitJurInboxFila[];
   metrics: {
     hoje: number;

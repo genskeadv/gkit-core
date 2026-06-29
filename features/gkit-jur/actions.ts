@@ -45,12 +45,45 @@ function selectedIds(formData: FormData, key: string) {
     .filter(Boolean))]
 }
 
+function safeReturnTo(formData: FormData, fallback: string) {
+  const value = text(formData, 'return_to')
+  if (value.startsWith('/modulos/gkit-jur')) return value
+  return fallback
+}
+
 function revalidateGkitJur() {
   revalidatePath('/modulos/gkit-jur')
   revalidatePath('/modulos/gkit-jur/inbox')
   revalidatePath('/modulos/gkit-jur/agente')
   revalidatePath('/modulos/gkit-jur/processos')
   revalidatePath('/modulos/gkit-jur/pendencias')
+}
+
+async function defaultCarteiraId() {
+  const result = await admin()
+    .schema('core')
+    .from('carteiras')
+    .select('id')
+    .eq('nome_normalizado', 'genske advogados')
+    .eq('status', 'ativo')
+    .maybeSingle()
+
+  if (result.error) throw new Error(result.error.message)
+  return result.data?.id ?? null
+}
+
+async function getActiveJurProcess(processoId: string) {
+  const processoResult = await admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select('id,numero_cnj,carteira_id,responsavel_id,status')
+    .eq('id', processoId)
+    .single()
+
+  if (processoResult.error || !processoResult.data) throw new Error('Processo nao encontrado.')
+  const processo = processoResult.data as Record<string, unknown>
+  if (processo.status !== 'ativo') throw new Error('Acoes operacionais so podem ser criadas para processos ativos.')
+  return processo
 }
 
 export async function updateGkitJurProcessoAction(formData: FormData) {
@@ -114,6 +147,233 @@ export async function applyGkitJurSaneamentoSuggestionsAction(formData: FormData
 
   revalidateGkitJur()
   redirect('/modulos/gkit-jur/pendencias')
+}
+
+export async function createGkitJurTarefaAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.write')
+  const processoId = requiredText(formData, 'processo_id', 'Processo')
+  const processo = await getActiveJurProcess(processoId)
+
+  const carteiraId = optionalUuid(formData, 'carteira_id') || (processo.carteira_id as string | null) || await defaultCarteiraId()
+  const responsavelId = optionalUuid(formData, 'responsavel_id') || (processo.responsavel_id as string | null) || null
+  const prazo = text(formData, 'prazo_at')
+
+  const payload = {
+    processo_id: processoId,
+    carteira_id: carteiraId,
+    responsavel_id: responsavelId,
+    tipo: allowed(text(formData, 'tipo'), ['prazo', 'publicacao', 'movimentacao_relevante', 'documento_pendente', 'providencia_interna', 'audiencia', 'cumprimento', 'revisao'], 'providencia_interna'),
+    titulo: requiredText(formData, 'titulo', 'Titulo da tarefa'),
+    descricao: text(formData, 'descricao') || null,
+    prioridade: allowed(text(formData, 'prioridade'), ['critica', 'alta', 'media', 'baixa'], 'media'),
+    prazo_at: prazo ? new Date(prazo).toISOString() : null,
+    origem: 'manual',
+    payload: { origem: 'manual', processo_numero_cnj: processo.numero_cnj },
+    criado_por: context.usuario.id,
+    atualizado_por: context.usuario.id,
+    updated_at: new Date().toISOString(),
+  }
+
+  const insertResult = await admin()
+    .schema('gkit_jur')
+    .from('tarefas')
+    .insert(payload)
+    .select('id')
+    .single()
+
+  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Nao foi possivel criar tarefa.')
+
+  await admin().schema('gkit_jur').from('eventos_operacionais').insert({
+    user_id: context.usuario.id,
+    entidade_tipo: 'tarefa',
+    entidade_id: insertResult.data.id,
+    acao: 'tarefa_criada',
+    descricao: 'Tarefa juridica manual criada.',
+    payload: { processo_id: processoId, titulo: payload.titulo },
+  })
+
+  revalidateGkitJur()
+  revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  redirect(safeReturnTo(formData, `/modulos/gkit-jur/processos/${processoId}#tarefas`))
+}
+
+export async function updateGkitJurTarefaStatusAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.write')
+  const tarefaId = requiredText(formData, 'tarefa_id', 'Tarefa')
+  const processoId = requiredText(formData, 'processo_id', 'Processo')
+  const nextStatus = allowed(text(formData, 'status'), ['aberta', 'em_andamento', 'aguardando_terceiro', 'concluida', 'cancelada'], 'em_andamento')
+  const done = ['concluida', 'cancelada'].includes(nextStatus)
+
+  const payload: Record<string, unknown> = {
+    status: nextStatus,
+    atualizado_por: context.usuario.id,
+    updated_at: new Date().toISOString(),
+  }
+  if (done) {
+    payload.concluido_por = context.usuario.id
+    payload.concluded_at = new Date().toISOString()
+  } else {
+    payload.concluido_por = null
+    payload.concluded_at = null
+  }
+
+  const updateResult = await admin()
+    .schema('gkit_jur')
+    .from('tarefas')
+    .update(payload)
+    .eq('id', tarefaId)
+    .eq('processo_id', processoId)
+
+  if (updateResult.error) throw new Error(updateResult.error.message)
+
+  await admin().schema('gkit_jur').from('eventos_operacionais').insert({
+    user_id: context.usuario.id,
+    entidade_tipo: 'tarefa',
+    entidade_id: tarefaId,
+    acao: 'tarefa_status_atualizado',
+    descricao: `Status da tarefa atualizado para ${nextStatus}.`,
+    payload: { processo_id: processoId, status: nextStatus },
+  })
+
+  revalidateGkitJur()
+  revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  redirect(safeReturnTo(formData, `/modulos/gkit-jur/processos/${processoId}#tarefas`))
+}
+
+export async function updateGkitJurTarefaPlanejamentoAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.write')
+  const tarefaId = requiredText(formData, 'tarefa_id', 'Tarefa')
+  const processoId = requiredText(formData, 'processo_id', 'Processo')
+  const processo = await getActiveJurProcess(processoId)
+  const prazo = text(formData, 'prazo_at')
+  const prioridade = text(formData, 'prioridade')
+
+  const payload: Record<string, unknown> = {
+    responsavel_id: optionalUuid(formData, 'responsavel_id') || (processo.responsavel_id as string | null) || null,
+    prazo_at: prazo ? new Date(prazo).toISOString() : null,
+    atualizado_por: context.usuario.id,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (prioridade) {
+    payload.prioridade = allowed(prioridade, ['critica', 'alta', 'media', 'baixa'], 'media')
+  }
+
+  const updateResult = await admin()
+    .schema('gkit_jur')
+    .from('tarefas')
+    .update(payload)
+    .eq('id', tarefaId)
+    .eq('processo_id', processoId)
+
+  if (updateResult.error) throw new Error(updateResult.error.message)
+
+  await admin().schema('gkit_jur').from('eventos_operacionais').insert({
+    user_id: context.usuario.id,
+    entidade_tipo: 'tarefa',
+    entidade_id: tarefaId,
+    acao: 'tarefa_planejamento_atualizado',
+    descricao: 'Planejamento da tarefa juridica atualizado.',
+    payload: {
+      processo_id: processoId,
+      prazo_at: payload.prazo_at,
+      prioridade: payload.prioridade,
+      responsavel_id: payload.responsavel_id,
+    },
+  })
+
+  revalidateGkitJur()
+  revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  redirect(safeReturnTo(formData, `/modulos/gkit-jur/processos/${processoId}#tarefas`))
+}
+
+export async function createGkitJurDocumentoAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.write')
+  const processoId = requiredText(formData, 'processo_id', 'Processo')
+  const processo = await getActiveJurProcess(processoId)
+  const dataDocumento = text(formData, 'data_documento')
+
+  const payload = {
+    processo_id: processoId,
+    carteira_id: optionalUuid(formData, 'carteira_id') || (processo.carteira_id as string | null) || await defaultCarteiraId(),
+    responsavel_id: optionalUuid(formData, 'responsavel_id') || (processo.responsavel_id as string | null) || null,
+    tipo: allowed(text(formData, 'tipo'), ['peticao', 'publicacao', 'decisao', 'ata', 'comprovante', 'documento_interno', 'contrato', 'procuracao', 'outro'], 'documento_interno'),
+    titulo: requiredText(formData, 'titulo', 'Titulo do documento'),
+    descricao: text(formData, 'descricao') || null,
+    data_documento: dataDocumento ? new Date(dataDocumento).toISOString() : null,
+    url_externa: text(formData, 'url_externa') || null,
+    origem: 'manual',
+    payload: { origem: 'manual', processo_numero_cnj: processo.numero_cnj },
+    criado_por: context.usuario.id,
+    atualizado_por: context.usuario.id,
+    updated_at: new Date().toISOString(),
+  }
+
+  const insertResult = await admin()
+    .schema('gkit_jur')
+    .from('documentos')
+    .insert(payload)
+    .select('id')
+    .single()
+
+  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Nao foi possivel registrar documento.')
+
+  await admin().schema('gkit_jur').from('eventos_operacionais').insert({
+    user_id: context.usuario.id,
+    entidade_tipo: 'documento',
+    entidade_id: insertResult.data.id,
+    acao: 'documento_registrado',
+    descricao: 'Documento juridico registrado no processo.',
+    payload: { processo_id: processoId, titulo: payload.titulo },
+  })
+
+  revalidateGkitJur()
+  revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  redirect(`/modulos/gkit-jur/processos/${processoId}#documentos`)
+}
+
+export async function createGkitJurEventoProcessoAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.write')
+  const processoId = requiredText(formData, 'processo_id', 'Processo')
+  const processo = await getActiveJurProcess(processoId)
+  const dataEvento = text(formData, 'data_evento')
+
+  const payload = {
+    processo_id: processoId,
+    carteira_id: optionalUuid(formData, 'carteira_id') || (processo.carteira_id as string | null) || await defaultCarteiraId(),
+    responsavel_id: optionalUuid(formData, 'responsavel_id') || (processo.responsavel_id as string | null) || null,
+    tipo: allowed(text(formData, 'tipo'), ['publicacao', 'intimacao', 'despacho', 'decisao', 'audiencia', 'prazo', 'protocolo', 'contato', 'providencia_interna', 'documento', 'nota'], 'providencia_interna'),
+    titulo: requiredText(formData, 'titulo', 'Titulo do evento'),
+    descricao: text(formData, 'descricao') || null,
+    data_evento: dataEvento ? new Date(dataEvento).toISOString() : new Date().toISOString(),
+    origem: 'manual',
+    payload: { origem: 'manual', processo_numero_cnj: processo.numero_cnj },
+    criado_por: context.usuario.id,
+    atualizado_por: context.usuario.id,
+    updated_at: new Date().toISOString(),
+  }
+
+  const insertResult = await admin()
+    .schema('gkit_jur')
+    .from('eventos_processo')
+    .insert(payload)
+    .select('id')
+    .single()
+
+  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Nao foi possivel registrar evento.')
+
+  await admin().schema('gkit_jur').from('eventos_operacionais').insert({
+    user_id: context.usuario.id,
+    entidade_tipo: 'evento_processo',
+    entidade_id: insertResult.data.id,
+    acao: 'evento_processo_registrado',
+    descricao: 'Evento registrado na timeline do processo.',
+    payload: { processo_id: processoId, titulo: payload.titulo },
+  })
+
+  revalidateGkitJur()
+  revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  redirect(`/modulos/gkit-jur/processos/${processoId}#timeline`)
 }
 
 function checkbox(formData: FormData, key: string) {

@@ -1,5 +1,11 @@
 import { redirect } from 'next/navigation'
-import { updateGkitJurProcessoAction } from '@/features/gkit-jur/actions'
+import {
+  createGkitJurDocumentoAction,
+  createGkitJurEventoProcessoAction,
+  createGkitJurTarefaAction,
+  updateGkitJurProcessoAction,
+  updateGkitJurTarefaStatusAction,
+} from '@/features/gkit-jur/actions'
 import { GkitJurProcessDetailPage, GkitJurShell } from '@/features/gkit-jur/components'
 import { canWriteGkitJur, getGkitJurProcessDetail, requireGkitJurContext } from '@/features/gkit-jur/queries'
 
@@ -26,7 +32,11 @@ export default async function GkitJurProcessoDetailRoute({
       <GkitJurProcessDetailPage
         action={updateGkitJurProcessoAction}
         canWrite={canWriteGkitJur(context.permissions)}
+        createDocumentoAction={createGkitJurDocumentoAction}
+        createEventoAction={createGkitJurEventoProcessoAction}
+        createTarefaAction={createGkitJurTarefaAction}
         data={data}
+        updateTarefaStatusAction={updateGkitJurTarefaStatusAction}
       />
     </GkitJurShell>
   )
