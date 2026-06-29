@@ -108,6 +108,7 @@ export function ForecastPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [hasUnsavedPaymentChanges, setHasUnsavedPaymentChanges] = useState(false);
 
   const competenciaParam = useMemo(() => `${competencia}-01`, [competencia]);
   const totalReceitas = useMemo(() => Math.round(receitas.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0) * 100) / 100, [receitas]);
@@ -125,10 +126,12 @@ export function ForecastPage() {
       setData(payload);
       setReceitas(payload.receitas || []);
       setPagamentos(payload.pagamentos || []);
+      setHasUnsavedPaymentChanges(false);
     } catch (err) {
       setData(null);
       setReceitas([]);
       setPagamentos([]);
+      setHasUnsavedPaymentChanges(false);
       setError(err instanceof Error ? err.message : 'Erro inesperado ao carregar previsoes.');
     } finally {
       setLoading(false);
@@ -159,6 +162,7 @@ export function ForecastPage() {
       setData(payload);
       setReceitas(payload.receitas || []);
       setPagamentos(payload.pagamentos || []);
+      setHasUnsavedPaymentChanges(false);
       const generated = tipo === 'receitas' ? payload.generated?.receitas || 0 : payload.generated?.pagamentos || 0;
       setMessage(generated ? `Base gerada pelo mes anterior com ${generated} linha(s).` : 'Nao encontrei base no mes anterior para esta aba.');
     } catch (err) {
@@ -183,6 +187,7 @@ export function ForecastPage() {
       setData(payload);
       setReceitas(payload.receitas || []);
       setPagamentos(payload.pagamentos || []);
+      setHasUnsavedPaymentChanges(false);
       setMessage('Previsao mensal salva.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado ao salvar previsao.');
@@ -196,7 +201,18 @@ export function ForecastPage() {
   }
 
   function updatePayment(index: number, patch: Partial<PaymentForecastRow>) {
+    setHasUnsavedPaymentChanges(true);
     setPagamentos((current) => current.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch, ordem: rowIndex } : row)));
+  }
+
+  function addPaymentRow() {
+    setHasUnsavedPaymentChanges(true);
+    setPagamentos((current) => [...current, makeBlankPayment(current.length)]);
+  }
+
+  function deletePaymentRow(index: number) {
+    setHasUnsavedPaymentChanges(true);
+    setPagamentos((current) => current.filter((_, rowIndex) => rowIndex !== index).map((row, rowIndex) => ({ ...row, ordem: rowIndex })));
   }
 
   return (
@@ -257,10 +273,15 @@ export function ForecastPage() {
               </div>
               <div className="action-row">
                 <button className="secondary-button" disabled={loading || !data?.configured} onClick={() => generateBase('pagamentos')}>Gerar base anterior</button>
-                <button className="secondary-button" disabled={loading} onClick={() => setPagamentos((current) => [...current, makeBlankPayment(current.length)])}>Adicionar pagamento</button>
+                <button className="secondary-button" disabled={loading} onClick={addPaymentRow}>Adicionar pagamento</button>
+                {hasUnsavedPaymentChanges ? (
+                  <button className="primary-button" disabled={saving || loading || !data?.configured} onClick={saveForecast}>
+                    {saving ? 'Salvando...' : 'Salvar pagamentos'}
+                  </button>
+                ) : null}
               </div>
             </div>
-            <PaymentTable rows={pagamentos} onChange={updatePayment} onDelete={(index) => setPagamentos((current) => current.filter((_, rowIndex) => rowIndex !== index).map((row, rowIndex) => ({ ...row, ordem: rowIndex })))} />
+            <PaymentTable rows={pagamentos} onChange={updatePayment} onDelete={deletePaymentRow} />
           </section>
         ) : null}
 

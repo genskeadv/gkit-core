@@ -16751,6 +16751,10 @@ a.button {
   gap: 18px !important;
 }
 
+.ciclo-shell .module-sidebar nav {
+  gap: 18px !important;
+}
+
 .gkit-flex-operational-shell .module-sidebar a:not(.module-sidebar-header) {
   align-items: center !important;
   border-radius: 8px !important;

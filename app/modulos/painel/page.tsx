@@ -9,6 +9,7 @@ const moduleArea: Record<string, string> = {
   'gkit-ate': 'Atendimento',
   'gkit-dir': 'Diretorio',
   'gkit-flex': 'Financial Xperience',
+  'gkit-jur': 'Juridico',
   ciclo: 'Governanca',
   colab: 'Portal do colaborador',
 }
@@ -81,6 +82,21 @@ const shortcutGroups = [
     pending: [],
   },
   {
+    codigo: 'gkit-jur',
+    title: 'GKIT Jur',
+    description: 'Modulo juridico para processos, prazos, agenda e documentos.',
+    links: [
+      { href: '/modulos/gkit-jur', label: 'Cockpit' },
+      { href: '/modulos/gkit-jur/processos', label: 'Processos' },
+      { href: '/modulos/gkit-jur/prazos', label: 'Prazos' },
+      { href: '/modulos/gkit-jur/agenda', label: 'Agenda' },
+      { href: '/modulos/gkit-jur/documentos', label: 'Documentos' },
+      { href: '/modulos/gkit-jur/relatorios', label: 'Relatorios' },
+      { href: '/modulos/gkit-jur/cadastros', label: 'Cadastros' },
+    ],
+    pending: [],
+  },
+  {
     codigo: 'ciclo',
     title: 'Ciclo',
     description: 'Funcionalidades operacionais ja publicadas no app unificado.',
@@ -118,6 +134,7 @@ const executiveFlow = [
   { codigo: 'gkit-new', title: 'Conquistar 2.0', description: 'GKIT New registra clientes, contatos, oportunidades e workflow.' },
   { codigo: 'gkit-ate', title: 'Atender', description: 'GKIT ATE organiza atendimentos consultivos e tarefas operacionais.' },
   { codigo: 'gkit-dir', title: 'Consultar', description: 'GKIT DIR consulta o diretorio de clientes do Ciclo.' },
+  { codigo: 'gkit-jur', title: 'Executar', description: 'GKIT Jur organiza processos, prazos e documentos juridicos.' },
   { codigo: 'ciclo', title: 'Acompanhar', description: 'Ciclo assume onboarding e vida diaria do cliente.' },
   { codigo: 'gkit-flex', title: 'Comissionar', description: 'GKIT Flex calcula comissoes, contas a pagar e auditoria financeira.' },
   { codigo: 'colab', title: 'Publicar', description: 'Colab mostra pagamentos e comissoes para cada colaborador.' },

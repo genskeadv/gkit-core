@@ -29,6 +29,7 @@ const moduleMeta: Record<string, Pick<ModuleCard, 'area' | 'icon'>> = {
   'gkit-ate': { area: 'Atendimento', icon: 'clock' },
   'gkit-dir': { area: 'Diretório', icon: 'grid' },
   'gkit-flex': { area: 'Financial Xperience', icon: 'flex' },
+  'gkit-jur': { area: 'Juridico', icon: 'shield' },
   'gkit-new': { area: 'Novos negocios', icon: 'crm' },
   'gkit-performa': { area: 'Performance', icon: 'clock' },
   colab: { area: 'Portal do colaborador', icon: 'grid' },
@@ -70,6 +71,13 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
     area: 'Financial Xperience',
     icon: 'flex',
     href: '/modulos/gkit-flex',
+  },
+  'gkit-jur': {
+    nome: 'GKIT Jur',
+    descricao: 'Operacao juridica integrada: processos, prazos, agenda e documentos.',
+    area: 'Juridico',
+    icon: 'shield',
+    href: '/modulos/gkit-jur',
   },
   'gkit-performa': {
     nome: 'GKIT Performa',

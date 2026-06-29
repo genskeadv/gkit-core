@@ -1,5 +1,5 @@
 import { requireModuleAccess } from '@/lib/auth/platform'
-import { CommissionUploader } from '@/features/gkit-flex/comissoes/CommissionUploader'
+import { CommissionsPage } from '@/features/gkit-flex/comissoes/CommissionsPage'
 import { AppFrame } from '@/features/gkit-flex/ui/AppFrame'
 
 export default async function GkitFlexComissoesPage() {
@@ -7,7 +7,7 @@ export default async function GkitFlexComissoesPage() {
 
   return (
     <AppFrame usuario={context.usuario}>
-      <CommissionUploader />
+      <CommissionsPage />
     </AppFrame>
   )
 }

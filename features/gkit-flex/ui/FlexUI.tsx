@@ -65,13 +65,22 @@ export function MonthContextHeader({
         <div className="month-context-side">
           <label className="field-label dashboard-month">
             Competencia
-            <input
-              className="text-input"
-              type="month"
-              value={competencia}
-              disabled={!onCompetenciaChange}
-              onChange={(event) => onCompetenciaChange?.(event.target.value)}
-            />
+            {onCompetenciaChange ? (
+              <input
+                className="text-input"
+                type="month"
+                value={competencia}
+                onChange={(event) => onCompetenciaChange(event.target.value)}
+              />
+            ) : (
+              <input
+                className="text-input"
+                type="month"
+                value={competencia}
+                disabled
+                readOnly
+              />
+            )}
           </label>
           {children ? <div className="month-context-actions">{children}</div> : null}
         </div>

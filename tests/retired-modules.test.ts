@@ -15,6 +15,7 @@ test('retired module paths are detected for root and nested module routes', () =
 test('active canonical module paths are not treated as retired', () => {
   assert.equal(isRetiredModuleCode('gkit_flex'), false)
   assert.equal(isRetiredModulePath('/modulos/gkit-flex'), false)
+  assert.equal(isRetiredModulePath('/modulos/gkit-jur'), false)
   assert.equal(isRetiredModulePath('/modulos/gkit-new/oportunidades'), false)
   assert.equal(isRetiredModulePath('/modulos/ciclo/clientes'), false)
 })
