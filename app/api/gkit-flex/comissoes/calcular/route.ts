@@ -4,7 +4,6 @@ import { getCicloClientesForComissoes } from '@/features/gkit-flex/ciclo-cliente
 import { buildCommissionWorkbook, processCommissionWithClients } from '@/features/gkit-flex/comissoes/commissionProcessor';
 import { saveCommissionExecution } from '@/features/gkit-flex/comissoes/supabasePersistence';
 import type { CommissionProcessResult } from '@/features/gkit-flex/comissoes/types';
-import { syncCommissionPayablesForCompetencia } from '@/features/gkit-flex/contas-pagar/payablePersistence';
 
 export const runtime = 'nodejs';
 
@@ -126,10 +125,6 @@ export async function POST(request: NextRequest) {
       clientesFileName: 'ciclo.clientes',
       result,
     });
-    let payablesSync: { synced: boolean; inserted: number } | null = null;
-    if (saveResult.saved) {
-      payablesSync = await syncCommissionPayablesForCompetencia(competencia);
-    }
 
     if (action === 'save') {
       return Response.json({
@@ -140,7 +135,6 @@ export async function POST(request: NextRequest) {
         auditCount: result.auditRows.length,
         saved: saveResult.saved,
         executionId: saveResult.executionId,
-        payablesSync,
         warning: saveResult.warning ?? null,
       });
     }
@@ -156,7 +150,6 @@ export async function POST(request: NextRequest) {
         'X-Audit-Count': String(result.auditRows.length),
         'X-Commission-Execution-Id': saveResult.executionId ?? '',
         'X-Commission-Saved': saveResult.saved ? 'true' : 'false',
-        'X-Commission-Payables-Synced': payablesSync?.synced ? 'true' : 'false',
         'X-Commission-Warning': encodeURIComponent(saveResult.warning ?? ''),
       },
     });

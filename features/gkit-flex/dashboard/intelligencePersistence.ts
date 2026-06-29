@@ -271,10 +271,6 @@ function buildAlerts(atual: MonthNumbers, projection: MonthNumbers, categorias: 
   if (atual.semCategoria > 0) {
     alerts.push({ severidade: 'aviso', titulo: 'Despesas sem categoria', detalhe: `${atual.semCategoria} item(ns) dos pagamentos estao sem categoria.` });
   }
-  if (Math.abs(atual.comissoes - atual.comissoesNoPagar) > 0.02) {
-    alerts.push({ severidade: 'aviso', titulo: 'Comissoes nao sincronizadas', detalhe: 'O total de comissoes calculadas difere do total de comissoes nos pagamentos.', valor: roundMoney(atual.comissoes - atual.comissoesNoPagar) });
-  }
-
   const biggestDue = Array.from(atual.vencimentos.entries()).sort((a, b) => b[1] - a[1])[0];
   if (biggestDue && atual.pagar > 0 && biggestDue[1] / atual.pagar >= 0.3) {
     alerts.push({ severidade: 'aviso', titulo: 'Concentracao de vencimentos', detalhe: `O dia ${String(biggestDue[0]).padStart(2, '0')} concentra ${roundMoney((biggestDue[1] / atual.pagar) * 100)}% dos pagamentos.`, valor: biggestDue[1] });

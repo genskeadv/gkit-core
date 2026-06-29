@@ -3,6 +3,7 @@ import type { PayableImportIssue, PayableImportPreview, PayableImportRow, Payabl
 import { getSupabaseAdmin, logEvent } from '../audit';
 import { buildPayablesExportWorkbook } from './payableProcessor';
 import { syncCicloRegularidadePagamentos } from '../regularidade-pagamentos';
+import { getMonthlyForecast } from '../previsoes/forecastPersistence';
 
 function roundMoney(value: number): number {
   return Math.round((value || 0) * 100) / 100;
@@ -177,104 +178,6 @@ async function requireOpenPayableMonth(supabase: SupabaseClient, competencia: st
 }
 
 
-async function syncCommissionPayables(supabase: SupabaseClient, competencia: string, competenciaId: string) {
-  // So sincroniza comissoes para mes aberto. Mes fechado e historico imutavel.
-  const { data: month, error: monthError } = await supabase
-    .from('contas_pagar_competencias')
-    .select('status')
-    .eq('id', competenciaId)
-    .maybeSingle();
-
-  if (monthError) throw new Error(`Erro ao validar mes para sincronizar comissoes: ${monthError.message}`);
-  if (!month || month.status !== 'aberto') return { synced: false, inserted: 0 };
-
-  const { data: latestExecution, error: executionError } = await supabase
-    .from('comissao_execucoes')
-    .select('id, created_at')
-    .eq('competencia', competencia)
-    .eq('status', 'processado')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (executionError) throw new Error(`Erro ao consultar comissoes calculadas: ${executionError.message}`);
-
-  const { data: existingCommissionItems, error: existingCommissionError } = await supabase
-    .from('contas_pagar_itens')
-    .select('origem_resumo_id,pago')
-    .eq('competencia_id', competenciaId)
-    .eq('origem_tipo', 'comissao');
-
-  if (existingCommissionError) throw new Error(`Erro ao preservar pagamentos de comissao: ${existingCommissionError.message}`);
-
-  const paidBySummaryId = new Map(
-    (existingCommissionItems || [])
-      .filter((item) => item.origem_resumo_id)
-      .map((item) => [String(item.origem_resumo_id), Boolean(item.pago)]),
-  );
-
-  // Remove os itens automaticos anteriores. Os itens manuais/importados ficam preservados.
-  const { error: deleteError } = await supabase
-    .from('contas_pagar_itens')
-    .delete()
-    .eq('competencia_id', competenciaId)
-    .eq('origem_tipo', 'comissao');
-
-  if (deleteError) throw new Error(`Erro ao atualizar contas de comissao: ${deleteError.message}`);
-
-  if (!latestExecution?.id) return { synced: true, inserted: 0 };
-
-  const { data: summaries, error: summaryError } = await supabase
-    .from('comissao_resumos')
-    .select('id, categoria, carteira, comissao_final')
-    .eq('execucao_id', latestExecution.id)
-    .gt('comissao_final', 0)
-    .order('categoria', { ascending: true })
-    .order('carteira', { ascending: true });
-
-  if (summaryError) throw new Error(`Erro ao consultar resumo de comissoes: ${summaryError.message}`);
-
-  const rows = (summaries || []).map((summary) => ({
-    competencia_id: competenciaId,
-    competencia,
-    descricao: `Comissao - ${summary.categoria} - ${summary.carteira}`,
-    vencimento_dia: 30,
-    vencimento_texto: '30',
-    valor_previsto: roundMoney(Number(summary.comissao_final || 0)),
-    categoria: 'Comissoes',
-    centro: 'Pessoal',
-    pago: paidBySummaryId.get(String(summary.id)) ?? false,
-    origem_tipo: 'comissao',
-    origem_execucao_id: latestExecution.id,
-    origem_resumo_id: summary.id,
-    raw: {
-      origem: 'comissao_calculada',
-      categoria_comissao: summary.categoria,
-      carteira: summary.carteira,
-      execucao_id: latestExecution.id,
-      resumo_id: summary.id,
-    },
-  }));
-
-  if (rows.length) {
-    const { error: insertError } = await supabase.from('contas_pagar_itens').insert(rows);
-    if (insertError) throw new Error(`Erro ao inserir comissoes no pagamentos: ${insertError.message}`);
-  }
-
-  return { synced: true, inserted: rows.length };
-}
-
-export async function syncCommissionPayablesForCompetencia(competenciaInput: string) {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) throw new Error('Supabase nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
-
-  const competencia = sanitizeCompetencia(competenciaInput);
-  const row = await getMonthRow(supabase, competencia);
-  if (!row || row.status !== 'aberto') return { synced: false, inserted: 0 };
-
-  return syncCommissionPayables(supabase, competencia, row.id as string);
-}
-
 export async function previewPayablesImport(competenciaInput: string, rows: PayableImportRow[], fileName: string): Promise<PayableImportPreview> {
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error('Supabase nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
@@ -293,9 +196,8 @@ export async function previewPayablesImport(competenciaInput: string, rows: Paya
 
   if (error) throw new Error(`Erro ao montar previa da importacao: ${error.message}`);
 
-  const manualCurrent = (currentRows || []).filter((row) => row.origem_tipo !== 'comissao') as PayableItem[];
-  const commissionCurrent = (currentRows || []).filter((row) => row.origem_tipo === 'comissao') as PayableItem[];
-  const currentByKey = new Map(manualCurrent.map((row) => [itemBusinessKey(row), row]));
+  const current = (currentRows || []) as PayableItem[];
+  const currentByKey = new Map(current.map((row) => [itemBusinessKey(row), row]));
   const importedByKey = new Map(validRows.map((row) => [itemBusinessKey(row), row]));
 
   let itensNovos = 0;
@@ -315,11 +217,11 @@ export async function previewPayablesImport(competenciaInput: string, rows: Paya
   }
 
   let itensRemovidos = 0;
-  for (const current of manualCurrent) {
-    if (!importedByKey.has(itemBusinessKey(current))) itensRemovidos += 1;
+  for (const currentRow of current) {
+    if (!importedByKey.has(itemBusinessKey(currentRow))) itensRemovidos += 1;
   }
 
-  const valorAtualManual = roundMoney(manualCurrent.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0));
+  const valorAtualManual = roundMoney(current.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0));
   const valorImportadoManual = roundMoney(validRows.reduce((acc, row) => acc + Number(row.valorPrevisto || 0), 0));
 
   const preview: PayableImportPreview = {
@@ -329,8 +231,8 @@ export async function previewPayablesImport(competenciaInput: string, rows: Paya
     linhasValidas: validRows.length,
     linhasComErro: fatalIssues.length,
     itensAtuais: currentRows?.length || 0,
-    itensAtuaisManuais: manualCurrent.length,
-    itensAtuaisComissao: commissionCurrent.length,
+    itensAtuaisManuais: current.length,
+    itensAtuaisComissao: 0,
     itensNovos,
     itensAlterados,
     itensRemovidos,
@@ -393,8 +295,7 @@ export async function importPayables(competenciaInput: string, rows: PayableImpo
   const { error: deleteError } = await supabase
     .from('contas_pagar_itens')
     .delete()
-    .eq('competencia_id', competenciaId)
-    .or('origem_tipo.is.null,origem_tipo.neq.comissao');
+    .eq('competencia_id', competenciaId);
 
   if (deleteError) throw new Error(`Erro ao atualizar pagamentos importados: ${deleteError.message}`);
 
@@ -442,7 +343,6 @@ export async function importPayables(competenciaInput: string, rows: PayableImpo
     detalhe: { ...preview, arquivo: fileName, snapshotId },
   });
 
-  await syncCommissionPayables(supabase, competencia, competenciaId);
   await syncCicloRegularidadePagamentos(supabase, competencia);
   return { ...(await listPayables(competencia)), preview, snapshotId };
 }
@@ -455,10 +355,7 @@ export async function listPayables(competenciaInput: string) {
   const status = await getPayableMonthStatus(competencia);
   if (!status.row) return { configured: true, competencia, status: status.status, rows: [] as PayableItem[], summary: summarize([]) };
 
-  if (status.status === 'aberto') {
-    await syncCommissionPayables(supabase, competencia, status.row.id as string);
-    await syncCicloRegularidadePagamentos(supabase, competencia);
-  }
+  if (status.status === 'aberto') await syncCicloRegularidadePagamentos(supabase, competencia);
 
   const { data, error } = await supabase
     .from('contas_pagar_itens')
@@ -469,7 +366,15 @@ export async function listPayables(competenciaInput: string) {
 
   if (error) throw new Error(`Erro ao listar pagamentos: ${error.message}`);
   const rows = (data || []) as PayableItem[];
-  return { configured: true, competencia, status: status.status, rows, summary: summarize(rows) };
+  const forecast = await getMonthlyForecast(competencia);
+  return {
+    configured: true,
+    competencia,
+    status: status.status,
+    rows,
+    summary: summarize(rows),
+    forecastSummary: forecast.summary,
+  };
 }
 
 export async function updatePayableItem(id: string, patch: Partial<Pick<PayableItem, 'descricao' | 'valor_previsto' | 'categoria' | 'pago'>>) {
@@ -484,10 +389,6 @@ export async function updatePayableItem(id: string, patch: Partial<Pick<PayableI
 
   if (readError) throw new Error(`Pagamento nao encontrado: ${readError.message}`);
   await requireOpenPayableMonth(supabase, item.competencia as string);
-  if ((item as { origem_tipo?: string | null }).origem_tipo === 'comissao' && (patch.descricao !== undefined || patch.valor_previsto !== undefined || patch.categoria !== undefined)) {
-    throw new Error('Itens automaticos de comissao nao podem ter descricao, categoria ou valor alterados manualmente. Recalcule as comissoes para corrigir a origem.');
-  }
-
   const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (patch.descricao !== undefined) payload.descricao = String(patch.descricao).trim();
   if (patch.valor_previsto !== undefined) payload.valor_previsto = roundMoney(Number(patch.valor_previsto));
@@ -500,9 +401,7 @@ export async function updatePayableItem(id: string, patch: Partial<Pick<PayableI
     .eq('id', id);
 
   if (error) throw new Error(`Erro ao atualizar pagamento: ${error.message}`);
-  if (patch.pago !== undefined && (item as { origem_tipo?: string | null }).origem_tipo === 'comissao') {
-    await syncCicloRegularidadePagamentos(supabase, item.competencia as string);
-  }
+  if (patch.pago !== undefined) await syncCicloRegularidadePagamentos(supabase, item.competencia as string);
   await logEvent({ supabase, modulo: 'contas_pagar', competencia: item.competencia as string, action: 'atualizar_conta_pagar', entidadeTipo: 'contas_pagar_item', entidadeId: id, detalhe: { patch: payload } });
   return { ok: true };
 }
@@ -516,7 +415,6 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
   if (!current.row) throw new Error('Esta competencia ainda nao foi aberta.');
   if (current.status !== 'aberto') throw new Error('Esta competencia ja esta fechada ou nao permite fechamento.');
 
-  await syncCommissionPayables(supabase, competencia, current.row.id as string);
   await syncCicloRegularidadePagamentos(supabase, competencia);
 
   const { data: currentItems, error: itemsError } = await supabase
@@ -553,7 +451,7 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
     if (deleteNextError) throw new Error(`Erro ao substituir pagamentos previstos do proximo mes: ${deleteNextError.message}`);
   }
 
-  const itemsToCopy = (currentItems || []).filter((item) => item.origem_tipo !== 'comissao');
+  const itemsToCopy = currentItems || [];
 
   if (itemsToCopy.length) {
     const { error: copyError } = await supabase.from('contas_pagar_itens').insert(itemsToCopy.map((item) => ({
@@ -583,7 +481,7 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
   if (closeError) throw new Error(`Erro ao fechar pagamentos: ${closeError.message}`);
   await logEvent({ supabase, modulo: 'contas_pagar', competencia, action: 'fechar_mes', detalhe: { nextCompetencia: next, copied: itemsToCopy.length } });
 
-  return { closed: competencia, nextCompetencia: next, copied: itemsToCopy.length, skippedCommissions: (currentItems?.length || 0) - itemsToCopy.length };
+  return { closed: competencia, nextCompetencia: next, copied: itemsToCopy.length, skippedCommissions: 0 };
 }
 
 

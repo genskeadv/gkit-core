@@ -48,11 +48,6 @@ function parseBoolean(value: unknown): boolean {
   return ['sim', 's', 'pago', 'paid', 'true', 'verdadeiro', '1', 'x'].includes(text);
 }
 
-function isCommissionOrigin(value: unknown): boolean {
-  const text = normalizeText(value);
-  return text.includes('comissao');
-}
-
 function findHeaderRow(rows: unknown[][]): number {
   let bestIndex = -1;
   let bestScore = -1;
@@ -104,7 +99,6 @@ export async function parsePayablesWorkbook(file: File): Promise<PayableImportRo
   const categoriaIndex = findColumn(headers, ['categoria']);
   const centroIndex = findColumn(headers, ['centro', 'centro de custo']);
   const pagoIndex = findColumn(headers, ['pago', 'status pagamento', 'status']);
-  const origemIndex = findColumn(headers, ['origem', 'tipo origem', 'origem tipo']);
 
   const missing: string[] = [];
   if (descricaoIndex < 0) missing.push('Descricao');
@@ -142,9 +136,7 @@ export async function parsePayablesWorkbook(file: File): Promise<PayableImportRo
       pago,
       raw,
     } satisfies PayableImportRow;
-  }).filter((row, index) => {
-    const original = dataRows[index] || [];
-    if (origemIndex >= 0 && isCommissionOrigin(original[origemIndex])) return false;
+  }).filter((row) => {
     return row.descricao || row.valorPrevisto > 0;
   });
 
@@ -165,12 +157,9 @@ export function buildPayablesExportWorkbook(params: {
   rows: PayableItem[];
   summary: PayableSummary;
 }): Buffer {
-  const manualRows = params.rows.filter((row) => row.origem_tipo !== 'comissao');
-  const commissionRows = params.rows.filter((row) => row.origem_tipo === 'comissao');
-
   const workbook = XLSX.utils.book_new();
 
-  const importSheetRows = manualRows.map((row) => ({
+  const importSheetRows = params.rows.map((row) => ({
     'Descricao': row.descricao,
     Vencimento: row.vencimento_dia ?? row.vencimento_texto ?? '',
     'Valor': Number(row.valor_previsto || 0),
@@ -207,33 +196,10 @@ export function buildPayablesExportWorkbook(params: {
     { Indicador: 'Diferenca', Valor: params.summary.totalAberto },
     { Indicador: 'Quantidade de lancamentos', Valor: params.summary.quantidade },
     { Indicador: 'Quantidade paga', Valor: params.summary.quantidadePaga },
-    { Indicador: 'Observacao', Valor: 'A primeira aba serve como modelo de importacao. Novas despesas e categorias devem ser criadas incluindo novas linhas nessa aba.' },
-    { Indicador: 'Comissoes', Valor: 'Comissoes automaticas ficam em aba separada e nao sao importadas pela rotina.' },
+    { Indicador: 'Observacao', Valor: 'A primeira aba serve como modelo de importacao do extrato realizado. Colaboradores e comissoes tambem devem constar nessa aba quando tiverem sido pagos.' },
   ]);
   summarySheet['!cols'] = [{ wch: 28 }, { wch: 90 }];
   XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumo');
-
-  if (commissionRows.length) {
-    const commissionSheet = XLSX.utils.json_to_sheet(commissionRows.map((row) => ({
-      'Descricao': row.descricao,
-      Vencimento: row.vencimento_dia ?? row.vencimento_texto ?? '',
-      'Valor': Number(row.valor_previsto || 0),
-      Categoria: row.categoria || 'Comissoes',
-      Centro: row.centro || 'Pessoal',
-      Pago: formatPaid(Boolean(row.pago)),
-      Origem: 'Comissao calculada',
-    })));
-    commissionSheet['!cols'] = [
-      { wch: 56 },
-      { wch: 12 },
-      { wch: 16 },
-      { wch: 20 },
-      { wch: 18 },
-      { wch: 10 },
-      { wch: 20 },
-    ];
-    XLSX.utils.book_append_sheet(workbook, commissionSheet, 'Comissoes automaticas');
-  }
 
   return XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' }) as Buffer;
 }

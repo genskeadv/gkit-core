@@ -114,14 +114,13 @@ export async function getMonthlyAudit(competenciaInput?: string | null) {
   const payables = payableRows.data || [];
   const payableTotal = roundMoney(payables.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0));
   const payablePaid = roundMoney(payables.filter((row) => row.pago).reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0));
-  const commissionPayables = payables.filter((row) => row.origem_tipo === 'comissao');
+  const expectedCommission = roundMoney(Number(latestExecution?.total_comissao || 0));
+  const commissionPayables = payables.filter((row) => String(row.categoria || row.descricao || '').toLowerCase().includes('comiss'));
   const commissionPayablesTotal = roundMoney(commissionPayables.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0));
   const semCategoria = payables.filter((row) => !row.categoria || String(row.categoria).toLowerCase() === 'sem categoria').length;
   const valorZerado = payables.filter((row) => Number(row.valor_previsto || 0) <= 0).length;
   const vencimentoInvalido = payables.filter((row) => !row.vencimento_dia).length;
 
-  const expectedCommission = roundMoney(Number(latestExecution?.total_comissao || 0));
-  const commissionDifference = roundMoney(expectedCommission - commissionPayablesTotal);
   const auditRows = auditResult.data || [];
   const launchRows = launchesResult.data || [];
   const totalRecebidoLancamentos = roundMoney(
@@ -167,14 +166,6 @@ export async function getMonthlyAudit(competenciaInput?: string | null) {
       titulo: 'Qualidade dos pagamentos',
       status: semCategoria || valorZerado || vencimentoInvalido ? 'aviso' : 'ok',
       detalhe: `${semCategoria} sem categoria, ${valorZerado} com valor zerado/negativo, ${vencimentoInvalido} sem vencimento valido.`,
-    },
-    {
-      id: 'comissoes_no_pagar',
-      titulo: 'Comissoes sincronizadas nos pagamentos',
-      status: latestExecution && Math.abs(commissionDifference) > 0.02 ? 'aviso' : 'ok',
-      detalhe: latestExecution
-        ? `Comissao calculada: ${expectedCommission.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}; nos pagamentos: ${commissionPayablesTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.`
-        : 'Sem calculo de comissao para comparar.',
     },
   ];
 

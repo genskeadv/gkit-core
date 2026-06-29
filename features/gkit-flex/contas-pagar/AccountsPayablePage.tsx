@@ -25,6 +25,11 @@ type Summary = {
   quantidadePaga: number;
 };
 
+type ForecastSummary = {
+  totalPagamentos: number;
+  pagamentosCount: number;
+};
+
 type ImportIssue = { linha: number; severidade: 'erro' | 'aviso'; campo?: string; mensagem: string };
 type ImportPreview = {
   competencia: string;
@@ -44,6 +49,7 @@ type ImportPreview = {
 };
 
 const emptySummary: Summary = { total: 0, totalPago: 0, totalAberto: 0, quantidade: 0, quantidadePaga: 0 };
+const emptyForecastSummary: ForecastSummary = { totalPagamentos: 0, pagamentosCount: 0 };
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -60,6 +66,7 @@ export function AccountsPayablePage() {
   const [monthStatus, setMonthStatus] = useState<MonthStatus>('indisponivel');
   const [items, setItems] = useState<PayableItem[]>([]);
   const [summary, setSummary] = useState<Summary>(emptySummary);
+  const [forecastSummary, setForecastSummary] = useState<ForecastSummary>(emptyForecastSummary);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [loading, setLoading] = useState(false);
@@ -91,10 +98,12 @@ export function AccountsPayablePage() {
 
       setItems(itemsPayload.rows || []);
       setSummary(itemsPayload.summary || emptySummary);
+      setForecastSummary(itemsPayload.forecastSummary || emptyForecastSummary);
     } catch (err) {
       setMonthStatus('indisponivel');
       setItems([]);
       setSummary(emptySummary);
+      setForecastSummary(emptyForecastSummary);
       setError(err instanceof Error ? err.message : 'Erro inesperado ao carregar pagamentos.');
     } finally {
       setLoading(false);
@@ -169,6 +178,7 @@ export function AccountsPayablePage() {
 
       setItems(payload.rows || []);
       setSummary(payload.summary || emptySummary);
+      setForecastSummary(payload.forecastSummary || emptyForecastSummary);
       setMessage(`Importacao concluida. ${payload.imported || 0} pagamento(s) gravado(s). Snapshot criado antes da atualizacao e auditoria gravada.`);
       setFile(null);
       setPreview(null);
@@ -198,6 +208,10 @@ export function AccountsPayablePage() {
       quantidadePaga: itemsToSum.filter((item) => item.pago).length,
     });
   }
+
+  const forecastTotal = Math.round(Number(forecastSummary.totalPagamentos || 0) * 100) / 100;
+  const actualTotal = Math.round(Number(summary.totalPago || 0) * 100) / 100;
+  const forecastDifference = Math.round((forecastTotal - actualTotal) * 100) / 100;
 
   async function saveItem(id: string, patch: Record<string, unknown>) {
     try {
@@ -275,9 +289,9 @@ export function AccountsPayablePage() {
         {message && <div className="success">{message}</div>}
 
         <div className="grid-3">
-          <MetricCard label="Previsao do mes" value={formatCurrency(summary.total)} help={`${summary.quantidade} lancamento(s) no mes`} />
-          <MetricCard label="Pagamentos efetuados" value={formatCurrency(summary.totalPago)} help={`${summary.quantidadePaga} pagamentos realizados`} tone="good" />
-          <MetricCard label="Diferenca" value={formatCurrency(summary.totalAberto)} help="Valor previsto ainda sem pagamento efetuado" tone={summary.totalAberto > 0 ? 'warning' : 'good'} />
+          <MetricCard label="Previsao do mes" value={formatCurrency(forecastTotal)} help={`${forecastSummary.pagamentosCount || 0} linha(s) previstas`} />
+          <MetricCard label="Pagamentos efetuados" value={formatCurrency(actualTotal)} help={`${summary.quantidadePaga} pagamento(s) no extrato`} tone="good" />
+          <MetricCard label="Diferenca" value={formatCurrency(forecastDifference)} help="Previsto menos realizado" tone={forecastDifference > 0 ? 'warning' : 'good'} />
         </div>
 
         <section className="payable-import-box">
@@ -302,7 +316,7 @@ export function AccountsPayablePage() {
             <div className="header-row">
               <div>
                 <h2>Previa dos pagamentos</h2>
-                <p className="muted small-text">Arquivo: {preview.arquivo}. A gravacao atualiza somente os pagamentos manuais/importados do mes aberto; comissoes automaticas sao preservadas e sincronizadas.</p>
+                <p className="muted small-text">Arquivo: {preview.arquivo}. A gravacao substitui os pagamentos efetuados do mes pelo extrato importado.</p>
               </div>
               {preview.linhasComErro > 0 ? <span className="badge badge-danger">Bloqueada</span> : <span className="badge badge-paid">Pronta para confirmar</span>}
             </div>
@@ -310,16 +324,15 @@ export function AccountsPayablePage() {
               <strong>A gravacao ira:</strong>
               <span>+ Criar {preview.itensNovos} pagamento(s) novo(s)</span>
               <span>~ Alterar {preview.itensAlterados} pagamento(s)</span>
-              <span>- Remover {preview.itensRemovidos} pagamento(s) importado(s) que nao vieram na planilha</span>
-              <span>= Preservar {preview.itensAtuaisComissao} comissao(oes) automatica(s)</span>
+              <span>- Remover {preview.itensRemovidos} pagamento(s) que nao vieram no novo extrato</span>
             </div>
             <div className="grid-3">
               <MetricCard label="Linhas validas" value={preview.linhasValidas} help={`${preview.linhasComErro} linha(s) com erro`} tone={preview.linhasComErro > 0 ? 'danger' : 'good'} />
-              <MetricCard label="Novos / alterados" value={`${preview.itensNovos} / ${preview.itensAlterados}`} help="Impacto na lista manual" />
+              <MetricCard label="Novos / alterados" value={`${preview.itensNovos} / ${preview.itensAlterados}`} help="Impacto no extrato do mes" />
               <MetricCard label="Removidos" value={preview.itensRemovidos} help="Nao vieram na nova planilha" tone={preview.itensRemovidos > 0 ? 'warning' : 'default'} />
             </div>
             <div className="grid-3">
-              <MetricCard label="Previsao atual" value={formatCurrency(preview.valorAtualManual)} />
+              <MetricCard label="Extrato atual" value={formatCurrency(preview.valorAtualManual)} />
               <MetricCard label="Realizado importado" value={formatCurrency(preview.valorImportadoManual)} />
               <MetricCard label="Diferenca" value={formatCurrency(preview.diferencaValorManual)} tone={preview.diferencaValorManual === 0 ? 'default' : 'warning'} />
             </div>
@@ -373,18 +386,17 @@ export function AccountsPayablePage() {
                     <input
                       className="inline-input description-input"
                       value={item.descricao}
-                      disabled={!canEdit || savingId === item.id || item.origem_tipo === 'comissao'}
+                      disabled={!canEdit || savingId === item.id}
                       onChange={(event) => updateLocal(item.id, { descricao: event.target.value })}
                       onBlur={(event) => saveItem(item.id, { descricao: event.target.value })}
                     />
-                    {item.origem_tipo === 'comissao' && <span className="badge badge-commission">Comissao calculada</span>}
                   </td>
                   <td>
                     <input
                       className="inline-input"
                       list="payable-categories"
                       value={item.categoria}
-                      disabled={!canEdit || savingId === item.id || item.origem_tipo === 'comissao'}
+                      disabled={!canEdit || savingId === item.id}
                       onChange={(event) => updateLocal(item.id, { categoria: event.target.value })}
                       onBlur={(event) => saveItem(item.id, { categoria: event.target.value })}
                     />
@@ -394,7 +406,7 @@ export function AccountsPayablePage() {
                     <input
                       className="inline-input money-input"
                       value={String(item.valor_previsto).replace('.', ',')}
-                      disabled={!canEdit || savingId === item.id || item.origem_tipo === 'comissao'}
+                      disabled={!canEdit || savingId === item.id}
                       onChange={(event) => updateLocal(item.id, { valor_previsto: normalizeMoneyInput(event.target.value) })}
                       onBlur={(event) => saveItem(item.id, { valor_previsto: normalizeMoneyInput(event.target.value) })}
                     />
