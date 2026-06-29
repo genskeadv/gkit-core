@@ -242,26 +242,26 @@ export function GkitJurInboxPage({ data }: { data: GkitJurInboxData }) {
             <div className="suite-empty-block success">Nenhum item nesta fila agora.</div>
           )}
         </GkitJurSection>
-
-        <aside className="suite-panel gkit-jur-inbox-copilot">
-          <div className="suite-panel-heading">
-            <div>
-              <h2>Agente auxiliar</h2>
-              <p>Melhores proximas acoes.</p>
-            </div>
-          </div>
-          <div className="gkit-jur-next-actions">
-            {data.proximasAcoes.map((action) => (
-              <Link href={action.href} key={action.title}>
-                <span className={`suite-pill ${priorityTone(action.priority)}`}>{action.count}</span>
-                <strong>{action.title}</strong>
-                <p>{action.description}</p>
-                <small>{action.label}</small>
-              </Link>
-            ))}
-          </div>
-        </aside>
       </section>
+
+      <aside className="suite-panel gkit-jur-inbox-copilot-popup">
+        <div className="suite-panel-heading">
+          <div>
+            <h2>Agente auxiliar</h2>
+            <p>Melhores proximas acoes.</p>
+          </div>
+        </div>
+        <div className="gkit-jur-next-actions">
+          {data.proximasAcoes.map((action) => (
+            <Link href={action.href} key={action.title}>
+              <span className={`suite-pill ${priorityTone(action.priority)}`}>{action.count}</span>
+              <strong>{action.title}</strong>
+              <p>{action.description}</p>
+              <small>{action.label}</small>
+            </Link>
+          ))}
+        </div>
+      </aside>
     </>
   )
 }
