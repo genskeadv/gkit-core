@@ -24,11 +24,10 @@ import type {
   GkitJurSelectOption,
 } from './types'
 
-type GkitJurTab = 'inbox' | 'cockpit' | 'processos' | 'pendencias' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria'
+type GkitJurTab = 'inbox' | 'processos' | 'pendencias' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria'
 
 const activeHref: Record<GkitJurTab, string> = {
   inbox: '/modulos/gkit-jur/inbox',
-  cockpit: '/modulos/gkit-jur/cockpit',
   processos: '/modulos/gkit-jur/processos',
   pendencias: '/modulos/gkit-jur/pendencias',
   movimentacoes: '/modulos/gkit-jur/movimentacoes',
@@ -39,40 +38,12 @@ const activeHref: Record<GkitJurTab, string> = {
 
 const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-jur/inbox', title: 'Inbox' },
-  { href: '/modulos/gkit-jur/cockpit', title: 'Cockpit' },
   { href: '/modulos/gkit-jur/processos', title: 'Processos' },
   { href: '/modulos/gkit-jur/pendencias', title: 'Pendencias' },
   { href: '/modulos/gkit-jur/movimentacoes', title: 'Movimentacoes' },
   { href: '/modulos/gkit-jur/agente', title: 'Agente' },
   { href: '/modulos/gkit-jur/cadastros', title: 'Cadastros' },
   { href: '/modulos/gkit-jur/auditoria', title: 'Auditoria' },
-]
-
-const cockpitCards = [
-  {
-    href: '/modulos/gkit-jur/inbox',
-    label: '1. Inbox',
-    title: 'Caixa do advogado',
-    description: 'Priorize a rotina por risco, pendencia e automacao.',
-  },
-  {
-    href: '/modulos/gkit-jur/processos',
-    label: '2. Processos',
-    title: 'Base juridica',
-    description: 'Consulte e ajuste carteira, cliente e responsavel.',
-  },
-  {
-    href: '/modulos/gkit-jur/pendencias',
-    label: '3. Pendencias',
-    title: 'Saneamento',
-    description: 'Corrija processos sem vinculos operacionais.',
-  },
-  {
-    href: '/modulos/gkit-jur/agente',
-    label: '4. Agente',
-    title: 'Automacao assistida',
-    description: 'Configure fontes, receitas e validacoes humanas.',
-  },
 ]
 
 export function GkitJurShell({
@@ -101,7 +72,7 @@ export function GkitJurShell({
       product="GKIT Jur"
       title={title}
       usuario={usuario}
-      variantClassName={active === 'cockpit' ? 'gkit-new-shell gkit-jur-shell gkit-jur-cockpit-page' : 'gkit-new-shell gkit-jur-shell'}
+      variantClassName="gkit-new-shell gkit-jur-shell"
     >
       {children}
     </ModuleShell>
@@ -295,33 +266,6 @@ export function GkitJurInboxPage({ data }: { data: GkitJurInboxData }) {
   )
 }
 
-export function GkitJurCockpit({ metrics }: { metrics: GkitJurDashboardMetrics }) {
-  return (
-    <>
-      <section className="suite-panel gkit-new-command-panel gkit-jur-command-panel">
-        <div className="suite-panel-heading">
-          <div>
-            <h2>Ordem do fluxo</h2>
-            <p>Execucao diaria do GKIT Jur, organizada para saneamento da base e acompanhamento juridico.</p>
-          </div>
-        </div>
-
-        <div className="gkit-new-quick-grid gkit-new-cockpit-flow">
-          {cockpitCards.map((card) => (
-            <Link className="gkit-new-quick-card" href={card.href} key={card.href}>
-              <span>{card.label}</span>
-              <h3>{card.title}</h3>
-              <p>{card.description}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <MetricCards metrics={metrics} />
-    </>
-  )
-}
-
 function filterHref(filters: GkitJurProcessFilters, page: number) {
   const params = new URLSearchParams()
   Object.entries({ ...filters, page }).forEach(([key, value]) => {
@@ -375,7 +319,7 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
           label="Status"
           name="status"
           options={gkitJurStatusOptions}
-          placeholder="Todos"
+          placeholder="Ativos"
           value={filters.status}
         />
         <SelectField

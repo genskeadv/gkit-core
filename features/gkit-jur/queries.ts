@@ -32,6 +32,7 @@ import type {
 
 const PAGE_SIZE = 25
 const INBOX_ITEMS_LIMIT = 60
+const DEFAULT_PROCESS_STATUS = 'ativo'
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -177,7 +178,7 @@ async function getFilterOptions(): Promise<GkitJurProcessFilterOptions> {
   const [carteirasResult, responsaveisResult, tribunaisResult] = await Promise.all([
     admin().schema('core').from('carteiras').select('id,nome').eq('status', 'ativo').order('nome', { ascending: true }),
     admin().schema('security').from('usuarios').select('id,nome,email').eq('status', 'ativo').order('nome', { ascending: true }),
-    admin().schema('gkit_jur').from('processos').select('tribunal_sigla').not('tribunal_sigla', 'is', null).limit(5000),
+    admin().schema('gkit_jur').from('processos').select('tribunal_sigla').eq('status', DEFAULT_PROCESS_STATUS).not('tribunal_sigla', 'is', null).limit(5000),
   ])
 
   if (carteirasResult.error) throw new Error(carteirasResult.error.message)
@@ -246,6 +247,7 @@ async function getSuggestionSources() {
       .schema('gkit_jur')
       .from('processos')
       .select('cliente_nome,cliente_id,carteira_id')
+      .eq('status', DEFAULT_PROCESS_STATUS)
       .not('carteira_id', 'is', null)
       .limit(5000),
   ])
@@ -281,6 +283,7 @@ async function getSuggestionSources() {
 
   const carteiraByClienteName = new Map<string, string>()
   const carteiraByClienteId = new Map<string, string>()
+  const carteiraByResponsavelId = new Map<string, string>()
   for (const row of (processosComCarteiraResult.data ?? []) as Array<Record<string, unknown>>) {
     const carteiraId = text(row.carteira_id)
     if (!carteiraId) continue
@@ -302,9 +305,17 @@ async function getSuggestionSources() {
     })
   }
 
+  for (const row of (responsaveisResult.data ?? []) as Array<Record<string, unknown>>) {
+    const carteiraId = text(row.carteira_id)
+    const usuarioId = text(row.usuario_id)
+    if (!carteiraId || !usuarioId || carteiraByResponsavelId.has(usuarioId)) continue
+    carteiraByResponsavelId.set(usuarioId, carteiraId)
+  }
+
   return {
     carteiraByClienteId,
     carteiraByClienteName,
+    carteiraByResponsavelId,
     carteiraMap,
     clienteMap,
     responsavelByCarteira,
@@ -319,10 +330,14 @@ function buildSuggestion(row: Record<string, unknown>, maps: Awaited<ReturnType<
   const clienteNameKey = normalizeName(row.cliente_nome)
   const clienteSuggestion = clienteIdAtual ? null : sources.clienteMap.get(clienteNameKey) ?? null
   const clienteId = clienteIdAtual ?? clienteSuggestion?.id ?? null
-  const carteiraId = carteiraIdAtual
-    ?? (clienteId ? sources.carteiraByClienteId.get(clienteId) ?? null : null)
+  const carteiraFromCliente = (clienteId ? sources.carteiraByClienteId.get(clienteId) ?? null : null)
     ?? clienteSuggestion?.carteiraId
     ?? sources.carteiraByClienteName.get(clienteNameKey)
+    ?? null
+  const carteiraFromResponsavel = responsavelIdAtual ? sources.carteiraByResponsavelId.get(responsavelIdAtual) ?? null : null
+  const carteiraId = carteiraIdAtual
+    ?? carteiraFromCliente
+    ?? carteiraFromResponsavel
     ?? null
   const responsavelSuggestion = !responsavelIdAtual && carteiraId ? sources.responsavelByCarteira.get(carteiraId) ?? null : null
 
@@ -331,7 +346,8 @@ function buildSuggestion(row: Record<string, unknown>, maps: Awaited<ReturnType<
 
   const motivos = []
   if (clienteSuggestion) motivos.push('cliente por nome')
-  if (hasCarteiraSuggestion) motivos.push('carteira por cliente')
+  if (hasCarteiraSuggestion && carteiraFromCliente === carteiraId) motivos.push('carteira por cliente')
+  if (hasCarteiraSuggestion && carteiraFromResponsavel === carteiraId) motivos.push('carteira por responsavel')
   if (responsavelSuggestion) motivos.push('responsavel da carteira')
 
   return {
@@ -353,6 +369,7 @@ export async function getGkitJurSaneamentoSuggestions(limit = 8) {
       .schema('gkit_jur')
       .from('processos')
       .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,updated_at')
+      .eq('status', DEFAULT_PROCESS_STATUS)
       .or('cliente_id.is.null,carteira_id.is.null,responsavel_id.is.null')
       .order('updated_at', { ascending: false })
       .limit(1500),
@@ -382,13 +399,13 @@ export async function getGkitJurDashboardMetrics(): Promise<GkitJurDashboardMetr
   since.setDate(since.getDate() - 7)
 
   const [ativos, monitorados, movimentacoes, erros, semCliente, semCarteira, semResponsavel] = await Promise.all([
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', 'ativo'),
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status_monitoramento', 'monitorando'),
+    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS),
+    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).eq('status_monitoramento', 'monitorando'),
     admin().schema('gkit_jur').from('movimentacoes').select('id', { count: 'exact', head: true }).gte('created_at', since.toISOString()),
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).or('status.eq.erro,status_monitoramento.eq.erro'),
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).is('cliente_id', null),
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).is('carteira_id', null),
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).is('responsavel_id', null),
+    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).eq('status_monitoramento', 'erro'),
+    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).is('cliente_id', null),
+    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).is('carteira_id', null),
+    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).is('responsavel_id', null),
   ])
 
   for (const result of [ativos, monitorados, movimentacoes, erros, semCliente, semCarteira, semResponsavel]) {
@@ -424,7 +441,7 @@ function applyProcessFilters(query: any, filters: GkitJurProcessFilters) {
     }
   }
 
-  if (filters.status) next = next.eq('status', filters.status)
+  next = next.eq('status', filters.status || DEFAULT_PROCESS_STATUS)
   if (filters.monitoramento) next = next.eq('status_monitoramento', filters.monitoramento)
   if (filters.tribunal) next = next.eq('tribunal_sigla', filters.tribunal)
   if (filters.carteiraId) next = next.eq('carteira_id', filters.carteiraId)
@@ -554,6 +571,7 @@ async function pendingGroup(title: string, description: string, href: string, co
     .schema('gkit_jur')
     .from('processos')
     .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,updated_at', { count: 'exact' })
+    .eq('status', DEFAULT_PROCESS_STATUS)
     .is(column, null)
     .order('updated_at', { ascending: false })
     .limit(5)
@@ -605,6 +623,7 @@ export async function listGkitJurMovimentacoes(): Promise<GkitJurMovimentacoesDa
       .schema('gkit_jur')
       .from('processos')
       .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento')
+      .eq('status', DEFAULT_PROCESS_STATUS)
       .in('id', processoIds)
 
     if (processosResult.error) throw new Error(processosResult.error.message)
@@ -615,13 +634,15 @@ export async function listGkitJurMovimentacoes(): Promise<GkitJurMovimentacoesDa
 
   return {
     metrics,
-    movimentacoes: movements.map((row) => mapMovimentacao(row, processoMap)),
+    movimentacoes: movements
+      .filter((row) => processoMap.has(text(row.processo_id)))
+      .map((row) => mapMovimentacao(row, processoMap)),
   }
 }
 
 export async function getGkitJurAuditoria(): Promise<GkitJurAuditoriaData> {
   const [importadosResult, sincronizacoesResult] = await Promise.all([
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).not('importado_de', 'is', null),
+    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).not('importado_de', 'is', null),
     admin()
       .schema('gkit_jur')
       .from('sincronizacoes')
@@ -704,8 +725,7 @@ async function listInboxProcessItems(): Promise<GkitJurInboxItem[]> {
     .schema('gkit_jur')
     .from('processos')
     .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,updated_at')
-    .neq('status', 'encerrado')
-    .neq('status', 'arquivado')
+    .eq('status', DEFAULT_PROCESS_STATUS)
     .order('updated_at', { ascending: false })
     .limit(500)
 
@@ -768,24 +788,33 @@ async function listInboxPendenciaItems(): Promise<GkitJurInboxItem[]> {
   const rows = (result.data ?? []) as Array<Record<string, unknown>>
   const carteiraIds = [...new Set(rows.map((row) => text(row.carteira_id)).filter(Boolean))]
   const responsavelIds = [...new Set(rows.map((row) => text(row.responsavel_id)).filter(Boolean))]
+  const processoIds = [...new Set(rows.map((row) => text(row.processo_id)).filter(Boolean))]
 
-  const [carteirasResult, responsaveisResult] = await Promise.all([
+  const [carteirasResult, responsaveisResult, processosAtivosResult] = await Promise.all([
     carteiraIds.length
       ? admin().schema('core').from('carteiras').select('id,nome').in('id', carteiraIds)
       : Promise.resolve({ data: [], error: null }),
     responsavelIds.length
       ? admin().schema('security').from('usuarios').select('id,nome,email').in('id', responsavelIds)
       : Promise.resolve({ data: [], error: null }),
+    processoIds.length
+      ? admin().schema('gkit_jur').from('processos').select('id').eq('status', DEFAULT_PROCESS_STATUS).in('id', processoIds)
+      : Promise.resolve({ data: [], error: null }),
   ])
 
   if (carteirasResult.error) throw new Error(carteirasResult.error.message)
   if (responsaveisResult.error) throw new Error(responsaveisResult.error.message)
+  if (processosAtivosResult.error) throw new Error(processosAtivosResult.error.message)
 
   const carteiras = new Map(((carteirasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome)]))
   const responsaveis = new Map(((responsaveisResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome, text(row.email))]))
+  const processosAtivos = new Set(((processosAtivosResult.data ?? []) as Array<Record<string, unknown>>).map((row) => String(row.id)))
   const scoreByPriority: Record<GkitJurInboxPrioridade, number> = { critica: 90, alta: 72, media: 52, baixa: 28 }
 
-  return rows.map((row) => {
+  return rows.filter((row) => {
+    const processoId = text(row.processo_id)
+    return !processoId || processosAtivos.has(processoId)
+  }).map((row) => {
     const priority = (['critica', 'alta', 'media', 'baixa'].includes(text(row.prioridade)) ? text(row.prioridade) : 'media') as GkitJurInboxPrioridade
     const score = scoreByPriority[priority]
     const carteiraId = text(row.carteira_id)

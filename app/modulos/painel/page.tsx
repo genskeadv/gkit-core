@@ -87,7 +87,6 @@ const shortcutGroups = [
     description: 'Modulo juridico com inbox, processos, agente, pendencias e auditoria.',
     links: [
       { href: '/modulos/gkit-jur/inbox', label: 'Inbox' },
-      { href: '/modulos/gkit-jur/cockpit', label: 'Cockpit' },
       { href: '/modulos/gkit-jur/processos', label: 'Processos' },
       { href: '/modulos/gkit-jur/pendencias', label: 'Pendencias' },
       { href: '/modulos/gkit-jur/movimentacoes', label: 'Movimentacoes' },
