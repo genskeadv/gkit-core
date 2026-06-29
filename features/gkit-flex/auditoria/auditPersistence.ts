@@ -124,6 +124,11 @@ export async function getMonthlyAudit(competenciaInput?: string | null) {
   const commissionDifference = roundMoney(expectedCommission - commissionPayablesTotal);
   const auditRows = auditResult.data || [];
   const launchRows = launchesResult.data || [];
+  const totalRecebidoLancamentos = roundMoney(
+    launchRows
+      .filter((row) => Number(row.valor_recebido || 0) > 0)
+      .reduce((acc, row) => acc + Number(row.valor_recebido || 0), 0),
+  );
   const semVendedor = launchRows.filter((row) => !row.carteira || String(row.carteira).toLowerCase().includes('sem vendedor')).length;
 
   const checklist: ChecklistItem[] = [
@@ -187,7 +192,7 @@ export async function getMonthlyAudit(competenciaInput?: string | null) {
       competencia: commissionMonth || null,
       latestExecution,
       resumos: summaryResult.data || [],
-      totalRecebido: roundMoney(Number(latestExecution?.total_valor_recebido || 0)),
+      totalRecebido: totalRecebidoLancamentos || roundMoney(Number(latestExecution?.total_valor_recebido || 0)),
       totalComissao: expectedCommission,
       lancamentos: launchRows.length,
       semVendedor,

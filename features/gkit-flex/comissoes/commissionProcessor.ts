@@ -33,7 +33,7 @@ const RECEIVABLE_ALIASES = {
   documento: ['cliente (cnpj/cpf)', 'cliente (cnpj / cpf)', 'cnpj/cpf', 'cnpj / cpf', 'cnpj', 'cpf', 'documento'],
   categoria: ['categoria', 'tipo', 'tipo de receita'],
   situacao: ['situacao', 'situacao', 'status'],
-  valorRecebido: ['valor recebido', 'recebido', 'valor pago'],
+  valorRecebido: ['valor liquido', 'valor líquido', 'valor líquido recebido', 'valor liquido recebido'],
 };
 
 const CLIENT_ALIASES = {
@@ -228,7 +228,7 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
   const missing = [
     ['Cliente', clienteColumn],
     ['Categoria', categoriaColumn],
-    ['Valor Recebido', valorRecebidoColumn],
+    ['Valor Liquido', valorRecebidoColumn],
   ].filter(([, value]) => !value).map(([name]) => name);
 
   if (missing.length) {
@@ -341,7 +341,7 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
     .sort((a, b) => a.categoria.localeCompare(b.categoria) || b.valorRecebido - a.valorRecebido);
 
   if (!enrichedRows.some((row) => row.valorRecebido > 0)) {
-    throw new Error('Nao encontrei valores recebidos na planilha de contas a receber.');
+    throw new Error('Nao encontrei valores liquidos na planilha de contas a receber.');
   }
 
   return { enrichedRows, summaries, auditRows };
@@ -364,7 +364,7 @@ export function buildCommissionWorkbook(result: CommissionProcessResult): Buffer
     Categoria: row.categoria,
     Carteira: row.carteira,
     'Qtde. lancamentos': row.quantidadeLancamentos,
-    'Valor recebido': row.valorRecebido,
+    'Valor liquido': row.valorRecebido,
     'Reducao %': row.reducaoPercentual,
     'Valor reducao': row.valorReducao,
     'Valor apos reducao': row.valorAposReducao,
@@ -383,7 +383,7 @@ export function buildCommissionWorkbook(result: CommissionProcessResult): Buffer
     'CNPJ/CPF': row.documento,
     Categoria: row.categoria,
     Situacao: row.situacao,
-    'Valor recebido': row.valorRecebido,
+    'Valor liquido': row.valorRecebido,
     Carteira: row.vendedor,
     'Criterio de match': row.criterioMatch,
     Observacao: row.observacao,
@@ -394,7 +394,7 @@ export function buildCommissionWorkbook(result: CommissionProcessResult): Buffer
     Cliente: row.cliente,
     'CNPJ/CPF': row.documento,
     Categoria: row.categoria,
-    'Valor recebido': row.valorRecebido,
+    'Valor liquido': row.valorRecebido,
     Carteira: row.vendedor,
     Problema: row.problema,
   }));

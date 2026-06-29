@@ -136,6 +136,25 @@ export function CommissionUploader() {
     );
   }, [summary]);
 
+  const latestExecutionForCompetencia = useMemo(() => {
+    const competenciaDate = competencia ? `${competencia}-01` : '';
+    return executions.find((row) => row.competencia?.slice(0, 10) === competenciaDate) ?? null;
+  }, [competencia, executions]);
+
+  const displayTotals = summary.length
+    ? totals
+    : {
+        valorRecebido: Number(latestExecutionForCompetencia?.total_valor_recebido || 0),
+        valorAposReducao: Number(latestExecutionForCompetencia?.total_base_reduzida || 0),
+        comissaoFinal: Number(latestExecutionForCompetencia?.total_comissao || 0),
+      };
+
+  const metricsHelp = summary.length
+    ? 'Total considerado na apuracao atual'
+    : latestExecutionForCompetencia
+      ? `Ultima execucao salva: ${latestExecutionForCompetencia.contas_file_name}`
+      : 'Nenhuma execucao salva para esta competencia';
+
   async function handleSubmit() {
     if (!contasReceber) return;
 
@@ -267,9 +286,9 @@ export function CommissionUploader() {
       </section>
 
       <section className="grid-3">
-        <MetricCard label="Valor recebido" value={formatCurrency(totals.valorRecebido)} help="Total considerado na apuracao" />
-        <MetricCard label="Base apos redutores" value={formatCurrency(totals.valorAposReducao)} help="Apos 15% em acordos e 14% em mensalidade" />
-        <MetricCard label="Comissao final" value={formatCurrency(totals.comissaoFinal)} help="Valor final por regra de categoria" tone={totals.comissaoFinal > 0 ? 'good' : 'default'} />
+        <MetricCard label="Valor liquido" value={formatCurrency(displayTotals.valorRecebido)} help={metricsHelp} />
+        <MetricCard label="Base apos redutores" value={formatCurrency(displayTotals.valorAposReducao)} help="Apos 15% em acordos e 14% em mensalidade" />
+        <MetricCard label="Comissao final" value={formatCurrency(displayTotals.comissaoFinal)} help="Valor final por regra de categoria" tone={displayTotals.comissaoFinal > 0 ? 'good' : 'default'} />
       </section>
 
       <section className="card">
@@ -334,7 +353,7 @@ export function CommissionUploader() {
                   <th>Categoria</th>
                   <th>Carteira</th>
                   <th className="text-right">Lancamentos</th>
-                  <th className="text-right">Valor recebido</th>
+                  <th className="text-right">Valor liquido</th>
                   <th className="text-right">Apos reducao</th>
                   <th className="text-right">Comissao final</th>
                 </tr>

@@ -129,9 +129,20 @@ async function payableMonthId(supabase: SupabaseClient, competencia: string) {
 async function monthNumbers(supabase: SupabaseClient, competencia: string): Promise<MonthNumbers> {
   const execution = await latestExecutionForMonth(supabase, competencia);
   const month = await payableMonthId(supabase, competencia);
+  let recebido = roundMoney(Number(execution?.total_valor_recebido || 0));
+  if (execution?.id) {
+    const { data: launches, error } = await supabase
+      .from('comissao_lancamentos')
+      .select('valor_recebido')
+      .eq('execucao_id', execution.id)
+      .gt('valor_recebido', 0);
+    if (error) throw new Error(`Erro ao consultar receitas de ${competencia}: ${error.message}`);
+    recebido = roundMoney((launches || []).reduce((acc, row) => acc + Number(row.valor_recebido || 0), 0)) || recebido;
+  }
+
   const result: MonthNumbers = {
     competencia,
-    recebido: roundMoney(Number(execution?.total_valor_recebido || 0)),
+    recebido,
     comissoes: roundMoney(Number(execution?.total_comissao || 0)),
     pagar: 0,
     pago: 0,
@@ -182,22 +193,36 @@ async function walletDashboard(supabase: SupabaseClient, competencia: string): P
   const execution = await latestExecutionForMonth(supabase, competencia);
   if (!execution?.id) return [];
 
-  const { data, error } = await supabase
-    .from('comissao_resumos')
-    .select('carteira, categoria, valor_recebido, comissao_final')
-    .eq('execucao_id', execution.id);
-  if (error) throw new Error(`Erro ao consultar carteiras: ${error.message}`);
+  const [launchResult, summaryResult] = await Promise.all([
+    supabase
+      .from('comissao_lancamentos')
+      .select('carteira, valor_recebido')
+      .eq('execucao_id', execution.id)
+      .gt('valor_recebido', 0),
+    supabase
+      .from('comissao_resumos')
+      .select('carteira, categoria, comissao_final')
+      .eq('execucao_id', execution.id),
+  ]);
+  if (launchResult.error) throw new Error(`Erro ao consultar carteiras: ${launchResult.error.message}`);
+  if (summaryResult.error) throw new Error(`Erro ao consultar comissoes por carteira: ${summaryResult.error.message}`);
 
   const map = new Map<string, WalletDashboardRow>();
   let totalRecebido = 0;
-  for (const row of data || []) {
+  for (const row of launchResult.data || []) {
     const carteira = String(row.carteira || 'Sem vendedor');
-    const categoria = String(row.categoria || 'Sem categoria').toLowerCase();
     const value = Number(row.valor_recebido || 0);
-    const commission = Number(row.comissao_final || 0);
     totalRecebido += value;
     const current = map.get(carteira) || { carteira, valorRecebido: 0, comissaoAcordos: 0, comissaoMensalidade: 0, totalComissao: 0, participacaoRecebido: 0 };
     current.valorRecebido = roundMoney(current.valorRecebido + value);
+    map.set(carteira, current);
+  }
+
+  for (const row of summaryResult.data || []) {
+    const carteira = String(row.carteira || 'Sem vendedor');
+    const categoria = String(row.categoria || 'Sem categoria').toLowerCase();
+    const commission = Number(row.comissao_final || 0);
+    const current = map.get(carteira) || { carteira, valorRecebido: 0, comissaoAcordos: 0, comissaoMensalidade: 0, totalComissao: 0, participacaoRecebido: 0 };
     if (categoria.includes('acordo')) current.comissaoAcordos = roundMoney(current.comissaoAcordos + commission);
     else if (categoria.includes('mensalidade') || categoria.includes('assessoria')) current.comissaoMensalidade = roundMoney(current.comissaoMensalidade + commission);
     current.totalComissao = roundMoney(current.totalComissao + commission);
