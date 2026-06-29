@@ -4,6 +4,19 @@ export type GkitJurMonitoramentoStatus = 'monitorando' | 'pausado' | 'erro' | 'n
 
 export type GkitJurSyncStatus = 'sucesso' | 'erro' | 'sem_resultado' | 'parcial' | 'timeout';
 
+export type GkitJurInboxFilaId = 'hoje' | 'criticos' | 'pendencias' | 'automacao' | 'sem-retorno';
+
+export type GkitJurInboxPrioridade = 'critica' | 'alta' | 'media' | 'baixa';
+
+export type GkitJurAgenteExecucaoStatus =
+  | 'pendente'
+  | 'em_execucao'
+  | 'sucesso'
+  | 'falha'
+  | 'precisa_intervencao'
+  | 'aguardando_validacao'
+  | 'cancelada';
+
 export type GkitJurDashboardMetrics = {
   processosAtivos: number;
   processosMonitorados: number;
@@ -162,4 +175,103 @@ export type GkitJurAuditoriaItem = {
 export type GkitJurAuditoriaData = {
   importados: number;
   sincronizacoes: GkitJurAuditoriaItem[];
+};
+
+export type GkitJurInboxItem = {
+  id: string;
+  tipo: string;
+  origem: string;
+  titulo: string;
+  subtitulo: string;
+  status: string;
+  prioridade: GkitJurInboxPrioridade;
+  score: number;
+  dataReferencia: string | null;
+  responsavelNome: string | null;
+  carteiraNome: string | null;
+  entidadeTipo: string;
+  entidadeId: string | null;
+  acaoLabel: string;
+  acaoUrl: string;
+  motivo: string;
+};
+
+export type GkitJurInboxFila = {
+  id: GkitJurInboxFilaId;
+  title: string;
+  description: string;
+  count: number;
+};
+
+export type GkitJurInboxData = {
+  selected: GkitJurInboxFilaId;
+  filas: GkitJurInboxFila[];
+  metrics: {
+    hoje: number;
+    criticos: number;
+    prazos: number;
+    automacoes: number;
+    pendencias: number;
+  };
+  items: GkitJurInboxItem[];
+  proximasAcoes: Array<{
+    title: string;
+    description: string;
+    href: string;
+    label: string;
+    priority: GkitJurInboxPrioridade;
+    count: number;
+  }>;
+};
+
+export type GkitJurAgenteFonte = {
+  id: string;
+  nome: string;
+  tipo: string;
+  urlBase: string | null;
+  carteiraNome: string | null;
+  exigeCaptcha: boolean;
+  exige2fa: boolean;
+  ativo: boolean;
+};
+
+export type GkitJurAgenteReceita = {
+  id: string;
+  fonteId: string | null;
+  fonteNome: string | null;
+  carteiraId: string | null;
+  carteiraNome: string | null;
+  nome: string;
+  descricao: string | null;
+  tipoColeta: string;
+  periodicidade: string;
+  scriptKey: string | null;
+  tipoArquivoEsperado: string;
+  ativo: boolean;
+};
+
+export type GkitJurAgenteExecucao = {
+  id: string;
+  receitaNome: string;
+  fonteNome: string | null;
+  carteiraNome: string | null;
+  status: GkitJurAgenteExecucaoStatus;
+  iniciadoEm: string | null;
+  finalizadoEm: string | null;
+  erroMensagem: string | null;
+  tentativas: number;
+  createdAt: string;
+};
+
+export type GkitJurAgenteData = {
+  carteiras: GkitJurSelectOption[];
+  fontes: GkitJurAgenteFonte[];
+  receitas: GkitJurAgenteReceita[];
+  execucoes: GkitJurAgenteExecucao[];
+  metrics: {
+    fontesAtivas: number;
+    receitasAtivas: number;
+    pendentes: number;
+    falhas: number;
+  };
 };

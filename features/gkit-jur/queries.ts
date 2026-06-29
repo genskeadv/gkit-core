@@ -5,9 +5,16 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { DATAJUD_TRIBUNAIS } from './datajud-tribunais'
 import { formatCnj } from './normalizer'
 import type {
+  GkitJurAgenteData,
+  GkitJurAgenteExecucao,
+  GkitJurAgenteExecucaoStatus,
   GkitJurAuditoriaData,
   GkitJurDashboardMetrics,
   GkitJurFormData,
+  GkitJurInboxData,
+  GkitJurInboxFilaId,
+  GkitJurInboxItem,
+  GkitJurInboxPrioridade,
   GkitJurMonitoramentoStatus,
   GkitJurMovimentacao,
   GkitJurMovimentacoesData,
@@ -24,6 +31,7 @@ import type {
 } from './types'
 
 const PAGE_SIZE = 25
+const INBOX_ITEMS_LIMIT = 60
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -638,6 +646,389 @@ export async function getGkitJurAuditoria(): Promise<GkitJurAuditoriaData> {
       totalNovas: Number(row.total_movimentacoes_novas ?? 0),
       erroMensagem: text(row.erro_mensagem) || null,
     })),
+  }
+}
+
+function inboxPriority(score: number): GkitJurInboxPrioridade {
+  if (score >= 85) return 'critica'
+  if (score >= 65) return 'alta'
+  if (score >= 40) return 'media'
+  return 'baixa'
+}
+
+function daysSince(value: string | null) {
+  if (!value) return null
+  const time = new Date(value).getTime()
+  if (!Number.isFinite(time)) return null
+  return Math.max(0, Math.floor((Date.now() - time) / 86_400_000))
+}
+
+function sortInboxItems(items: GkitJurInboxItem[]) {
+  return items.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score
+    const ad = a.dataReferencia ? new Date(a.dataReferencia).getTime() : 0
+    const bd = b.dataReferencia ? new Date(b.dataReferencia).getTime() : 0
+    return ad - bd
+  })
+}
+
+function processInboxItem(
+  processo: GkitJurProcessListItem,
+  score: number,
+  origem: string,
+  motivo: string,
+  acaoLabel: string,
+): GkitJurInboxItem {
+  return {
+    id: `${origem.toLowerCase().replace(/\s+/g, '-')}-${processo.id}`,
+    tipo: 'processo',
+    origem,
+    titulo: processo.numeroCnj,
+    subtitulo: processo.clienteNome || processo.titulo || 'Processo sem cliente identificado',
+    status: processo.status === 'erro' || processo.statusMonitoramento === 'erro' ? 'critico' : 'aberto',
+    prioridade: inboxPriority(score),
+    score,
+    dataReferencia: processo.ultimaMovimentacaoEm ?? processo.ultimaSincronizacaoEm,
+    responsavelNome: processo.responsavelNome,
+    carteiraNome: processo.carteiraNome,
+    entidadeTipo: 'processo',
+    entidadeId: processo.id,
+    acaoLabel,
+    acaoUrl: `/modulos/gkit-jur/processos/${processo.id}`,
+    motivo,
+  }
+}
+
+async function listInboxProcessItems(): Promise<GkitJurInboxItem[]> {
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,updated_at')
+    .neq('status', 'encerrado')
+    .neq('status', 'arquivado')
+    .order('updated_at', { ascending: false })
+    .limit(500)
+
+  if (result.error) throw new Error(result.error.message)
+
+  const rows = (result.data ?? []) as Array<Record<string, unknown>>
+  const maps = await lookupMaps(rows)
+  const items: GkitJurInboxItem[] = []
+
+  for (const row of rows) {
+    const processo = mapProcesso(row, maps)
+    const missing = [
+      !processo.clienteNome ? 'cliente' : '',
+      !processo.carteiraNome ? 'carteira' : '',
+      !processo.responsavelNome ? 'responsavel' : '',
+      !processo.tribunalSigla ? 'tribunal' : '',
+    ].filter(Boolean)
+
+    if (processo.status === 'erro' || processo.statusMonitoramento === 'erro') {
+      items.push(processInboxItem(processo, 92, 'Monitoramento', 'Processo ou monitoramento com erro operacional.', 'Revisar processo'))
+    }
+
+    if (missing.length) {
+      const score = missing.includes('responsavel') ? 72 : 58
+      items.push(processInboxItem(
+        processo,
+        score,
+        'Saneamento',
+        `Faltam vinculos de ${missing.join(', ')}.`,
+        'Sanear cadastro',
+      ))
+    }
+
+    const idleDays = daysSince(processo.ultimaMovimentacaoEm)
+    if (!processo.ultimaMovimentacaoEm || (idleDays !== null && idleDays >= 180)) {
+      items.push(processInboxItem(
+        processo,
+        idleDays === null ? 48 : Math.min(78, 40 + Math.floor(idleDays / 20)),
+        'Monitoramento',
+        idleDays === null ? 'Processo sem movimentacao registrada.' : `Sem movimentacao ha ${idleDays} dia(s).`,
+        'Acompanhar andamento',
+      ))
+    }
+  }
+
+  return items
+}
+
+async function listInboxPendenciaItems(): Promise<GkitJurInboxItem[]> {
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('pendencias')
+    .select('id,carteira_id,processo_id,tipo,origem,titulo,descricao,prioridade,status,responsavel_id,prazo_limite,entidade_tipo,entidade_id,created_at')
+    .in('status', ['aberta', 'em_tratamento', 'aguardando_terceiro'])
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (result.error) throw new Error(result.error.message)
+
+  const rows = (result.data ?? []) as Array<Record<string, unknown>>
+  const carteiraIds = [...new Set(rows.map((row) => text(row.carteira_id)).filter(Boolean))]
+  const responsavelIds = [...new Set(rows.map((row) => text(row.responsavel_id)).filter(Boolean))]
+
+  const [carteirasResult, responsaveisResult] = await Promise.all([
+    carteiraIds.length
+      ? admin().schema('core').from('carteiras').select('id,nome').in('id', carteiraIds)
+      : Promise.resolve({ data: [], error: null }),
+    responsavelIds.length
+      ? admin().schema('security').from('usuarios').select('id,nome,email').in('id', responsavelIds)
+      : Promise.resolve({ data: [], error: null }),
+  ])
+
+  if (carteirasResult.error) throw new Error(carteirasResult.error.message)
+  if (responsaveisResult.error) throw new Error(responsaveisResult.error.message)
+
+  const carteiras = new Map(((carteirasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome)]))
+  const responsaveis = new Map(((responsaveisResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome, text(row.email))]))
+  const scoreByPriority: Record<GkitJurInboxPrioridade, number> = { critica: 90, alta: 72, media: 52, baixa: 28 }
+
+  return rows.map((row) => {
+    const priority = (['critica', 'alta', 'media', 'baixa'].includes(text(row.prioridade)) ? text(row.prioridade) : 'media') as GkitJurInboxPrioridade
+    const score = scoreByPriority[priority]
+    const carteiraId = text(row.carteira_id)
+    const responsavelId = text(row.responsavel_id)
+    const processoId = text(row.processo_id)
+    return {
+      id: `pendencia-${row.id}`,
+      tipo: 'pendencia',
+      origem: text(row.origem, 'Pendencia'),
+      titulo: text(row.titulo, 'Pendencia operacional'),
+      subtitulo: text(row.descricao, 'Trava operacional aberta.'),
+      status: text(row.status, 'aberta'),
+      prioridade: priority,
+      score,
+      dataReferencia: text(row.prazo_limite) || text(row.created_at) || null,
+      responsavelNome: responsavelId ? responsaveis.get(responsavelId) ?? null : null,
+      carteiraNome: carteiraId ? carteiras.get(carteiraId) ?? null : null,
+      entidadeTipo: text(row.entidade_tipo, processoId ? 'processo' : 'pendencia'),
+      entidadeId: text(row.entidade_id, processoId || String(row.id)),
+      acaoLabel: processoId ? 'Abrir processo' : 'Resolver pendencia',
+      acaoUrl: processoId ? `/modulos/gkit-jur/processos/${processoId}` : '/modulos/gkit-jur/pendencias',
+      motivo: 'Pendencia persistente aberta no modulo juridico.',
+    }
+  })
+}
+
+async function listInboxAgenteItems(): Promise<GkitJurInboxItem[]> {
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('agente_execucoes')
+    .select('id,receita_id,fonte_id,carteira_id,status,erro_mensagem,tentativas,created_at,updated_at')
+    .in('status', ['pendente', 'falha', 'precisa_intervencao', 'aguardando_validacao'])
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (result.error) throw new Error(result.error.message)
+
+  const rows = (result.data ?? []) as Array<Record<string, unknown>>
+  const receitaIds = [...new Set(rows.map((row) => text(row.receita_id)).filter(Boolean))]
+  const fonteIds = [...new Set(rows.map((row) => text(row.fonte_id)).filter(Boolean))]
+  const carteiraIds = [...new Set(rows.map((row) => text(row.carteira_id)).filter(Boolean))]
+
+  const [receitasResult, fontesResult, carteirasResult] = await Promise.all([
+    receitaIds.length ? admin().schema('gkit_jur').from('agente_receitas').select('id,nome').in('id', receitaIds) : Promise.resolve({ data: [], error: null }),
+    fonteIds.length ? admin().schema('gkit_jur').from('agente_fontes').select('id,nome').in('id', fonteIds) : Promise.resolve({ data: [], error: null }),
+    carteiraIds.length ? admin().schema('core').from('carteiras').select('id,nome').in('id', carteiraIds) : Promise.resolve({ data: [], error: null }),
+  ])
+
+  if (receitasResult.error) throw new Error(receitasResult.error.message)
+  if (fontesResult.error) throw new Error(fontesResult.error.message)
+  if (carteirasResult.error) throw new Error(carteirasResult.error.message)
+
+  const receitas = new Map(((receitasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome)]))
+  const fontes = new Map(((fontesResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome)]))
+  const carteiras = new Map(((carteirasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome)]))
+
+  return rows.map((row) => {
+    const statusValue = text(row.status, 'pendente')
+    const score = statusValue === 'falha' || statusValue === 'precisa_intervencao' ? 86 : statusValue === 'aguardando_validacao' ? 68 : 45
+    const receitaId = text(row.receita_id)
+    const fonteId = text(row.fonte_id)
+    const carteiraId = text(row.carteira_id)
+    return {
+      id: `agente-${row.id}`,
+      tipo: 'automacao',
+      origem: 'Agente juridico',
+      titulo: receitaId ? receitas.get(receitaId) ?? 'Execucao do agente' : 'Execucao do agente',
+      subtitulo: fonteId ? fontes.get(fonteId) ?? 'Fonte nao definida' : 'Fonte nao definida',
+      status: statusValue,
+      prioridade: inboxPriority(score),
+      score,
+      dataReferencia: text(row.updated_at) || text(row.created_at) || null,
+      responsavelNome: null,
+      carteiraNome: carteiraId ? carteiras.get(carteiraId) ?? null : null,
+      entidadeTipo: 'agente_execucao',
+      entidadeId: String(row.id),
+      acaoLabel: 'Abrir agente',
+      acaoUrl: '/modulos/gkit-jur/agente',
+      motivo: text(row.erro_mensagem, statusValue === 'aguardando_validacao' ? 'Resultado aguardando validacao humana.' : 'Execucao aguardando continuidade.'),
+    }
+  })
+}
+
+function filterInboxItems(items: GkitJurInboxItem[], selected: GkitJurInboxFilaId) {
+  if (selected === 'criticos') return items.filter((item) => item.prioridade === 'critica' || item.score >= 85)
+  if (selected === 'pendencias') return items.filter((item) => item.tipo === 'pendencia' || item.origem === 'Saneamento')
+  if (selected === 'automacao') return items.filter((item) => item.tipo === 'automacao')
+  if (selected === 'sem-retorno') return items.filter((item) => item.origem === 'Monitoramento' && item.motivo.toLowerCase().includes('movimentacao'))
+  return items
+}
+
+export async function getGkitJurInbox(params?: ModuleSearchParams | null): Promise<GkitJurInboxData> {
+  const selected = (['hoje', 'criticos', 'pendencias', 'automacao', 'sem-retorno'].includes(singleParam(params?.fila))
+    ? singleParam(params?.fila)
+    : 'hoje') as GkitJurInboxFilaId
+
+  const [processItems, pendenciaItems, agenteItems] = await Promise.all([
+    listInboxProcessItems(),
+    listInboxPendenciaItems(),
+    listInboxAgenteItems(),
+  ])
+
+  const allItems = sortInboxItems([...processItems, ...pendenciaItems, ...agenteItems])
+  const criticos = filterInboxItems(allItems, 'criticos')
+  const pendencias = filterInboxItems(allItems, 'pendencias')
+  const automacao = filterInboxItems(allItems, 'automacao')
+  const semRetorno = filterInboxItems(allItems, 'sem-retorno')
+
+  return {
+    selected,
+    filas: [
+      { id: 'hoje', title: 'Hoje', description: 'Fila recomendada para iniciar o dia.', count: allItems.length },
+      { id: 'criticos', title: 'Criticos', description: 'Risco, erro ou bloqueio real.', count: criticos.length },
+      { id: 'pendencias', title: 'Pendencias', description: 'Travas de cadastro e operacao.', count: pendencias.length },
+      { id: 'automacao', title: 'Automacao', description: 'Intervencoes do agente.', count: automacao.length },
+      { id: 'sem-retorno', title: 'Sem retorno', description: 'Processos sem movimentacao recente.', count: semRetorno.length },
+    ],
+    metrics: {
+      hoje: allItems.length,
+      criticos: criticos.length,
+      prazos: 0,
+      automacoes: automacao.length,
+      pendencias: pendencias.length,
+    },
+    items: filterInboxItems(allItems, selected).slice(0, INBOX_ITEMS_LIMIT),
+    proximasAcoes: [
+      {
+        title: 'Sanear processos sem dono',
+        description: 'Aplique as sugestoes de cliente, carteira e responsavel antes de ligar prazos e publicacoes.',
+        href: '/modulos/gkit-jur/pendencias',
+        label: 'Abrir saneamento',
+        priority: pendencias.length ? 'alta' : 'baixa',
+        count: pendencias.length,
+      },
+      {
+        title: 'Revisar automacoes pendentes',
+        description: 'Falhas, validacoes e execucoes paradas entram aqui para intervencao humana.',
+        href: '/modulos/gkit-jur/agente',
+        label: 'Abrir agente',
+        priority: automacao.length ? 'alta' : 'baixa',
+        count: automacao.length,
+      },
+      {
+        title: 'Acompanhar processos sem movimentacao',
+        description: 'Fila provisoria ate entrarmos com publicacoes, prazos e DataJud.',
+        href: '/modulos/gkit-jur/processos?sort=ultima_movimentacao_em&dir=asc',
+        label: 'Ver processos',
+        priority: semRetorno.length ? 'media' : 'baixa',
+        count: semRetorno.length,
+      },
+    ],
+  }
+}
+
+function agentStatus(value: unknown): GkitJurAgenteExecucaoStatus {
+  const current = text(value, 'pendente')
+  if (['pendente', 'em_execucao', 'sucesso', 'falha', 'precisa_intervencao', 'aguardando_validacao', 'cancelada'].includes(current)) {
+    return current as GkitJurAgenteExecucaoStatus
+  }
+  return 'pendente'
+}
+
+export async function getGkitJurAgenteData(): Promise<GkitJurAgenteData> {
+  const [carteirasResult, fontesResult, receitasResult, execucoesResult] = await Promise.all([
+    admin().schema('core').from('carteiras').select('id,nome').eq('status', 'ativo').order('nome', { ascending: true }),
+    admin().schema('gkit_jur').from('agente_fontes').select('id,carteira_id,nome,tipo,url_base,exige_captcha,exige_2fa,ativo').order('created_at', { ascending: false }).limit(100),
+    admin().schema('gkit_jur').from('agente_receitas').select('id,fonte_id,carteira_id,nome,descricao,tipo_coleta,periodicidade,script_key,tipo_arquivo_esperado,ativo').order('created_at', { ascending: false }).limit(100),
+    admin().schema('gkit_jur').from('agente_execucoes').select('id,receita_id,fonte_id,carteira_id,status,iniciado_em,finalizado_em,erro_mensagem,tentativas,created_at').order('created_at', { ascending: false }).limit(50),
+  ])
+
+  for (const result of [carteirasResult, fontesResult, receitasResult, execucoesResult]) {
+    if (result.error) throw new Error(result.error.message)
+  }
+
+  const carteiras = ((carteirasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => optionFromRow(row, ['nome']))
+  const carteiraMap = new Map(carteiras.map((item) => [item.value, item.label]))
+  const fonteRows = (fontesResult.data ?? []) as Array<Record<string, unknown>>
+  const receitaRows = (receitasResult.data ?? []) as Array<Record<string, unknown>>
+  const fonteMap = new Map(fonteRows.map((row) => [String(row.id), text(row.nome)]))
+  const receitaMap = new Map(receitaRows.map((row) => [String(row.id), text(row.nome)]))
+
+  const fontes = fonteRows.map((row) => {
+    const carteiraId = text(row.carteira_id)
+    return {
+      id: String(row.id),
+      nome: text(row.nome, 'Fonte sem nome'),
+      tipo: text(row.tipo, 'portal_web'),
+      urlBase: text(row.url_base) || null,
+      carteiraNome: carteiraId ? carteiraMap.get(carteiraId) ?? null : null,
+      exigeCaptcha: Boolean(row.exige_captcha),
+      exige2fa: Boolean(row.exige_2fa),
+      ativo: Boolean(row.ativo),
+    }
+  })
+
+  const receitas = receitaRows.map((row) => {
+    const fonteId = text(row.fonte_id)
+    const carteiraId = text(row.carteira_id)
+    return {
+      id: String(row.id),
+      fonteId: fonteId || null,
+      fonteNome: fonteId ? fonteMap.get(fonteId) ?? null : null,
+      carteiraId: carteiraId || null,
+      carteiraNome: carteiraId ? carteiraMap.get(carteiraId) ?? null : null,
+      nome: text(row.nome, 'Receita sem nome'),
+      descricao: text(row.descricao) || null,
+      tipoColeta: text(row.tipo_coleta, 'movimentacao'),
+      periodicidade: text(row.periodicidade, 'manual'),
+      scriptKey: text(row.script_key) || null,
+      tipoArquivoEsperado: text(row.tipo_arquivo_esperado, 'json'),
+      ativo: Boolean(row.ativo),
+    }
+  })
+
+  const execucoes = ((execucoesResult.data ?? []) as Array<Record<string, unknown>>).map((row): GkitJurAgenteExecucao => {
+    const receitaId = text(row.receita_id)
+    const fonteId = text(row.fonte_id)
+    const carteiraId = text(row.carteira_id)
+    return {
+      id: String(row.id),
+      receitaNome: receitaId ? receitaMap.get(receitaId) ?? 'Receita removida' : 'Execucao avulsa',
+      fonteNome: fonteId ? fonteMap.get(fonteId) ?? null : null,
+      carteiraNome: carteiraId ? carteiraMap.get(carteiraId) ?? null : null,
+      status: agentStatus(row.status),
+      iniciadoEm: text(row.iniciado_em) || null,
+      finalizadoEm: text(row.finalizado_em) || null,
+      erroMensagem: text(row.erro_mensagem) || null,
+      tentativas: Number(row.tentativas ?? 0),
+      createdAt: text(row.created_at),
+    }
+  })
+
+  return {
+    carteiras,
+    fontes,
+    receitas,
+    execucoes,
+    metrics: {
+      fontesAtivas: fontes.filter((item) => item.ativo).length,
+      receitasAtivas: receitas.filter((item) => item.ativo).length,
+      pendentes: execucoes.filter((item) => ['pendente', 'em_execucao', 'aguardando_validacao'].includes(item.status)).length,
+      falhas: execucoes.filter((item) => ['falha', 'precisa_intervencao'].includes(item.status)).length,
+    },
   }
 }
 

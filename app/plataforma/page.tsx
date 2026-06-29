@@ -77,7 +77,7 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
     descricao: 'Operacao juridica integrada: processos, prazos, agenda e documentos.',
     area: 'Juridico',
     icon: 'shield',
-    href: '/modulos/gkit-jur',
+    href: '/modulos/gkit-jur/inbox',
   },
   'gkit-performa': {
     nome: 'GKIT Performa',

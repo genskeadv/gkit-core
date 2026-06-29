@@ -84,12 +84,14 @@ const shortcutGroups = [
   {
     codigo: 'gkit-jur',
     title: 'GKIT Jur',
-    description: 'Modulo juridico para processos, pendencias, movimentacoes e auditoria.',
+    description: 'Modulo juridico com inbox, processos, agente, pendencias e auditoria.',
     links: [
-      { href: '/modulos/gkit-jur', label: 'Cockpit' },
+      { href: '/modulos/gkit-jur/inbox', label: 'Inbox' },
+      { href: '/modulos/gkit-jur/cockpit', label: 'Cockpit' },
       { href: '/modulos/gkit-jur/processos', label: 'Processos' },
       { href: '/modulos/gkit-jur/pendencias', label: 'Pendencias' },
       { href: '/modulos/gkit-jur/movimentacoes', label: 'Movimentacoes' },
+      { href: '/modulos/gkit-jur/agente', label: 'Agente' },
       { href: '/modulos/gkit-jur/cadastros', label: 'Cadastros' },
       { href: '/modulos/gkit-jur/auditoria', label: 'Auditoria' },
     ],

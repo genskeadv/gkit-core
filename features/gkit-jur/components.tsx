@@ -7,9 +7,13 @@ import {
   gkitJurStatusOptions,
 } from './queries'
 import type {
+  GkitJurAgenteData,
   GkitJurAuditoriaData,
   GkitJurDashboardMetrics,
   GkitJurFormData,
+  GkitJurInboxData,
+  GkitJurInboxItem,
+  GkitJurInboxPrioridade,
   GkitJurMovimentacoesData,
   GkitJurPendenciasData,
   GkitJurProcessDetailData,
@@ -20,50 +24,54 @@ import type {
   GkitJurSelectOption,
 } from './types'
 
-type GkitJurTab = 'cockpit' | 'processos' | 'pendencias' | 'movimentacoes' | 'cadastros' | 'auditoria'
+type GkitJurTab = 'inbox' | 'cockpit' | 'processos' | 'pendencias' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria'
 
 const activeHref: Record<GkitJurTab, string> = {
-  cockpit: '/modulos/gkit-jur',
+  inbox: '/modulos/gkit-jur/inbox',
+  cockpit: '/modulos/gkit-jur/cockpit',
   processos: '/modulos/gkit-jur/processos',
   pendencias: '/modulos/gkit-jur/pendencias',
   movimentacoes: '/modulos/gkit-jur/movimentacoes',
+  agente: '/modulos/gkit-jur/agente',
   cadastros: '/modulos/gkit-jur/cadastros',
   auditoria: '/modulos/gkit-jur/auditoria',
 }
 
 const navGroups: ModuleNavGroup[] = [
-  { href: '/modulos/gkit-jur', title: 'Cockpit' },
+  { href: '/modulos/gkit-jur/inbox', title: 'Inbox' },
+  { href: '/modulos/gkit-jur/cockpit', title: 'Cockpit' },
   { href: '/modulos/gkit-jur/processos', title: 'Processos' },
   { href: '/modulos/gkit-jur/pendencias', title: 'Pendencias' },
   { href: '/modulos/gkit-jur/movimentacoes', title: 'Movimentacoes' },
+  { href: '/modulos/gkit-jur/agente', title: 'Agente' },
   { href: '/modulos/gkit-jur/cadastros', title: 'Cadastros' },
   { href: '/modulos/gkit-jur/auditoria', title: 'Auditoria' },
 ]
 
 const cockpitCards = [
   {
+    href: '/modulos/gkit-jur/inbox',
+    label: '1. Inbox',
+    title: 'Caixa do advogado',
+    description: 'Priorize a rotina por risco, pendencia e automacao.',
+  },
+  {
     href: '/modulos/gkit-jur/processos',
-    label: '1. Processos',
+    label: '2. Processos',
     title: 'Base juridica',
     description: 'Consulte e ajuste carteira, cliente e responsavel.',
   },
   {
     href: '/modulos/gkit-jur/pendencias',
-    label: '2. Pendencias',
+    label: '3. Pendencias',
     title: 'Saneamento',
     description: 'Corrija processos sem vinculos operacionais.',
   },
   {
-    href: '/modulos/gkit-jur/movimentacoes',
-    label: '3. Movimentacoes',
-    title: 'Historico',
-    description: 'Acompanhe movimentacoes manuais e futuras sincronizacoes.',
-  },
-  {
-    href: '/modulos/gkit-jur/auditoria',
-    label: '4. Auditoria',
-    title: 'Controle',
-    description: 'Confira importacoes e sincronizacoes do modulo.',
+    href: '/modulos/gkit-jur/agente',
+    label: '4. Agente',
+    title: 'Automacao assistida',
+    description: 'Configure fontes, receitas e validacoes humanas.',
   },
 ]
 
@@ -165,6 +173,125 @@ function MetricCards({ metrics }: { metrics: GkitJurDashboardMetrics }) {
         <span className="metric-hint">dono do caso</span>
       </article>
     </section>
+  )
+}
+
+function priorityTone(priority: GkitJurInboxPrioridade) {
+  if (priority === 'critica') return 'danger'
+  if (priority === 'alta') return 'warning'
+  if (priority === 'media') return 'primary'
+  return 'muted'
+}
+
+function InboxItemCard({ item, index }: { item: GkitJurInboxItem; index: number }) {
+  return (
+    <Link className="gkit-jur-inbox-item" href={item.acaoUrl}>
+      <span className="gkit-jur-inbox-rank">{index + 1}</span>
+      <div>
+        <div className="gkit-jur-inbox-item-head">
+          <span className={`suite-pill ${priorityTone(item.prioridade)}`}>{item.prioridade}</span>
+          <span>{item.origem}</span>
+          <small>{statusLabel(item.status)}</small>
+        </div>
+        <h3>{item.titulo}</h3>
+        <p>{item.subtitulo}</p>
+        <small>{item.motivo}</small>
+      </div>
+      <div className="gkit-jur-inbox-meta">
+        <strong>{item.acaoLabel}</strong>
+        <span>{item.responsavelNome || item.carteiraNome || 'Sem dono definido'}</span>
+        <small>{formatDate(item.dataReferencia)}</small>
+        <div className="gkit-jur-score" aria-label={`Score ${item.score}`}>
+          <span style={{ width: `${Math.min(100, Math.max(0, item.score))}%` }} />
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+export function GkitJurInboxPage({ data }: { data: GkitJurInboxData }) {
+  return (
+    <>
+      <section className="suite-kpi-grid compact">
+        <article className="metric-card">
+          <span className="metric-label">Fila do dia</span>
+          <strong className="metric-value">{data.metrics.hoje}</strong>
+          <span className="metric-hint">itens acionaveis</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Criticos</span>
+          <strong className="metric-value">{data.metrics.criticos}</strong>
+          <span className="metric-hint">risco ou bloqueio</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Automacoes</span>
+          <strong className="metric-value">{data.metrics.automacoes}</strong>
+          <span className="metric-hint">pedem intervencao</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Pendencias</span>
+          <strong className="metric-value">{data.metrics.pendencias}</strong>
+          <span className="metric-hint">travas abertas</span>
+        </article>
+      </section>
+
+      <section className="gkit-jur-inbox-layout">
+        <aside className="suite-panel gkit-jur-inbox-queues">
+          <div className="suite-panel-heading">
+            <div>
+              <h2>Filas inteligentes</h2>
+              <p>Escolha o recorte operacional.</p>
+            </div>
+          </div>
+          <nav>
+            {data.filas.map((fila) => (
+              <Link className={fila.id === data.selected ? 'active' : ''} href={`/modulos/gkit-jur/inbox?fila=${fila.id}`} key={fila.id}>
+                <span>
+                  <strong>{fila.title}</strong>
+                  <small>{fila.description}</small>
+                </span>
+                <em>{fila.count}</em>
+              </Link>
+            ))}
+          </nav>
+        </aside>
+
+        <GkitJurSection
+          className="gkit-jur-inbox-main"
+          title="Caixa de entrada"
+          description="Itens priorizados por risco, pendencia, ausencia de dono e automacao."
+        >
+          {data.items.length ? (
+            <div className="gkit-jur-inbox-list" role="list">
+              {data.items.map((item, index) => (
+                <InboxItemCard index={index} item={item} key={item.id} />
+              ))}
+            </div>
+          ) : (
+            <div className="suite-empty-block success">Nenhum item nesta fila agora.</div>
+          )}
+        </GkitJurSection>
+
+        <aside className="suite-panel gkit-jur-inbox-copilot">
+          <div className="suite-panel-heading">
+            <div>
+              <h2>Agente auxiliar</h2>
+              <p>Melhores proximas acoes.</p>
+            </div>
+          </div>
+          <div className="gkit-jur-next-actions">
+            {data.proximasAcoes.map((action) => (
+              <Link href={action.href} key={action.title}>
+                <span className={`suite-pill ${priorityTone(action.priority)}`}>{action.count}</span>
+                <strong>{action.title}</strong>
+                <p>{action.description}</p>
+                <small>{action.label}</small>
+              </Link>
+            ))}
+          </div>
+        </aside>
+      </section>
+    </>
   )
 }
 
@@ -660,6 +787,203 @@ export function GkitJurAuditoriaPage({ data }: { data: GkitJurAuditoriaData }) {
           </div>
         ) : (
           <div className="suite-empty-block">Ainda nao existem sincronizacoes registradas.</div>
+        )}
+      </GkitJurSection>
+    </>
+  )
+}
+
+function AgentField({
+  children,
+  label,
+}: {
+  children: ReactNode
+  label: string
+}) {
+  return (
+    <label>
+      <span>{label}</span>
+      {children}
+    </label>
+  )
+}
+
+export function GkitJurAgentePage({
+  canWrite,
+  createFonteAction,
+  createReceitaAction,
+  data,
+  runReceitaAction,
+  validateExecucaoAction,
+}: {
+  canWrite: boolean
+  createFonteAction: (formData: FormData) => Promise<void>
+  createReceitaAction: (formData: FormData) => Promise<void>
+  data: GkitJurAgenteData
+  runReceitaAction: (formData: FormData) => Promise<void>
+  validateExecucaoAction: (formData: FormData) => Promise<void>
+}) {
+  const fonteOptions = data.fontes.map((fonte) => ({ label: fonte.nome, value: fonte.id }))
+
+  return (
+    <>
+      <section className="suite-kpi-grid compact">
+        <article className="metric-card">
+          <span className="metric-label">Fontes ativas</span>
+          <strong className="metric-value">{data.metrics.fontesAtivas}</strong>
+          <span className="metric-hint">portais, diarios, e-mails e APIs</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Receitas</span>
+          <strong className="metric-value">{data.metrics.receitasAtivas}</strong>
+          <span className="metric-hint">rotinas configuradas</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Pendentes</span>
+          <strong className="metric-value">{data.metrics.pendentes}</strong>
+          <span className="metric-hint">aguardam worker ou validacao</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Falhas</span>
+          <strong className="metric-value">{data.metrics.falhas}</strong>
+          <span className="metric-hint">pedem intervencao humana</span>
+        </article>
+      </section>
+
+      <div className="gkit-jur-agent-grid">
+        <GkitJurSection title="Fonte" description="Cadastre uma origem tecnica para futuras coletas.">
+          <form action={createFonteAction} className="gkit-jur-agent-form">
+            <AgentField label="Nome">
+              <input className="text-input" disabled={!canWrite} name="nome" placeholder="DJe, PJe, e-SAJ, e-mail juridico" />
+            </AgentField>
+            <AgentField label="Tipo">
+              <select disabled={!canWrite} name="tipo" defaultValue="portal_web">
+                <option value="portal_web">Portal web</option>
+                <option value="diario">Diario</option>
+                <option value="email">E-mail</option>
+                <option value="api">API</option>
+                <option value="interno">Interno</option>
+              </select>
+            </AgentField>
+            <AgentField label="Carteira">
+              <select disabled={!canWrite} name="carteira_id">
+                {optionList(data.carteiras, 'Geral')}
+              </select>
+            </AgentField>
+            <AgentField label="URL base">
+              <input className="text-input" disabled={!canWrite} name="url_base" placeholder="https://" />
+            </AgentField>
+            <div className="gkit-jur-agent-checks">
+              <label><input disabled={!canWrite} name="exige_captcha" type="checkbox" /> Captcha</label>
+              <label><input disabled={!canWrite} name="exige_2fa" type="checkbox" /> 2FA</label>
+            </div>
+            <div className="form-actions">
+              {canWrite ? <button className="button primary-button" type="submit">Salvar fonte</button> : null}
+            </div>
+          </form>
+        </GkitJurSection>
+
+        <GkitJurSection title="Receita" description="Defina uma rotina executavel pelo agente.">
+          <form action={createReceitaAction} className="gkit-jur-agent-form">
+            <AgentField label="Nome">
+              <input className="text-input" disabled={!canWrite} name="nome" placeholder="Coletar publicacoes do dia" />
+            </AgentField>
+            <AgentField label="Fonte">
+              <select disabled={!canWrite} name="fonte_id">
+                {optionList(fonteOptions, 'Sem fonte')}
+              </select>
+            </AgentField>
+            <AgentField label="Carteira">
+              <select disabled={!canWrite} name="carteira_id">
+                {optionList(data.carteiras, 'Geral')}
+              </select>
+            </AgentField>
+            <AgentField label="Tipo de coleta">
+              <select disabled={!canWrite} name="tipo_coleta" defaultValue="movimentacao">
+                <option value="publicacao">Publicacao</option>
+                <option value="movimentacao">Movimentacao</option>
+                <option value="documento">Documento</option>
+                <option value="prazo">Prazo</option>
+                <option value="andamento">Andamento</option>
+                <option value="email">E-mail</option>
+              </select>
+            </AgentField>
+            <AgentField label="Periodicidade">
+              <select disabled={!canWrite} name="periodicidade" defaultValue="manual">
+                <option value="manual">Manual</option>
+                <option value="diaria">Diaria</option>
+                <option value="horaria">Horaria</option>
+                <option value="semanal">Semanal</option>
+                <option value="mensal">Mensal</option>
+              </select>
+            </AgentField>
+            <AgentField label="Script key">
+              <input className="text-input" disabled={!canWrite} name="script_key" placeholder="jur.publicacoes.diarias" />
+            </AgentField>
+            <div className="form-actions">
+              {canWrite ? <button className="button primary-button" type="submit">Salvar receita</button> : null}
+            </div>
+          </form>
+        </GkitJurSection>
+      </div>
+
+      <GkitJurSection title="Receitas configuradas" description="Dispare execucoes manuais enquanto o worker externo nao estiver ligado.">
+        {data.receitas.length ? (
+          <div className="suite-table-list compact gkit-jur-agent-list" role="list">
+            {data.receitas.map((receita) => (
+              <article key={receita.id} role="listitem">
+                <div>
+                  <h3>{receita.nome}</h3>
+                  <p>{receita.fonteNome || 'Sem fonte'} - {receita.tipoColeta} - {receita.periodicidade}</p>
+                </div>
+                <span className={`suite-pill ${receita.ativo ? 'success' : 'warning'}`}>{receita.ativo ? 'Ativa' : 'Pausada'}</span>
+                <strong>{receita.carteiraNome || 'Geral'}</strong>
+                {canWrite ? (
+                  <form action={runReceitaAction}>
+                    <input name="receita_id" type="hidden" value={receita.id} />
+                    <button className="button secondary" type="submit">Executar</button>
+                  </form>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="suite-empty-block">Nenhuma receita configurada ainda.</div>
+        )}
+      </GkitJurSection>
+
+      <GkitJurSection title="Execucoes recentes" description="Historico operacional do agente e validacoes humanas.">
+        {data.execucoes.length ? (
+          <div className="suite-table-list compact gkit-jur-agent-list" role="list">
+            {data.execucoes.map((execucao) => (
+              <article key={execucao.id} role="listitem">
+                <div>
+                  <h3>{execucao.receitaNome}</h3>
+                  <p>{execucao.fonteNome || 'Fonte nao definida'} - {execucao.erroMensagem || 'Execucao registrada'}</p>
+                </div>
+                <span className={`suite-pill ${execucao.status === 'sucesso' ? 'success' : execucao.status === 'falha' || execucao.status === 'precisa_intervencao' ? 'danger' : 'warning'}`}>
+                  {statusLabel(execucao.status)}
+                </span>
+                <strong>{execucao.carteiraNome || 'Geral'}</strong>
+                <small>{formatDate(execucao.createdAt)}</small>
+                {canWrite && ['aguardando_validacao', 'falha', 'precisa_intervencao'].includes(execucao.status) ? (
+                  <form action={validateExecucaoAction} className="gkit-jur-agent-validation">
+                    <input name="execucao_id" type="hidden" value={execucao.id} />
+                    <select name="status" defaultValue="validado">
+                      <option value="validado">Validado</option>
+                      <option value="rejeitado">Rejeitado</option>
+                      <option value="reenviar_coleta">Reenviar coleta</option>
+                      <option value="importado_manual">Importado manual</option>
+                    </select>
+                    <input className="text-input" name="observacao" placeholder="Observacao" />
+                    <button className="button secondary" type="submit">Salvar</button>
+                  </form>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="suite-empty-block">Ainda nao existem execucoes do agente.</div>
         )}
       </GkitJurSection>
     </>
