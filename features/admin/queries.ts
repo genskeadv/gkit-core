@@ -11,6 +11,7 @@ export async function getDashboardStats() {
     usuarios,
     usuariosAtivos,
     carteiras,
+    times,
     apps,
     perfis,
     eventos,
@@ -18,6 +19,7 @@ export async function getDashboardStats() {
     supabase.schema('security').from('usuarios').select('id', { count: 'exact', head: true }),
     supabase.schema('security').from('usuarios').select('id', { count: 'exact', head: true }).eq('status', 'ativo'),
     supabase.schema('core').from('carteiras').select('id', { count: 'exact', head: true }).eq('status', 'ativo'),
+    supabase.schema('core').from('times').select('id', { count: 'exact', head: true }).eq('status', 'ativo'),
     supabase.schema('core').from('apps').select('id', { count: 'exact', head: true }).eq('status', 'ativo'),
     supabase.schema('security').from('perfis').select('id', { count: 'exact', head: true }).eq('status', 'ativo'),
     supabase.schema('audit').from('v_eventos_admin').select('*').order('created_at', { ascending: false }).limit(8),
@@ -27,6 +29,7 @@ export async function getDashboardStats() {
     totalUsuarios: usuarios.count ?? 0,
     usuariosAtivos: usuariosAtivos.count ?? 0,
     carteirasAtivas: carteiras.count ?? 0,
+    timesAtivos: times.count ?? 0,
     appsAtivos: apps.count ?? 0,
     perfisAtivos: perfis.count ?? 0,
     eventos: eventos.data ?? [],
@@ -95,6 +98,18 @@ export async function getUsuarioRelations(id: string) {
   }
 }
 
+export async function listUsuarioOptions() {
+  const { data, error } = await admin()
+    .schema('security')
+    .from('usuarios')
+    .select('id,nome,email,status')
+    .eq('status', 'ativo')
+    .order('nome', { ascending: true })
+
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
 export async function listCarteiras() {
   const { data, error } = await admin()
     .schema('security')
@@ -104,6 +119,20 @@ export async function listCarteiras() {
 
   if (error) throw new Error(error.message)
   return data ?? []
+}
+
+export async function getCarteiraRelations(id: string) {
+  const { data, error } = await admin()
+    .schema('core')
+    .from('carteira_colaboradores')
+    .select('usuario_id')
+    .eq('carteira_id', id)
+    .eq('ativo', true)
+
+  if (error) throw new Error(error.message)
+  return {
+    colaboradores: (data ?? []).map((row: any) => row.usuario_id),
+  }
 }
 
 export async function getCarteira(id: string) {
@@ -116,6 +145,43 @@ export async function getCarteira(id: string) {
 
   if (error) throw new Error(error.message)
   return data
+}
+
+export async function listTimes() {
+  const { data, error } = await admin()
+    .schema('security')
+    .from('v_times_admin')
+    .select('*')
+    .order('nome', { ascending: true })
+
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
+export async function getTime(id: string) {
+  const { data, error } = await admin()
+    .schema('core')
+    .from('times')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function getTimeRelations(id: string) {
+  const { data, error } = await admin()
+    .schema('core')
+    .from('time_colaboradores')
+    .select('usuario_id')
+    .eq('time_id', id)
+    .eq('ativo', true)
+
+  if (error) throw new Error(error.message)
+  return {
+    colaboradores: (data ?? []).map((row: any) => row.usuario_id),
+  }
 }
 
 export async function listApps() {

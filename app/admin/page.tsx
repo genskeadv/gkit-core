@@ -8,6 +8,7 @@ export default async function AdminPage() {
     ['Usuários', stats.totalUsuarios],
     ['Usuários ativos', stats.usuariosAtivos],
     ['Carteiras ativas', stats.carteirasAtivas],
+    ['Times ativos', stats.timesAtivos],
     ['Módulos ativos', stats.appsAtivos],
     ['Perfis ativos', stats.perfisAtivos],
   ]

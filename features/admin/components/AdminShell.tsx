@@ -9,6 +9,7 @@ const navGroups = [
       { href: '/admin/usuarios', label: 'Usuários', permission: 'admin.usuarios.read' },
       { href: '/admin/tipos-usuario', label: 'Tipos de usuário', permission: 'admin.usuarios.read' },
       { href: '/admin/carteiras', label: 'Carteiras', permission: 'admin.carteiras.read' },
+      { href: '/admin/times', label: 'Times', permission: 'admin.times.read' },
     ],
   },
   {

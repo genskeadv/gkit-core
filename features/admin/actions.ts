@@ -99,6 +99,8 @@ export async function createCarteiraAction(formData: FormData) {
 
   if (error) throw new Error(error.message)
 
+  await replaceCoreRelations(data.id, 'carteira_colaboradores', 'carteira_id', ids(formData, 'colaboradores'))
+
   await logEvent(authUser.id, 'carteira.criada', `Carteira criada: ${nome}`, { id: data.id }, {
     entidade_schema: 'core',
     entidade_tabela: 'carteiras',
@@ -125,6 +127,8 @@ export async function updateCarteiraAction(formData: FormData) {
 
   if (error) throw new Error(error.message)
 
+  await replaceCoreRelations(id, 'carteira_colaboradores', 'carteira_id', ids(formData, 'colaboradores'))
+
   await logEvent(authUser.id, 'carteira.atualizada', `Carteira atualizada: ${nome}`, { id }, {
     entidade_schema: 'core',
     entidade_tabela: 'carteiras',
@@ -133,6 +137,60 @@ export async function updateCarteiraAction(formData: FormData) {
   revalidatePath('/admin')
   revalidatePath('/admin/carteiras')
   redirect('/admin/carteiras')
+}
+
+export async function createTimeAction(formData: FormData) {
+  const { authUser } = await requireAdminAction('admin.times.write')
+
+  const nome = required(text(formData, 'nome'), 'Nome')
+
+  const { data, error } = await admin().schema('core').from('times').insert({
+    nome,
+    descricao: nullableText(formData, 'descricao'),
+    area: nullableText(formData, 'area'),
+    status: (text(formData, 'status') || 'ativo') as StatusRegistro,
+  }).select('id').single()
+
+  if (error) throw new Error(error.message)
+
+  await replaceCoreRelations(data.id, 'time_colaboradores', 'time_id', ids(formData, 'colaboradores'))
+
+  await logEvent(authUser.id, 'time.criado', `Time criado: ${nome}`, { id: data.id }, {
+    entidade_schema: 'core',
+    entidade_tabela: 'times',
+    entidade_id: data.id,
+  })
+  revalidatePath('/admin')
+  revalidatePath('/admin/times')
+  redirect('/admin/times')
+}
+
+export async function updateTimeAction(formData: FormData) {
+  const { authUser } = await requireAdminAction('admin.times.write')
+
+  const id = uuid(text(formData, 'id'), 'Time')
+  const nome = required(text(formData, 'nome'), 'Nome')
+
+  const { error } = await admin().schema('core').from('times').update({
+    nome,
+    descricao: nullableText(formData, 'descricao'),
+    area: nullableText(formData, 'area'),
+    status: (text(formData, 'status') || 'ativo') as StatusRegistro,
+  }).eq('id', id)
+
+  if (error) throw new Error(error.message)
+
+  await replaceCoreRelations(id, 'time_colaboradores', 'time_id', ids(formData, 'colaboradores'))
+
+  await logEvent(authUser.id, 'time.atualizado', `Time atualizado: ${nome}`, { id }, {
+    entidade_schema: 'core',
+    entidade_tabela: 'times',
+    entidade_id: id,
+  })
+  revalidatePath('/admin')
+  revalidatePath('/admin/times')
+  revalidatePath(`/admin/times/${id}`)
+  redirect('/admin/times')
 }
 
 export async function updateAppAction(formData: FormData) {
@@ -310,6 +368,25 @@ async function replaceRelations(usuarioId: string, table: string, column: string
   }))
 
   const { error } = await supabase.schema('security').from(table).insert(rows)
+  if (error) throw new Error(error.message)
+}
+
+async function replaceCoreRelations(parentId: string, table: string, parentColumn: string, selectedUserIds: string[]) {
+  const supabase = admin()
+
+  const { error: delError } = await supabase.schema('core').from(table).delete().eq(parentColumn, parentId)
+  if (delError) throw new Error(delError.message)
+
+  if (!selectedUserIds.length) return
+
+  const rows = selectedUserIds.map((usuario_id, index) => ({
+    [parentColumn]: parentId,
+    usuario_id,
+    ativo: true,
+    principal: index === 0,
+  }))
+
+  const { error } = await supabase.schema('core').from(table).insert(rows)
   if (error) throw new Error(error.message)
 }
 
