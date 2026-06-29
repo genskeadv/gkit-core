@@ -14,9 +14,9 @@ export default async function CarteirasPage({ searchParams }: CarteirasPageProps
   const query = params?.q?.trim().toLowerCase() ?? ''
   const status = params?.status ?? ''
   const carteiras = await listCarteiras()
-  const filtradas = carteiras.filter((c: any) => {
-    const matchesQuery = !query || [c.nome, c.descricao].some((value) => String(value ?? '').toLowerCase().includes(query))
-    const matchesStatus = !status || c.status === status
+  const filtradas = carteiras.filter((carteira: any) => {
+    const matchesQuery = !query || [carteira.nome, carteira.descricao].some((value) => String(value ?? '').toLowerCase().includes(query))
+    const matchesStatus = !status || carteira.status === status
     return matchesQuery && matchesStatus
   })
 
@@ -24,7 +24,7 @@ export default async function CarteirasPage({ searchParams }: CarteirasPageProps
     <>
       <PageHeader
         title="Carteiras"
-        subtitle="Controle dos escopos operacionais."
+        subtitle="Grupos de clientes e receita, com colaboradores vinculados sem interferir nos times."
         actionHref={canWrite ? '/admin/carteiras/nova' : undefined}
         actionLabel={canWrite ? 'Nova carteira' : undefined}
       />
@@ -45,22 +45,24 @@ export default async function CarteirasPage({ searchParams }: CarteirasPageProps
               <th>Nome</th>
               <th>Status</th>
               <th>Cor</th>
-              <th>Usuários</th>
+              <th>Colaboradores</th>
+              <th>Permissoes</th>
               {canWrite ? <th></th> : null}
             </tr>
           </thead>
           <tbody>
-            {filtradas.map((c: any) => (
-              <tr key={c.id}>
-                <td>{c.nome}</td>
-                <td><StatusBadge value={c.status} /></td>
-                <td>{c.cor_primaria || '—'}</td>
-                <td>{c.total_usuarios_ativos ?? 0}</td>
-                {canWrite ? <td><Link href={`/admin/carteiras/${c.id}`}>Editar</Link></td> : null}
+            {filtradas.map((carteira: any) => (
+              <tr key={carteira.id}>
+                <td>{carteira.nome}</td>
+                <td><StatusBadge value={carteira.status} /></td>
+                <td>{carteira.cor_primaria || '-'}</td>
+                <td>{carteira.total_colaboradores ?? 0}</td>
+                <td>{carteira.total_usuarios_ativos ?? 0}</td>
+                {canWrite ? <td><Link href={`/admin/carteiras/${carteira.id}`}>Editar</Link></td> : null}
               </tr>
             ))}
             {!filtradas.length ? (
-              <tr><td colSpan={canWrite ? 5 : 4}>Nenhuma carteira encontrada.</td></tr>
+              <tr><td colSpan={canWrite ? 6 : 5}>Nenhuma carteira encontrada.</td></tr>
             ) : null}
           </tbody>
         </table>

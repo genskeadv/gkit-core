@@ -1,22 +1,21 @@
 import Link from 'next/link'
-import { createCarteiraAction } from '@/features/admin/actions'
+import { createTimeAction } from '@/features/admin/actions'
 import { Field, PageHeader, SelectField } from '@/features/admin/components/Ui'
 import { listUsuarioOptions } from '@/features/admin/queries'
 import { requireAdminPermission } from '@/lib/auth/permissions'
 
-export default async function NovaCarteiraPage() {
-  await requireAdminPermission('admin.carteiras.write')
+export default async function NovoTimePage() {
+  await requireAdminPermission('admin.times.write')
   const usuarios = await listUsuarioOptions()
 
   return (
     <>
-      <PageHeader title="Nova carteira" subtitle="Grupo de clientes, receita e colaboradores responsaveis." />
+      <PageHeader title="Novo time" subtitle="Crie um grupo organizacional de colaboradores." />
 
-      <form action={createCarteiraAction} className="card grid">
+      <form action={createTimeAction} className="card grid">
         <Field label="Nome" name="nome" required />
+        <Field label="Area" name="area" />
         <Field label="Descricao" name="descricao" />
-        <Field label="Cor primaria" name="cor_primaria" defaultValue="#351B40" />
-        <Field label="Logo URL" name="logo_url" />
 
         <SelectField label="Status" name="status" defaultValue="ativo">
           <option value="ativo">Ativo</option>
@@ -25,7 +24,7 @@ export default async function NovaCarteiraPage() {
         </SelectField>
 
         <div>
-          <div className="label">Colaboradores da carteira</div>
+          <div className="label">Colaboradores do time</div>
           <div className="check-list">
             {usuarios.map((usuario: any) => (
               <label key={usuario.id} className="check-row">
@@ -38,7 +37,7 @@ export default async function NovaCarteiraPage() {
 
         <div className="form-actions">
           <button className="button" type="submit">Salvar</button>
-          <Link className="button secondary" href="/admin/carteiras">Cancelar</Link>
+          <Link className="button secondary" href="/admin/times">Cancelar</Link>
         </div>
       </form>
     </>

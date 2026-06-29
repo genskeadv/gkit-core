@@ -34,16 +34,18 @@ function totalMensal(row: Record<string, unknown>) {
 function mapColaborador(
   row: Record<string, unknown>,
   usuarios: Map<string, Record<string, unknown>>,
-  carteiras: Map<string, Record<string, unknown>>
+  carteiras: Map<string, Record<string, unknown>>,
+  carteiraPorUsuario: Map<string, string>
 ): GkitFlexColaborador {
   const usuario = usuarios.get(String(row.usuario_id)) ?? {};
   const gestor = row.gestor_usuario_id ? usuarios.get(String(row.gestor_usuario_id)) : null;
-  const carteira = row.carteira_id ? carteiras.get(String(row.carteira_id)) : null;
+  const carteiraId = carteiraPorUsuario.get(String(row.usuario_id)) || (row.carteira_id ? String(row.carteira_id) : '');
+  const carteira = carteiraId ? carteiras.get(carteiraId) : null;
 
   return {
     id: String(row.id),
     usuario_id: String(row.usuario_id),
-    carteira_id: row.carteira_id ? String(row.carteira_id) : null,
+    carteira_id: carteiraId || null,
     gestor_usuario_id: row.gestor_usuario_id ? String(row.gestor_usuario_id) : null,
     cargo_operacional: text(row.cargo_operacional, '') || null,
     documento: text(row.documento, '') || null,
@@ -81,7 +83,34 @@ function mapColaborador(
 
 async function lookupMaps(rows: Array<Record<string, unknown>>) {
   const usuarioIds = [...new Set(rows.flatMap((row) => [row.usuario_id, row.gestor_usuario_id]).filter(Boolean).map(String))];
-  const carteiraIds = [...new Set(rows.map((row) => row.carteira_id).filter(Boolean).map(String))];
+
+  const coreCarteirasResult = usuarioIds.length
+    ? await admin()
+      .schema('core')
+      .from('carteira_colaboradores')
+      .select('usuario_id, carteira_id, principal')
+      .in('usuario_id', usuarioIds)
+      .eq('ativo', true)
+    : { data: [], error: null };
+
+  if (coreCarteirasResult.error) throw new Error(coreCarteirasResult.error.message);
+
+  const carteiraPorUsuario = new Map<string, string>();
+  for (const rel of ((coreCarteirasResult.data ?? []) as Array<Record<string, unknown>>)) {
+    const usuarioId = String(rel.usuario_id ?? '');
+    const carteiraId = String(rel.carteira_id ?? '');
+    if (!usuarioId || !carteiraId) continue;
+    if (Boolean(rel.principal) || !carteiraPorUsuario.has(usuarioId)) {
+      carteiraPorUsuario.set(usuarioId, carteiraId);
+    }
+  }
+
+  const carteiraIds = [
+    ...new Set([
+      ...rows.map((row) => row.carteira_id).filter(Boolean).map(String),
+      ...Array.from(carteiraPorUsuario.values()),
+    ]),
+  ];
 
   const [usuariosResult, carteirasResult] = await Promise.all([
     usuarioIds.length
@@ -98,6 +127,7 @@ async function lookupMaps(rows: Array<Record<string, unknown>>) {
   return {
     usuarios: new Map(((usuariosResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), row])),
     carteiras: new Map(((carteirasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), row])),
+    carteiraPorUsuario,
   };
 }
 
@@ -112,7 +142,7 @@ export async function listGkitFlexColaboradores(): Promise<GkitFlexColaboradores
 
   const rawRows = (data ?? []) as Array<Record<string, unknown>>;
   const maps = await lookupMaps(rawRows);
-  const colaboradores = rawRows.map((row) => mapColaborador(row, maps.usuarios, maps.carteiras));
+  const colaboradores = rawRows.map((row) => mapColaborador(row, maps.usuarios, maps.carteiras, maps.carteiraPorUsuario));
 
   return {
     colaboradores,
@@ -135,7 +165,7 @@ export async function getGkitFlexColaborador(id: string): Promise<GkitFlexColabo
   if (error) throw new Error(error.message);
 
   const maps = await lookupMaps([data as Record<string, unknown>]);
-  return mapColaborador(data as Record<string, unknown>, maps.usuarios, maps.carteiras);
+  return mapColaborador(data as Record<string, unknown>, maps.usuarios, maps.carteiras, maps.carteiraPorUsuario);
 }
 
 function option(row: Record<string, unknown>): GkitFlexOption {

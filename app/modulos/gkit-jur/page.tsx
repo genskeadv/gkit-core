@@ -1,10 +1,13 @@
 import { moduleTarget, type ModuleSearchParams } from '@/lib/auth/platform'
 import { GkitJurCockpit, GkitJurShell } from '@/features/gkit-jur/components'
-import { requireGkitJurContext } from '@/features/gkit-jur/queries'
+import { getGkitJurDashboardMetrics, requireGkitJurContext } from '@/features/gkit-jur/queries'
 
 export default async function GkitJurRoute({ searchParams }: { searchParams?: Promise<ModuleSearchParams> }) {
   const params = await searchParams
-  const context = await requireGkitJurContext(moduleTarget('/modulos/gkit-jur', params))
+  const [context, metrics] = await Promise.all([
+    requireGkitJurContext(moduleTarget('/modulos/gkit-jur', params)),
+    getGkitJurDashboardMetrics(),
+  ])
 
   return (
     <GkitJurShell
@@ -13,7 +16,7 @@ export default async function GkitJurRoute({ searchParams }: { searchParams?: Pr
       title="Cockpit juridico"
       usuario={context.usuario}
     >
-      <GkitJurCockpit />
+      <GkitJurCockpit metrics={metrics} />
     </GkitJurShell>
   )
 }

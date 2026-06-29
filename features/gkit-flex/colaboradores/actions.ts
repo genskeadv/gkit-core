@@ -95,6 +95,31 @@ function payload(formData: FormData) {
   };
 }
 
+async function syncCoreCarteira(usuarioId: string, carteiraId: string | null) {
+  const supabase = admin();
+
+  const { error: deleteError } = await supabase
+    .schema('core')
+    .from('carteira_colaboradores')
+    .delete()
+    .eq('usuario_id', usuarioId);
+  if (deleteError) throw new Error(deleteError.message);
+
+  if (!carteiraId) return;
+
+  const { error } = await supabase
+    .schema('core')
+    .from('carteira_colaboradores')
+    .insert({
+      usuario_id: usuarioId,
+      carteira_id: carteiraId,
+      principal: true,
+      ativo: true,
+      metadata: { origem: 'gkit_flex_colaboradores' },
+    });
+  if (error) throw new Error(error.message);
+}
+
 export async function createGkitFlexColaboradorAction(formData: FormData) {
   const { authUser } = await requireWrite();
   const data = {
@@ -105,6 +130,8 @@ export async function createGkitFlexColaboradorAction(formData: FormData) {
   const { error } = await admin().from('gkit_flex_colaboradores').insert(data);
   if (error) throw new Error(error.message);
 
+  await syncCoreCarteira(data.usuario_id, data.carteira_id);
+
   revalidatePath('/modulos/gkit-flex');
   revalidatePath('/modulos/gkit-flex/colaboradores');
   redirect('/modulos/gkit-flex/colaboradores');
@@ -113,9 +140,12 @@ export async function createGkitFlexColaboradorAction(formData: FormData) {
 export async function updateGkitFlexColaboradorAction(formData: FormData) {
   await requireWrite();
   const id = uuid(required(text(formData, 'id'), 'Colaborador'), 'Colaborador');
+  const data = payload(formData);
 
-  const { error } = await admin().from('gkit_flex_colaboradores').update(payload(formData)).eq('id', id);
+  const { error } = await admin().from('gkit_flex_colaboradores').update(data).eq('id', id);
   if (error) throw new Error(error.message);
+
+  await syncCoreCarteira(data.usuario_id, data.carteira_id);
 
   revalidatePath('/modulos/gkit-flex');
   revalidatePath('/modulos/gkit-flex/colaboradores');

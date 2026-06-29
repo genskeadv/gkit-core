@@ -214,7 +214,7 @@ from core.times t
 left join core.time_colaboradores tc on tc.time_id = t.id
 group by t.id;
 
-grant select on security.v_carteiras_admin, security.v_times_admin to authenticated;
+grant select on security.v_carteiras_admin, security.v_times_admin to authenticated, service_role;
 
 comment on table core.times is 'Times organizacionais/areas internas, independentes das carteiras de clientes.';
 comment on table core.carteira_colaboradores is 'Vinculo entre colaboradores e carteira de clientes/receita.';

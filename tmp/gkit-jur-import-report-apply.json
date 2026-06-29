@@ -1,0 +1,450 @@
+{
+  "summary": {
+    "apply": true,
+    "totalLinhas": 2414,
+    "validos": 2373,
+    "invalidos": 41,
+    "comClienteCiclo": 1368,
+    "comCarteira": 1650,
+    "comResponsavel": 1190,
+    "porTribunal": {
+      "TJSP": 2112,
+      "TRT2": 214,
+      "TRF3": 10,
+      "SEM_TRIBUNAL": 10,
+      "TJRJ": 22,
+      "TJMG": 3,
+      "TJPR": 2
+    },
+    "invalidosAmostra": [
+      {
+        "linha": 88,
+        "numero": "4040142-95.2025.8.26.0100",
+        "cliente": "CONDOMÍNIO BRERA MOEMA",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 91,
+        "numero": "10062359320248260011",
+        "cliente": "Condominio Edificio Reserva Butantã",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 178,
+        "numero": "0012871-58.2020.8.26.0100",
+        "cliente": "EDIFICIO THE IMPERIAL HALL",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 230,
+        "numero": "4001898-66.2026.8.26.0002",
+        "cliente": "CONDOMÍNIO EDIFÍCIO FOLLOW THE EUREKA BUILDING",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 250,
+        "numero": "4045070-89.2025.8.26.0100",
+        "cliente": "CONDOMÍNIO NEW WAY",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 271,
+        "numero": "40216111920258260016",
+        "cliente": "CONDOMÍNIO GARDEN CLUB BARRA FUNDA",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 302,
+        "numero": "4007058-66.2026.8.26.0004",
+        "cliente": "CAMINHOS DA LAPA CONDOMÍNIO JERIVÁS",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 477,
+        "numero": "1001461-62.2025.5.02.0024",
+        "cliente": "CONDOMINIO VILLA LOBOS OFFICE PARK",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 494,
+        "numero": "4016834-96.2026.8.26.0002",
+        "cliente": "CONDOMINIO EXTENSION BERRINI",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 611,
+        "numero": "10014255920255020011",
+        "cliente": "CONDOMÍNIO CLOCK VILA ROMANA",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 615,
+        "numero": "4041561-53.2025.8.26.0100",
+        "cliente": "CONDOMÍNIO GABELL JARDINS",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 620,
+        "numero": "4034172-83.2026.8.26.0002",
+        "cliente": "CONDOMÍNIO EDIFÍCIO IMPERIAL BERRINI OFFICES",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 621,
+        "numero": "4034172-83.2026.8.26.0002",
+        "cliente": "CONDOMÍNIO EDIFÍCIO IMPERIAL BERRINI OFFICES",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 624,
+        "numero": "4034172-83.2026.8.26.0002",
+        "cliente": "CONDOMÍNIO EDIFÍCIO IMPERIAL BERRINI OFFICES",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 626,
+        "numero": "4007057-81.2026.8.26.0004",
+        "cliente": "CAMINHOS DA LAPA CONDOMÍNIO JERIVÁS",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 631,
+        "numero": "https://eproc1g.tjsp.jus.br/eproc/controlador.php?acao=processo_finalizado&hash=e1190303b5768f7a288f2c9043c3a665#/",
+        "cliente": "CONDOMÍNIO EDIFÍCIO IMPERIAL BERRINI OFFICES",
+        "motivo": "CNJ invalido ou ausente"
+      },
+      {
+        "linha": 652,
+        "numero": "1001282-04.2025.5.02.0712",
+        "cliente": "CONDOMINIO ALPHA STAY",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 721,
+        "numero": "1152729-48.2024.8.26.0100",
+        "cliente": "Francesco Paolo Conte",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 772,
+        "numero": "1591196",
+        "cliente": "Associacao Palacio das Aguas Home Resort",
+        "motivo": "CNJ invalido ou ausente"
+      },
+      {
+        "linha": 862,
+        "numero": "1023720-04.2022.8.26.0003",
+        "cliente": "CONDOMÍNIO EDIFICIO AIRPORT HOTELS",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 875,
+        "numero": "6017.2025/0083611-4",
+        "cliente": "CONDOMÍNIO SQUARE GARDEN CAMPO BELO - RESIDENCIAL",
+        "motivo": "CNJ invalido ou ausente"
+      },
+      {
+        "linha": 881,
+        "numero": "6017.2025/0083357-3",
+        "cliente": "CONDOMÍNIO SOMA PERDIZES - RESIDENCIAL",
+        "motivo": "CNJ invalido ou ausente"
+      },
+      {
+        "linha": 888,
+        "numero": "1001425-59.2025.5.02.0011",
+        "cliente": "CONDOMÍNIO CLOCK VILA ROMANA",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 913,
+        "numero": null,
+        "cliente": "CONDOMÍNIO RESIDENCIAL FORLIFE TULIPAS CLUBE",
+        "motivo": "CNJ invalido ou ausente"
+      },
+      {
+        "linha": 922,
+        "numero": "1025661-52.2022.8.26.0564",
+        "cliente": "CONDOMÍNIO SUIT SAO BERNARDO",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 923,
+        "numero": "4006013-46.2025.8.26.0009",
+        "cliente": "CONDOMÍNIO VIVAZ ESTAÇÃO VILA PRUDENTE",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 949,
+        "numero": "1001713-26.2025.5.02.0037",
+        "cliente": "CONDOMÍNIO NORTEL - CENTRO HOTELEIRO NORTE",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 955,
+        "numero": "1001302-95.2025.5.02.0711",
+        "cliente": "CONDOMÍNIO VILLA NATURA",
+        "motivo": "CNJ duplicado na planilha"
+      },
+      {
+        "linha": 964,
+        "numero": "25.0886.2024.021513-0",
+        "cliente": "Lidiane Genske Baia",
+        "motivo": "CNJ invalido ou ausente"
+      },
+      {
+        "linha": 997,
+        "numero": "400606420258260100",
+        "cliente": "CONDOMÍNIO BRERA MOEMA",
+        "motivo": "CNJ invalido ou ausente"
+      }
+    ]
+  },
+  "invalid": [
+    {
+      "linha": 88,
+      "numero": "4040142-95.2025.8.26.0100",
+      "cliente": "CONDOMÍNIO BRERA MOEMA",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 91,
+      "numero": "10062359320248260011",
+      "cliente": "Condominio Edificio Reserva Butantã",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 178,
+      "numero": "0012871-58.2020.8.26.0100",
+      "cliente": "EDIFICIO THE IMPERIAL HALL",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 230,
+      "numero": "4001898-66.2026.8.26.0002",
+      "cliente": "CONDOMÍNIO EDIFÍCIO FOLLOW THE EUREKA BUILDING",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 250,
+      "numero": "4045070-89.2025.8.26.0100",
+      "cliente": "CONDOMÍNIO NEW WAY",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 271,
+      "numero": "40216111920258260016",
+      "cliente": "CONDOMÍNIO GARDEN CLUB BARRA FUNDA",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 302,
+      "numero": "4007058-66.2026.8.26.0004",
+      "cliente": "CAMINHOS DA LAPA CONDOMÍNIO JERIVÁS",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 477,
+      "numero": "1001461-62.2025.5.02.0024",
+      "cliente": "CONDOMINIO VILLA LOBOS OFFICE PARK",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 494,
+      "numero": "4016834-96.2026.8.26.0002",
+      "cliente": "CONDOMINIO EXTENSION BERRINI",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 611,
+      "numero": "10014255920255020011",
+      "cliente": "CONDOMÍNIO CLOCK VILA ROMANA",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 615,
+      "numero": "4041561-53.2025.8.26.0100",
+      "cliente": "CONDOMÍNIO GABELL JARDINS",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 620,
+      "numero": "4034172-83.2026.8.26.0002",
+      "cliente": "CONDOMÍNIO EDIFÍCIO IMPERIAL BERRINI OFFICES",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 621,
+      "numero": "4034172-83.2026.8.26.0002",
+      "cliente": "CONDOMÍNIO EDIFÍCIO IMPERIAL BERRINI OFFICES",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 624,
+      "numero": "4034172-83.2026.8.26.0002",
+      "cliente": "CONDOMÍNIO EDIFÍCIO IMPERIAL BERRINI OFFICES",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 626,
+      "numero": "4007057-81.2026.8.26.0004",
+      "cliente": "CAMINHOS DA LAPA CONDOMÍNIO JERIVÁS",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 631,
+      "numero": "https://eproc1g.tjsp.jus.br/eproc/controlador.php?acao=processo_finalizado&hash=e1190303b5768f7a288f2c9043c3a665#/",
+      "cliente": "CONDOMÍNIO EDIFÍCIO IMPERIAL BERRINI OFFICES",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 652,
+      "numero": "1001282-04.2025.5.02.0712",
+      "cliente": "CONDOMINIO ALPHA STAY",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 721,
+      "numero": "1152729-48.2024.8.26.0100",
+      "cliente": "Francesco Paolo Conte",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 772,
+      "numero": "1591196",
+      "cliente": "Associacao Palacio das Aguas Home Resort",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 862,
+      "numero": "1023720-04.2022.8.26.0003",
+      "cliente": "CONDOMÍNIO EDIFICIO AIRPORT HOTELS",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 875,
+      "numero": "6017.2025/0083611-4",
+      "cliente": "CONDOMÍNIO SQUARE GARDEN CAMPO BELO - RESIDENCIAL",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 881,
+      "numero": "6017.2025/0083357-3",
+      "cliente": "CONDOMÍNIO SOMA PERDIZES - RESIDENCIAL",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 888,
+      "numero": "1001425-59.2025.5.02.0011",
+      "cliente": "CONDOMÍNIO CLOCK VILA ROMANA",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 913,
+      "numero": null,
+      "cliente": "CONDOMÍNIO RESIDENCIAL FORLIFE TULIPAS CLUBE",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 922,
+      "numero": "1025661-52.2022.8.26.0564",
+      "cliente": "CONDOMÍNIO SUIT SAO BERNARDO",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 923,
+      "numero": "4006013-46.2025.8.26.0009",
+      "cliente": "CONDOMÍNIO VIVAZ ESTAÇÃO VILA PRUDENTE",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 949,
+      "numero": "1001713-26.2025.5.02.0037",
+      "cliente": "CONDOMÍNIO NORTEL - CENTRO HOTELEIRO NORTE",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 955,
+      "numero": "1001302-95.2025.5.02.0711",
+      "cliente": "CONDOMÍNIO VILLA NATURA",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 964,
+      "numero": "25.0886.2024.021513-0",
+      "cliente": "Lidiane Genske Baia",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 997,
+      "numero": "400606420258260100",
+      "cliente": "CONDOMÍNIO BRERA MOEMA",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 1021,
+      "numero": "1000916-53.2025.5.02.0036",
+      "cliente": "S. G. C. B.",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 2367,
+      "numero": "2609.0000196/2024",
+      "cliente": "CONDOMÍNIO EXTENSION BERRINI",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 2368,
+      "numero": null,
+      "cliente": "Genske Sociedade Individual De Advocacia",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 2369,
+      "numero": null,
+      "cliente": "Genske Sociedade Individual De Advocacia",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 2371,
+      "numero": null,
+      "cliente": "CONDOMÍNIO RESIDENCIAL  INSPIRE MAUA SONHOS",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 2372,
+      "numero": null,
+      "cliente": "CONDOMÍNIO DESIGN 101",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 2373,
+      "numero": "6019193-27.2026.8.03.0001",
+      "cliente": "ASSOCIACAO PALACIO DAS AGUAS HOME RESORT",
+      "motivo": "CNJ duplicado na planilha"
+    },
+    {
+      "linha": 2374,
+      "numero": null,
+      "cliente": "CONDOMÍNIO RESERVA BUTANTÃ",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 2375,
+      "numero": null,
+      "cliente": "CONDOMÍNIO SUIT SAO BERNARDO",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 2376,
+      "numero": null,
+      "cliente": "CONDOMINIO VILLA LOBOS OFFICE PARK",
+      "motivo": "CNJ invalido ou ausente"
+    },
+    {
+      "linha": 2377,
+      "numero": null,
+      "cliente": "CAMINHOS DA LAPA CONDOMÍNIO JERIVÁS",
+      "motivo": "CNJ invalido ou ausente"
+    }
+  ]
+}
