@@ -1,4 +1,5 @@
 import { getSupabaseAdmin, logEvent } from '../audit';
+import { listGkitFlexColaboradores } from '../colaboradores/queries';
 
 export type RevenueForecastRow = {
   id?: string;
@@ -40,6 +41,9 @@ export type ForecastComparisonRow = {
 function roundMoney(value: number): number {
   return Math.round((value || 0) * 100) / 100;
 }
+
+const AUTOMATIC_COLLABORATOR_FORECAST = 'Automatico Flex - colaboradores';
+const AUTOMATIC_COMMISSION_FORECAST = 'Automatico Flex - comissoes';
 
 export function sanitizeCompetencia(value?: string | null): string {
   if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value.slice(0, 10);
@@ -383,10 +387,67 @@ async function seedPaymentForecast(supabase: NonNullable<ReturnType<typeof getSu
       ordem: index,
     }));
 
-  if (!payload.length) return 0;
-  const { error: insertError } = await supabase.from('gkit_flex_previsao_pagamentos').insert(payload);
+  const automaticPayload = await buildAutomaticPaymentForecast(supabase, competencia, payload.length);
+  const fullPayload = [...payload, ...automaticPayload];
+
+  if (!fullPayload.length) return 0;
+  const { error: insertError } = await supabase.from('gkit_flex_previsao_pagamentos').insert(fullPayload);
   if (insertError) throw new Error(`Erro ao gerar previsao de pagamentos: ${insertError.message}`);
-  return payload.length;
+  return fullPayload.length;
+}
+
+async function buildAutomaticPaymentForecast(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  competencia: string,
+  initialOrder: number,
+) {
+  const colaboradoresData = await listGkitFlexColaboradores();
+  const colaboradores = colaboradoresData.colaboradores
+    .filter((row) => row.status === 'ativo' && roundMoney(row.total_mensal) > 0)
+    .sort((a, b) => a.usuario_nome.localeCompare(b.usuario_nome, 'pt-BR'));
+
+  const colaboradorRows = colaboradores.map((row, index) => ({
+    competencia,
+    descricao: `Colaborador - ${row.usuario_nome}`,
+    vencimento_dia: 5,
+    vencimento_texto: '05',
+    valor_previsto: roundMoney(row.total_mensal),
+    categoria: 'Colaboradores',
+    centro: row.carteira_nome || row.cargo_operacional || 'Pessoal',
+    origem_competencia: competencia,
+    origem_item_id: row.id,
+    observacao: `${AUTOMATIC_COLLABORATOR_FORECAST}. Fonte: cadastro de colaboradores do Flex.`,
+    ordem: initialOrder + index,
+  }));
+
+  const { data: latestExecution, error: executionError } = await supabase
+    .from('comissao_execucoes')
+    .select('id, total_comissao, created_at')
+    .eq('competencia', competencia)
+    .eq('status', 'processado')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (executionError) throw new Error(`Erro ao consultar comissao do mes: ${executionError.message}`);
+
+  const commissionTotal = roundMoney(Number(latestExecution?.total_comissao || 0));
+  const commissionRows = latestExecution?.id && commissionTotal > 0
+    ? [{
+        competencia,
+        descricao: 'Comissoes calculadas do mes',
+        vencimento_dia: 25,
+        vencimento_texto: '25',
+        valor_previsto: commissionTotal,
+        categoria: 'Comissoes',
+        centro: 'Equipe',
+        origem_competencia: competencia,
+        origem_item_id: String(latestExecution.id),
+        observacao: `${AUTOMATIC_COMMISSION_FORECAST}. Fonte: ultima apuracao de receitas (${latestExecution.created_at || ''}).`,
+        ordem: initialOrder + colaboradorRows.length,
+      }]
+    : [];
+
+  return [...colaboradorRows, ...commissionRows];
 }
 
 export async function seedMonthlyForecast(competenciaInput: string, tipo: 'receitas' | 'pagamentos' | 'tudo', overwrite = false) {

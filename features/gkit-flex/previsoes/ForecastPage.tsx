@@ -279,7 +279,7 @@ export function ForecastPage() {
               <MetricCard label="Saldo realizado" value={formatCurrency(data?.comparativo?.resumo.saldoRealizado || 0)} tone={(data?.comparativo?.resumo.saldoRealizado || 0) < 0 ? 'warning' : 'good'} />
               <MetricCard label="Diferenca do saldo" value={formatCurrency(data?.comparativo?.resumo.diferencaSaldo || 0)} tone={(data?.comparativo?.resumo.diferencaSaldo || 0) < 0 ? 'warning' : 'good'} />
             </section>
-            <section className="grid-2 forecast-comparison-grid">
+            <section className="forecast-comparison-grid">
               <ComparisonPanel
                 title="Receitas por tipo"
                 description={`Previsto ${formatCurrency(data?.comparativo?.resumo.totalReceitasPrevistas || 0)} / realizado ${formatCurrency(data?.comparativo?.resumo.totalReceitasRealizadas || 0)}`}

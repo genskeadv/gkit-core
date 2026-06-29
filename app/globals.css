@@ -15476,6 +15476,9 @@ a.button {
 
 .gkit-flex-shell .forecast-comparison-grid {
   align-items: start;
+  display: grid;
+  gap: var(--gkit-flex-gap);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .gkit-flex-shell .forecast-comparison-panel {
