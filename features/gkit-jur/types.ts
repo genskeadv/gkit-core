@@ -184,7 +184,9 @@ export type GkitJurDocumento = {
   urlExterna: string | null;
   storagePath: string | null;
   origem: string;
+  carteiraId: string | null;
   carteiraNome: string | null;
+  responsavelId: string | null;
   responsavelNome: string | null;
   createdAt: string;
 };
@@ -197,7 +199,9 @@ export type GkitJurEventoProcesso = {
   descricao: string | null;
   dataEvento: string;
   origem: string;
+  carteiraId: string | null;
   carteiraNome: string | null;
+  responsavelId: string | null;
   responsavelNome: string | null;
   createdAt: string;
 };
@@ -205,6 +209,8 @@ export type GkitJurEventoProcesso = {
 export type GkitJurTimelineItem = {
   id: string;
   tipo: 'evento' | 'documento' | 'tarefa' | 'movimentacao';
+  sourceId: string;
+  processoId: string;
   titulo: string;
   descricao: string | null;
   dataReferencia: string | null;
@@ -388,4 +394,35 @@ export type GkitJurAgenteData = {
     pendentes: number;
     falhas: number;
   };
+};
+
+export type GkitJurMonitoramentoNivel = 'verde' | 'amarelo' | 'vermelho' | 'cinza';
+
+export type GkitJurIntegracaoTribunal = {
+  alias: string | null;
+  atrasados: number;
+  erro: number;
+  monitorando: number;
+  naoMonitorar: number;
+  nivel: GkitJurMonitoramentoNivel;
+  nome: string;
+  pausado: number;
+  semCarteira: number;
+  semResponsavel: number;
+  semSincronizacao: number;
+  status: string;
+  totalAtivos: number;
+  tribunal: string;
+};
+
+export type GkitJurIntegracaoData = {
+  metrics: {
+    atrasados: number;
+    configurados: number;
+    criticos: number;
+    semMapeamento: number;
+    semSincronizacao: number;
+    totalAtivos: number;
+  };
+  tribunais: GkitJurIntegracaoTribunal[];
 };

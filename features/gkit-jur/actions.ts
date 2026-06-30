@@ -197,6 +197,60 @@ export async function createGkitJurTarefaAction(formData: FormData) {
   redirect(safeReturnTo(formData, `/modulos/gkit-jur/processos/${processoId}#tarefas`))
 }
 
+export async function createGkitJurTarefaFromReferenceAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.write')
+  const processoId = requiredText(formData, 'processo_id', 'Processo')
+  const sourceTipo = allowed(text(formData, 'source_tipo'), ['documento', 'evento'], 'evento')
+  const sourceId = requiredText(formData, 'source_id', 'Origem')
+  const processo = await getActiveJurProcess(processoId)
+  const prazo = text(formData, 'prazo_at')
+  const sourceTitle = requiredText(formData, 'source_title', 'Titulo de origem')
+
+  const payload = {
+    processo_id: processoId,
+    carteira_id: optionalUuid(formData, 'carteira_id') || (processo.carteira_id as string | null) || await defaultCarteiraId(),
+    responsavel_id: optionalUuid(formData, 'responsavel_id') || (processo.responsavel_id as string | null) || null,
+    tipo: allowed(text(formData, 'tipo'), ['prazo', 'publicacao', 'movimentacao_relevante', 'documento_pendente', 'providencia_interna', 'audiencia', 'cumprimento', 'revisao'], sourceTipo === 'documento' ? 'documento_pendente' : 'providencia_interna'),
+    titulo: text(formData, 'titulo') || `Providenciar: ${sourceTitle}`,
+    descricao: text(formData, 'descricao') || `Gerada a partir de ${sourceTipo}: ${sourceTitle}`,
+    prioridade: allowed(text(formData, 'prioridade'), ['critica', 'alta', 'media', 'baixa'], 'media'),
+    prazo_at: prazo ? new Date(prazo).toISOString() : null,
+    origem: sourceTipo,
+    origem_id: sourceId,
+    payload: {
+      origem: sourceTipo,
+      origem_id: sourceId,
+      origem_titulo: sourceTitle,
+      processo_numero_cnj: processo.numero_cnj,
+    },
+    criado_por: context.usuario.id,
+    atualizado_por: context.usuario.id,
+    updated_at: new Date().toISOString(),
+  }
+
+  const insertResult = await admin()
+    .schema('gkit_jur')
+    .from('tarefas')
+    .insert(payload)
+    .select('id')
+    .single()
+
+  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Nao foi possivel gerar tarefa.')
+
+  await admin().schema('gkit_jur').from('eventos_operacionais').insert({
+    user_id: context.usuario.id,
+    entidade_tipo: 'tarefa',
+    entidade_id: insertResult.data.id,
+    acao: 'tarefa_gerada_por_referencia',
+    descricao: `Tarefa juridica gerada a partir de ${sourceTipo}.`,
+    payload: { processo_id: processoId, origem_tipo: sourceTipo, origem_id: sourceId, titulo: payload.titulo },
+  })
+
+  revalidateGkitJur()
+  revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  redirect(safeReturnTo(formData, `/modulos/gkit-jur/processos/${processoId}#tarefas`))
+}
+
 export async function updateGkitJurTarefaStatusAction(formData: FormData) {
   const context = await requireGkitJurWrite('gkit_jur.processos.write')
   const tarefaId = requiredText(formData, 'tarefa_id', 'Tarefa')

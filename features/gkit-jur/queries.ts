@@ -21,6 +21,9 @@ import type {
   GkitJurInboxFilters,
   GkitJurInboxItem,
   GkitJurInboxPrioridade,
+  GkitJurIntegracaoData,
+  GkitJurIntegracaoTribunal,
+  GkitJurMonitoramentoNivel,
   GkitJurMonitoramentoStatus,
   GkitJurMovimentacao,
   GkitJurMovimentacoesData,
@@ -635,7 +638,9 @@ function mapDocumento(row: Record<string, unknown>, maps: Awaited<ReturnType<typ
     urlExterna: text(row.url_externa) || null,
     storagePath: text(row.storage_path) || null,
     origem: text(row.origem, 'manual'),
+    carteiraId: carteiraId || null,
     carteiraNome: carteiraId ? maps.carteiras.get(carteiraId) ?? fallback?.carteiraNome ?? null : fallback?.carteiraNome ?? null,
+    responsavelId: responsavelId || null,
     responsavelNome: responsavelId ? maps.responsaveis.get(responsavelId) ?? fallback?.responsavelNome ?? null : fallback?.responsavelNome ?? null,
     createdAt: text(row.created_at),
   }
@@ -655,7 +660,9 @@ function mapEventoProcesso(row: Record<string, unknown>, maps: Awaited<ReturnTyp
     descricao: text(row.descricao) || null,
     dataEvento: text(row.data_evento, text(row.created_at)),
     origem: text(row.origem, 'manual'),
+    carteiraId: carteiraId || null,
     carteiraNome: carteiraId ? maps.carteiras.get(carteiraId) ?? fallback?.carteiraNome ?? null : fallback?.carteiraNome ?? null,
+    responsavelId: responsavelId || null,
     responsavelNome: responsavelId ? maps.responsaveis.get(responsavelId) ?? fallback?.responsavelNome ?? null : fallback?.responsavelNome ?? null,
     createdAt: text(row.created_at),
   }
@@ -671,6 +678,8 @@ function buildProcessTimeline(input: {
     ...input.eventos.map((row) => ({
       id: `evento:${row.id}`,
       tipo: 'evento' as const,
+      sourceId: row.id,
+      processoId: row.processoId,
       titulo: row.titulo,
       descricao: row.descricao,
       dataReferencia: row.dataEvento,
@@ -682,6 +691,8 @@ function buildProcessTimeline(input: {
     ...input.documentos.map((row) => ({
       id: `documento:${row.id}`,
       tipo: 'documento' as const,
+      sourceId: row.id,
+      processoId: row.processoId,
       titulo: row.titulo,
       descricao: row.descricao,
       dataReferencia: row.dataDocumento || row.createdAt,
@@ -693,6 +704,8 @@ function buildProcessTimeline(input: {
     ...input.tarefas.map((row) => ({
       id: `tarefa:${row.id}`,
       tipo: 'tarefa' as const,
+      sourceId: row.id,
+      processoId: row.processoId,
       titulo: row.titulo,
       descricao: row.descricao,
       dataReferencia: row.prazoAt || row.createdAt,
@@ -704,6 +717,8 @@ function buildProcessTimeline(input: {
     ...input.movimentacoes.map((row) => ({
       id: `movimentacao:${row.id}`,
       tipo: 'movimentacao' as const,
+      sourceId: row.id,
+      processoId: row.processoId,
       titulo: row.nome,
       descricao: row.clienteNome,
       dataReferencia: row.dataHora,
@@ -1450,6 +1465,104 @@ export async function getGkitJurAgenteData(): Promise<GkitJurAgenteData> {
       pendentes: execucoes.filter((item) => ['pendente', 'em_execucao', 'aguardando_validacao'].includes(item.status)).length,
       falhas: execucoes.filter((item) => ['falha', 'precisa_intervencao'].includes(item.status)).length,
     },
+  }
+}
+
+async function fetchAllActiveProcessMonitoringRows() {
+  const rows: Array<Record<string, unknown>> = []
+  const pageSize = 1000
+
+  for (let from = 0; ; from += pageSize) {
+    const result = await admin()
+      .schema('gkit_jur')
+      .from('processos')
+      .select('tribunal_sigla,tribunal_alias,status_monitoramento,ultima_sincronizacao_em,carteira_id,responsavel_id')
+      .eq('status', DEFAULT_PROCESS_STATUS)
+      .range(from, from + pageSize - 1)
+
+    if (result.error) throw new Error(result.error.message)
+
+    const data = (result.data ?? []) as Array<Record<string, unknown>>
+    rows.push(...data)
+    if (data.length < pageSize) break
+  }
+
+  return rows
+}
+
+function tribunalMonitoramentoNivel(item: Omit<GkitJurIntegracaoTribunal, 'nivel' | 'status'>): GkitJurMonitoramentoNivel {
+  if (!item.totalAtivos) return 'cinza'
+  if (!item.alias || item.erro > 0) return 'vermelho'
+  if (item.semSincronizacao > 0 || item.atrasados > 0 || item.semCarteira > 0 || item.semResponsavel > 0 || item.pausado > 0) return 'amarelo'
+  return 'verde'
+}
+
+function tribunalMonitoramentoStatus(nivel: GkitJurMonitoramentoNivel, item: Omit<GkitJurIntegracaoTribunal, 'nivel' | 'status'>) {
+  if (nivel === 'vermelho') return item.alias ? 'Erro no monitoramento' : 'Sem mapeamento DataJud'
+  if (nivel === 'amarelo') return item.semSincronizacao ? 'Aguardando primeira sincronizacao' : 'Requer saneamento'
+  if (nivel === 'verde') return 'Monitoramento saudavel'
+  return 'Sem processos ativos'
+}
+
+export async function getGkitJurIntegracaoData(): Promise<GkitJurIntegracaoData> {
+  const rows = await fetchAllActiveProcessMonitoringRows()
+  const tribunalCatalog = new Map(DATAJUD_TRIBUNAIS.map((tribunal) => [tribunal.sigla, tribunal]))
+  const staleBefore = Date.now() - 48 * 60 * 60 * 1000
+  const groups = new Map<string, Omit<GkitJurIntegracaoTribunal, 'nivel' | 'status'>>()
+
+  for (const row of rows) {
+    const sigla = text(row.tribunal_sigla) || 'SEM_TRIBUNAL'
+    const catalog = tribunalCatalog.get(sigla)
+    const current = groups.get(sigla) ?? {
+      alias: (catalog?.alias ?? text(row.tribunal_alias)) || null,
+      atrasados: 0,
+      erro: 0,
+      monitorando: 0,
+      naoMonitorar: 0,
+      nome: catalog?.nome ?? (sigla === 'SEM_TRIBUNAL' ? 'Tribunal nao identificado' : sigla),
+      pausado: 0,
+      semCarteira: 0,
+      semResponsavel: 0,
+      semSincronizacao: 0,
+      totalAtivos: 0,
+      tribunal: sigla,
+    }
+
+    const syncAt = text(row.ultima_sincronizacao_em)
+    const syncTime = syncAt ? new Date(syncAt).getTime() : Number.NaN
+    const monitor = monitoramento(row.status_monitoramento)
+
+    current.totalAtivos += 1
+    if (monitor === 'monitorando') current.monitorando += 1
+    if (monitor === 'erro') current.erro += 1
+    if (monitor === 'pausado') current.pausado += 1
+    if (monitor === 'nao_monitorar') current.naoMonitorar += 1
+    if (!text(row.carteira_id)) current.semCarteira += 1
+    if (!text(row.responsavel_id)) current.semResponsavel += 1
+    if (!syncAt) current.semSincronizacao += 1
+    if (syncAt && (!Number.isFinite(syncTime) || syncTime < staleBefore)) current.atrasados += 1
+
+    groups.set(sigla, current)
+  }
+
+  const levelWeight: Record<GkitJurMonitoramentoNivel, number> = { vermelho: 0, amarelo: 1, verde: 2, cinza: 3 }
+  const tribunais = [...groups.values()]
+    .map((item): GkitJurIntegracaoTribunal => {
+      const nivel = tribunalMonitoramentoNivel(item)
+      return { ...item, nivel, status: tribunalMonitoramentoStatus(nivel, item) }
+    })
+    .sort((a, b) => levelWeight[a.nivel] - levelWeight[b.nivel] || b.totalAtivos - a.totalAtivos || a.tribunal.localeCompare(b.tribunal, 'pt-BR'))
+
+  return {
+    metrics: {
+      atrasados: tribunais.reduce((total, item) => total + item.atrasados, 0),
+      configurados: tribunais.filter((item) => item.alias).length,
+      criticos: tribunais.filter((item) => item.nivel === 'vermelho').length,
+      semMapeamento: tribunais.filter((item) => !item.alias).reduce((total, item) => total + item.totalAtivos, 0),
+      semSincronizacao: tribunais.reduce((total, item) => total + item.semSincronizacao, 0),
+      totalAtivos: rows.length,
+    },
+    tribunais,
   }
 }
 

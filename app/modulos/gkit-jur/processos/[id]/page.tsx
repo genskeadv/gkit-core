@@ -3,7 +3,9 @@ import {
   createGkitJurDocumentoAction,
   createGkitJurEventoProcessoAction,
   createGkitJurTarefaAction,
+  createGkitJurTarefaFromReferenceAction,
   updateGkitJurProcessoAction,
+  updateGkitJurTarefaPlanejamentoAction,
   updateGkitJurTarefaStatusAction,
 } from '@/features/gkit-jur/actions'
 import { GkitJurProcessDetailPage, GkitJurShell } from '@/features/gkit-jur/components'
@@ -35,7 +37,9 @@ export default async function GkitJurProcessoDetailRoute({
         createDocumentoAction={createGkitJurDocumentoAction}
         createEventoAction={createGkitJurEventoProcessoAction}
         createTarefaAction={createGkitJurTarefaAction}
+        createTarefaFromReferenceAction={createGkitJurTarefaFromReferenceAction}
         data={data}
+        updateTarefaPlanejamentoAction={updateGkitJurTarefaPlanejamentoAction}
         updateTarefaStatusAction={updateGkitJurTarefaStatusAction}
       />
     </GkitJurShell>
