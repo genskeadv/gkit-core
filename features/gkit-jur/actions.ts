@@ -14,7 +14,7 @@ function admin() {
 async function requireGkitJurWrite(permission = 'gkit_jur.processos.write') {
   const context = await requireModuleAccess('gkit-jur')
   if (!canAccess(context.permissions, permission)) {
-    throw new Error('Usuario sem permissao para alterar processos no GKIT Jur.')
+    throw new Error('Usuário sem permissão para alterar processos no GKIT Jur.')
   }
   return context
 }
@@ -80,9 +80,9 @@ async function getActiveJurProcess(processoId: string) {
     .eq('id', processoId)
     .single()
 
-  if (processoResult.error || !processoResult.data) throw new Error('Processo nao encontrado.')
+  if (processoResult.error || !processoResult.data) throw new Error('Processo não encontrado.')
   const processo = processoResult.data as Record<string, unknown>
-  if (processo.status !== 'ativo') throw new Error('Acoes operacionais so podem ser criadas para processos ativos.')
+  if (processo.status !== 'ativo') throw new Error('Ações operacionais só podem ser criadas para processos ativos.')
   return processo
 }
 
@@ -181,7 +181,7 @@ export async function createGkitJurTarefaAction(formData: FormData) {
     .select('id')
     .single()
 
-  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Nao foi possivel criar tarefa.')
+  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Não foi possível criar tarefa.')
 
   await admin().schema('gkit_jur').from('eventos_operacionais').insert({
     user_id: context.usuario.id,
@@ -235,7 +235,7 @@ export async function createGkitJurTarefaFromReferenceAction(formData: FormData)
     .select('id')
     .single()
 
-  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Nao foi possivel gerar tarefa.')
+  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Não foi possível gerar tarefa.')
 
   await admin().schema('gkit_jur').from('eventos_operacionais').insert({
     user_id: context.usuario.id,
@@ -370,14 +370,14 @@ export async function createGkitJurDocumentoAction(formData: FormData) {
     .select('id')
     .single()
 
-  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Nao foi possivel registrar documento.')
+  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Não foi possível registrar documento.')
 
   await admin().schema('gkit_jur').from('eventos_operacionais').insert({
     user_id: context.usuario.id,
     entidade_tipo: 'documento',
     entidade_id: insertResult.data.id,
     acao: 'documento_registrado',
-    descricao: 'Documento juridico registrado no processo.',
+    descricao: 'Documento jurídico registrado no processo.',
     payload: { processo_id: processoId, titulo: payload.titulo },
   })
 
@@ -414,7 +414,7 @@ export async function createGkitJurEventoProcessoAction(formData: FormData) {
     .select('id')
     .single()
 
-  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Nao foi possivel registrar evento.')
+  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Não foi possível registrar evento.')
 
   await admin().schema('gkit_jur').from('eventos_operacionais').insert({
     user_id: context.usuario.id,
@@ -491,7 +491,7 @@ export async function runGkitJurAgenteReceitaAction(formData: FormData) {
     .eq('id', receitaId)
     .single()
 
-  if (receitaResult.error || !receitaResult.data) throw new Error('Receita do agente nao encontrada.')
+  if (receitaResult.error || !receitaResult.data) throw new Error('Receita do agente não encontrada.')
   const receita = receitaResult.data as Record<string, unknown>
 
   const insertResult = await admin()
@@ -508,7 +508,7 @@ export async function runGkitJurAgenteReceitaAction(formData: FormData) {
     .select('id')
     .single()
 
-  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Nao foi possivel criar execucao.')
+  if (insertResult.error || !insertResult.data) throw new Error(insertResult.error?.message ?? 'Não foi possível criar execução.')
 
   await admin().schema('gkit_jur').from('agente_logs').insert({
     execucao_id: insertResult.data.id,

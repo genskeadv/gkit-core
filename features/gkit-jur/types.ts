@@ -409,6 +409,7 @@ export type GkitJurIntegracaoTribunal = {
   pausado: number;
   semCarteira: number;
   semResponsavel: number;
+  saneamentoProcessos: number;
   semSincronizacao: number;
   status: string;
   totalAtivos: number;

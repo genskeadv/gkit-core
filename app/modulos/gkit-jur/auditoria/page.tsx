@@ -10,7 +10,7 @@ export default async function GkitJurAuditoriaRoute() {
   return (
     <GkitJurShell
       active="auditoria"
-      description="Trilha de importacoes e futuras sincronizacoes do modulo juridico."
+      description="Trilha de importações e futuras sincronizações do módulo jurídico."
       title="Auditoria"
       usuario={context.usuario}
     >

@@ -7,8 +7,8 @@ export default async function GkitJurConfiguracoesRoute() {
   return (
     <GkitJurShell
       active="configuracoes"
-      description="Parametros, saneamento e integracoes do modulo juridico."
-      title="Configuracoes"
+      description="Parâmetros, saneamento e integrações do módulo jurídico."
+      title="Configurações"
       usuario={context.usuario}
     >
       <GkitJurConfiguracoesPage />

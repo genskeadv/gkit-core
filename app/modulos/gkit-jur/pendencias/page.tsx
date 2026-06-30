@@ -12,7 +12,7 @@ export default async function GkitJurPendenciasRoute() {
     <GkitJurShell
       active="pendencias"
       description="Fila de saneamento dos processos importados."
-      title="Pendencias"
+      title="Pendências"
       usuario={context.usuario}
     >
       <GkitJurPendenciasPage

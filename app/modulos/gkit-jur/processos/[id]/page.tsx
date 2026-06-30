@@ -27,7 +27,7 @@ export default async function GkitJurProcessoDetailRoute({
   return (
     <GkitJurShell
       active="processos"
-      description="Resumo, vinculos operacionais e historico do processo."
+      description="Resumo, vínculos operacionais e histórico do processo."
       title={data.processo.numeroCnj}
       usuario={context.usuario}
     >

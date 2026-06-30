@@ -15,7 +15,7 @@ export default async function GkitJurProcessosRoute({
   ])
 
   return (
-    <GkitJurShell active="processos" description="Lista e acompanhamento dos processos juridicos." title="Processos" usuario={context.usuario}>
+    <GkitJurShell active="processos" description="Lista e acompanhamento dos processos jurídicos." title="Processos" usuario={context.usuario}>
       <GkitJurProcessesPage data={data} />
     </GkitJurShell>
   )

@@ -10,8 +10,8 @@ export default async function GkitJurIntegracaoRoute() {
   return (
     <GkitJurShell
       active="configuracoes"
-      description="Conexao, tribunais, fila e execucoes da integracao DataJud."
-      title="Integracao DataJud"
+      description="Conexão, tribunais, fila e execuções da integração DataJud."
+      title="Integração DataJud"
       usuario={context.usuario}
     >
       <GkitJurIntegracaoPage data={data} />

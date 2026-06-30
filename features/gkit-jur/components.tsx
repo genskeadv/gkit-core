@@ -50,7 +50,7 @@ const activeHref: Record<GkitJurTab, string> = {
 const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-jur/inbox', title: 'Inbox' },
   { href: '/modulos/gkit-jur/processos', title: 'Processos' },
-  { href: '/modulos/gkit-jur/movimentacoes', title: 'Movimentacoes' },
+  { href: '/modulos/gkit-jur/movimentacoes', title: 'Movimentações' },
 ]
 
 export function GkitJurShell({
@@ -68,13 +68,13 @@ export function GkitJurShell({
   title: string
   usuario: PlatformUsuario
 }) {
-  const settingsButton = <Link className="button secondary gkit-jur-settings-button" href="/modulos/gkit-jur/configuracoes">Configuracoes</Link>
+  const settingsButton = <Link className="button secondary gkit-jur-settings-button" href="/modulos/gkit-jur/configuracoes">Configurações</Link>
 
   return (
     <ModuleShell
       activeHref={activeHref[active]}
       actions={actions ? <>{settingsButton}{actions}</> : settingsButton}
-      brand="Juridico"
+      brand="Jurídico"
       description={description}
       eyebrow="GKIT Jur"
       navGroups={navGroups}
@@ -151,7 +151,7 @@ function MetricCards({ metrics }: { metrics: GkitJurDashboardMetrics }) {
       <article className="metric-card">
         <span className="metric-label">Sem cliente</span>
         <strong className="metric-value">{metrics.semCliente}</strong>
-        <span className="metric-hint">vinculo Ciclo pendente</span>
+        <span className="metric-hint">vínculo Ciclo pendente</span>
       </article>
       <article className="metric-card">
         <span className="metric-label">Sem carteira</span>
@@ -159,7 +159,7 @@ function MetricCards({ metrics }: { metrics: GkitJurDashboardMetrics }) {
         <span className="metric-hint">triagem operacional</span>
       </article>
       <article className="metric-card">
-        <span className="metric-label">Sem responsavel</span>
+        <span className="metric-label">Sem responsável</span>
         <strong className="metric-value">{metrics.semResponsavel}</strong>
         <span className="metric-hint">dono do caso</span>
       </article>
@@ -245,7 +245,7 @@ function InboxItemCard({
                 <input name="prazo_at" type="datetime-local" defaultValue={formatDateTimeLocal(item.prazoAt)} />
               </label>
               <label>
-                <span>Responsavel</span>
+                <span>Responsável</span>
                 <select name="responsavel_id" defaultValue={item.responsavelId ?? ''}>
                   {optionList(formData.responsaveis, item.responsavelNome || 'Herdar do processo')}
                 </select>
@@ -298,17 +298,17 @@ export function GkitJurInboxPage({
           <span className="metric-hint">itens acionaveis</span>
         </article>
         <article className="metric-card">
-          <span className="metric-label">Criticos</span>
+          <span className="metric-label">Críticos</span>
           <strong className="metric-value">{data.metrics.criticos}</strong>
           <span className="metric-hint">risco ou bloqueio</span>
         </article>
         <article className="metric-card">
           <span className="metric-label">Tarefas</span>
           <strong className="metric-value">{data.metrics.prazos}</strong>
-          <span className="metric-hint">providencias abertas</span>
+          <span className="metric-hint">providências abertas</span>
         </article>
         <article className="metric-card">
-          <span className="metric-label">Pendencias</span>
+          <span className="metric-label">Pendências</span>
           <strong className="metric-value">{data.metrics.pendencias}</strong>
           <span className="metric-hint">travas abertas</span>
         </article>
@@ -338,7 +338,7 @@ export function GkitJurInboxPage({
         <GkitJurSection
           className="gkit-jur-inbox-main"
           title="Caixa de entrada"
-          description="Itens priorizados por risco, pendencia, ausencia de dono e automacao."
+          description="Itens priorizados por risco, pendência, ausência de dono e automação."
         >
           <form className="gkit-jur-inbox-filter" method="get">
             {data.selected !== 'hoje' ? <input name="fila" type="hidden" value={data.selected} /> : null}
@@ -347,9 +347,9 @@ export function GkitJurInboxPage({
                 {optionList(data.filterOptions.carteiras, 'Todas as carteiras')}
               </select>
             </Field>
-            <Field label="Responsavel">
+            <Field label="Responsável">
               <select name="responsavel_id" defaultValue={data.filters.responsavelId}>
-                {optionList(data.filterOptions.responsaveis, 'Todos os responsaveis')}
+                {optionList(data.filterOptions.responsaveis, 'Todos os responsáveis')}
               </select>
             </Field>
             <div className="gkit-jur-inbox-filter-actions">
@@ -386,7 +386,7 @@ export function GkitJurInboxPage({
         <div className="suite-panel-heading">
           <div>
             <h2>Agente auxiliar</h2>
-            <p>Melhores proximas acoes.</p>
+            <p>Melhores próximas ações.</p>
           </div>
         </div>
         <div className="gkit-jur-agent-carousel">
@@ -420,7 +420,7 @@ export function GkitJurInboxPage({
                     <div className="gkit-jur-agent-carousel-controls">
                       <label htmlFor={`gkit-jur-agent-action-${previous}`}>Anterior</label>
                       <span>{index + 1}/{total}</span>
-                      <label htmlFor={`gkit-jur-agent-action-${next}`}>Proximo</label>
+                      <label htmlFor={`gkit-jur-agent-action-${next}`}>Próximo</label>
                     </div>
                   ) : null}
                 </article>
@@ -480,7 +480,7 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
       <div className="gkit-jur-filter-fields">
         <label>
           <span>Busca</span>
-          <input defaultValue={filters.q} name="q" placeholder="CNJ, cliente, pasta, titulo ou classe" type="search" />
+          <input defaultValue={filters.q} name="q" placeholder="CNJ, cliente, pasta, título ou classe" type="search" />
         </label>
         <SelectField
           label="Status"
@@ -497,7 +497,7 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
           value={filters.carteiraId}
         />
         <SelectField
-          label="Responsavel"
+          label="Responsável"
           name="responsavel_id"
           options={filterOptions.responsaveis}
           placeholder="Todos"
@@ -518,12 +518,12 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
           value={filters.monitoramento}
         />
         <SelectField
-          label="Pendencia"
+          label="Pendência"
           name="saneamento"
           options={[
             { label: 'Sem cliente', value: 'sem_cliente' },
             { label: 'Sem carteira', value: 'sem_carteira' },
-            { label: 'Sem responsavel', value: 'sem_responsavel' },
+            { label: 'Sem responsável', value: 'sem_responsavel' },
             { label: 'Sem tribunal', value: 'sem_tribunal' },
           ]}
           placeholder="Todas"
@@ -533,17 +533,17 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
           label="Ordenar"
           name="sort"
           options={[
-            { label: 'Atualizacao', value: 'updated_at' },
-            { label: 'Ultima movimentacao', value: 'ultima_movimentacao_em' },
+            { label: 'Atualização', value: 'updated_at' },
+            { label: 'Última movimentação', value: 'ultima_movimentacao_em' },
             { label: 'Ajuizamento', value: 'data_ajuizamento' },
             { label: 'Cliente', value: 'cliente_nome' },
             { label: 'Tribunal', value: 'tribunal_sigla' },
           ]}
-          placeholder="Atualizacao"
+          placeholder="Atualização"
           value={filters.sort}
         />
         <SelectField
-          label="Direcao"
+          label="Direção"
           name="dir"
           options={[
             { label: 'Decrescente', value: 'desc' },
@@ -568,9 +568,9 @@ export function GkitJurProcessesPage({ data }: { data: GkitJurProcessListData })
     <>
       <MetricCards metrics={data.metrics} />
 
-      <GkitJurSection title="Processos acompanhados" description="Consulte, filtre e abra o processo para corrigir vinculos operacionais.">
+      <GkitJurSection title="Processos acompanhados" description="Consulte, filtre e abra o processo para corrigir vínculos operacionais.">
         <div className="gkit-jur-list-note">
-          <span>Padrao: processos ativos</span>
+          <span>Padrão: processos ativos</span>
           <small>Encerrados aparecem apenas quando o status for selecionado no filtro.</small>
         </div>
         <GkitJurFilterBar data={data} />
@@ -589,7 +589,7 @@ function GkitJurPager({ data }: { data: GkitJurProcessListData }) {
   const { filters, pagination } = data
   return (
     <div className="gkit-jur-pagination">
-      <span>Pagina {pagination.currentPage} de {pagination.totalPages}</span>
+      <span>Página {pagination.currentPage} de {pagination.totalPages}</span>
       <div>
         <Link
           aria-disabled={pagination.currentPage <= 1}
@@ -603,7 +603,7 @@ function GkitJurPager({ data }: { data: GkitJurProcessListData }) {
           className={pagination.currentPage >= pagination.totalPages ? 'button secondary disabled' : 'button secondary'}
           href={filterHref(filters, Math.min(pagination.totalPages, pagination.currentPage + 1))}
         >
-          Proxima
+          Próxima
         </Link>
       </div>
     </div>
@@ -617,14 +617,14 @@ function GkitJurProcessList({ rows }: { rows: GkitJurProcessListItem[] }) {
         <Link className="suite-row-link" href={`/modulos/gkit-jur/processos/${row.id}`} key={row.id} role="listitem">
           <div>
             <h3>{row.numeroCnj} {row.titulo ? `- ${row.titulo}` : ''}</h3>
-            <p>{row.clienteNome || 'Cliente nao vinculado'}{row.pasta ? ` - Pasta ${row.pasta}` : ''}</p>
+            <p>{row.clienteNome || 'Cliente não vinculado'}{row.pasta ? ` - Pasta ${row.pasta}` : ''}</p>
           </div>
           <span className="suite-pill primary">{row.tribunalSigla || 'Sem tribunal'}</span>
           <strong>{row.carteiraNome || 'Sem carteira'}</strong>
-          <small>{row.responsavelNome || 'Sem responsavel'}</small>
+          <small>{row.responsavelNome || 'Sem responsável'}</small>
           <div className="gkit-jur-row-stack">
             <span className={`suite-pill ${row.status === 'ativo' ? 'primary' : 'muted'}`}>{statusLabel(row.status)}</span>
-            <small>{row.ultimaMovimentacaoEm ? `Mov. ${formatDate(row.ultimaMovimentacaoEm)}` : 'Sem movimentacao'}</small>
+            <small>{row.ultimaMovimentacaoEm ? `Mov. ${formatDate(row.ultimaMovimentacaoEm)}` : 'Sem movimentação'}</small>
           </div>
         </Link>
       ))}
@@ -711,7 +711,7 @@ function GkitJurTarefaList({
                   <Field label="Prazo">
                     <input name="prazo_at" type="datetime-local" defaultValue={formatDateTimeLocal(row.prazoAt)} />
                   </Field>
-                  <Field label="Responsavel">
+                  <Field label="Responsável">
                     <select name="responsavel_id" defaultValue={row.responsavelId ?? ''}>
                       {optionList(formData.responsaveis, row.responsavelNome || 'Herdar do processo')}
                     </select>
@@ -787,7 +787,7 @@ function GkitJurTimelineList({
         <label htmlFor="timeline-filter-evento">Eventos</label>
         <label htmlFor="timeline-filter-documento">Documentos</label>
         <label htmlFor="timeline-filter-tarefa">Tarefas</label>
-        <label htmlFor="timeline-filter-movimentacao">Movimentacoes</label>
+        <label htmlFor="timeline-filter-movimentacao">Movimentações</label>
       </nav>
       <div className="gkit-jur-timeline-list" role="list">
         {rows.map((row) => (
@@ -887,7 +887,7 @@ export function GkitJurProcessDetailPage({
 
   return (
     <>
-      <GkitJurSection title="Resumo do processo" description="Dados principais vindos da importacao e dos vinculos operacionais.">
+      <GkitJurSection title="Resumo do processo" description="Dados principais vindos da importação e dos vínculos operacionais.">
         <div className="gkit-jur-detail-grid">
           <article>
             <span>CNJ</span>
@@ -895,28 +895,28 @@ export function GkitJurProcessDetailPage({
           </article>
           <article>
             <span>Cliente</span>
-            <strong>{processo.clienteNome || 'Nao vinculado'}</strong>
+            <strong>{processo.clienteNome || 'Não vinculado'}</strong>
           </article>
           <article>
             <span>Carteira</span>
-            <strong>{processo.carteiraNome || 'Nao definida'}</strong>
+            <strong>{processo.carteiraNome || 'Não definida'}</strong>
           </article>
           <article>
-            <span>Responsavel</span>
-            <strong>{processo.responsavelNome || 'Nao definido'}</strong>
+            <span>Responsável</span>
+            <strong>{processo.responsavelNome || 'Não definido'}</strong>
           </article>
           <article>
             <span>Tribunal</span>
             <strong>{processo.tribunalSigla || '-'}</strong>
           </article>
           <article>
-            <span>Ultima movimentacao</span>
+            <span>Última movimentação</span>
             <strong>{formatDate(processo.ultimaMovimentacaoEm)}</strong>
           </article>
         </div>
       </GkitJurSection>
 
-      <GkitJurSection title="Ajustes operacionais" description="Corrija os vinculos usados por cockpit, filtros e futuras rotinas.">
+      <GkitJurSection title="Ajustes operacionais" description="Corrija os vínculos usados por inbox, filtros e futuras rotinas.">
         <form action={action} className="card module-form module-form-grid gkit-jur-process-form">
           <input name="id" type="hidden" value={processo.id} />
 
@@ -932,9 +932,9 @@ export function GkitJurProcessDetailPage({
             </select>
           </Field>
 
-          <Field label="Responsavel">
+          <Field label="Responsável">
             <select disabled={!canWrite} name="responsavel_id" defaultValue={processo.responsavelId ?? ''}>
-              {optionList(formData.responsaveis, 'Sem responsavel')}
+              {optionList(formData.responsaveis, 'Sem responsável')}
             </select>
           </Field>
 
@@ -955,7 +955,7 @@ export function GkitJurProcessDetailPage({
           </Field>
 
           <div className="module-form-wide">
-            <Field label="Observacoes internas">
+            <Field label="Observações internas">
               <textarea disabled={!canWrite} name="observacoes" defaultValue={processo.observacoes ?? ''} />
             </Field>
           </div>
@@ -971,7 +971,7 @@ export function GkitJurProcessDetailPage({
       <GkitJurSection
         className="gkit-jur-task-panel"
         title="Tarefas do processo"
-        description="Providencias manuais agora; depois a integracao passa a criar tarefas nesta mesma fila."
+        description="Providências manuais agora; depois a integração passa a criar tarefas nesta mesma fila."
         id="tarefas"
       >
         {canWrite ? (
@@ -994,18 +994,18 @@ export function GkitJurProcessDetailPage({
             <Field label="Prazo">
               <input name="prazo_at" type="datetime-local" />
             </Field>
-            <Field label="Responsavel">
+            <Field label="Responsável">
               <select name="responsavel_id" defaultValue={processo.responsavelId ?? ''}>
                 {optionList(formData.responsaveis, processo.responsavelNome || 'Herdar do processo')}
               </select>
             </Field>
             <div className="module-form-wide">
-              <Field label="Titulo">
-                <input name="titulo" placeholder="Ex.: Revisar movimentacao, preparar peticao, confirmar prazo" />
+              <Field label="Título">
+                <input name="titulo" placeholder="Ex.: revisar movimentação, preparar petição, confirmar prazo" />
               </Field>
             </div>
             <div className="module-form-wide">
-              <Field label="Descricao">
+              <Field label="Descrição">
                 <textarea name="descricao" placeholder="Contexto operacional para quem vai executar." />
               </Field>
             </div>
@@ -1031,7 +1031,7 @@ export function GkitJurProcessDetailPage({
       <GkitJurSection
         className="gkit-jur-timeline-panel"
         title="Timeline operacional"
-        description="Eventos relevantes do processo, combinando registros manuais, tarefas, documentos e movimentacoes."
+        description="Eventos relevantes do processo, combinando registros manuais, tarefas, documentos e movimentações."
         id="timeline"
       >
         {canWrite ? (
@@ -1047,18 +1047,18 @@ export function GkitJurProcessDetailPage({
             <Field label="Data">
               <input name="data_evento" type="datetime-local" />
             </Field>
-            <Field label="Responsavel">
+            <Field label="Responsável">
               <select name="responsavel_id" defaultValue={processo.responsavelId ?? ''}>
                 {optionList(formData.responsaveis, processo.responsavelNome || 'Herdar do processo')}
               </select>
             </Field>
             <div className="module-form-wide">
-              <Field label="Titulo">
-                <input name="titulo" placeholder="Ex.: Protocolo realizado, contato com cliente, audiencia designada" />
+              <Field label="Título">
+                <input name="titulo" placeholder="Ex.: protocolo realizado, contato com cliente, audiência designada" />
               </Field>
             </div>
             <div className="module-form-wide">
-              <Field label="Descricao">
+              <Field label="Descrição">
                 <textarea name="descricao" placeholder="Contexto curto para a linha do tempo." />
               </Field>
             </div>
@@ -1082,7 +1082,7 @@ export function GkitJurProcessDetailPage({
       <GkitJurSection
         className="gkit-jur-document-panel"
         title="Documentos do processo"
-        description="Referencias documentais do caso; upload e integracao entram depois sobre esta mesma base."
+        description="Referências documentais do caso; upload e integração entram depois sobre esta mesma base."
         id="documentos"
       >
         {canWrite ? (
@@ -1098,14 +1098,14 @@ export function GkitJurProcessDetailPage({
             <Field label="Data">
               <input name="data_documento" type="datetime-local" />
             </Field>
-            <Field label="Responsavel">
+            <Field label="Responsável">
               <select name="responsavel_id" defaultValue={processo.responsavelId ?? ''}>
                 {optionList(formData.responsaveis, processo.responsavelNome || 'Herdar do processo')}
               </select>
             </Field>
             <div className="module-form-wide">
-              <Field label="Titulo">
-                <input name="titulo" placeholder="Ex.: Peticao inicial, decisao, comprovante, procuracao" />
+              <Field label="Título">
+                <input name="titulo" placeholder="Ex.: petição inicial, decisão, comprovante, procuração" />
               </Field>
             </div>
             <div className="module-form-wide">
@@ -1114,8 +1114,8 @@ export function GkitJurProcessDetailPage({
               </Field>
             </div>
             <div className="module-form-wide">
-              <Field label="Descricao">
-                <textarea name="descricao" placeholder="Observacao curta sobre o documento." />
+              <Field label="Descrição">
+                <textarea name="descricao" placeholder="Observação curta sobre o documento." />
               </Field>
             </div>
             <div className="form-actions module-form-wide">
@@ -1135,9 +1135,9 @@ export function GkitJurProcessDetailPage({
         )}
       </GkitJurSection>
 
-      <GkitJurSection title="Movimentacoes" description="Historico ja preparado para receber as sincronizacoes futuras.">
+      <GkitJurSection title="Movimentações" description="Histórico já preparado para receber as sincronizações futuras.">
         {movimentacoes.length ? <GkitJurMovimentacaoList rows={movimentacoes} /> : (
-          <div className="suite-empty-block">Nenhuma movimentacao registrada para este processo.</div>
+          <div className="suite-empty-block">Nenhuma movimentação registrada para este processo.</div>
         )}
       </GkitJurSection>
     </>
@@ -1166,8 +1166,8 @@ function GkitJurSaneamentoSuggestions({
 }) {
   return (
     <GkitJurSection
-      description={`Sugestoes encontradas: ${totals.total} processos, ${totals.cliente} cliente(s), ${totals.carteira} carteira(s), ${totals.responsavel} responsavel(is).`}
-      title="Sugestoes de saneamento"
+      description={`Sugestões encontradas: ${totals.total} processos, ${totals.cliente} cliente(s), ${totals.carteira} carteira(s), ${totals.responsavel} responsável(is).`}
+      title="Sugestões de saneamento"
     >
       {rows.length ? (
         <form action={action} className="gkit-jur-suggestion-form">
@@ -1181,19 +1181,19 @@ function GkitJurSaneamentoSuggestions({
                 </div>
                 <SuggestionValue label="Cliente" value={row.clienteNome} />
                 <SuggestionValue label="Carteira" value={row.carteiraNome} />
-                <SuggestionValue label="Responsavel" value={row.responsavelNome} />
+                <SuggestionValue label="Responsável" value={row.responsavelNome} />
                 <small>{row.motivo}</small>
               </label>
             ))}
           </div>
           <div className="gkit-jur-suggestion-actions">
-            <span>{rows.length} sugestao(oes) exibida(s)</span>
+            <span>{rows.length} sugestão(ões) exibida(s)</span>
             {canWrite ? <button className="button primary-button" type="submit">Aplicar selecionadas</button> : null}
           </div>
         </form>
       ) : (
         <div className="suite-empty-block">
-          Nenhuma sugestao automatica segura encontrada agora. Use as listas de pendencias para ajustar manualmente.
+          Nenhuma sugestão automática segura encontrada agora. Use as listas de pendências para ajustar manualmente.
         </div>
       )}
     </GkitJurSection>
@@ -1202,10 +1202,10 @@ function GkitJurSaneamentoSuggestions({
 
 function GkitJurPendenciaQuickFilters({ data }: { data: GkitJurPendenciasData }) {
   const items = [
-    { label: 'Inbox de pendencias', href: '/modulos/gkit-jur/inbox?fila=pendencias', value: data.metrics.semCliente + data.metrics.semCarteira + data.metrics.semResponsavel, hint: 'fila operacional' },
-    { label: 'Sem cliente', href: '/modulos/gkit-jur/processos?saneamento=sem_cliente', value: data.metrics.semCliente, hint: 'vinculo Ciclo' },
-    { label: 'Sem carteira', href: '/modulos/gkit-jur/processos?saneamento=sem_carteira', value: data.metrics.semCarteira, hint: 'distribuicao' },
-    { label: 'Sem responsavel', href: '/modulos/gkit-jur/processos?saneamento=sem_responsavel', value: data.metrics.semResponsavel, hint: 'dono operacional' },
+    { label: 'Inbox de pendências', href: '/modulos/gkit-jur/inbox?fila=pendencias', value: data.metrics.semCliente + data.metrics.semCarteira + data.metrics.semResponsavel, hint: 'fila operacional' },
+    { label: 'Sem cliente', href: '/modulos/gkit-jur/processos?saneamento=sem_cliente', value: data.metrics.semCliente, hint: 'vínculo Ciclo' },
+    { label: 'Sem carteira', href: '/modulos/gkit-jur/processos?saneamento=sem_carteira', value: data.metrics.semCarteira, hint: 'distribuição' },
+    { label: 'Sem responsável', href: '/modulos/gkit-jur/processos?saneamento=sem_responsavel', value: data.metrics.semResponsavel, hint: 'dono operacional' },
   ]
 
   return (
@@ -1249,7 +1249,7 @@ export function GkitJurPendenciasPage({
             title={`${group.title} (${group.total})`}
           >
             {group.items.length ? <GkitJurProcessList rows={group.items} /> : (
-              <div className="suite-empty-block success">Sem pendencias nesta fila.</div>
+              <div className="suite-empty-block success">Sem pendências nesta fila.</div>
             )}
           </GkitJurSection>
         ))}
@@ -1265,7 +1265,7 @@ function GkitJurMovimentacaoList({ rows }: { rows: GkitJurMovimentacoesData['mov
         <Link className="suite-row-link" href={`/modulos/gkit-jur/processos/${row.processoId}`} key={row.id} role="listitem">
           <div>
             <h3>{row.nome}</h3>
-            <p>{row.numeroCnj} - {row.clienteNome || 'Cliente nao vinculado'}</p>
+            <p>{row.numeroCnj} - {row.clienteNome || 'Cliente não vinculado'}</p>
           </div>
           <span className={`suite-pill ${row.relevante ? 'warning' : 'primary'}`}>{row.origem}</span>
           <strong>{formatDate(row.dataHora)}</strong>
@@ -1280,10 +1280,10 @@ export function GkitJurMovimentacoesPage({ data }: { data: GkitJurMovimentacoesD
   return (
     <>
       <MetricCards metrics={data.metrics} />
-      <GkitJurSection title="Movimentacoes registradas" description="Lista das movimentacoes gravadas na base juridica.">
+      <GkitJurSection title="Movimentações registradas" description="Lista das movimentações gravadas na base jurídica.">
         {data.movimentacoes.length ? <GkitJurMovimentacaoList rows={data.movimentacoes} /> : (
           <div className="suite-empty-block">
-            Nenhuma movimentacao importada ainda. A lista sera preenchida na sprint de sincronizacao DataJud ou por registros manuais.
+            Nenhuma movimentação importada ainda. A lista será preenchida na sprint de sincronização DataJud ou por registros manuais.
           </div>
         )}
       </GkitJurSection>
@@ -1301,20 +1301,20 @@ export function GkitJurAuditoriaPage({ data }: { data: GkitJurAuditoriaData }) {
           <span className="metric-hint">processos com origem registrada</span>
         </article>
         <article className="metric-card">
-          <span className="metric-label">Sincronizacoes</span>
+          <span className="metric-label">Sincronizações</span>
           <strong className="metric-value">{data.sincronizacoes.length}</strong>
-          <span className="metric-hint">ultimas execucoes</span>
+          <span className="metric-hint">últimas execuções</span>
         </article>
       </section>
 
-      <GkitJurSection title="Sincronizacoes" description="Trilha preparada para registrar execucoes DataJud quando a conexao for ligada.">
+      <GkitJurSection title="Sincronizações" description="Trilha preparada para registrar execuções DataJud quando a conexão for ligada.">
         {data.sincronizacoes.length ? (
           <div className="suite-table-list compact gkit-jur-audit-list" role="list">
             {data.sincronizacoes.map((item) => (
               <article key={item.id} role="listitem">
                 <div>
                   <h3>{item.numeroCnj}</h3>
-                  <p>{item.tribunalAlias} - {item.erroMensagem || 'Execucao registrada'}</p>
+                  <p>{item.tribunalAlias} - {item.erroMensagem || 'Execução registrada'}</p>
                 </div>
                 <span className={`suite-pill ${item.status === 'sucesso' ? 'success' : item.status === 'erro' ? 'danger' : 'warning'}`}>{item.status}</span>
                 <strong>{item.totalMovimentacoes}/{item.totalNovas}</strong>
@@ -1323,7 +1323,7 @@ export function GkitJurAuditoriaPage({ data }: { data: GkitJurAuditoriaData }) {
             ))}
           </div>
         ) : (
-          <div className="suite-empty-block">Ainda nao existem sincronizacoes registradas.</div>
+          <div className="suite-empty-block">Ainda não existem sincronizações registradas.</div>
         )}
       </GkitJurSection>
     </>
@@ -1368,7 +1368,7 @@ export function GkitJurAgentePage({
         <article className="metric-card">
           <span className="metric-label">Fontes ativas</span>
           <strong className="metric-value">{data.metrics.fontesAtivas}</strong>
-          <span className="metric-hint">portais, diarios, e-mails e APIs</span>
+          <span className="metric-hint">portais, diários, e-mails e APIs</span>
         </article>
         <article className="metric-card">
           <span className="metric-label">Receitas</span>
@@ -1378,25 +1378,25 @@ export function GkitJurAgentePage({
         <article className="metric-card">
           <span className="metric-label">Pendentes</span>
           <strong className="metric-value">{data.metrics.pendentes}</strong>
-          <span className="metric-hint">aguardam worker ou validacao</span>
+          <span className="metric-hint">aguardam worker ou validação</span>
         </article>
         <article className="metric-card">
           <span className="metric-label">Falhas</span>
           <strong className="metric-value">{data.metrics.falhas}</strong>
-          <span className="metric-hint">pedem intervencao humana</span>
+          <span className="metric-hint">pedem intervenção humana</span>
         </article>
       </section>
 
       <div className="gkit-jur-agent-grid">
-        <GkitJurSection title="Fonte" description="Cadastre uma origem tecnica para futuras coletas.">
+        <GkitJurSection title="Fonte" description="Cadastre uma origem técnica para futuras coletas.">
           <form action={createFonteAction} className="gkit-jur-agent-form">
             <AgentField label="Nome">
-              <input className="text-input" disabled={!canWrite} name="nome" placeholder="DJe, PJe, e-SAJ, e-mail juridico" />
+              <input className="text-input" disabled={!canWrite} name="nome" placeholder="DJe, PJe, e-SAJ, e-mail jurídico" />
             </AgentField>
             <AgentField label="Tipo">
               <select disabled={!canWrite} name="tipo" defaultValue="portal_web">
                 <option value="portal_web">Portal web</option>
-                <option value="diario">Diario</option>
+                <option value="diario">Diário</option>
                 <option value="email">E-mail</option>
                 <option value="api">API</option>
                 <option value="interno">Interno</option>
@@ -1420,10 +1420,10 @@ export function GkitJurAgentePage({
           </form>
         </GkitJurSection>
 
-        <GkitJurSection title="Receita" description="Defina uma rotina executavel pelo agente.">
+        <GkitJurSection title="Receita" description="Defina uma rotina executável pelo agente.">
           <form action={createReceitaAction} className="gkit-jur-agent-form">
             <AgentField label="Nome">
-              <input className="text-input" disabled={!canWrite} name="nome" placeholder="Coletar publicacoes do dia" />
+              <input className="text-input" disabled={!canWrite} name="nome" placeholder="Coletar publicações do dia" />
             </AgentField>
             <AgentField label="Fonte">
               <select disabled={!canWrite} name="fonte_id">
@@ -1437,8 +1437,8 @@ export function GkitJurAgentePage({
             </AgentField>
             <AgentField label="Tipo de coleta">
               <select disabled={!canWrite} name="tipo_coleta" defaultValue="movimentacao">
-                <option value="publicacao">Publicacao</option>
-                <option value="movimentacao">Movimentacao</option>
+                <option value="publicacao">Publicação</option>
+                <option value="movimentacao">Movimentação</option>
                 <option value="documento">Documento</option>
                 <option value="prazo">Prazo</option>
                 <option value="andamento">Andamento</option>
@@ -1448,8 +1448,8 @@ export function GkitJurAgentePage({
             <AgentField label="Periodicidade">
               <select disabled={!canWrite} name="periodicidade" defaultValue="manual">
                 <option value="manual">Manual</option>
-                <option value="diaria">Diaria</option>
-                <option value="horaria">Horaria</option>
+                <option value="diaria">Diária</option>
+                <option value="horaria">Horária</option>
                 <option value="semanal">Semanal</option>
                 <option value="mensal">Mensal</option>
               </select>
@@ -1464,7 +1464,7 @@ export function GkitJurAgentePage({
         </GkitJurSection>
       </div>
 
-      <GkitJurSection title="Receitas configuradas" description="Dispare execucoes manuais enquanto o worker externo nao estiver ligado.">
+      <GkitJurSection title="Receitas configuradas" description="Dispare execuções manuais enquanto o worker externo não estiver ligado.">
         {data.receitas.length ? (
           <div className="suite-table-list compact gkit-jur-agent-list" role="list">
             {data.receitas.map((receita) => (
@@ -1489,14 +1489,14 @@ export function GkitJurAgentePage({
         )}
       </GkitJurSection>
 
-      <GkitJurSection title="Execucoes recentes" description="Historico operacional do agente e validacoes humanas.">
+      <GkitJurSection title="Execuções recentes" description="Histórico operacional do agente e validações humanas.">
         {data.execucoes.length ? (
           <div className="suite-table-list compact gkit-jur-agent-list" role="list">
             {data.execucoes.map((execucao) => (
               <article key={execucao.id} role="listitem">
                 <div>
                   <h3>{execucao.receitaNome}</h3>
-                  <p>{execucao.fonteNome || 'Fonte nao definida'} - {execucao.erroMensagem || 'Execucao registrada'}</p>
+                  <p>{execucao.fonteNome || 'Fonte não definida'} - {execucao.erroMensagem || 'Execução registrada'}</p>
                 </div>
                 <span className={`suite-pill ${execucao.status === 'sucesso' ? 'success' : execucao.status === 'falha' || execucao.status === 'precisa_intervencao' ? 'danger' : 'warning'}`}>
                   {statusLabel(execucao.status)}
@@ -1512,7 +1512,7 @@ export function GkitJurAgentePage({
                       <option value="reenviar_coleta">Reenviar coleta</option>
                       <option value="importado_manual">Importado manual</option>
                     </select>
-                    <input className="text-input" name="observacao" placeholder="Observacao" />
+                    <input className="text-input" name="observacao" placeholder="Observação" />
                     <button className="button secondary" type="submit">Salvar</button>
                   </form>
                 ) : null}
@@ -1520,7 +1520,7 @@ export function GkitJurAgentePage({
             ))}
           </div>
         ) : (
-          <div className="suite-empty-block">Ainda nao existem execucoes do agente.</div>
+          <div className="suite-empty-block">Ainda não existem execuções do agente.</div>
         )}
       </GkitJurSection>
     </>
@@ -1530,31 +1530,31 @@ export function GkitJurAgentePage({
 const gkitJurConfiguracoesItems = [
   {
     title: 'Saneamento',
-    description: 'Pendencias de cliente, carteira, responsavel e tribunal antes da operacao juridica.',
+    description: 'Pendências de cliente, carteira, responsável e tribunal antes da operação jurídica.',
     href: '/modulos/gkit-jur/pendencias',
     label: 'Abrir saneamento',
   },
   {
-    title: 'Integracao DataJud',
-    description: 'Conexao, tribunais, fila de consulta, execucoes e retornos da API publica do CNJ.',
+    title: 'Integração DataJud',
+    description: 'Conexão, tribunais, fila de consulta, execuções e retornos da API pública do CNJ.',
     href: '/modulos/gkit-jur/configuracoes/integracao',
-    label: 'Configurar integracao',
+    label: 'Configurar integração',
   },
   {
     title: 'Agente auxiliar',
-    description: 'Fontes, receitas, validacoes e execucoes assistidas do modulo juridico.',
+    description: 'Fontes, receitas, validações e execuções assistidas do módulo jurídico.',
     href: '/modulos/gkit-jur/agente',
     label: 'Abrir agente',
   },
   {
     title: 'Cadastros',
-    description: 'Tabelas de apoio, tipos e parametros operacionais do Jur.',
+    description: 'Tabelas de apoio, tipos e parâmetros operacionais do Jur.',
     href: '/modulos/gkit-jur/cadastros',
     label: 'Abrir cadastros',
   },
   {
     title: 'Auditoria',
-    description: 'Historico tecnico de importacoes, sincronizacoes e eventos operacionais.',
+    description: 'Histórico técnico de importações, sincronizações e eventos operacionais.',
     href: '/modulos/gkit-jur/auditoria',
     label: 'Abrir auditoria',
   },
@@ -1562,7 +1562,7 @@ const gkitJurConfiguracoesItems = [
 
 export function GkitJurConfiguracoesPage() {
   return (
-    <GkitJurSection title="Areas de configuracao" description="Centralize parametros, saneamento e integracoes fora da rotina diaria do inbox.">
+    <GkitJurSection title="Áreas de configuração" description="Centralize parâmetros, saneamento e integrações fora da rotina diária do inbox.">
       <div className="gkit-jur-settings-grid">
         {gkitJurConfiguracoesItems.map((item) => (
           <Link className="gkit-jur-settings-card" href={item.href} key={item.title}>
@@ -1578,9 +1578,9 @@ export function GkitJurConfiguracoesPage() {
 
 export function GkitJurIntegracaoPage({ data }: { data: GkitJurIntegracaoData }) {
   const cards = [
-    { title: 'Processos ativos', value: data.metrics.totalAtivos.toLocaleString('pt-BR'), hint: 'base operacional monitoravel' },
+    { title: 'Processos ativos', value: data.metrics.totalAtivos.toLocaleString('pt-BR'), hint: 'base operacional monitorável' },
     { title: 'Tribunais cobertos', value: data.metrics.configurados.toLocaleString('pt-BR'), hint: 'com alias DataJud configurado' },
-    { title: 'Criticos', value: data.metrics.criticos.toLocaleString('pt-BR'), hint: 'sem mapeamento ou com erro' },
+    { title: 'Críticos', value: data.metrics.criticos.toLocaleString('pt-BR'), hint: 'sem mapeamento ou com erro' },
     { title: 'Sem primeira sync', value: data.metrics.semSincronizacao.toLocaleString('pt-BR'), hint: 'aguardam primeira consulta' },
   ]
 
@@ -1596,7 +1596,7 @@ export function GkitJurIntegracaoPage({ data }: { data: GkitJurIntegracaoData })
         ))}
       </section>
 
-      <GkitJurSection title="Semaforo de monitoramento" description="Acompanhe a prontidao da integracao por tribunal, priorizando processos ativos.">
+      <GkitJurSection title="Semáforo de monitoramento" description="Acompanhe a prontidão da integração por tribunal, priorizando processos ativos.">
         <div className="gkit-jur-monitoring-list">
           {data.tribunais.map((tribunal) => (
             <article className={`gkit-jur-monitoring-row ${tribunal.nivel}`} key={tribunal.tribunal}>
@@ -1623,7 +1623,7 @@ export function GkitJurIntegracaoPage({ data }: { data: GkitJurIntegracaoData })
                 </div>
                 <div>
                   <dt>Saneamento</dt>
-                  <dd>{(tribunal.semCarteira + tribunal.semResponsavel).toLocaleString('pt-BR')}</dd>
+                  <dd>{tribunal.saneamentoProcessos.toLocaleString('pt-BR')}</dd>
                 </div>
               </dl>
               <Link className="button secondary" href={tribunal.tribunal === 'SEM_TRIBUNAL' ? '/modulos/gkit-jur/pendencias' : `/modulos/gkit-jur/processos?status=ativo&tribunal=${encodeURIComponent(tribunal.tribunal)}`}>
@@ -1634,33 +1634,33 @@ export function GkitJurIntegracaoPage({ data }: { data: GkitJurIntegracaoData })
         </div>
       </GkitJurSection>
 
-      <GkitJurSection title="Roteiro DataJud" description="Proximos passos para sair do monitoramento manual para a sincronizacao automatica.">
+      <GkitJurSection title="Roteiro DataJud" description="Próximos passos para sair do monitoramento manual para a sincronização automática.">
         <div className="gkit-jur-integration-steps">
           <article>
             <span>1</span>
             <div>
-              <h3>Configurar chave publica</h3>
-              <p>Guardar a API Key em variavel de ambiente e validar o header Authorization.</p>
+              <h3>Configurar chave pública</h3>
+              <p>Guardar a API Key em variável de ambiente e validar o header Authorization.</p>
             </div>
           </article>
           <article>
             <span>2</span>
             <div>
               <h3>Habilitar tribunais</h3>
-              <p>Comecar pelos tribunais existentes na base ativa de processos.</p>
+              <p>Começar pelos tribunais existentes na base ativa de processos.</p>
             </div>
           </article>
           <article>
             <span>3</span>
             <div>
               <h3>Sincronizar processo</h3>
-              <p>Buscar por CNJ, gravar movimentacoes novas e atualizar a timeline.</p>
+              <p>Buscar por CNJ, gravar movimentações novas e atualizar a timeline.</p>
             </div>
           </article>
           <article>
             <span>4</span>
             <div>
-              <h3>Monitorar execucoes</h3>
+              <h3>Monitorar execuções</h3>
               <p>Registrar sucesso, erro, timeout, sem resultado e movimentos recebidos.</p>
             </div>
           </article>
@@ -1680,7 +1680,7 @@ export function GkitJurPlaceholder({
   return (
     <GkitJurSection title={title} description={description}>
       <div className="suite-empty-block">
-        Estrutura criada. O proximo passo e definir campos, regras e integracoes desta area.
+        Estrutura criada. O próximo passo é definir campos, regras e integrações desta área.
       </div>
     </GkitJurSection>
   )

@@ -10,8 +10,8 @@ export default async function GkitJurMovimentacoesRoute() {
   return (
     <GkitJurShell
       active="movimentacoes"
-      description="Historico de movimentacoes processuais registradas."
-      title="Movimentacoes"
+      description="Histórico de movimentações processuais registradas."
+      title="Movimentações"
       usuario={context.usuario}
     >
       <GkitJurMovimentacoesPage data={data} />

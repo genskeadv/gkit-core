@@ -179,7 +179,7 @@ async function lookupMaps(rows: Array<Record<string, unknown>>) {
       text(row.nome_fantasia, text(row.nome, text(row.razao_social, 'Cliente sem nome'))),
     ])),
     carteiras: new Map(((carteirasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome, 'Carteira sem nome')])),
-    responsaveis: new Map(((responsaveisResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome, text(row.email, 'Responsavel sem nome'))])),
+    responsaveis: new Map(((responsaveisResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome, text(row.email, 'Responsável sem nome'))])),
   }
 }
 
@@ -279,7 +279,7 @@ async function getSuggestionSources() {
 
   const usuarioMap = new Map(((usuariosResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [
     String(row.id),
-    text(row.nome, text(row.email, 'Responsavel sem nome')),
+    text(row.nome, text(row.email, 'Responsável sem nome')),
   ]))
   const carteiraMap = new Map(((carteirasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome)]))
   const clienteMap = new Map<string, ClienteSuggestionSource>()
@@ -314,7 +314,7 @@ async function getSuggestionSources() {
     if (!carteiraId || !usuarioId || responsavelByCarteira.has(carteiraId)) continue
     responsavelByCarteira.set(carteiraId, {
       carteiraId,
-      label: usuarioMap.get(usuarioId) ?? 'Responsavel sem nome',
+      label: usuarioMap.get(usuarioId) ?? 'Responsável sem nome',
       usuarioId,
     })
   }
@@ -361,8 +361,8 @@ function buildSuggestion(row: Record<string, unknown>, maps: Awaited<ReturnType<
   const motivos = []
   if (clienteSuggestion) motivos.push('cliente por nome')
   if (hasCarteiraSuggestion && carteiraFromCliente === carteiraId) motivos.push('carteira por cliente')
-  if (hasCarteiraSuggestion && carteiraFromResponsavel === carteiraId) motivos.push('carteira por responsavel')
-  if (responsavelSuggestion) motivos.push('responsavel da carteira')
+  if (hasCarteiraSuggestion && carteiraFromResponsavel === carteiraId) motivos.push('carteira por responsável')
+  if (responsavelSuggestion) motivos.push('responsável da carteira')
 
   return {
     processo,
@@ -867,8 +867,8 @@ export async function getGkitJurPendencias(): Promise<GkitJurPendenciasData> {
     getGkitJurDashboardMetrics(),
     getGkitJurSaneamentoSuggestions(),
     pendingGroup('Sem cliente vinculado', 'Processos que precisam apontar para a base do Ciclo.', '/modulos/gkit-jur/processos?saneamento=sem_cliente', 'cliente_id'),
-    pendingGroup('Sem carteira', 'Processos que ainda nao entraram em uma carteira operacional.', '/modulos/gkit-jur/processos?saneamento=sem_carteira', 'carteira_id'),
-    pendingGroup('Sem responsavel', 'Processos sem dono operacional definido.', '/modulos/gkit-jur/processos?saneamento=sem_responsavel', 'responsavel_id'),
+    pendingGroup('Sem carteira', 'Processos que ainda não entraram em uma carteira operacional.', '/modulos/gkit-jur/processos?saneamento=sem_carteira', 'carteira_id'),
+    pendingGroup('Sem responsável', 'Processos sem dono operacional definido.', '/modulos/gkit-jur/processos?saneamento=sem_responsavel', 'responsavel_id'),
     pendingGroup('Sem tribunal', 'Processos sem tribunal identificado na importacao.', '/modulos/gkit-jur/processos?saneamento=sem_tribunal', 'tribunal_sigla'),
   ])
 
@@ -1205,7 +1205,7 @@ async function listInboxPendenciaItems(): Promise<GkitJurInboxItem[]> {
       entidadeId: text(row.entidade_id, processoId || String(row.id)),
       acaoLabel: processoId ? 'Abrir processo' : 'Resolver pendencia',
       acaoUrl: processoId ? `/modulos/gkit-jur/processos/${processoId}` : '/modulos/gkit-jur/pendencias',
-      motivo: 'Pendencia persistente aberta no modulo juridico.',
+      motivo: 'Pendência persistente aberta no módulo jurídico.',
     }
   })
 }
@@ -1249,9 +1249,9 @@ async function listInboxAgenteItems(): Promise<GkitJurInboxItem[]> {
     return {
       id: `agente-${row.id}`,
       tipo: 'automacao',
-      origem: 'Agente juridico',
+      origem: 'Agente jurídico',
       titulo: receitaId ? receitas.get(receitaId) ?? 'Execucao do agente' : 'Execucao do agente',
-      subtitulo: fonteId ? fontes.get(fonteId) ?? 'Fonte nao definida' : 'Fonte nao definida',
+      subtitulo: fonteId ? fontes.get(fonteId) ?? 'Fonte não definida' : 'Fonte não definida',
       status: statusValue,
       prioridade: inboxPriority(score),
       score,
@@ -1266,7 +1266,7 @@ async function listInboxAgenteItems(): Promise<GkitJurInboxItem[]> {
       entidadeId: String(row.id),
       acaoLabel: 'Abrir agente',
       acaoUrl: '/modulos/gkit-jur/agente',
-      motivo: text(row.erro_mensagem, statusValue === 'aguardando_validacao' ? 'Resultado aguardando validacao humana.' : 'Execucao aguardando continuidade.'),
+      motivo: text(row.erro_mensagem, statusValue === 'aguardando_validacao' ? 'Resultado aguardando validação humana.' : 'Execução aguardando continuidade.'),
     }
   })
 }
@@ -1325,11 +1325,11 @@ export async function getGkitJurInbox(params?: ModuleSearchParams | null): Promi
     },
     filas: [
       { id: 'hoje', title: 'Hoje', description: 'Fila recomendada para iniciar o dia.', count: allItems.length },
-      { id: 'tarefas', title: 'Tarefas', description: 'Providencias abertas dos processos.', count: tarefas.length },
-      { id: 'criticos', title: 'Criticos', description: 'Risco, erro ou bloqueio real.', count: criticos.length },
-      { id: 'pendencias', title: 'Pendencias', description: 'Travas de cadastro e operacao.', count: pendencias.length },
-      { id: 'automacao', title: 'Automacao', description: 'Intervencoes do agente.', count: automacao.length },
-      { id: 'sem-retorno', title: 'Sem retorno', description: 'Processos sem movimentacao recente.', count: semRetorno.length },
+      { id: 'tarefas', title: 'Tarefas', description: 'Providências abertas dos processos.', count: tarefas.length },
+      { id: 'criticos', title: 'Críticos', description: 'Risco, erro ou bloqueio real.', count: criticos.length },
+      { id: 'pendencias', title: 'Pendências', description: 'Travas de cadastro e operação.', count: pendencias.length },
+      { id: 'automacao', title: 'Automação', description: 'Intervenções do agente.', count: automacao.length },
+      { id: 'sem-retorno', title: 'Sem retorno', description: 'Processos sem movimentação recente.', count: semRetorno.length },
     ],
     metrics: {
       hoje: allItems.length,
@@ -1342,7 +1342,7 @@ export async function getGkitJurInbox(params?: ModuleSearchParams | null): Promi
     proximasAcoes: [
       {
         title: 'Executar tarefas abertas',
-        description: 'Providencias manuais e futuras tarefas da integracao entram nesta fila.',
+        description: 'Providências manuais e futuras tarefas da integração entram nesta fila.',
         href: '/modulos/gkit-jur/inbox?fila=tarefas',
         label: 'Abrir tarefas',
         priority: tarefas.length ? 'alta' : 'baixa',
@@ -1350,23 +1350,23 @@ export async function getGkitJurInbox(params?: ModuleSearchParams | null): Promi
       },
       {
         title: 'Sanear processos sem dono',
-        description: 'Aplique as sugestoes de cliente, carteira e responsavel antes de ligar prazos e publicacoes.',
+        description: 'Aplique as sugestões de cliente, carteira e responsável antes de ligar prazos e publicações.',
         href: '/modulos/gkit-jur/pendencias',
         label: 'Abrir saneamento',
         priority: pendencias.length ? 'alta' : 'baixa',
         count: pendencias.length,
       },
       {
-        title: 'Revisar automacoes pendentes',
-        description: 'Falhas, validacoes e execucoes paradas entram aqui para intervencao humana.',
+        title: 'Revisar automações pendentes',
+        description: 'Falhas, validações e execuções paradas entram aqui para intervenção humana.',
         href: '/modulos/gkit-jur/agente',
         label: 'Abrir agente',
         priority: automacao.length ? 'alta' : 'baixa',
         count: automacao.length,
       },
       {
-        title: 'Acompanhar processos sem movimentacao',
-        description: 'Fila provisoria ate entrarmos com publicacoes, prazos e DataJud.',
+        title: 'Acompanhar processos sem movimentação',
+        description: 'Fila provisória até entrarmos com publicações, prazos e DataJud.',
         href: '/modulos/gkit-jur/processos?sort=ultima_movimentacao_em&dir=asc',
         label: 'Ver processos',
         priority: semRetorno.length ? 'media' : 'baixa',
@@ -1442,7 +1442,7 @@ export async function getGkitJurAgenteData(): Promise<GkitJurAgenteData> {
     const carteiraId = text(row.carteira_id)
     return {
       id: String(row.id),
-      receitaNome: receitaId ? receitaMap.get(receitaId) ?? 'Receita removida' : 'Execucao avulsa',
+      receitaNome: receitaId ? receitaMap.get(receitaId) ?? 'Receita removida' : 'Execução avulsa',
       fonteNome: fonteId ? fonteMap.get(fonteId) ?? null : null,
       carteiraNome: carteiraId ? carteiraMap.get(carteiraId) ?? null : null,
       status: agentStatus(row.status),
@@ -1499,8 +1499,8 @@ function tribunalMonitoramentoNivel(item: Omit<GkitJurIntegracaoTribunal, 'nivel
 
 function tribunalMonitoramentoStatus(nivel: GkitJurMonitoramentoNivel, item: Omit<GkitJurIntegracaoTribunal, 'nivel' | 'status'>) {
   if (nivel === 'vermelho') return item.alias ? 'Erro no monitoramento' : 'Sem mapeamento DataJud'
-  if (nivel === 'amarelo') return item.semSincronizacao ? 'Aguardando primeira sincronizacao' : 'Requer saneamento'
-  if (nivel === 'verde') return 'Monitoramento saudavel'
+  if (nivel === 'amarelo') return item.semSincronizacao ? 'Aguardando primeira sincronização' : 'Requer saneamento'
+  if (nivel === 'verde') return 'Monitoramento saudável'
   return 'Sem processos ativos'
 }
 
@@ -1519,8 +1519,9 @@ export async function getGkitJurIntegracaoData(): Promise<GkitJurIntegracaoData>
       erro: 0,
       monitorando: 0,
       naoMonitorar: 0,
-      nome: catalog?.nome ?? (sigla === 'SEM_TRIBUNAL' ? 'Tribunal nao identificado' : sigla),
+      nome: catalog?.nome ?? (sigla === 'SEM_TRIBUNAL' ? 'Tribunal não identificado' : sigla),
       pausado: 0,
+      saneamentoProcessos: 0,
       semCarteira: 0,
       semResponsavel: 0,
       semSincronizacao: 0,
@@ -1537,6 +1538,7 @@ export async function getGkitJurIntegracaoData(): Promise<GkitJurIntegracaoData>
     if (monitor === 'erro') current.erro += 1
     if (monitor === 'pausado') current.pausado += 1
     if (monitor === 'nao_monitorar') current.naoMonitorar += 1
+    if (!text(row.carteira_id) || !text(row.responsavel_id)) current.saneamentoProcessos += 1
     if (!text(row.carteira_id)) current.semCarteira += 1
     if (!text(row.responsavel_id)) current.semResponsavel += 1
     if (!syncAt) current.semSincronizacao += 1
@@ -1577,25 +1579,25 @@ export const gkitJurStatusOptions: GkitJurSelectOption[] = [
 export const gkitJurMonitoramentoOptions: GkitJurSelectOption[] = [
   { label: 'Monitorando', value: 'monitorando' },
   { label: 'Pausado', value: 'pausado' },
-  { label: 'Nao monitorar', value: 'nao_monitorar' },
+  { label: 'Não monitorar', value: 'nao_monitorar' },
   { label: 'Erro', value: 'erro' },
 ]
 
 export const gkitJurTarefaTipoOptions: GkitJurSelectOption[] = [
   { label: 'Prazo', value: 'prazo' },
-  { label: 'Publicacao', value: 'publicacao' },
-  { label: 'Movimentacao relevante', value: 'movimentacao_relevante' },
+  { label: 'Publicação', value: 'publicacao' },
+  { label: 'Movimentação relevante', value: 'movimentacao_relevante' },
   { label: 'Documento pendente', value: 'documento_pendente' },
-  { label: 'Providencia interna', value: 'providencia_interna' },
-  { label: 'Audiencia', value: 'audiencia' },
+  { label: 'Providência interna', value: 'providencia_interna' },
+  { label: 'Audiência', value: 'audiencia' },
   { label: 'Cumprimento', value: 'cumprimento' },
-  { label: 'Revisao', value: 'revisao' },
+  { label: 'Revisão', value: 'revisao' },
 ]
 
 export const gkitJurTarefaPrioridadeOptions: GkitJurSelectOption[] = [
-  { label: 'Critica', value: 'critica' },
+  { label: 'Crítica', value: 'critica' },
   { label: 'Alta', value: 'alta' },
-  { label: 'Media', value: 'media' },
+  { label: 'Média', value: 'media' },
   { label: 'Baixa', value: 'baixa' },
 ]
 
@@ -1603,32 +1605,32 @@ export const gkitJurTarefaStatusOptions: GkitJurSelectOption[] = [
   { label: 'Aberta', value: 'aberta' },
   { label: 'Em andamento', value: 'em_andamento' },
   { label: 'Aguardando terceiro', value: 'aguardando_terceiro' },
-  { label: 'Concluida', value: 'concluida' },
+  { label: 'Concluída', value: 'concluida' },
   { label: 'Cancelada', value: 'cancelada' },
 ]
 
 export const gkitJurDocumentoTipoOptions: GkitJurSelectOption[] = [
-  { label: 'Peticao', value: 'peticao' },
-  { label: 'Publicacao', value: 'publicacao' },
-  { label: 'Decisao', value: 'decisao' },
+  { label: 'Petição', value: 'peticao' },
+  { label: 'Publicação', value: 'publicacao' },
+  { label: 'Decisão', value: 'decisao' },
   { label: 'Ata', value: 'ata' },
   { label: 'Comprovante', value: 'comprovante' },
   { label: 'Documento interno', value: 'documento_interno' },
   { label: 'Contrato', value: 'contrato' },
-  { label: 'Procuracao', value: 'procuracao' },
+  { label: 'Procuração', value: 'procuracao' },
   { label: 'Outro', value: 'outro' },
 ]
 
 export const gkitJurEventoTipoOptions: GkitJurSelectOption[] = [
-  { label: 'Publicacao', value: 'publicacao' },
-  { label: 'Intimacao', value: 'intimacao' },
+  { label: 'Publicação', value: 'publicacao' },
+  { label: 'Intimação', value: 'intimacao' },
   { label: 'Despacho', value: 'despacho' },
-  { label: 'Decisao', value: 'decisao' },
-  { label: 'Audiencia', value: 'audiencia' },
+  { label: 'Decisão', value: 'decisao' },
+  { label: 'Audiência', value: 'audiencia' },
   { label: 'Prazo', value: 'prazo' },
   { label: 'Protocolo', value: 'protocolo' },
   { label: 'Contato', value: 'contato' },
-  { label: 'Providencia interna', value: 'providencia_interna' },
+  { label: 'Providência interna', value: 'providencia_interna' },
   { label: 'Documento', value: 'documento' },
   { label: 'Nota', value: 'nota' },
 ]

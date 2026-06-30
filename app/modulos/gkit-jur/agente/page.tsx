@@ -16,8 +16,8 @@ export default async function GkitJurAgenteRoute() {
   return (
     <GkitJurShell
       active="agente"
-      description="Fontes, receitas, execucoes e validacoes do agente de auxilio juridico."
-      title="Agente juridico"
+      description="Fontes, receitas, execuções e validações do agente de auxílio jurídico."
+      title="Agente jurídico"
       usuario={context.usuario}
     >
       <GkitJurAgentePage
