@@ -1,5 +1,5 @@
 import { getDashboardSummary, sanitizeCompetencia } from '../dashboard/dashboardPersistence';
-import { EmptyState, MetricCard, MonthContextHeader } from '../ui/FlexUI';
+import { EmptyState, MetricCard, StatusBadge, formatMonthLabel } from '../ui/FlexUI';
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -22,12 +22,24 @@ export async function ReceitasPage({ competencia }: { competencia?: string | nul
 
   return (
     <main className="page-shell">
-      <MonthContextHeader
-        title="Receitas"
-        description="Resumo mensal das receitas importadas, agrupadas por categoria."
-        competencia={competenciaInput}
-        primaryStatus={{ label: 'Status', status: data.comissoes.status }}
-      />
+      <section className="month-context-header">
+        <div className="month-context-main">
+          <p className="eyebrow">GKIT Flex</p>
+          <h1>Receitas</h1>
+          <p className="muted">Resumo mensal das receitas importadas, agrupadas por categoria.</p>
+        </div>
+      </section>
+      <section className="month-context-toolbar">
+        <div className="month-context-statuses">
+          <span>Status: <StatusBadge status={data.comissoes.status} compact /></span>
+        </div>
+        <div className="month-context-side">
+          <label className="field-label dashboard-month">
+            Competencia
+            <input className="text-input" value={formatMonthLabel(competenciaInput)} disabled readOnly />
+          </label>
+        </div>
+      </section>
 
       <section className="grid-3 dashboard-metrics">
         <MetricCard

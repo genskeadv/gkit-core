@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { EmptyState, MetricCard, MonthContextHeader } from '../ui/FlexUI';
 
 type MonthStatus = 'aberto' | 'fechado' | 'nao_aberto' | 'indisponivel';
@@ -48,15 +48,48 @@ type ImportPreview = {
   issues: ImportIssue[];
 };
 
+type ManualPayableForm = {
+  descricao: string;
+  vencimento_dia: string;
+  valor_previsto: string;
+  categoria: string;
+  centro: string;
+  pago: boolean;
+};
+
 const emptySummary: Summary = { total: 0, totalPago: 0, totalAberto: 0, quantidade: 0, quantidadePaga: 0 };
 const emptyForecastSummary: ForecastSummary = { totalPagamentos: 0, pagamentosCount: 0 };
+const emptyManualPayableForm: ManualPayableForm = {
+  descricao: '',
+  vencimento_dia: '',
+  valor_previsto: '',
+  categoria: 'Sem categoria',
+  centro: '',
+  pago: true,
+};
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 }
 
 function normalizeMoneyInput(value: string) {
-  const cleaned = value.replace(/R\$/gi, '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+  let cleaned = value.replace(/R\$/gi, '').replace(/\s/g, '');
+  const lastComma = cleaned.lastIndexOf(',');
+  const lastDot = cleaned.lastIndexOf('.');
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    const decimalSeparator = lastComma > lastDot ? ',' : '.';
+    const thousandsSeparator = decimalSeparator === ',' ? '.' : ',';
+    cleaned = cleaned.replace(new RegExp(`\\${thousandsSeparator}`, 'g'), '');
+    if (decimalSeparator === ',') cleaned = cleaned.replace(',', '.');
+  } else if (lastComma >= 0) {
+    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+  } else if (lastDot >= 0) {
+    const parts = cleaned.split('.');
+    const decimalPart = parts.at(-1) || '';
+    cleaned = parts.length === 2 && decimalPart.length <= 2 ? cleaned : cleaned.replace(/\./g, '');
+  }
+
   const parsed = Number(cleaned);
   return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0;
 }
@@ -71,6 +104,8 @@ export function AccountsPayablePage() {
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualForm, setManualForm] = useState<ManualPayableForm>(emptyManualPayableForm);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,6 +114,12 @@ export function AccountsPayablePage() {
   const categories = useMemo(() => {
     const set = new Set(items.map((item) => item.categoria).filter(Boolean));
     ['Pessoal', 'Impostos', 'Operacional', 'Despesas do negocio', 'Sem categoria'].forEach((category) => set.add(category));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [items]);
+
+  const centers = useMemo(() => {
+    const set = new Set(items.map((item) => item.centro).filter(Boolean) as string[]);
+    ['Pessoal', 'Operacional', 'Estrutura', 'TI', 'Consumo', 'Comissoes', 'Impostos', 'Novos Negocios'].forEach((center) => set.add(center));
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }, [items]);
 
@@ -241,6 +282,47 @@ export function AccountsPayablePage() {
     await saveItem(item.id, { pago });
   }
 
+  function updateManualForm(patch: Partial<ManualPayableForm>) {
+    setManualForm((current) => ({ ...current, ...patch }));
+  }
+
+  async function createManualItem(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    try {
+      setSavingId('manual');
+      setError(null);
+      setMessage(null);
+
+      const response = await fetch('/api/gkit-flex/contas-pagar/itens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          competencia: `${competencia}-01`,
+          descricao: manualForm.descricao,
+          vencimento_dia: manualForm.vencimento_dia ? Number(manualForm.vencimento_dia) : null,
+          valor_previsto: normalizeMoneyInput(manualForm.valor_previsto),
+          categoria: manualForm.categoria,
+          centro: manualForm.centro,
+          pago: manualForm.pago,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || 'Nao foi possivel criar o pagamento manual.');
+
+      setItems(payload.rows || []);
+      setSummary(payload.summary || emptySummary);
+      setForecastSummary(payload.forecastSummary || emptyForecastSummary);
+      setManualForm(emptyManualPayableForm);
+      setShowManualForm(false);
+      setMessage('Pagamento manual criado.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao criar pagamento manual.');
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   async function closeMonth() {
     try {
       const confirmed = window.confirm('Fechar este mes? Isso bloqueara alteracoes e criara a previsao de pagamentos do proximo mes a partir da lista atual.');
@@ -355,7 +437,57 @@ export function AccountsPayablePage() {
             <h2>Pagamentos do mes</h2>
             <p className="muted small-text">{summary.quantidade} lancamentos, {summary.quantidadePaga} marcados como pagos.</p>
           </div>
+          <button type="button" className="secondary-button" onClick={() => setShowManualForm((current) => !current)} disabled={!canEdit || loading}>
+            {showManualForm ? 'Cancelar inclusao' : 'Adicionar pagamento'}
+          </button>
         </div>
+
+        {showManualForm && (
+          <form className="preview-box" onSubmit={createManualItem}>
+            <div className="header-row">
+              <div>
+                <h2>Novo pagamento manual</h2>
+                <p className="muted small-text">Lancamento avulso da competencia aberta.</p>
+              </div>
+            </div>
+            <div className="grid-3">
+              <label className="field-label">
+                Descricao
+                <input className="text-input" value={manualForm.descricao} onChange={(event) => updateManualForm({ descricao: event.target.value })} required />
+              </label>
+              <label className="field-label">
+                Dia
+                <input className="text-input" type="number" min="1" max="31" value={manualForm.vencimento_dia} onChange={(event) => updateManualForm({ vencimento_dia: event.target.value })} />
+              </label>
+              <label className="field-label">
+                Valor
+                <input className="text-input" type="number" min="0.01" step="0.01" value={manualForm.valor_previsto} onChange={(event) => updateManualForm({ valor_previsto: event.target.value })} required />
+              </label>
+            </div>
+            <div className="grid-3">
+              <label className="field-label">
+                Categoria
+                <input className="text-input" list="payable-categories" value={manualForm.categoria} onChange={(event) => updateManualForm({ categoria: event.target.value })} />
+              </label>
+              <label className="field-label">
+                Centro
+                <input className="text-input" list="payable-centers" value={manualForm.centro} onChange={(event) => updateManualForm({ centro: event.target.value })} />
+              </label>
+              <label className="gkit-flex-check">
+                <input type="checkbox" checked={manualForm.pago} onChange={(event) => updateManualForm({ pago: event.target.checked })} />
+                <span>Pago</span>
+              </label>
+            </div>
+            <div className="actions">
+              <button type="button" className="secondary-button" onClick={() => { setShowManualForm(false); setManualForm(emptyManualPayableForm); }} disabled={savingId === 'manual'}>
+                Cancelar
+              </button>
+              <button type="submit" className="primary-button" disabled={!canEdit || savingId === 'manual'}>
+                {savingId === 'manual' ? 'Salvando...' : 'Salvar pagamento'}
+              </button>
+            </div>
+          </form>
+        )}
 
         <div className="table-wrap">
           <table className="editable-table">
@@ -423,6 +555,9 @@ export function AccountsPayablePage() {
           </table>
           <datalist id="payable-categories">
             {categories.map((category) => <option key={category} value={category} />)}
+          </datalist>
+          <datalist id="payable-centers">
+            {centers.map((center) => <option key={center} value={center} />)}
           </datalist>
         </div>
       </section>

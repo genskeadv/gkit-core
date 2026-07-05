@@ -177,6 +177,17 @@ type ForecastSuggestionSource = {
   vencimentoDia: number | null;
 };
 
+type CreatePayableItemInput = {
+  competencia: string;
+  descricao: string;
+  vencimentoDia: number | null;
+  vencimentoTexto?: string | null;
+  valorPrevisto: number;
+  categoria: string;
+  centro?: string | null;
+  pago: boolean;
+};
+
 function tokenSet(value: string) {
   return new Set(normalizeText(value).split(' ').filter((part) => part.length > 2));
 }
@@ -747,6 +758,55 @@ export async function updatePayableItem(id: string, patch: Partial<Pick<PayableI
   if (patch.pago !== undefined) await syncCicloRegularidadePagamentos(supabase, item.competencia as string);
   await logEvent({ supabase, modulo: 'contas_pagar', competencia: item.competencia as string, action: 'atualizar_conta_pagar', entidadeTipo: 'contas_pagar_item', entidadeId: id, detalhe: { patch: payload } });
   return { ok: true };
+}
+
+export async function createManualPayableItem(input: CreatePayableItemInput) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error('Supabase nao configurado.');
+
+  const competencia = sanitizeCompetencia(input.competencia);
+  const competenciaId = await requireOpenPayableMonth(supabase, competencia);
+  const descricao = String(input.descricao || '').trim();
+  const valorPrevisto = roundMoney(Number(input.valorPrevisto || 0));
+  const vencimentoDia = input.vencimentoDia === null || input.vencimentoDia === undefined ? null : Number(input.vencimentoDia);
+
+  if (!descricao) throw new Error('Descricao do pagamento e obrigatoria.');
+  if (!Number.isFinite(valorPrevisto) || valorPrevisto <= 0) throw new Error('Valor do pagamento deve ser maior que zero.');
+  if (vencimentoDia !== null && (!Number.isInteger(vencimentoDia) || vencimentoDia < 1 || vencimentoDia > 31)) {
+    throw new Error('Dia de vencimento deve ficar entre 1 e 31.');
+  }
+
+  const { data, error } = await supabase
+    .from('contas_pagar_itens')
+    .insert({
+      competencia_id: competenciaId,
+      competencia,
+      descricao,
+      vencimento_dia: vencimentoDia,
+      vencimento_texto: input.vencimentoTexto || (vencimentoDia ? String(vencimentoDia).padStart(2, '0') : null),
+      valor_previsto: valorPrevisto,
+      categoria: String(input.categoria || '').trim() || 'Sem categoria',
+      centro: String(input.centro || '').trim() || null,
+      pago: Boolean(input.pago),
+      origem_tipo: 'manual',
+      raw: { origem: 'manual' },
+    })
+    .select('id')
+    .single();
+
+  if (error) throw new Error(`Erro ao criar pagamento manual: ${error.message}`);
+
+  await logEvent({
+    supabase,
+    modulo: 'contas_pagar',
+    competencia,
+    action: 'criar_conta_pagar_manual',
+    entidadeTipo: 'contas_pagar_item',
+    entidadeId: data?.id as string | undefined,
+    detalhe: { descricao, vencimentoDia, valorPrevisto, categoria: input.categoria, centro: input.centro, pago: Boolean(input.pago) },
+  });
+
+  return { ok: true, id: data?.id, ...(await listPayables(competencia)) };
 }
 
 export async function closePayableMonthAndCreateNext(competenciaInput: string) {

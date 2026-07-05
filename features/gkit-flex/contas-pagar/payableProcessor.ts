@@ -14,11 +14,26 @@ function parseMoney(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) return Math.round(value * 100) / 100;
   const text = String(value ?? '').trim();
   if (!text) return 0;
-  const cleaned = text
+  let cleaned = text
     .replace(/R\$/gi, '')
-    .replace(/\s/g, '')
-    .replace(/\./g, '')
-    .replace(',', '.');
+    .replace(/\s/g, '');
+
+  const lastComma = cleaned.lastIndexOf(',');
+  const lastDot = cleaned.lastIndexOf('.');
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    const decimalSeparator = lastComma > lastDot ? ',' : '.';
+    const thousandsSeparator = decimalSeparator === ',' ? '.' : ',';
+    cleaned = cleaned.replace(new RegExp(`\\${thousandsSeparator}`, 'g'), '');
+    if (decimalSeparator === ',') cleaned = cleaned.replace(',', '.');
+  } else if (lastComma >= 0) {
+    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+  } else if (lastDot >= 0) {
+    const parts = cleaned.split('.');
+    const decimalPart = parts.at(-1) || '';
+    cleaned = parts.length === 2 && decimalPart.length <= 2 ? cleaned : cleaned.replace(/\./g, '');
+  }
+
   const parsed = Number(cleaned);
   return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0;
 }
@@ -149,6 +164,28 @@ function parseBrazilianDateDay(value: unknown): number | null {
   return day >= 1 && day <= 31 ? day : null;
 }
 
+function inferMonthFirstDateFormat(rows: unknown[][], dataIndex: number): boolean {
+  const parts = rows
+    .map((row) => String(row[dataIndex] ?? '').trim().match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/))
+    .filter((match): match is RegExpMatchArray => Boolean(match))
+    .map((match) => ({ first: Number(match[1]), second: Number(match[2]) }))
+    .filter((item) => item.first >= 1 && item.first <= 31 && item.second >= 1 && item.second <= 31);
+
+  if (parts.length < 3) return false;
+  const firstValues = new Set(parts.map((item) => item.first));
+  const secondValues = new Set(parts.map((item) => item.second));
+  const firstLooksLikeMonth = [...firstValues].every((value) => value >= 1 && value <= 12);
+  return firstLooksLikeMonth && firstValues.size <= 2 && secondValues.size > firstValues.size;
+}
+
+function parseStatementDateDay(value: unknown, monthFirst: boolean): number | null {
+  const text = String(value ?? '').trim();
+  const match = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  if (!match) return parseDay(value);
+  const day = Number(monthFirst ? match[2] : match[1]);
+  return day >= 1 && day <= 31 ? day : null;
+}
+
 function rawRow(headerRow: unknown[], row: unknown[]) {
   const raw: Record<string, unknown> = {};
   headerRow.forEach((label, index) => {
@@ -171,24 +208,30 @@ function parseBankStatementRows(rows: unknown[][]): PayableImportRow[] | null {
   const dataIndex = findColumn(headers, ['data lancamento', 'data']);
   const descricaoIndex = findColumn(headers, ['descricao', 'historico', 'memo']);
   const valorIndex = findColumn(headers, ['valor']);
+  const categoriaIndex = findColumn(headers, ['categoria']);
+  const centroIndex = findColumn(headers, ['centro', 'centro de custo']);
 
   if (dataIndex < 0 || descricaoIndex < 0 || valorIndex < 0) return null;
 
-  const parsed = rows.slice(headerIndex + 1).map((row, offset): PayableImportRow | null => {
+  const dataRows = rows.slice(headerIndex + 1);
+  const monthFirstDates = inferMonthFirstDateFormat(dataRows, dataIndex);
+  const parsed = dataRows.map((row, offset): PayableImportRow | null => {
     const amount = parseMoney(row[valorIndex]);
     if (!Number.isFinite(amount) || amount >= 0) return null;
 
     const vencimentoTexto = String(row[dataIndex] ?? '').trim();
     const descricao = String(row[descricaoIndex] ?? '').trim();
+    const categoria = categoriaIndex >= 0 ? String(row[categoriaIndex] ?? '').trim() : '';
+    const centro = centroIndex >= 0 ? String(row[centroIndex] ?? '').trim() : '';
 
     return {
       linha: headerIndex + offset + 2,
       descricao,
-      vencimentoDia: parseBrazilianDateDay(vencimentoTexto),
+      vencimentoDia: parseStatementDateDay(vencimentoTexto, monthFirstDates),
       vencimentoTexto,
       valorPrevisto: Math.abs(amount),
-      categoria: 'Sem categoria',
-      centro: '',
+      categoria: categoria || 'Sem categoria',
+      centro,
       pago: true,
       raw: { ...rawRow(headerRow, row), origem_importacao: 'extrato_bancario_csv' },
     } satisfies PayableImportRow;

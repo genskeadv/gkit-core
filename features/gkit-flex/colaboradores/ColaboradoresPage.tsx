@@ -57,6 +57,14 @@ function checkboxDefault(colaborador: GkitFlexColaborador | null, key: keyof Gki
   return Boolean(colaborador[key]);
 }
 
+function hasMonthlyValue(value: number | null | undefined) {
+  return Number(value || 0) > 0;
+}
+
+function receiptTypeDefault(colaborador: GkitFlexColaborador | null, key: keyof GkitFlexColaborador, values: Array<number | null | undefined>, fallback = false) {
+  return checkboxDefault(colaborador, key, fallback) || values.some(hasMonthlyValue);
+}
+
 export function GkitFlexColaboradoresPage({
   data,
   canWrite,
@@ -295,11 +303,11 @@ export function GkitFlexColaboradorForm({ data }: { data: GkitFlexColaboradorFor
         <section>
           <p className="eyebrow">Tipos aplicaveis</p>
           <div className="gkit-flex-checks">
-            <CheckField name="recebe_salario" label="Salario" defaultChecked={checkboxDefault(colaborador, 'recebe_salario')} />
-            <CheckField name="recebe_participacao_honorarios" label="Honorarios" defaultChecked={checkboxDefault(colaborador, 'recebe_participacao_honorarios')} />
-            <CheckField name="recebe_pro_labore" label="Pro-labore" defaultChecked={checkboxDefault(colaborador, 'recebe_pro_labore')} />
-            <CheckField name="recebe_beneficios" label="Beneficios" defaultChecked={checkboxDefault(colaborador, 'recebe_beneficios')} />
-            <CheckField name="recebe_outros" label="Outros" defaultChecked={checkboxDefault(colaborador, 'recebe_outros')} />
+            <CheckField name="recebe_salario" label="Salario" defaultChecked={receiptTypeDefault(colaborador, 'recebe_salario', [colaborador?.salario])} />
+            <CheckField name="recebe_participacao_honorarios" label="Honorarios" defaultChecked={receiptTypeDefault(colaborador, 'recebe_participacao_honorarios', [colaborador?.participacao_honorarios])} />
+            <CheckField name="recebe_pro_labore" label="Pro-labore" defaultChecked={receiptTypeDefault(colaborador, 'recebe_pro_labore', [colaborador?.pro_labore])} />
+            <CheckField name="recebe_beneficios" label="Beneficios" defaultChecked={receiptTypeDefault(colaborador, 'recebe_beneficios', [colaborador?.beneficio_valor])} />
+            <CheckField name="recebe_outros" label="Outros" defaultChecked={receiptTypeDefault(colaborador, 'recebe_outros', [colaborador?.ajuda_custo, colaborador?.outros_vencimentos])} />
             <CheckField name="recebe_comissoes" label="Comissoes" defaultChecked={checkboxDefault(colaborador, 'recebe_comissoes', true)} />
           </div>
         </section>

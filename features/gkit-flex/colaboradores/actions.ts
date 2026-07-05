@@ -54,6 +54,10 @@ function bool(formData: FormData, key: string) {
   return formData.get(key) === 'on';
 }
 
+function hasValue(value: number) {
+  return Number.isFinite(value) && value > 0;
+}
+
 async function requireWrite() {
   const context = await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/colaboradores');
   if (!canAccess(context.permissions, 'gkit_flex.colaboradores.write')) {
@@ -63,6 +67,13 @@ async function requireWrite() {
 }
 
 function payload(formData: FormData) {
+  const salario = money(formData, 'salario');
+  const participacaoHonorarios = money(formData, 'participacao_honorarios');
+  const proLabore = money(formData, 'pro_labore');
+  const ajudaCusto = money(formData, 'ajuda_custo');
+  const outrosVencimentos = money(formData, 'outros_vencimentos');
+  const beneficioValor = money(formData, 'beneficio_valor');
+
   return {
     usuario_id: uuid(required(text(formData, 'usuario_id'), 'Usuario'), 'Usuario'),
     carteira_id: nullableUuid(formData, 'carteira_id', 'Carteira'),
@@ -77,18 +88,18 @@ function payload(formData: FormData) {
     tipo_conta: nullableText(formData, 'tipo_conta'),
     data_inicio: nullableDate(formData, 'data_inicio'),
     status: text(formData, 'status') || 'ativo',
-    salario: money(formData, 'salario'),
-    participacao_honorarios: money(formData, 'participacao_honorarios'),
-    pro_labore: money(formData, 'pro_labore'),
-    ajuda_custo: money(formData, 'ajuda_custo'),
-    outros_vencimentos: money(formData, 'outros_vencimentos'),
+    salario,
+    participacao_honorarios: participacaoHonorarios,
+    pro_labore: proLabore,
+    ajuda_custo: ajudaCusto,
+    outros_vencimentos: outrosVencimentos,
     beneficio_descricao: nullableText(formData, 'beneficio_descricao'),
-    beneficio_valor: money(formData, 'beneficio_valor'),
-    recebe_salario: bool(formData, 'recebe_salario'),
-    recebe_participacao_honorarios: bool(formData, 'recebe_participacao_honorarios'),
-    recebe_pro_labore: bool(formData, 'recebe_pro_labore'),
-    recebe_beneficios: bool(formData, 'recebe_beneficios'),
-    recebe_outros: bool(formData, 'recebe_outros'),
+    beneficio_valor: beneficioValor,
+    recebe_salario: bool(formData, 'recebe_salario') || hasValue(salario),
+    recebe_participacao_honorarios: bool(formData, 'recebe_participacao_honorarios') || hasValue(participacaoHonorarios),
+    recebe_pro_labore: bool(formData, 'recebe_pro_labore') || hasValue(proLabore),
+    recebe_beneficios: bool(formData, 'recebe_beneficios') || hasValue(beneficioValor),
+    recebe_outros: bool(formData, 'recebe_outros') || hasValue(ajudaCusto) || hasValue(outrosVencimentos),
     recebe_comissoes: bool(formData, 'recebe_comissoes'),
     observacoes: nullableText(formData, 'observacoes'),
     updated_at: new Date().toISOString(),
