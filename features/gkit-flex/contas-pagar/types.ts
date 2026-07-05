@@ -38,6 +38,34 @@ export type PayableSummary = {
   quantidadePaga: number;
 };
 
+export type PayableSanitizationRow = {
+  id: string;
+  descricao: string;
+  vencimento_dia: number | null;
+  vencimento_texto: string | null;
+  valor_previsto: number;
+  categoria: string;
+  centro: string | null;
+  origem_tipo?: string | null;
+  origem_arquivo?: string | null;
+  raw?: Record<string, unknown> | null;
+  created_at?: string;
+};
+
+export type PayableSanitizationGroup = {
+  chave: string;
+  descricao: string;
+  quantidade: number;
+  total: number;
+  ids: string[];
+};
+
+export type PayableSanitizationSummary = {
+  pendentes: number;
+  totalPendente: number;
+  grupos: number;
+};
+
 
 export type PayableImportIssue = {
   linha: number;

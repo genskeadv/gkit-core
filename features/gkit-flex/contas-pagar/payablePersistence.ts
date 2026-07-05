@@ -1,9 +1,20 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { PayableImportIssue, PayableImportPreview, PayableImportRow, PayableItem, PayableMonthStatus, PayableSummary } from './types';
+import type {
+  PayableImportIssue,
+  PayableImportPreview,
+  PayableImportRow,
+  PayableItem,
+  PayableMonthStatus,
+  PayableSanitizationGroup,
+  PayableSanitizationRow,
+  PayableSanitizationSummary,
+  PayableSummary,
+} from './types';
 import { getSupabaseAdmin, logEvent } from '../audit';
 import { buildPayablesExportWorkbook } from './payableProcessor';
 import { syncCicloRegularidadePagamentos } from '../regularidade-pagamentos';
 import { getMonthlyForecast } from '../previsoes/forecastPersistence';
+import { buildSlug, suggestCanonicalName } from '../cadastros/normalization';
 
 function roundMoney(value: number): number {
   return Math.round((value || 0) * 100) / 100;
@@ -106,6 +117,128 @@ function summarize(rows: PayableItem[]): PayableSummary {
     quantidade: rows.length,
     quantidadePaga: rows.filter((row) => row.pago).length,
   };
+}
+
+function isUncategorized(value: unknown) {
+  return !String(value || '').trim() || String(value || '').trim().toLowerCase() === 'sem categoria';
+}
+
+function normalizeGroupKey(value: string) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/cp\s*:\s*\d+\s*-/g, '')
+    .replace(/\d{3,}/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .slice(0, 80) || 'sem_descricao';
+}
+
+function summarizeSanitization(rows: PayableSanitizationRow[]): PayableSanitizationSummary {
+  return {
+    pendentes: rows.length,
+    totalPendente: roundMoney(rows.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0)),
+    grupos: new Set(rows.map((row) => normalizeGroupKey(row.descricao))).size,
+  };
+}
+
+function buildSanitizationGroups(rows: PayableSanitizationRow[]): PayableSanitizationGroup[] {
+  const map = new Map<string, PayableSanitizationGroup>();
+
+  for (const row of rows) {
+    const chave = normalizeGroupKey(row.descricao);
+    const current = map.get(chave) || {
+      chave,
+      descricao: row.descricao,
+      quantidade: 0,
+      total: 0,
+      ids: [],
+    };
+
+    current.quantidade += 1;
+    current.total = roundMoney(current.total + Number(row.valor_previsto || 0));
+    current.ids.push(row.id);
+    map.set(chave, current);
+  }
+
+  return Array.from(map.values()).sort((a, b) => b.total - a.total || b.quantidade - a.quantidade);
+}
+
+async function listPayableCategories(supabase: SupabaseClient) {
+  const categories = new Set(['Pessoal', 'Impostos', 'Operacional', 'Despesas do negocio', 'Comissoes']);
+
+  const { data: cadastroRows, error: cadastroError } = await supabase
+    .from('gkit_cadastros')
+    .select('nome')
+    .eq('tipo', 'categoria')
+    .eq('status', 'ativo')
+    .order('nome', { ascending: true });
+
+  if (cadastroError) console.warn('[gkit_cadastros] falha ao ler categorias:', cadastroError.message);
+  for (const row of cadastroRows || []) {
+    if (!isUncategorized(row.nome)) categories.add(String(row.nome || '').trim());
+  }
+
+  const { data: payableRows, error: payableError } = await supabase
+    .from('contas_pagar_itens')
+    .select('categoria')
+    .not('categoria', 'is', null)
+    .neq('categoria', 'Sem categoria')
+    .limit(1000);
+
+  if (payableError) console.warn('[contas_pagar_itens] falha ao ler categorias:', payableError.message);
+  for (const row of payableRows || []) {
+    if (!isUncategorized(row.categoria)) categories.add(String(row.categoria || '').trim());
+  }
+
+  return Array.from(categories).filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+
+async function ensureCategoryCadastro(supabase: SupabaseClient, categoria: string) {
+  const normalized = String(categoria || '').trim();
+  if (!normalized || isUncategorized(normalized)) return;
+
+  const slug = buildSlug(normalized);
+  const nome = suggestCanonicalName('categoria', normalized);
+  const { data: existing, error: existingError } = await supabase
+    .from('gkit_cadastros')
+    .select('id, usos')
+    .eq('tipo', 'categoria')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  if (existingError) {
+    console.warn('[gkit_cadastros] falha ao consultar categoria:', existingError.message);
+    return;
+  }
+
+  if (existing?.id) {
+    await supabase
+      .from('gkit_cadastros')
+      .update({ status: 'ativo', updated_at: new Date().toISOString() })
+      .eq('id', existing.id);
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from('gkit_cadastros')
+    .insert({ tipo: 'categoria', nome, slug, status: 'ativo', origem: 'saneamento', usos: 0 })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.warn('[gkit_cadastros] falha ao criar categoria:', error.message);
+    return;
+  }
+
+  await supabase.from('gkit_cadastro_aliases').upsert({
+    cadastro_id: data.id,
+    tipo: 'categoria',
+    alias: normalized,
+    alias_slug: slug,
+    origem: 'saneamento',
+  }, { onConflict: 'tipo,alias_slug' });
 }
 
 async function getMonthRow(supabase: SupabaseClient, competencia: string) {
@@ -375,6 +508,110 @@ export async function listPayables(competenciaInput: string) {
     summary: summarize(rows),
     forecastSummary: forecast.summary,
   };
+}
+
+export async function listPayableSanitization(competenciaInput: string) {
+  const supabase = getSupabaseAdmin();
+  const competencia = sanitizeCompetencia(competenciaInput);
+  if (!supabase) {
+    return {
+      configured: false,
+      competencia,
+      status: 'nao_aberto' as PayableMonthStatus,
+      canEdit: false,
+      rows: [] as PayableSanitizationRow[],
+      groups: [] as PayableSanitizationGroup[],
+      categories: [] as string[],
+      summary: summarizeSanitization([]),
+    };
+  }
+
+  const status = await getPayableMonthStatus(competencia);
+  const categories = await listPayableCategories(supabase);
+  if (!status.row) {
+    return {
+      configured: true,
+      competencia,
+      status: status.status,
+      canEdit: false,
+      rows: [] as PayableSanitizationRow[],
+      groups: [] as PayableSanitizationGroup[],
+      categories,
+      summary: summarizeSanitization([]),
+    };
+  }
+
+  const { data, error } = await supabase
+    .from('contas_pagar_itens')
+    .select('id, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, origem_tipo, origem_arquivo, raw, created_at')
+    .eq('competencia_id', status.row.id)
+    .or('categoria.is.null,categoria.eq.Sem categoria,categoria.eq.')
+    .order('vencimento_dia', { ascending: true, nullsFirst: false })
+    .order('descricao', { ascending: true });
+
+  if (error) throw new Error(`Erro ao listar saneamento de pagamentos: ${error.message}`);
+  const rows = (data || []) as PayableSanitizationRow[];
+
+  return {
+    configured: true,
+    competencia,
+    status: status.status,
+    canEdit: status.status === 'aberto',
+    rows,
+    groups: buildSanitizationGroups(rows),
+    categories,
+    summary: summarizeSanitization(rows),
+  };
+}
+
+export async function classifyPayableSanitization(competenciaInput: string, ids: string[], categoriaInput: string) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error('Supabase nao configurado.');
+
+  const competencia = sanitizeCompetencia(competenciaInput);
+  const competenciaId = await requireOpenPayableMonth(supabase, competencia);
+  const categoria = String(categoriaInput || '').trim();
+  if (!categoria || isUncategorized(categoria)) throw new Error('Escolha uma categoria de destino diferente de Sem categoria.');
+
+  const uniqueIds = Array.from(new Set(ids.map((id) => String(id || '').trim()).filter(Boolean)));
+  if (!uniqueIds.length) throw new Error('Selecione ao menos um pagamento para classificar.');
+
+  const { data: currentRows, error: readError } = await supabase
+    .from('contas_pagar_itens')
+    .select('id, descricao, valor_previsto, categoria')
+    .eq('competencia_id', competenciaId)
+    .in('id', uniqueIds);
+
+  if (readError) throw new Error(`Erro ao consultar pagamentos selecionados: ${readError.message}`);
+
+  const rowsToUpdate = ((currentRows || []) as Array<{ id: string; categoria: string | null; valor_previsto: number }>).filter((row) => isUncategorized(row.categoria));
+  if (!rowsToUpdate.length) throw new Error('Nenhum pagamento selecionado ainda esta sem categoria.');
+
+  const updateIds = rowsToUpdate.map((row) => row.id);
+  const { error } = await supabase
+    .from('contas_pagar_itens')
+    .update({ categoria, updated_at: new Date().toISOString() })
+    .eq('competencia_id', competenciaId)
+    .in('id', updateIds);
+
+  if (error) throw new Error(`Erro ao classificar pagamentos: ${error.message}`);
+
+  await ensureCategoryCadastro(supabase, categoria);
+
+  await logEvent({
+    supabase,
+    modulo: 'contas_pagar',
+    competencia,
+    action: 'saneamento_classificar_pagamentos',
+    detalhe: {
+      categoria,
+      selecionados: uniqueIds.length,
+      atualizados: updateIds.length,
+      valor: roundMoney(rowsToUpdate.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0)),
+    },
+  });
+
+  return { ok: true, updated: updateIds.length, categoria, ...(await listPayableSanitization(competencia)) };
 }
 
 export async function updatePayableItem(id: string, patch: Partial<Pick<PayableItem, 'descricao' | 'valor_previsto' | 'categoria' | 'pago'>>) {

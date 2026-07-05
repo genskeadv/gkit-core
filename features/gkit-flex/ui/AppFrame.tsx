@@ -11,6 +11,7 @@ const navItems = [
   { href: '/modulos/gkit-flex/previsoes', label: 'Previsoes' },
   { href: '/modulos/gkit-flex/receitas', label: 'Receitas' },
   { href: '/modulos/gkit-flex/pagamentos', label: 'Pagamentos' },
+  { href: '/modulos/gkit-flex/saneamento', label: 'Saneamento' },
   { href: '/modulos/gkit-flex/colaboradores', label: 'Colaboradores' },
   { href: '/modulos/gkit-flex/comissoes', label: 'Comiss\u00f5es' },
   { href: '/modulos/gkit-flex/cadastros', label: 'Cadastros' },
