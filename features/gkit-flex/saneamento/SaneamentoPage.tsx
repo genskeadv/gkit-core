@@ -61,9 +61,19 @@ function formatMoney(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 }
 
-function formatDay(row: SanitizationRow) {
-  if (row.vencimento_dia) return String(row.vencimento_dia).padStart(2, '0');
-  return row.vencimento_texto || '-';
+function formatPaymentDate(row: SanitizationRow, competencia: string) {
+  const text = String(row.vencimento_texto || '').trim();
+  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(text)) {
+    const [day, month, year] = text.split('/');
+    const fullYear = year.length === 2 ? `20${year}` : year;
+    return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${fullYear}`;
+  }
+
+  const day = row.vencimento_dia || (/^\d{1,2}$/.test(text) ? Number(text) : null);
+  if (!day) return text || '-';
+
+  const [year, month] = competencia.slice(0, 7).split('-');
+  return `${String(day).padStart(2, '0')}/${month}/${year}`;
 }
 
 function sourceLabel(row: SanitizationRow) {
@@ -294,13 +304,10 @@ export function SaneamentoPage() {
               <thead>
                 <tr>
                   <th></th>
-                  <th>Dia</th>
-                  <th>Descricao</th>
+                  <th>Data</th>
+                  <th>Pagamento</th>
                   <th>Origem</th>
-                  <th>Sugestao</th>
-                  <th>Classificar</th>
                   <th className="text-right">Valor</th>
-                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -309,27 +316,25 @@ export function SaneamentoPage() {
                     <td>
                       <input type="checkbox" checked={selectedSet.has(row.id)} disabled={!data?.canEdit} onChange={() => toggleRow(row.id)} />
                     </td>
-                    <td>{formatDay(row)}</td>
+                    <td>{formatPaymentDate(row, competencia)}</td>
                     <td>
                       <strong>{row.descricao}</strong>
                       <p className="muted small-text">{row.centro || 'Sem centro'}</p>
+                      <div className="module-inline-actions flex-saneamento-row-actions">
+                        {row.sugestao ? <SuggestionPill suggestion={row.sugestao} /> : <span className="muted small-text">Sem sugestao da previsao</span>}
+                        <input
+                          className="inline-input"
+                          list="saneamento-categorias"
+                          value={rowCategory(row)}
+                          onChange={(event) => updateRowCategory(row.id, event.target.value)}
+                          placeholder="Categoria"
+                          disabled={!data?.canEdit || saving}
+                        />
+                        <button className="secondary-button" onClick={() => applyCategory([row.id], rowCategory(row))} disabled={!data?.canEdit || saving || !rowCategory(row)}>Aplicar</button>
+                      </div>
                     </td>
                     <td>{sourceLabel(row)}</td>
-                    <td>{row.sugestao ? <SuggestionPill suggestion={row.sugestao} /> : <span className="muted small-text">Sem sugestao</span>}</td>
-                    <td>
-                      <input
-                        className="inline-input"
-                        list="saneamento-categorias"
-                        value={rowCategory(row)}
-                        onChange={(event) => updateRowCategory(row.id, event.target.value)}
-                        placeholder="Categoria"
-                        disabled={!data?.canEdit || saving}
-                      />
-                    </td>
                     <td className="text-right">{formatMoney(row.valor_previsto)}</td>
-                    <td className="text-right">
-                      <button className="secondary-button" onClick={() => applyCategory([row.id], rowCategory(row))} disabled={!data?.canEdit || saving || !rowCategory(row)}>Aplicar</button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -350,7 +355,7 @@ function rowsWithSuggestions(rows: SanitizationRow[]) {
 function SuggestionPill({ suggestion }: { suggestion: SanitizationSuggestion }) {
   return (
     <span className="status-pill status-aberto compact" title={`${suggestion.motivo}. Previsao: ${suggestion.descricaoPrevista}`}>
-      {suggestion.categoria} · {Math.round(suggestion.pontuacao)}%
+      {suggestion.categoria} - {Math.round(suggestion.pontuacao)}%
     </span>
   );
 }

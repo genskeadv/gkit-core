@@ -18784,6 +18784,19 @@ body:has(.gkit-flex-operational-shell) {
   overflow: visible !important;
 }
 
+.gkit-flex-operational-shell .flex-saneamento-row-actions {
+  align-items: center !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
+
+.gkit-flex-operational-shell .flex-saneamento-row-actions .inline-input {
+  max-width: 240px !important;
+  min-width: 180px !important;
+}
+
 @media (max-width: 560px) {
   .gkit-jur-inbox-queues nav {
     grid-template-columns: 1fr;
