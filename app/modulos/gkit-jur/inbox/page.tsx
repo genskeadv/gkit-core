@@ -13,7 +13,7 @@ export default async function GkitJurInboxRoute({ searchParams }: { searchParams
   return (
     <GkitJurShell
       active="inbox"
-      description="Caixa de entrada diaria do advogado, priorizada por risco, pendencias e automacoes."
+      description="Caixa de entrada diária do advogado, priorizada por risco, pendências e automações."
       title="Inbox operacional"
       usuario={context.usuario}
     >

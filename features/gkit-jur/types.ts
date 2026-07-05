@@ -8,6 +8,8 @@ export type GkitJurInboxFilaId = 'hoje' | 'tarefas' | 'criticos' | 'pendencias' 
 
 export type GkitJurInboxPrioridade = 'critica' | 'alta' | 'media' | 'baixa';
 
+export type GkitJurInboxOrdenacao = 'prioridade' | 'tipo' | 'responsavel' | 'carteira';
+
 export type GkitJurTarefaStatus = 'aberta' | 'em_andamento' | 'aguardando_terceiro' | 'concluida' | 'cancelada';
 
 export type GkitJurTarefaTipo =
@@ -123,6 +125,23 @@ export type GkitJurProcessListData = {
   processes: GkitJurProcessListItem[];
 };
 
+export type GkitJurGlobalSearchResult = {
+  id: string;
+  type: 'processo' | 'tarefa' | 'movimentacao';
+  title: string;
+  subtitle: string;
+  meta: string;
+  href: string;
+};
+
+export type GkitJurGlobalSearchData = {
+  query: string;
+  total: number;
+  processos: GkitJurGlobalSearchResult[];
+  tarefas: GkitJurGlobalSearchResult[];
+  movimentacoes: GkitJurGlobalSearchResult[];
+};
+
 export type GkitJurFormData = {
   carteiras: GkitJurSelectOption[];
   clientes: GkitJurSelectOption[];
@@ -170,7 +189,16 @@ export type GkitJurTarefa = {
   carteiraNome: string | null;
   responsavelId: string | null;
   responsavelNome: string | null;
+  payload: Record<string, unknown>;
   createdAt: string;
+};
+
+export type GkitJurProcessStatusSuggestion = {
+  tarefaId: string;
+  tarefaTitulo: string;
+  status: GkitJurProcessoStatus;
+  statusMonitoramento: GkitJurMonitoramentoStatus;
+  motivo: string;
 };
 
 export type GkitJurDocumento = {
@@ -226,6 +254,7 @@ export type GkitJurProcessDetailData = {
   formData: GkitJurFormData;
   movimentacoes: GkitJurMovimentacao[];
   processo: GkitJurProcessDetail;
+  statusSuggestion: GkitJurProcessStatusSuggestion | null;
   tarefas: GkitJurTarefa[];
   timeline: GkitJurTimelineItem[];
 };
@@ -308,6 +337,7 @@ export type GkitJurInboxItem = {
 
 export type GkitJurInboxFilters = {
   carteiraId: string;
+  ordenacao: GkitJurInboxOrdenacao;
   responsavelId: string;
 };
 
@@ -417,6 +447,28 @@ export type GkitJurIntegracaoTribunal = {
 };
 
 export type GkitJurIntegracaoData = {
+  cron: {
+    ativo: boolean;
+    batchLimit: number;
+    horarioLocal: string;
+    lastError: string | null;
+    lastFinishedAt: string | null;
+    lastResult: {
+      erros: number;
+      movimentosNovos: number;
+      processos: number;
+      tarefasGeradas: number;
+    } | null;
+    lastStartedAt: string | null;
+    maxBatches: number;
+    nextRunAt: string | null;
+    provider: string;
+    running: boolean;
+    schedule: string;
+    status: 'ativo' | 'em_execucao' | 'erro' | 'nunca_executado';
+    timeBudgetMs: number;
+    timezone: string;
+  };
   metrics: {
     atrasados: number;
     configurados: number;
@@ -426,4 +478,37 @@ export type GkitJurIntegracaoData = {
     totalAtivos: number;
   };
   tribunais: GkitJurIntegracaoTribunal[];
+};
+
+export type GkitJurIntegracaoSyncFeedback = {
+  erros: number;
+  novas: number;
+  processos: number;
+  semResultado: number;
+  tarefas: number;
+} | null;
+
+export type GkitJurMovimentacaoTarefaRegra = {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  codigoMovimento: number | null;
+  termos: string[];
+  tipoTarefa: GkitJurTarefaTipo;
+  prioridade: GkitJurInboxPrioridade;
+  tituloTemplate: string;
+  descricaoTemplate: string | null;
+  prazoDias: number | null;
+  gerarAutomaticamente: boolean;
+  ativo: boolean;
+  updatedAt: string;
+};
+
+export type GkitJurMovimentacaoTarefaData = {
+  regras: GkitJurMovimentacaoTarefaRegra[];
+  metrics: {
+    ativas: number;
+    automaticas: number;
+    total: number;
+  };
 };

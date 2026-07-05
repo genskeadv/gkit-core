@@ -23,6 +23,11 @@ function parseMoney(value: unknown): number {
   return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0;
 }
 
+function parseOfxMoney(value: unknown): number {
+  const parsed = Number(String(value ?? '').trim().replace(',', '.'));
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0;
+}
+
 function parseDay(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
     const day = Math.trunc(value);
@@ -46,6 +51,61 @@ function parseBoolean(value: unknown): boolean {
   if (typeof value === 'number') return value === 1;
   const text = normalizeText(value);
   return ['sim', 's', 'pago', 'paid', 'true', 'verdadeiro', '1', 'x'].includes(text);
+}
+
+function parseDelimitedRows(text: string): unknown[][] {
+  const firstLine = text.split(/\r?\n/).find((line) => line.trim()) || '';
+  const delimiters = [';', ',', '\t'];
+  const delimiter = delimiters
+    .map((candidate) => ({ candidate, count: firstLine.split(candidate).length - 1 }))
+    .sort((a, b) => b.count - a.count)[0]?.candidate || ';';
+
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let inQuotes = false;
+  const cleanText = text.replace(/^\uFEFF/, '');
+
+  for (let index = 0; index < cleanText.length; index += 1) {
+    const char = cleanText[index];
+    const next = cleanText[index + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        cell += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === delimiter && !inQuotes) {
+      row.push(cell);
+      cell = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && next === '\n') index += 1;
+      row.push(cell);
+      if (row.some((value) => value.trim())) rows.push(row);
+      row = [];
+      cell = '';
+      continue;
+    }
+
+    cell += char;
+  }
+
+  row.push(cell);
+  if (row.some((value) => value.trim())) rows.push(row);
+  return rows;
+}
+
+function decodeFileText(buffer: ArrayBuffer): string {
+  const utf8 = new TextDecoder('utf-8').decode(buffer);
+  return utf8.includes('\uFFFD') ? new TextDecoder('windows-1252').decode(buffer) : utf8;
 }
 
 function findHeaderRow(rows: unknown[][]): number {
@@ -81,14 +141,146 @@ function findColumn(headers: string[], accepted: string[]): number {
   return index;
 }
 
+function parseBrazilianDateDay(value: unknown): number | null {
+  const text = String(value ?? '').trim();
+  const match = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  if (!match) return parseDay(value);
+  const day = Number(match[1]);
+  return day >= 1 && day <= 31 ? day : null;
+}
+
+function rawRow(headerRow: unknown[], row: unknown[]) {
+  const raw: Record<string, unknown> = {};
+  headerRow.forEach((label, index) => {
+    const key = String(label || `Coluna ${index + 1}`).trim() || `Coluna ${index + 1}`;
+    raw[key] = row[index];
+  });
+  return raw;
+}
+
+function parseBankStatementRows(rows: unknown[][]): PayableImportRow[] | null {
+  const headerIndex = rows.findIndex((row) => {
+    const labels = row.map(normalizeText);
+    const joined = labels.join(' | ');
+    return joined.includes('valor') && (joined.includes('saldo') || joined.includes('data lancamento'));
+  });
+  if (headerIndex < 0) return null;
+
+  const headerRow = rows[headerIndex] || [];
+  const headers = headerRow.map(normalizeText);
+  const dataIndex = findColumn(headers, ['data lancamento', 'data']);
+  const descricaoIndex = findColumn(headers, ['descricao', 'historico', 'memo']);
+  const valorIndex = findColumn(headers, ['valor']);
+
+  if (dataIndex < 0 || descricaoIndex < 0 || valorIndex < 0) return null;
+
+  const parsed = rows.slice(headerIndex + 1).map((row, offset): PayableImportRow | null => {
+    const amount = parseMoney(row[valorIndex]);
+    if (!Number.isFinite(amount) || amount >= 0) return null;
+
+    const vencimentoTexto = String(row[dataIndex] ?? '').trim();
+    const descricao = String(row[descricaoIndex] ?? '').trim();
+
+    return {
+      linha: headerIndex + offset + 2,
+      descricao,
+      vencimentoDia: parseBrazilianDateDay(vencimentoTexto),
+      vencimentoTexto,
+      valorPrevisto: Math.abs(amount),
+      categoria: 'Sem categoria',
+      centro: '',
+      pago: true,
+      raw: { ...rawRow(headerRow, row), origem_importacao: 'extrato_bancario_csv' },
+    } satisfies PayableImportRow;
+  }).filter((row): row is PayableImportRow => Boolean(row?.descricao && row.valorPrevisto > 0));
+
+  if (!parsed.length) {
+    throw new Error('O extrato bancario foi reconhecido, mas nao encontrei debitos para importar como pagamentos.');
+  }
+
+  return parsed;
+}
+
+function tagValue(block: string, tag: string): string {
+  const match = block.match(new RegExp(`<${tag}>([^<\\r\\n]*)`, 'i'));
+  return match?.[1]?.trim() || '';
+}
+
+function formatOfxDate(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length < 8) return value;
+  return `${digits.slice(6, 8)}/${digits.slice(4, 6)}/${digits.slice(0, 4)}`;
+}
+
+function parseOfxStatement(text: string): PayableImportRow[] | null {
+  if (!/<OFX[\s>]/i.test(text)) return null;
+
+  const blocks = Array.from(text.matchAll(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi)).map((match) => match[1]);
+  if (!blocks.length) throw new Error('Nao encontrei lancamentos STMTTRN no arquivo OFX.');
+
+  const parsed = blocks.map((block, index): PayableImportRow | null => {
+    const amount = parseOfxMoney(tagValue(block, 'TRNAMT'));
+    if (!Number.isFinite(amount) || amount >= 0) return null;
+
+    const postedAt = tagValue(block, 'DTPOSTED');
+    const memo = tagValue(block, 'MEMO');
+    const name = tagValue(block, 'NAME');
+    const fitId = tagValue(block, 'FITID');
+    const descricao = memo || name || `Lancamento ${fitId || index + 1}`;
+    const vencimentoTexto = formatOfxDate(postedAt);
+    const day = Number(postedAt.replace(/\D/g, '').slice(6, 8));
+
+    return {
+      linha: index + 1,
+      descricao,
+      vencimentoDia: day >= 1 && day <= 31 ? day : null,
+      vencimentoTexto,
+      valorPrevisto: Math.abs(amount),
+      categoria: 'Sem categoria',
+      centro: '',
+      pago: true,
+      raw: {
+        origem_importacao: 'extrato_bancario_ofx',
+        trntype: tagValue(block, 'TRNTYPE'),
+        dtposted: postedAt,
+        trnamt: tagValue(block, 'TRNAMT'),
+        fitid: fitId,
+        checknum: tagValue(block, 'CHECKNUM'),
+        refnum: tagValue(block, 'REFNUM'),
+        memo,
+        name,
+      },
+    } satisfies PayableImportRow;
+  }).filter((row): row is PayableImportRow => Boolean(row?.descricao && row.valorPrevisto > 0));
+
+  if (!parsed.length) {
+    throw new Error('O extrato OFX foi reconhecido, mas nao encontrei debitos para importar como pagamentos.');
+  }
+
+  return parsed;
+}
+
 export async function parsePayablesWorkbook(file: File): Promise<PayableImportRow[]> {
   const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) throw new Error('A planilha nao tem abas para leitura.');
+  const fileName = file.name.toLowerCase();
+  const text = decodeFileText(buffer);
 
-  const sheet = workbook.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false, defval: '' });
+  const ofxRows = parseOfxStatement(text);
+  if (ofxRows) return ofxRows;
+
+  const isDelimitedText = fileName.endsWith('.csv') || fileName.endsWith('.txt');
+  const rows = isDelimitedText ? parseDelimitedRows(text) : (() => {
+    const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) throw new Error('A planilha nao tem abas para leitura.');
+
+    const sheet = workbook.Sheets[sheetName];
+    return XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false, defval: '' });
+  })();
+
+  const bankStatementRows = parseBankStatementRows(rows);
+  if (bankStatementRows) return bankStatementRows;
+
   const headerIndex = findHeaderRow(rows);
   const headerRow = rows[headerIndex] || [];
   const headers = headerRow.map(normalizeText);
@@ -112,12 +304,6 @@ export async function parsePayablesWorkbook(file: File): Promise<PayableImportRo
 
   const dataRows = rows.slice(headerIndex + 1);
   const parsed = dataRows.map((row, offset) => {
-    const raw: Record<string, unknown> = {};
-    headerRow.forEach((label, index) => {
-      const key = String(label || `Coluna ${index + 1}`).trim() || `Coluna ${index + 1}`;
-      raw[key] = row[index];
-    });
-
     const descricao = String(row[descricaoIndex] ?? '').trim();
     const vencimentoTexto = String(row[vencimentoIndex] ?? '').trim();
     const valorPrevisto = parseMoney(row[valorIndex]);
@@ -134,7 +320,7 @@ export async function parsePayablesWorkbook(file: File): Promise<PayableImportRo
       categoria,
       centro,
       pago,
-      raw,
+      raw: rawRow(headerRow, row),
     } satisfies PayableImportRow;
   }).filter((row) => {
     return row.descricao || row.valorPrevisto > 0;

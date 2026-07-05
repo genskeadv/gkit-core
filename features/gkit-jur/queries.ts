@@ -16,16 +16,21 @@ import type {
   GkitJurEventoProcesso,
   GkitJurEventoTipo,
   GkitJurFormData,
+  GkitJurGlobalSearchData,
+  GkitJurGlobalSearchResult,
   GkitJurInboxData,
   GkitJurInboxFilaId,
   GkitJurInboxFilters,
   GkitJurInboxItem,
+  GkitJurInboxOrdenacao,
   GkitJurInboxPrioridade,
   GkitJurIntegracaoData,
   GkitJurIntegracaoTribunal,
   GkitJurMonitoramentoNivel,
   GkitJurMonitoramentoStatus,
   GkitJurMovimentacao,
+  GkitJurMovimentacaoTarefaData,
+  GkitJurMovimentacaoTarefaRegra,
   GkitJurMovimentacoesData,
   GkitJurPendenciasData,
   GkitJurProcessDetail,
@@ -34,6 +39,7 @@ import type {
   GkitJurProcessFilters,
   GkitJurProcessListData,
   GkitJurProcessListItem,
+  GkitJurProcessStatusSuggestion,
   GkitJurProcessoStatus,
   GkitJurSaneamentoSuggestion,
   GkitJurSelectOption,
@@ -47,6 +53,8 @@ const PAGE_SIZE = 25
 const INBOX_ITEMS_LIMIT = 60
 const DEFAULT_PROCESS_STATUS = 'ativo'
 const OPEN_TASK_STATUSES = ['aberta', 'em_andamento', 'aguardando_terceiro']
+const GKIT_JUR_CRON_SCHEDULE = '0 6 * * *'
+const GKIT_JUR_CRON_TIMEZONE = 'America/Sao_Paulo'
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -64,6 +72,14 @@ export async function requireGkitJurContext(target = '/modulos/gkit-jur') {
 
 export function canWriteGkitJur(permissions: string[]) {
   return canAccess(permissions, 'gkit_jur.processos.write')
+}
+
+export function canSyncGkitJur(permissions: string[]) {
+  return canAccess(permissions, 'gkit_jur.processos.sync')
+}
+
+export function canConfigureGkitJur(permissions: string[]) {
+  return canAccess(permissions, 'gkit_jur.admin.write')
 }
 
 function text(value: unknown, fallback = '') {
@@ -88,6 +104,25 @@ function singleParam(value: string | string[] | undefined) {
 function positiveInt(value: string, fallback = 1) {
   const parsed = Number.parseInt(value, 10)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+function envPositiveInt(value: string | undefined, fallback: number, max: number) {
+  const parsed = Number.parseInt(String(value ?? ''), 10)
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback
+  return Math.min(parsed, max)
+}
+
+function nextDailyUtcRun(hourUtc: number, minuteUtc: number) {
+  const now = new Date()
+  const next = new Date(now)
+  next.setUTCHours(hourUtc, minuteUtc, 0, 0)
+  if (next <= now) next.setUTCDate(next.getUTCDate() + 1)
+  return next.toISOString()
+}
+
+function formatDate(value: string | null) {
+  if (!value) return ''
+  return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(value))
 }
 
 export function buildGkitJurProcessFilters(params?: ModuleSearchParams | null): GkitJurProcessFilters {
@@ -515,6 +550,140 @@ export async function listGkitJurProcesses(filters: GkitJurProcessFilters = buil
   }
 }
 
+function buildSearchPattern(value: string) {
+  const clean = value.replace(/[%(),]/g, ' ').replace(/\s+/g, ' ').trim()
+  return clean ? `%${clean}%` : ''
+}
+
+function processSearchResult(row: GkitJurProcessListItem): GkitJurGlobalSearchResult {
+  return {
+    id: `processo-${row.id}`,
+    type: 'processo',
+    title: row.numeroCnj,
+    subtitle: row.clienteNome || row.titulo || row.pasta || 'Processo ativo sem cliente vinculado',
+    meta: [row.tribunalSigla, row.carteiraNome, row.responsavelNome].filter(Boolean).join(' | ') || 'Sem vinculos completos',
+    href: `/modulos/gkit-jur/processos/${row.id}`,
+  }
+}
+
+export async function searchGkitJurGlobal(query: string): Promise<GkitJurGlobalSearchData> {
+  const normalized = query.replace(/\s+/g, ' ').trim()
+  const pattern = buildSearchPattern(normalized)
+  if (!pattern) {
+    return { query: normalized, total: 0, processos: [], tarefas: [], movimentacoes: [] }
+  }
+  const digits = normalized.replace(/\D/g, '')
+  const processClauses = [
+    `numero_cnj.ilike.${pattern}`,
+    `numero_cnj_limpo.ilike.${pattern}`,
+    `cliente_nome.ilike.${pattern}`,
+    `titulo.ilike.${pattern}`,
+    `pasta.ilike.${pattern}`,
+    `classe_nome.ilike.${pattern}`,
+    `orgao_julgador_nome.ilike.${pattern}`,
+  ]
+  if (digits.length >= 4) processClauses.push(`numero_cnj_limpo.ilike.%${digits}%`)
+
+  const processosQuery = admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,updated_at')
+    .eq('status', DEFAULT_PROCESS_STATUS)
+    .or(processClauses.join(','))
+    .order('updated_at', { ascending: false, nullsFirst: false })
+    .limit(8)
+
+  const tarefasQuery = admin()
+    .schema('gkit_jur')
+    .from('tarefas')
+    .select('id,processo_id,titulo,descricao,status,prioridade,prazo_at,created_at')
+    .in('status', OPEN_TASK_STATUSES)
+    .or(`titulo.ilike.${pattern},descricao.ilike.${pattern}`)
+    .order('prazo_at', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(8)
+
+  const movimentacoesQuery = admin()
+    .schema('gkit_jur')
+    .from('movimentacoes')
+    .select('id,processo_id,nome,data_hora,origem,created_at')
+    .or(`nome.ilike.${pattern},origem.ilike.${pattern}`)
+    .order('data_hora', { ascending: false, nullsFirst: false })
+    .limit(8)
+
+  const [processosResult, tarefasResult, movimentacoesResult] = await Promise.all([processosQuery, tarefasQuery, movimentacoesQuery])
+  if (processosResult.error) throw new Error(processosResult.error.message)
+  if (tarefasResult.error) throw new Error(tarefasResult.error.message)
+  if (movimentacoesResult.error) throw new Error(movimentacoesResult.error.message)
+
+  const processoRows = (processosResult.data ?? []) as Array<Record<string, unknown>>
+  const tarefaRows = (tarefasResult.data ?? []) as Array<Record<string, unknown>>
+  const movimentacaoRows = (movimentacoesResult.data ?? []) as Array<Record<string, unknown>>
+  const relatedProcessIds = [...new Set([
+    ...tarefaRows.map((row) => text(row.processo_id)).filter(Boolean),
+    ...movimentacaoRows.map((row) => text(row.processo_id)).filter(Boolean),
+  ])]
+
+  const relatedResult = relatedProcessIds.length
+    ? await admin()
+      .schema('gkit_jur')
+      .from('processos')
+      .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento')
+      .eq('status', DEFAULT_PROCESS_STATUS)
+      .in('id', relatedProcessIds)
+    : { data: [], error: null }
+
+  if (relatedResult.error) throw new Error(relatedResult.error.message)
+
+  const allProcessRows = [...processoRows, ...((relatedResult.data ?? []) as Array<Record<string, unknown>>)]
+  const maps = await lookupMaps(allProcessRows)
+  const processMap = new Map(allProcessRows.map((row) => {
+    const processo = mapProcesso(row, maps)
+    return [processo.id, processo]
+  }))
+
+  const processos = processoRows.map((row) => processSearchResult(mapProcesso(row, maps)))
+  const tarefas = tarefaRows
+    .map((row): GkitJurGlobalSearchResult | null => {
+      const processo = processMap.get(text(row.processo_id))
+      if (!processo) return null
+      const prazo = text(row.prazo_at)
+      return {
+        id: `tarefa-${String(row.id)}`,
+        type: 'tarefa',
+        title: text(row.titulo, 'Tarefa sem titulo'),
+        subtitle: `${processo.numeroCnj} - ${processo.clienteNome || processo.titulo || 'Processo ativo'}`,
+        meta: [text(row.prioridade, 'media'), prazo ? `Prazo ${formatDate(prazo)}` : '', processo.responsavelNome].filter(Boolean).join(' | '),
+        href: `/modulos/gkit-jur/processos/${processo.id}#tarefas`,
+      }
+    })
+    .filter((row): row is GkitJurGlobalSearchResult => Boolean(row))
+
+  const movimentacoes = movimentacaoRows
+    .map((row): GkitJurGlobalSearchResult | null => {
+      const processo = processMap.get(text(row.processo_id))
+      if (!processo) return null
+      const dataHora = text(row.data_hora)
+      return {
+        id: `movimentacao-${String(row.id)}`,
+        type: 'movimentacao',
+        title: text(row.nome, 'Movimentacao sem descricao'),
+        subtitle: `${processo.numeroCnj} - ${processo.clienteNome || processo.titulo || 'Processo ativo'}`,
+        meta: [dataHora ? formatDate(dataHora) : '', text(row.origem, 'DataJud')].filter(Boolean).join(' | '),
+        href: `/modulos/gkit-jur/processos/${processo.id}#timeline`,
+      }
+    })
+    .filter((row): row is GkitJurGlobalSearchResult => Boolean(row))
+
+  return {
+    query: normalized,
+    total: processos.length + tarefas.length + movimentacoes.length,
+    processos,
+    tarefas,
+    movimentacoes,
+  }
+}
+
 function mapMovimentacao(row: Record<string, unknown>, processos: Map<string, GkitJurProcessListItem>): GkitJurMovimentacao {
   const processoId = String(row.processo_id)
   const processo = processos.get(processoId)
@@ -603,11 +772,14 @@ function mapTarefa(row: Record<string, unknown>, maps: Awaited<ReturnType<typeof
 }): GkitJurTarefa {
   const carteiraId = text(row.carteira_id)
   const responsavelId = text(row.responsavel_id)
+  const payload = row.payload && typeof row.payload === 'object'
+    ? row.payload as Record<string, unknown>
+    : {}
   return {
     id: String(row.id),
     processoId: String(row.processo_id),
     tipo: tarefaTipo(row.tipo),
-    titulo: text(row.titulo, 'Tarefa sem titulo'),
+    titulo: text(row.titulo, 'Tarefa sem título'),
     descricao: text(row.descricao) || null,
     status: tarefaStatus(row.status),
     prioridade: tarefaPrioridade(row.prioridade),
@@ -617,8 +789,32 @@ function mapTarefa(row: Record<string, unknown>, maps: Awaited<ReturnType<typeof
     carteiraNome: carteiraId ? maps.carteiras.get(carteiraId) ?? fallback?.carteiraNome ?? null : fallback?.carteiraNome ?? null,
     responsavelId: responsavelId || null,
     responsavelNome: responsavelId ? maps.responsaveis.get(responsavelId) ?? fallback?.responsavelNome ?? null : fallback?.responsavelNome ?? null,
+    payload,
     createdAt: text(row.created_at),
   }
+}
+
+function statusSuggestionFromTarefas(tarefas: GkitJurTarefa[], processo: GkitJurProcessDetail): GkitJurProcessStatusSuggestion | null {
+  if (processo.status !== 'ativo') return null
+
+  for (const tarefa of tarefas) {
+    const suggestion = tarefa.payload.sugestao_status
+    if (!suggestion || typeof suggestion !== 'object') continue
+
+    const status = text((suggestion as Record<string, unknown>).status)
+    const statusMonitoramento = text((suggestion as Record<string, unknown>).status_monitoramento)
+    if (status !== 'encerrado') continue
+
+    return {
+      tarefaId: tarefa.id,
+      tarefaTitulo: tarefa.titulo,
+      status: 'encerrado',
+      statusMonitoramento: statusMonitoramento === 'pausado' ? 'pausado' : 'nao_monitorar',
+      motivo: text((suggestion as Record<string, unknown>).motivo, 'Movimentacao sugere encerramento do processo.'),
+    }
+  }
+
+  return null
 }
 
 function mapDocumento(row: Record<string, unknown>, maps: Awaited<ReturnType<typeof lookupTarefaMaps>>, fallback?: {
@@ -631,7 +827,7 @@ function mapDocumento(row: Record<string, unknown>, maps: Awaited<ReturnType<typ
     id: String(row.id),
     processoId: String(row.processo_id),
     tipo: documentoTipo(row.tipo),
-    titulo: text(row.titulo, 'Documento sem titulo'),
+    titulo: text(row.titulo, 'Documento sem título'),
     descricao: text(row.descricao) || null,
     status: documentoStatus(row.status),
     dataDocumento: text(row.data_documento) || null,
@@ -656,7 +852,7 @@ function mapEventoProcesso(row: Record<string, unknown>, maps: Awaited<ReturnTyp
     id: String(row.id),
     processoId: String(row.processo_id),
     tipo: eventoTipo(row.tipo),
-    titulo: text(row.titulo, 'Evento sem titulo'),
+    titulo: text(row.titulo, 'Evento sem título'),
     descricao: text(row.descricao) || null,
     dataEvento: text(row.data_evento, text(row.created_at)),
     origem: text(row.origem, 'manual'),
@@ -765,7 +961,7 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
     admin()
       .schema('gkit_jur')
       .from('tarefas')
-      .select('id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,status,prioridade,prazo_at,origem,created_at')
+      .select('id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,status,prioridade,prazo_at,origem,payload,created_at')
       .eq('processo_id', id)
       .in('status', OPEN_TASK_STATUSES)
       .order('prazo_at', { ascending: true, nullsFirst: false })
@@ -835,6 +1031,7 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
     formData,
     movimentacoes,
     processo,
+    statusSuggestion: statusSuggestionFromTarefas(tarefas, processo),
     tarefas,
     timeline: buildProcessTimeline({ documentos, eventos, movimentacoes, tarefas }),
   }
@@ -869,7 +1066,7 @@ export async function getGkitJurPendencias(): Promise<GkitJurPendenciasData> {
     pendingGroup('Sem cliente vinculado', 'Processos que precisam apontar para a base do Ciclo.', '/modulos/gkit-jur/processos?saneamento=sem_cliente', 'cliente_id'),
     pendingGroup('Sem carteira', 'Processos que ainda não entraram em uma carteira operacional.', '/modulos/gkit-jur/processos?saneamento=sem_carteira', 'carteira_id'),
     pendingGroup('Sem responsável', 'Processos sem dono operacional definido.', '/modulos/gkit-jur/processos?saneamento=sem_responsavel', 'responsavel_id'),
-    pendingGroup('Sem tribunal', 'Processos sem tribunal identificado na importacao.', '/modulos/gkit-jur/processos?saneamento=sem_tribunal', 'tribunal_sigla'),
+    pendingGroup('Sem tribunal', 'Processos sem tribunal identificado na importação.', '/modulos/gkit-jur/processos?saneamento=sem_tribunal', 'tribunal_sigla'),
   ])
 
   return { groups: [semCliente, semCarteira, semResponsavel, semTribunal], metrics, ...sugestoes }
@@ -958,12 +1155,47 @@ function daysSince(value: string | null) {
   return Math.max(0, Math.floor((Date.now() - time) / 86_400_000))
 }
 
-function sortInboxItems(items: GkitJurInboxItem[]) {
+const INBOX_TYPE_ORDER: Record<string, number> = {
+  tarefa: 1,
+  pendencia: 2,
+  automacao: 3,
+  processo: 4,
+}
+
+function compareText(a: string | null | undefined, b: string | null | undefined) {
+  return (a || '').localeCompare(b || '', 'pt-BR', { sensitivity: 'base' })
+}
+
+function compareInboxPriority(a: GkitJurInboxItem, b: GkitJurInboxItem) {
+  if (b.score !== a.score) return b.score - a.score
+  const ad = a.dataReferencia ? new Date(a.dataReferencia).getTime() : 0
+  const bd = b.dataReferencia ? new Date(b.dataReferencia).getTime() : 0
+  return ad - bd
+}
+
+function sortInboxItems(items: GkitJurInboxItem[], ordenacao: GkitJurInboxOrdenacao = 'prioridade') {
   return items.sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score
-    const ad = a.dataReferencia ? new Date(a.dataReferencia).getTime() : 0
-    const bd = b.dataReferencia ? new Date(b.dataReferencia).getTime() : 0
-    return ad - bd
+    if (ordenacao === 'tipo') {
+      const typeDiff = (INBOX_TYPE_ORDER[a.tipo] ?? 99) - (INBOX_TYPE_ORDER[b.tipo] ?? 99)
+      if (typeDiff !== 0) return typeDiff
+      const originDiff = compareText(a.origem, b.origem)
+      if (originDiff !== 0) return originDiff
+      return compareInboxPriority(a, b)
+    }
+
+    if (ordenacao === 'responsavel') {
+      const ownerDiff = compareText(a.responsavelNome || 'Sem responsavel', b.responsavelNome || 'Sem responsavel')
+      if (ownerDiff !== 0) return ownerDiff
+      return compareInboxPriority(a, b)
+    }
+
+    if (ordenacao === 'carteira') {
+      const walletDiff = compareText(a.carteiraNome || 'Sem carteira', b.carteiraNome || 'Sem carteira')
+      if (walletDiff !== 0) return walletDiff
+      return compareInboxPriority(a, b)
+    }
+
+    return compareInboxPriority(a, b)
   })
 }
 
@@ -1020,7 +1252,7 @@ function taskInboxItem(task: GkitJurTarefa, processo: GkitJurProcessListItem): G
   return {
     id: `tarefa-${task.id}`,
     tipo: 'tarefa',
-    origem: task.origem === 'manual' ? 'Tarefa manual' : 'Tarefa automatica',
+    origem: task.origem === 'manual' ? 'Tarefa manual' : 'Tarefa automática',
     titulo: task.titulo,
     subtitulo: `${processo.numeroCnj} - ${processo.clienteNome || processo.titulo || 'Processo sem cliente identificado'}`,
     status: overdue ? 'vencida' : task.status,
@@ -1037,7 +1269,7 @@ function taskInboxItem(task: GkitJurTarefa, processo: GkitJurProcessListItem): G
     entidadeId: task.id,
     acaoLabel: 'Abrir processo',
     acaoUrl: `/modulos/gkit-jur/processos/${task.processoId}#tarefas`,
-    motivo: overdue ? 'Tarefa com prazo vencido.' : task.prazoAt ? 'Tarefa com prazo definido.' : 'Tarefa aberta aguardando providencia.',
+    motivo: overdue ? 'Tarefa com prazo vencido.' : task.prazoAt ? 'Tarefa com prazo definido.' : 'Tarefa aberta aguardando providência.',
   }
 }
 
@@ -1103,7 +1335,7 @@ async function listInboxProcessItems(): Promise<GkitJurInboxItem[]> {
     const missing = [
       !processo.clienteNome ? 'cliente' : '',
       !processo.carteiraNome ? 'carteira' : '',
-      !processo.responsavelNome ? 'responsavel' : '',
+      !processo.responsavelNome ? 'responsável' : '',
       !processo.tribunalSigla ? 'tribunal' : '',
     ].filter(Boolean)
 
@@ -1112,13 +1344,13 @@ async function listInboxProcessItems(): Promise<GkitJurInboxItem[]> {
     }
 
     if (missing.length) {
-      const score = missing.includes('responsavel') ? 72 : 58
+      const score = missing.includes('responsável') ? 72 : 58
       items.push(processInboxItem(
         processo,
         row,
         score,
         'Saneamento',
-        `Faltam vinculos de ${missing.join(', ')}.`,
+        `Faltam vínculos de ${missing.join(', ')}.`,
         'Sanear cadastro',
       ))
     }
@@ -1130,7 +1362,7 @@ async function listInboxProcessItems(): Promise<GkitJurInboxItem[]> {
         row,
         idleDays === null ? 48 : Math.min(78, 40 + Math.floor(idleDays / 20)),
         'Monitoramento',
-        idleDays === null ? 'Processo sem movimentacao registrada.' : `Sem movimentacao ha ${idleDays} dia(s).`,
+        idleDays === null ? 'Processo sem movimentação registrada.' : `Sem movimentação há ${idleDays} dia(s).`,
         'Acompanhar andamento',
       ))
     }
@@ -1188,8 +1420,8 @@ async function listInboxPendenciaItems(): Promise<GkitJurInboxItem[]> {
     return {
       id: `pendencia-${row.id}`,
       tipo: 'pendencia',
-      origem: text(row.origem, 'Pendencia'),
-      titulo: text(row.titulo, 'Pendencia operacional'),
+      origem: text(row.origem, 'Pendência'),
+      titulo: text(row.titulo, 'Pendência operacional'),
       subtitulo: text(row.descricao, 'Trava operacional aberta.'),
       status: text(row.status, 'aberta'),
       prioridade: priority,
@@ -1203,7 +1435,7 @@ async function listInboxPendenciaItems(): Promise<GkitJurInboxItem[]> {
       carteiraNome: carteiraId ? carteiras.get(carteiraId) ?? null : null,
       entidadeTipo: text(row.entidade_tipo, processoId ? 'processo' : 'pendencia'),
       entidadeId: text(row.entidade_id, processoId || String(row.id)),
-      acaoLabel: processoId ? 'Abrir processo' : 'Resolver pendencia',
+      acaoLabel: processoId ? 'Abrir processo' : 'Resolver pendência',
       acaoUrl: processoId ? `/modulos/gkit-jur/processos/${processoId}` : '/modulos/gkit-jur/pendencias',
       motivo: 'Pendência persistente aberta no módulo jurídico.',
     }
@@ -1250,7 +1482,7 @@ async function listInboxAgenteItems(): Promise<GkitJurInboxItem[]> {
       id: `agente-${row.id}`,
       tipo: 'automacao',
       origem: 'Agente jurídico',
-      titulo: receitaId ? receitas.get(receitaId) ?? 'Execucao do agente' : 'Execucao do agente',
+      titulo: receitaId ? receitas.get(receitaId) ?? 'Execução do agente' : 'Execução do agente',
       subtitulo: fonteId ? fontes.get(fonteId) ?? 'Fonte não definida' : 'Fonte não definida',
       status: statusValue,
       prioridade: inboxPriority(score),
@@ -1276,13 +1508,15 @@ function filterInboxItems(items: GkitJurInboxItem[], selected: GkitJurInboxFilaI
   if (selected === 'criticos') return items.filter((item) => item.prioridade === 'critica' || item.score >= 85)
   if (selected === 'pendencias') return items.filter((item) => item.tipo === 'pendencia' || item.origem === 'Saneamento')
   if (selected === 'automacao') return items.filter((item) => item.tipo === 'automacao')
-  if (selected === 'sem-retorno') return items.filter((item) => item.origem === 'Monitoramento' && item.motivo.toLowerCase().includes('movimentacao'))
+  if (selected === 'sem-retorno') return items.filter((item) => item.origem === 'Monitoramento' && item.motivo.toLowerCase().includes('movimentação'))
   return items
 }
 
 function buildGkitJurInboxFilters(params?: ModuleSearchParams | null): GkitJurInboxFilters {
+  const ordenacao = singleParam(params?.ordenacao)
   return {
     carteiraId: singleParam(params?.carteira_id),
+    ordenacao: (['prioridade', 'tipo', 'responsavel', 'carteira'].includes(ordenacao) ? ordenacao : 'prioridade') as GkitJurInboxOrdenacao,
     responsavelId: singleParam(params?.responsavel_id),
   }
 }
@@ -1309,7 +1543,7 @@ export async function getGkitJurInbox(params?: ModuleSearchParams | null): Promi
     getGkitJurFormData(),
   ])
 
-  const allItems = applyInboxFilters(sortInboxItems([...tarefaItems, ...processItems, ...pendenciaItems, ...agenteItems]), filters)
+  const allItems = applyInboxFilters(sortInboxItems([...tarefaItems, ...processItems, ...pendenciaItems, ...agenteItems], filters.ordenacao), filters)
   const tarefas = filterInboxItems(allItems, 'tarefas')
   const criticos = filterInboxItems(allItems, 'criticos')
   const pendencias = filterInboxItems(allItems, 'pendencias')
@@ -1506,6 +1740,28 @@ function tribunalMonitoramentoStatus(nivel: GkitJurMonitoramentoNivel, item: Omi
 
 export async function getGkitJurIntegracaoData(): Promise<GkitJurIntegracaoData> {
   const rows = await fetchAllActiveProcessMonitoringRows()
+  const cronResult = await admin()
+    .schema('gkit_jur')
+    .from('cron_locks')
+    .select('job_key,locked_at,expires_at,metadata,updated_at')
+    .eq('job_key', 'gkit_jur_nightly_sync')
+    .maybeSingle()
+
+  if (cronResult.error) throw new Error(cronResult.error.message)
+
+  const cronRow = (cronResult.data ?? null) as Record<string, unknown> | null
+  const cronMetadata = cronRow && typeof cronRow.metadata === 'object' && cronRow.metadata !== null
+    ? cronRow.metadata as Record<string, unknown>
+    : {}
+  const cronResultPayload = typeof cronMetadata.result === 'object' && cronMetadata.result !== null
+    ? cronMetadata.result as Record<string, unknown>
+    : null
+  const cronError = text(cronMetadata.error) || null
+  const cronStartedAt = text(cronMetadata.started_at) || text(cronRow?.locked_at) || null
+  const cronFinishedAt = text(cronMetadata.finished_at) || null
+  const cronExpiresAt = text(cronRow?.expires_at)
+  const cronRunning = Boolean(cronExpiresAt && new Date(cronExpiresAt).getTime() > Date.now() && !cronFinishedAt)
+  const cronStatus = cronRunning ? 'em_execucao' : cronError ? 'erro' : cronFinishedAt ? 'ativo' : 'nunca_executado'
   const tribunalCatalog = new Map(DATAJUD_TRIBUNAIS.map((tribunal) => [tribunal.sigla, tribunal]))
   const staleBefore = Date.now() - 48 * 60 * 60 * 1000
   const groups = new Map<string, Omit<GkitJurIntegracaoTribunal, 'nivel' | 'status'>>()
@@ -1556,6 +1812,30 @@ export async function getGkitJurIntegracaoData(): Promise<GkitJurIntegracaoData>
     .sort((a, b) => levelWeight[a.nivel] - levelWeight[b.nivel] || b.totalAtivos - a.totalAtivos || a.tribunal.localeCompare(b.tribunal, 'pt-BR'))
 
   return {
+    cron: {
+      ativo: Boolean(process.env.CRON_SECRET),
+      batchLimit: envPositiveInt(process.env.GKIT_JUR_CRON_DATAJUD_LIMIT, 25, 25),
+      horarioLocal: '03:00',
+      lastError: cronError,
+      lastFinishedAt: cronFinishedAt,
+      lastResult: cronResultPayload
+        ? {
+            erros: Number(cronResultPayload.erro ?? 0),
+            movimentosNovos: Number(cronResultPayload.movimentosNovos ?? 0),
+            processos: Number(cronResultPayload.processos ?? 0),
+            tarefasGeradas: Number(cronResultPayload.tarefasGeradas ?? 0),
+          }
+        : null,
+      lastStartedAt: cronStartedAt,
+      maxBatches: envPositiveInt(process.env.GKIT_JUR_CRON_DATAJUD_BATCHES, 30, 100),
+      nextRunAt: process.env.CRON_SECRET ? nextDailyUtcRun(6, 0) : null,
+      provider: 'Redundante: DataJud + AASP',
+      running: cronRunning,
+      schedule: GKIT_JUR_CRON_SCHEDULE,
+      status: cronStatus,
+      timeBudgetMs: envPositiveInt(process.env.GKIT_JUR_CRON_TIME_BUDGET_MS, 270_000, 290_000),
+      timezone: GKIT_JUR_CRON_TIMEZONE,
+    },
     metrics: {
       atrasados: tribunais.reduce((total, item) => total + item.atrasados, 0),
       configurados: tribunais.filter((item) => item.alias).length,
@@ -1608,6 +1888,53 @@ export const gkitJurTarefaStatusOptions: GkitJurSelectOption[] = [
   { label: 'Concluída', value: 'concluida' },
   { label: 'Cancelada', value: 'cancelada' },
 ]
+
+function termsFromJson(value: unknown) {
+  return Array.isArray(value)
+    ? value.map((item) => text(item)).filter(Boolean)
+    : []
+}
+
+function mapMovimentacaoTarefaRegra(row: Record<string, unknown>): GkitJurMovimentacaoTarefaRegra {
+  return {
+    id: String(row.id),
+    nome: text(row.nome, 'Regra sem nome'),
+    descricao: text(row.descricao) || null,
+    codigoMovimento: row.codigo_movimento === null || row.codigo_movimento === undefined ? null : Number(row.codigo_movimento),
+    termos: termsFromJson(row.termos),
+    tipoTarefa: tarefaTipo(row.tipo_tarefa),
+    prioridade: tarefaPrioridade(row.prioridade),
+    tituloTemplate: text(row.titulo_template, 'Tratar movimentação'),
+    descricaoTemplate: text(row.descricao_template) || null,
+    prazoDias: row.prazo_dias === null || row.prazo_dias === undefined ? null : Number(row.prazo_dias),
+    gerarAutomaticamente: Boolean(row.gerar_automaticamente),
+    ativo: Boolean(row.ativo),
+    updatedAt: text(row.updated_at),
+  }
+}
+
+export async function getGkitJurMovimentacaoTarefaData(): Promise<GkitJurMovimentacaoTarefaData> {
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('movimentacao_tarefa_regras')
+    .select('id,nome,descricao,codigo_movimento,termos,tipo_tarefa,prioridade,titulo_template,descricao_template,prazo_dias,gerar_automaticamente,ativo,updated_at')
+    .order('ativo', { ascending: false })
+    .order('updated_at', { ascending: false })
+    .limit(200)
+
+  if (result.error) throw new Error(result.error.message)
+
+  const regras = ((result.data ?? []) as Array<Record<string, unknown>>).map(mapMovimentacaoTarefaRegra)
+
+  return {
+    regras,
+    metrics: {
+      ativas: regras.filter((regra) => regra.ativo).length,
+      automaticas: regras.filter((regra) => regra.ativo && regra.gerarAutomaticamente).length,
+      total: regras.length,
+    },
+  }
+}
 
 export const gkitJurDocumentoTipoOptions: GkitJurSelectOption[] = [
   { label: 'Petição', value: 'peticao' },

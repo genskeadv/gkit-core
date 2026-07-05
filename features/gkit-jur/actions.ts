@@ -6,6 +6,7 @@ import { canAccess } from '@/lib/auth/permissions'
 import { requireModuleAccess } from '@/lib/auth/platform'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getGkitJurSaneamentoSuggestions } from './queries'
+import { runGkitJurSync } from './sync-runner'
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -35,8 +36,27 @@ function requiredText(formData: FormData, key: string, label: string) {
   return value
 }
 
-function allowed(value: string, values: string[], fallback: string) {
-  return values.includes(value) ? value : fallback
+function allowed<T extends string>(value: string, values: readonly T[], fallback: T): T {
+  return values.includes(value as T) ? (value as T) : fallback
+}
+
+function positiveInt(value: string, fallback: number, max: number) {
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback
+  return Math.min(parsed, max)
+}
+
+function optionalInt(value: string) {
+  if (!value) return null
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function termsList(value: string) {
+  return [...new Set(value
+    .split(/[,\n;]/)
+    .map((item) => item.trim())
+    .filter(Boolean))]
 }
 
 function selectedIds(formData: FormData, key: string) {
@@ -149,6 +169,85 @@ export async function applyGkitJurSaneamentoSuggestionsAction(formData: FormData
   redirect('/modulos/gkit-jur/pendencias')
 }
 
+export async function syncGkitJurDataJudAction(formData: FormData) {
+  await requireGkitJurWrite('gkit_jur.processos.sync')
+  const provider = allowed(text(formData, 'provider'), ['datajud', 'aasp', 'redundante'] as const, 'datajud')
+  const tribunal = text(formData, 'tribunal')
+  const limit = positiveInt(text(formData, 'limit'), 5, 25)
+  const aaspDate = text(formData, 'aasp_data')
+  const aaspDiferencial = text(formData, 'aasp_diferencial') === 'on'
+  const result = await runGkitJurSync({
+    aaspData: aaspDate || undefined,
+    aaspDiferencial,
+    dataJudBatchLimit: limit,
+    maxDataJudBatches: 1,
+    provider,
+    tribunal: tribunal && tribunal !== 'todos' ? tribunal : undefined,
+    timeBudgetMs: 240_000,
+  })
+
+  revalidateGkitJur()
+  revalidatePath('/modulos/gkit-jur/configuracoes/integracao')
+  revalidatePath('/modulos/gkit-jur/auditoria')
+  revalidatePath('/modulos/gkit-jur/movimentacoes')
+
+  const params = new URLSearchParams({
+    erros: String(result.erro),
+    novas: String(result.movimentosNovos),
+    processos: String(result.processos),
+    sem_resultado: String(result.semResultado),
+    sync: 'ok',
+    tarefas: String(result.tarefasGeradas),
+  })
+
+  redirect(`/modulos/gkit-jur/configuracoes/integracao?${params.toString()}`)
+}
+
+export async function saveGkitJurMovimentacaoTarefaRegraAction(formData: FormData) {
+  await requireGkitJurWrite('gkit_jur.admin.write')
+  const id = text(formData, 'id')
+  const payload = {
+    nome: requiredText(formData, 'nome', 'Nome da regra'),
+    descricao: text(formData, 'descricao') || null,
+    codigo_movimento: optionalInt(text(formData, 'codigo_movimento')),
+    termos: termsList(text(formData, 'termos')),
+    tipo_tarefa: allowed(text(formData, 'tipo_tarefa'), ['prazo', 'publicacao', 'movimentacao_relevante', 'documento_pendente', 'providencia_interna', 'audiencia', 'cumprimento', 'revisao'], 'providencia_interna'),
+    prioridade: allowed(text(formData, 'prioridade'), ['critica', 'alta', 'media', 'baixa'], 'media'),
+    titulo_template: requiredText(formData, 'titulo_template', 'Titulo da tarefa'),
+    descricao_template: text(formData, 'descricao_template') || null,
+    prazo_dias: optionalInt(text(formData, 'prazo_dias')),
+    gerar_automaticamente: text(formData, 'gerar_automaticamente') === 'on',
+    ativo: text(formData, 'ativo') === 'on',
+    updated_at: new Date().toISOString(),
+  }
+
+  const result = id
+    ? await admin().schema('gkit_jur').from('movimentacao_tarefa_regras').update(payload).eq('id', id)
+    : await admin().schema('gkit_jur').from('movimentacao_tarefa_regras').insert(payload)
+
+  if (result.error) throw new Error(result.error.message)
+
+  revalidatePath('/modulos/gkit-jur/configuracoes')
+  revalidatePath('/modulos/gkit-jur/configuracoes/movimentacao-tarefa')
+  redirect('/modulos/gkit-jur/configuracoes/movimentacao-tarefa?saved=ok')
+}
+
+export async function toggleGkitJurMovimentacaoTarefaRegraAction(formData: FormData) {
+  await requireGkitJurWrite('gkit_jur.admin.write')
+  const id = requiredText(formData, 'id', 'Regra')
+  const ativo = text(formData, 'ativo') === 'true'
+  const { error } = await admin()
+    .schema('gkit_jur')
+    .from('movimentacao_tarefa_regras')
+    .update({ ativo, updated_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/modulos/gkit-jur/configuracoes/movimentacao-tarefa')
+  redirect('/modulos/gkit-jur/configuracoes/movimentacao-tarefa?saved=ok')
+}
+
 export async function createGkitJurTarefaAction(formData: FormData) {
   const context = await requireGkitJurWrite('gkit_jur.processos.write')
   const processoId = requiredText(formData, 'processo_id', 'Processo')
@@ -163,7 +262,7 @@ export async function createGkitJurTarefaAction(formData: FormData) {
     carteira_id: carteiraId,
     responsavel_id: responsavelId,
     tipo: allowed(text(formData, 'tipo'), ['prazo', 'publicacao', 'movimentacao_relevante', 'documento_pendente', 'providencia_interna', 'audiencia', 'cumprimento', 'revisao'], 'providencia_interna'),
-    titulo: requiredText(formData, 'titulo', 'Titulo da tarefa'),
+    titulo: requiredText(formData, 'titulo', 'Título da tarefa'),
     descricao: text(formData, 'descricao') || null,
     prioridade: allowed(text(formData, 'prioridade'), ['critica', 'alta', 'media', 'baixa'], 'media'),
     prazo_at: prazo ? new Date(prazo).toISOString() : null,
@@ -188,7 +287,7 @@ export async function createGkitJurTarefaAction(formData: FormData) {
     entidade_tipo: 'tarefa',
     entidade_id: insertResult.data.id,
     acao: 'tarefa_criada',
-    descricao: 'Tarefa juridica manual criada.',
+    descricao: 'Tarefa jurídica manual criada.',
     payload: { processo_id: processoId, titulo: payload.titulo },
   })
 
@@ -204,7 +303,7 @@ export async function createGkitJurTarefaFromReferenceAction(formData: FormData)
   const sourceId = requiredText(formData, 'source_id', 'Origem')
   const processo = await getActiveJurProcess(processoId)
   const prazo = text(formData, 'prazo_at')
-  const sourceTitle = requiredText(formData, 'source_title', 'Titulo de origem')
+  const sourceTitle = requiredText(formData, 'source_title', 'Título de origem')
 
   const payload = {
     processo_id: processoId,
@@ -242,7 +341,7 @@ export async function createGkitJurTarefaFromReferenceAction(formData: FormData)
     entidade_tipo: 'tarefa',
     entidade_id: insertResult.data.id,
     acao: 'tarefa_gerada_por_referencia',
-    descricao: `Tarefa juridica gerada a partir de ${sourceTipo}.`,
+    descricao: `Tarefa jurídica gerada a partir de ${sourceTipo}.`,
     payload: { processo_id: processoId, origem_tipo: sourceTipo, origem_id: sourceId, titulo: payload.titulo },
   })
 
@@ -327,7 +426,7 @@ export async function updateGkitJurTarefaPlanejamentoAction(formData: FormData) 
     entidade_tipo: 'tarefa',
     entidade_id: tarefaId,
     acao: 'tarefa_planejamento_atualizado',
-    descricao: 'Planejamento da tarefa juridica atualizado.',
+    descricao: 'Planejamento da tarefa jurídica atualizado.',
     payload: {
       processo_id: processoId,
       prazo_at: payload.prazo_at,
@@ -352,7 +451,7 @@ export async function createGkitJurDocumentoAction(formData: FormData) {
     carteira_id: optionalUuid(formData, 'carteira_id') || (processo.carteira_id as string | null) || await defaultCarteiraId(),
     responsavel_id: optionalUuid(formData, 'responsavel_id') || (processo.responsavel_id as string | null) || null,
     tipo: allowed(text(formData, 'tipo'), ['peticao', 'publicacao', 'decisao', 'ata', 'comprovante', 'documento_interno', 'contrato', 'procuracao', 'outro'], 'documento_interno'),
-    titulo: requiredText(formData, 'titulo', 'Titulo do documento'),
+    titulo: requiredText(formData, 'titulo', 'Título do documento'),
     descricao: text(formData, 'descricao') || null,
     data_documento: dataDocumento ? new Date(dataDocumento).toISOString() : null,
     url_externa: text(formData, 'url_externa') || null,
@@ -397,7 +496,7 @@ export async function createGkitJurEventoProcessoAction(formData: FormData) {
     carteira_id: optionalUuid(formData, 'carteira_id') || (processo.carteira_id as string | null) || await defaultCarteiraId(),
     responsavel_id: optionalUuid(formData, 'responsavel_id') || (processo.responsavel_id as string | null) || null,
     tipo: allowed(text(formData, 'tipo'), ['publicacao', 'intimacao', 'despacho', 'decisao', 'audiencia', 'prazo', 'protocolo', 'contato', 'providencia_interna', 'documento', 'nota'], 'providencia_interna'),
-    titulo: requiredText(formData, 'titulo', 'Titulo do evento'),
+    titulo: requiredText(formData, 'titulo', 'Título do evento'),
     descricao: text(formData, 'descricao') || null,
     data_evento: dataEvento ? new Date(dataEvento).toISOString() : new Date().toISOString(),
     origem: 'manual',
@@ -514,7 +613,7 @@ export async function runGkitJurAgenteReceitaAction(formData: FormData) {
     execucao_id: insertResult.data.id,
     nivel: 'info',
     step: 'fila',
-    mensagem: 'Execucao manual criada e aguardando worker.',
+    mensagem: 'Execução manual criada e aguardando worker.',
     payload: { solicitado_por: context.usuario.id },
   })
 
@@ -523,7 +622,7 @@ export async function runGkitJurAgenteReceitaAction(formData: FormData) {
     entidade_tipo: 'agente_execucao',
     entidade_id: insertResult.data.id,
     acao: 'agente_execucao_criada',
-    descricao: 'Execucao manual do agente criada.',
+    descricao: 'Execução manual do agente criada.',
     payload: { receita_id: receitaId },
   })
 
@@ -533,7 +632,7 @@ export async function runGkitJurAgenteReceitaAction(formData: FormData) {
 
 export async function validateGkitJurAgenteExecucaoAction(formData: FormData) {
   const context = await requireGkitJurWrite('gkit_jur.processos.write')
-  const execucaoId = requiredText(formData, 'execucao_id', 'Execucao')
+  const execucaoId = requiredText(formData, 'execucao_id', 'Execução')
   const status = allowed(text(formData, 'status'), ['validado', 'rejeitado', 'reenviar_coleta', 'importado_manual'], 'validado')
   const observacao = text(formData, 'observacao') || null
   const nextStatus = status === 'validado' || status === 'importado_manual' ? 'sucesso' : status === 'reenviar_coleta' ? 'pendente' : 'precisa_intervencao'

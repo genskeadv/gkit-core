@@ -297,11 +297,11 @@ export function AccountsPayablePage() {
         <section className="payable-import-box">
           <div>
             <h2>Importar pagamentos efetuados no mes</h2>
-            <p className="muted small-text">A importacao pode ser feita a qualquer momento do mes aberto. Ela atualiza os pagamentos realizados e permite comparar o extrato com a previsao.</p>
+            <p className="muted small-text">A importacao pode ser feita a qualquer momento do mes aberto. Ela aceita planilha ou extrato bancario CSV/OFX e permite comparar o realizado com a previsao.</p>
           </div>
           <div className="import-actions">
             <button type="button" className="secondary-button" onClick={exportFile} disabled={loading || monthStatus === 'indisponivel'}>Exportar previsao do mes</button>
-            <input type="file" accept=".xlsx,.xls,.csv" onChange={(event) => { setFile(event.target.files?.[0] || null); setPreview(null); }} disabled={!canEdit || loading} />
+            <input type="file" accept=".xlsx,.xls,.csv,.ofx" onChange={(event) => { setFile(event.target.files?.[0] || null); setPreview(null); }} disabled={!canEdit || loading} />
             <button type="button" className="secondary-button" onClick={generatePreview} disabled={!file || !canEdit || loading}>
               Gerar previa
             </button>

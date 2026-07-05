@@ -402,12 +402,12 @@ export function DashboardHome() {
               <div>
                 <p className="eyebrow">Pagamentos</p>
                 <h2>Importar pagamentos efetuados no mes</h2>
-                <p className="muted small-text">A previa compara o extrato realizado com a previsao atual antes da gravacao.</p>
+                <p className="muted small-text">A previa compara a planilha ou o extrato bancario CSV/OFX com a previsao atual antes da gravacao.</p>
               </div>
               <StatusBadge status={data?.contasPagar.status || 'nao_aberto'} label={data?.contasPagar.canEdit ? 'Aberto' : 'Bloqueado'} />
             </div>
             <div className="flex-cockpit-import-row">
-              <input type="file" accept=".xlsx,.xls,.csv" onChange={(event) => { setPayableFile(event.target.files?.[0] || null); setPayablePreview(null); }} />
+              <input type="file" accept=".xlsx,.xls,.csv,.ofx" onChange={(event) => { setPayableFile(event.target.files?.[0] || null); setPayablePreview(null); }} />
               <button className="secondary-button" disabled={!payableFile || !data?.contasPagar.canEdit || actionLoading === 'preview-pagar'} onClick={previewContasPagar}>Gerar previa</button>
               <button className="primary-button" disabled={!payablePreview || payablePreview.linhasComErro > 0 || !data?.contasPagar.canEdit || actionLoading === 'save-pagar'} onClick={saveContasPagar}>Gravar pagamentos</button>
             </div>
