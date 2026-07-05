@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from '../audit';
 import { getMonthlyForecast } from '../previsoes/forecastPersistence';
 import { getCommissionMonthStatus, sanitizeCompetencia } from './supabasePersistence';
-import { EmptyState, MetricCard, MonthContextHeader } from '../ui/FlexUI';
+import { EmptyState, MetricCard, StatusBadge, formatMonthLabel } from '../ui/FlexUI';
 
 type CommissionSummaryRow = {
   id: string;
@@ -95,12 +95,24 @@ export async function CommissionsPage({ competencia }: { competencia?: string | 
 
   return (
     <main className="page-shell">
-      <MonthContextHeader
-        title="Comissões"
-        description="Previsão mensal de comissões, detalhada por categoria e carteira."
-        competencia={competenciaInput}
-        primaryStatus={{ label: 'Status', status: monthStatus.status }}
-      />
+      <section className="month-context-header">
+        <div className="month-context-main">
+          <p className="eyebrow">GKIT Flex</p>
+          <h1>Comissoes</h1>
+          <p className="muted">Previsao mensal de comissoes, detalhada por categoria e carteira.</p>
+        </div>
+      </section>
+      <section className="month-context-toolbar">
+        <div className="month-context-statuses">
+          <span>Status: <StatusBadge status={monthStatus.status} compact /></span>
+        </div>
+        <div className="month-context-side">
+          <label className="field-label dashboard-month">
+            Competencia
+            <input className="text-input" value={formatMonthLabel(competenciaInput)} disabled readOnly />
+          </label>
+        </div>
+      </section>
 
       <section className="grid-4 dashboard-metrics">
         <MetricCard
