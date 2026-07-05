@@ -13,19 +13,7 @@ type SanitizationRow = {
   valor_previsto: number;
   categoria: string;
   centro: string | null;
-  origem_tipo?: string | null;
-  origem_arquivo?: string | null;
-  raw?: Record<string, unknown> | null;
   created_at?: string;
-  sugestao?: SanitizationSuggestion | null;
-};
-
-type SanitizationGroup = {
-  chave: string;
-  descricao: string;
-  quantidade: number;
-  total: number;
-  ids: string[];
   sugestao?: SanitizationSuggestion | null;
 };
 
@@ -43,12 +31,10 @@ type SanitizationPayload = {
   status: MonthStatus;
   canEdit: boolean;
   rows: SanitizationRow[];
-  groups: SanitizationGroup[];
   categories: string[];
   summary: {
     pendentes: number;
     totalPendente: number;
-    grupos: number;
   };
 };
 
@@ -61,27 +47,9 @@ function formatMoney(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 }
 
-function formatPaymentDate(row: SanitizationRow, competencia: string) {
-  const text = String(row.vencimento_texto || '').trim();
-  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(text)) {
-    const [day, month, year] = text.split('/');
-    const fullYear = year.length === 2 ? `20${year}` : year;
-    return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${fullYear}`;
-  }
-
-  const day = row.vencimento_dia || (/^\d{1,2}$/.test(text) ? Number(text) : null);
-  if (!day) return text || '-';
-
-  const [year, month] = competencia.slice(0, 7).split('-');
-  return `${String(day).padStart(2, '0')}/${month}/${year}`;
-}
-
-function sourceLabel(row: SanitizationRow) {
-  const rawSource = String(row.raw?.origem_importacao || '');
-  if (rawSource.includes('ofx')) return 'OFX';
-  if (rawSource.includes('csv')) return 'CSV';
-  if (row.origem_arquivo) return row.origem_arquivo;
-  return row.origem_tipo || 'Importacao';
+function formatDay(row: SanitizationRow) {
+  if (row.vencimento_dia) return String(row.vencimento_dia).padStart(2, '0');
+  return row.vencimento_texto || '-';
 }
 
 export function SaneamentoPage() {
@@ -139,10 +107,6 @@ export function SaneamentoPage() {
     setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   }
 
-  function selectGroup(group: SanitizationGroup) {
-    setSelectedIds((current) => Array.from(new Set([...current, ...group.ids])));
-  }
-
   function selectAll() {
     setSelectedIds(data?.rows.map((row) => row.id) || []);
   }
@@ -176,7 +140,6 @@ export function SaneamentoPage() {
   }
 
   const rows = data?.rows || [];
-  const groups = data?.groups || [];
   const categories = data?.categories || [];
 
   function rowCategory(row: SanitizationRow) {
@@ -208,7 +171,6 @@ export function SaneamentoPage() {
       <section className="grid-4 dashboard-metrics">
         <MetricCard label="Pendentes" value={data?.summary.pendentes || 0} help="Sem categoria" tone={rows.length ? 'warning' : 'good'} />
         <MetricCard label="Valor pendente" value={formatMoney(data?.summary.totalPendente || 0)} />
-        <MetricCard label="Grupos" value={data?.summary.grupos || 0} help="Descricoes similares" />
         <MetricCard label="Sugestoes" value={suggestionCount} help="pela previsao do mes" tone={suggestionCount ? 'good' : 'default'} />
       </section>
 
@@ -216,7 +178,7 @@ export function SaneamentoPage() {
         <MetricCard label="Selecionados" value={selectedIds.length} help={formatMoney(selectedTotal)} tone={selectedIds.length ? 'warning' : 'default'} />
         <MetricCard label="Categoria escolhida" value={novaCategoria.trim() || categoria || '-'} help="destino do lote" />
         <MetricCard label="Status" value={data?.canEdit ? 'Editavel' : 'Bloqueado'} help="competencia" tone={data?.canEdit ? 'good' : 'danger'} />
-        <MetricCard label="Origem" value="Previsao" help="base das sugestoes" />
+        <MetricCard label="Sugestoes" value="Previsao" help="base das sugestoes" />
       </section>
 
       <section className="card flex-saneamento-actions">
@@ -252,44 +214,6 @@ export function SaneamentoPage() {
         </datalist>
       </section>
 
-      {groups.length ? (
-        <section className="card flex-saneamento-groups">
-          <div className="header-row compact-header">
-            <div>
-              <p className="eyebrow">Grupos</p>
-              <h2>Descricoes similares</h2>
-            </div>
-          </div>
-          <div className="table-wrap">
-            <table className="periods-table">
-              <thead>
-                <tr>
-                  <th>Descricao</th>
-                  <th className="text-right">Itens</th>
-                  <th className="text-right">Total</th>
-                  <th>Sugestao</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {groups.slice(0, 12).map((group) => (
-                  <tr key={group.chave}>
-                    <td><strong>{group.descricao}</strong></td>
-                    <td className="text-right">{group.quantidade}</td>
-                    <td className="text-right">{formatMoney(group.total)}</td>
-                    <td>{group.sugestao ? <SuggestionPill suggestion={group.sugestao} /> : <span className="muted small-text">-</span>}</td>
-                    <td className="text-right">
-                      <button className="secondary-button" onClick={() => selectGroup(group)} disabled={!data?.canEdit}>Selecionar</button>
-                      {group.sugestao ? <button className="primary-button" onClick={() => applyCategory(group.ids, group.sugestao?.categoria)} disabled={!data?.canEdit || saving}>Aplicar</button> : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
-
       <section className="card">
         <div className="header-row compact-header">
           <div>
@@ -304,9 +228,8 @@ export function SaneamentoPage() {
               <thead>
                 <tr>
                   <th></th>
-                  <th>Data</th>
+                  <th>Dia</th>
                   <th>Pagamento</th>
-                  <th>Origem</th>
                   <th className="text-right">Valor</th>
                 </tr>
               </thead>
@@ -316,7 +239,7 @@ export function SaneamentoPage() {
                     <td>
                       <input type="checkbox" checked={selectedSet.has(row.id)} disabled={!data?.canEdit} onChange={() => toggleRow(row.id)} />
                     </td>
-                    <td>{formatPaymentDate(row, competencia)}</td>
+                    <td>{formatDay(row)}</td>
                     <td>
                       <strong>{row.descricao}</strong>
                       <p className="muted small-text">{row.centro || 'Sem centro'}</p>
@@ -333,7 +256,6 @@ export function SaneamentoPage() {
                         <button className="secondary-button" onClick={() => applyCategory([row.id], rowCategory(row))} disabled={!data?.canEdit || saving || !rowCategory(row)}>Aplicar</button>
                       </div>
                     </td>
-                    <td>{sourceLabel(row)}</td>
                     <td className="text-right">{formatMoney(row.valor_previsto)}</td>
                   </tr>
                 ))}
