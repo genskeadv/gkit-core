@@ -50,6 +50,7 @@ export type PayableSanitizationRow = {
   origem_arquivo?: string | null;
   raw?: Record<string, unknown> | null;
   created_at?: string;
+  sugestao?: PayableSanitizationSuggestion | null;
 };
 
 export type PayableSanitizationGroup = {
@@ -58,6 +59,15 @@ export type PayableSanitizationGroup = {
   quantidade: number;
   total: number;
   ids: string[];
+  sugestao?: PayableSanitizationSuggestion | null;
+};
+
+export type PayableSanitizationSuggestion = {
+  categoria: string;
+  descricaoPrevista: string;
+  valorPrevisto: number;
+  pontuacao: number;
+  motivo: string;
 };
 
 export type PayableSanitizationSummary = {

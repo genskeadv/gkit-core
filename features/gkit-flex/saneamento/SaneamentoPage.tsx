@@ -17,6 +17,7 @@ type SanitizationRow = {
   origem_arquivo?: string | null;
   raw?: Record<string, unknown> | null;
   created_at?: string;
+  sugestao?: SanitizationSuggestion | null;
 };
 
 type SanitizationGroup = {
@@ -25,6 +26,15 @@ type SanitizationGroup = {
   quantidade: number;
   total: number;
   ids: string[];
+  sugestao?: SanitizationSuggestion | null;
+};
+
+type SanitizationSuggestion = {
+  categoria: string;
+  descricaoPrevista: string;
+  valorPrevisto: number;
+  pontuacao: number;
+  motivo: string;
 };
 
 type SanitizationPayload = {
@@ -79,6 +89,7 @@ export function SaneamentoPage() {
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const selectedRows = useMemo(() => (data?.rows || []).filter((row) => selectedSet.has(row.id)), [data?.rows, selectedSet]);
   const selectedTotal = useMemo(() => Math.round(selectedRows.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0) * 100) / 100, [selectedRows]);
+  const suggestionCount = useMemo(() => rowsWithSuggestions(data?.rows || []).length, [data?.rows]);
   const canApply = Boolean(data?.canEdit && selectedIds.length && (categoria || novaCategoria.trim()) && !saving);
 
   async function load() {
@@ -118,17 +129,18 @@ export function SaneamentoPage() {
     setSelectedIds(data?.rows.map((row) => row.id) || []);
   }
 
-  async function applyCategory() {
-    if (!canApply) return;
+  async function applyCategory(idsOverride?: string[], categoryOverride?: string) {
+    const idsToApply = idsOverride || selectedIds;
+    const targetCategory = categoryOverride || novaCategoria.trim() || categoria;
+    if (!data?.canEdit || !idsToApply.length || !targetCategory || saving) return;
     setSaving(true);
     setError('');
     setMessage('');
     try {
-      const targetCategory = novaCategoria.trim() || categoria;
       const response = await fetch('/api/gkit-flex/contas-pagar/saneamento', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ competencia: competenciaParam, ids: selectedIds, categoria: targetCategory }),
+        body: JSON.stringify({ competencia: competenciaParam, ids: idsToApply, categoria: targetCategory }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'Erro ao classificar pagamentos.');
@@ -170,7 +182,14 @@ export function SaneamentoPage() {
         <MetricCard label="Pendentes" value={data?.summary.pendentes || 0} help="Sem categoria" tone={rows.length ? 'warning' : 'good'} />
         <MetricCard label="Valor pendente" value={formatMoney(data?.summary.totalPendente || 0)} />
         <MetricCard label="Grupos" value={data?.summary.grupos || 0} help="Descricoes similares" />
+        <MetricCard label="Sugestoes" value={suggestionCount} help="pela previsao do mes" tone={suggestionCount ? 'good' : 'default'} />
+      </section>
+
+      <section className="grid-4 dashboard-metrics">
         <MetricCard label="Selecionados" value={selectedIds.length} help={formatMoney(selectedTotal)} tone={selectedIds.length ? 'warning' : 'default'} />
+        <MetricCard label="Categoria escolhida" value={novaCategoria.trim() || categoria || '-'} help="destino do lote" />
+        <MetricCard label="Status" value={data?.canEdit ? 'Editavel' : 'Bloqueado'} help="competencia" tone={data?.canEdit ? 'good' : 'danger'} />
+        <MetricCard label="Origem" value="Previsao" help="base das sugestoes" />
       </section>
 
       <section className="card flex-saneamento-actions">
@@ -198,7 +217,7 @@ export function SaneamentoPage() {
           <div className="module-inline-actions">
             <button className="secondary-button" onClick={selectAll} disabled={!rows.length || !data?.canEdit}>Selecionar todos</button>
             <button className="secondary-button" onClick={() => setSelectedIds([])} disabled={!selectedIds.length}>Limpar selecao</button>
-            <button className="primary-button" onClick={applyCategory} disabled={!canApply}>{saving ? 'Classificando...' : 'Aplicar categoria'}</button>
+            <button className="primary-button" onClick={() => applyCategory()} disabled={!canApply}>{saving ? 'Classificando...' : 'Aplicar categoria'}</button>
           </div>
         </div>
       </section>
@@ -218,6 +237,7 @@ export function SaneamentoPage() {
                   <th>Descricao</th>
                   <th className="text-right">Itens</th>
                   <th className="text-right">Total</th>
+                  <th>Sugestao</th>
                   <th></th>
                 </tr>
               </thead>
@@ -227,7 +247,11 @@ export function SaneamentoPage() {
                     <td><strong>{group.descricao}</strong></td>
                     <td className="text-right">{group.quantidade}</td>
                     <td className="text-right">{formatMoney(group.total)}</td>
-                    <td className="text-right"><button className="secondary-button" onClick={() => selectGroup(group)} disabled={!data?.canEdit}>Selecionar</button></td>
+                    <td>{group.sugestao ? <SuggestionPill suggestion={group.sugestao} /> : <span className="muted small-text">-</span>}</td>
+                    <td className="text-right">
+                      <button className="secondary-button" onClick={() => selectGroup(group)} disabled={!data?.canEdit}>Selecionar</button>
+                      {group.sugestao ? <button className="primary-button" onClick={() => applyCategory(group.ids, group.sugestao?.categoria)} disabled={!data?.canEdit || saving}>Aplicar</button> : null}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -253,7 +277,9 @@ export function SaneamentoPage() {
                   <th>Dia</th>
                   <th>Descricao</th>
                   <th>Origem</th>
+                  <th>Sugestao</th>
                   <th className="text-right">Valor</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -268,7 +294,11 @@ export function SaneamentoPage() {
                       <p className="muted small-text">{row.centro || 'Sem centro'}</p>
                     </td>
                     <td>{sourceLabel(row)}</td>
+                    <td>{row.sugestao ? <SuggestionPill suggestion={row.sugestao} /> : <span className="muted small-text">Sem sugestao</span>}</td>
                     <td className="text-right">{formatMoney(row.valor_previsto)}</td>
+                    <td className="text-right">
+                      {row.sugestao ? <button className="secondary-button" onClick={() => applyCategory([row.id], row.sugestao?.categoria)} disabled={!data?.canEdit || saving}>Aplicar</button> : null}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -279,5 +309,17 @@ export function SaneamentoPage() {
         )}
       </section>
     </main>
+  );
+}
+
+function rowsWithSuggestions(rows: SanitizationRow[]) {
+  return rows.filter((row) => row.sugestao?.categoria);
+}
+
+function SuggestionPill({ suggestion }: { suggestion: SanitizationSuggestion }) {
+  return (
+    <span className="status-pill status-aberto compact" title={`${suggestion.motivo}. Previsao: ${suggestion.descricaoPrevista}`}>
+      {suggestion.categoria} · {Math.round(suggestion.pontuacao)}%
+    </span>
   );
 }

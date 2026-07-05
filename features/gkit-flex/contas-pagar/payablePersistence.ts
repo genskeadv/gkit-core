@@ -7,6 +7,7 @@ import type {
   PayableMonthStatus,
   PayableSanitizationGroup,
   PayableSanitizationRow,
+  PayableSanitizationSuggestion,
   PayableSanitizationSummary,
   PayableSummary,
 } from './types';
@@ -14,7 +15,7 @@ import { getSupabaseAdmin, logEvent } from '../audit';
 import { buildPayablesExportWorkbook } from './payableProcessor';
 import { syncCicloRegularidadePagamentos } from '../regularidade-pagamentos';
 import { getMonthlyForecast } from '../previsoes/forecastPersistence';
-import { buildSlug, suggestCanonicalName } from '../cadastros/normalization';
+import { buildSlug, normalizeText, suggestCanonicalName } from '../cadastros/normalization';
 
 function roundMoney(value: number): number {
   return Math.round((value || 0) * 100) / 100;
@@ -154,15 +155,112 @@ function buildSanitizationGroups(rows: PayableSanitizationRow[]): PayableSanitiz
       quantidade: 0,
       total: 0,
       ids: [],
+      sugestao: null,
     };
 
     current.quantidade += 1;
     current.total = roundMoney(current.total + Number(row.valor_previsto || 0));
     current.ids.push(row.id);
+    if (row.sugestao && (!current.sugestao || row.sugestao.pontuacao > current.sugestao.pontuacao)) {
+      current.sugestao = row.sugestao;
+    }
     map.set(chave, current);
   }
 
   return Array.from(map.values()).sort((a, b) => b.total - a.total || b.quantidade - a.quantidade);
+}
+
+type ForecastSuggestionSource = {
+  descricao: string;
+  categoria: string;
+  valorPrevisto: number;
+  vencimentoDia: number | null;
+};
+
+function tokenSet(value: string) {
+  return new Set(normalizeText(value).split(' ').filter((part) => part.length > 2));
+}
+
+function textSimilarity(a: string, b: string) {
+  const aTokens = tokenSet(a);
+  const bTokens = tokenSet(b);
+  if (!aTokens.size || !bTokens.size) return 0;
+  let intersection = 0;
+  aTokens.forEach((token) => {
+    if (bTokens.has(token)) intersection += 1;
+  });
+  const union = new Set([...Array.from(aTokens), ...Array.from(bTokens)]).size;
+  const jaccard = union ? intersection / union : 0;
+  const normalizedA = normalizeText(a);
+  const normalizedB = normalizeText(b);
+  const substringBonus = normalizedA.includes(normalizedB) || normalizedB.includes(normalizedA) ? 0.2 : 0;
+  return Math.min(1, jaccard + substringBonus);
+}
+
+function valueSimilarity(actual: number, forecast: number) {
+  if (!actual || !forecast) return 0;
+  const diffRatio = Math.abs(actual - forecast) / Math.max(actual, forecast);
+  return Math.max(0, 1 - Math.min(diffRatio, 1));
+}
+
+function daySimilarity(actual: number | null, forecast: number | null) {
+  if (!actual || !forecast) return 0;
+  const diff = Math.abs(actual - forecast);
+  if (diff === 0) return 1;
+  if (diff <= 3) return 0.7;
+  if (diff <= 7) return 0.4;
+  return 0;
+}
+
+function bestForecastSuggestion(row: PayableSanitizationRow, forecastRows: ForecastSuggestionSource[]): PayableSanitizationSuggestion | null {
+  let best: PayableSanitizationSuggestion | null = null;
+
+  for (const forecast of forecastRows) {
+    if (isUncategorized(forecast.categoria)) continue;
+    const textScore = textSimilarity(row.descricao, forecast.descricao);
+    const amountScore = valueSimilarity(Number(row.valor_previsto || 0), Number(forecast.valorPrevisto || 0));
+    const dateScore = daySimilarity(row.vencimento_dia, forecast.vencimentoDia);
+    const score = roundMoney((textScore * 0.55 + amountScore * 0.3 + dateScore * 0.15) * 100);
+
+    if (score < 45) continue;
+    if (!best || score > best.pontuacao) {
+      best = {
+        categoria: forecast.categoria,
+        descricaoPrevista: forecast.descricao,
+        valorPrevisto: forecast.valorPrevisto,
+        pontuacao: score,
+        motivo: [
+          textScore >= 0.5 ? 'descricao parecida' : null,
+          amountScore >= 0.75 ? 'valor proximo' : null,
+          dateScore >= 0.7 ? 'dia proximo' : null,
+        ].filter(Boolean).join(', ') || 'melhor correspondencia da previsao',
+      };
+    }
+  }
+
+  return best;
+}
+
+async function listForecastSuggestionSources(supabase: SupabaseClient, competencia: string): Promise<ForecastSuggestionSource[]> {
+  const { data, error } = await supabase
+    .from('gkit_flex_previsao_pagamentos')
+    .select('descricao, categoria, valor_previsto, vencimento_dia')
+    .eq('competencia', competencia)
+    .not('categoria', 'is', null)
+    .neq('categoria', 'Sem categoria')
+    .limit(500);
+
+  if (error) {
+    console.warn('[gkit_flex_previsao_pagamentos] falha ao ler previsao para sugestoes:', error.message);
+    return [];
+  }
+
+  return (data || []).map((row) => ({
+    descricao: String(row.descricao || ''),
+    categoria: String(row.categoria || 'Sem categoria'),
+    valorPrevisto: roundMoney(Number(row.valor_previsto || 0)),
+    vencimentoDia: row.vencimento_dia === null || row.vencimento_dia === undefined ? null : Number(row.vencimento_dia),
+  })).filter((row) => row.descricao && !isUncategorized(row.categoria));
 }
 
 async function listPayableCategories(supabase: SupabaseClient) {
@@ -528,6 +626,11 @@ export async function listPayableSanitization(competenciaInput: string) {
 
   const status = await getPayableMonthStatus(competencia);
   const categories = await listPayableCategories(supabase);
+  const forecastSources = await listForecastSuggestionSources(supabase, competencia);
+  for (const forecast of forecastSources) {
+    if (!isUncategorized(forecast.categoria)) categories.push(forecast.categoria);
+  }
+  const uniqueCategories = Array.from(new Set(categories)).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   if (!status.row) {
     return {
       configured: true,
@@ -536,7 +639,7 @@ export async function listPayableSanitization(competenciaInput: string) {
       canEdit: false,
       rows: [] as PayableSanitizationRow[],
       groups: [] as PayableSanitizationGroup[],
-      categories,
+      categories: uniqueCategories,
       summary: summarizeSanitization([]),
     };
   }
@@ -550,7 +653,10 @@ export async function listPayableSanitization(competenciaInput: string) {
     .order('descricao', { ascending: true });
 
   if (error) throw new Error(`Erro ao listar saneamento de pagamentos: ${error.message}`);
-  const rows = (data || []) as PayableSanitizationRow[];
+  const rows = ((data || []) as PayableSanitizationRow[]).map((row) => ({
+    ...row,
+    sugestao: bestForecastSuggestion(row, forecastSources),
+  }));
 
   return {
     configured: true,
@@ -559,7 +665,7 @@ export async function listPayableSanitization(competenciaInput: string) {
     canEdit: status.status === 'aberto',
     rows,
     groups: buildSanitizationGroups(rows),
-    categories,
+    categories: uniqueCategories,
     summary: summarizeSanitization(rows),
   };
 }
