@@ -18764,6 +18764,26 @@ a.button {
   }
 }
 
+/* Flex pages use the browser document as the only vertical scroller. */
+body:has(.gkit-flex-operational-shell) {
+  overflow-y: auto !important;
+}
+
+.gkit-flex-operational-shell,
+.gkit-flex-operational-shell .module-main,
+.gkit-flex-operational-shell .module-page-content,
+.gkit-flex-operational-shell .page-shell,
+.gkit-flex-operational-shell .card {
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+.gkit-flex-operational-shell .table-wrap {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
 @media (max-width: 560px) {
   .gkit-jur-inbox-queues nav {
     grid-template-columns: 1fr;
