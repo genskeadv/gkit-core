@@ -2,9 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { BrandLogo } from '@/features/shared/brand-logo';
 import type { PlatformUsuario } from '@/lib/auth/platform';
+
+const FLEX_COMPETENCIA_STORAGE_KEY = 'gkit-flex:competencia';
+const FLEX_COMPETENCIA_EVENT = 'gkit-flex:competencia-change';
 
 const navItems = [
   { href: '/modulos/gkit-flex', label: 'Cockpit' },
@@ -23,13 +26,40 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function normalizeCompetencia(value: string | null | undefined) {
+  const text = String(value || '').trim();
+  return /^\d{4}-\d{2}/.test(text) ? text.slice(0, 7) : '';
+}
+
+function withCompetencia(href: string, competencia: string) {
+  return competencia ? `${href}?competencia=${encodeURIComponent(competencia)}` : href;
+}
+
 export function AppFrame({ children, usuario }: { children: ReactNode; usuario: PlatformUsuario }) {
   const pathname = usePathname();
+  const [competencia, setCompetencia] = useState('');
+
+  useEffect(() => {
+    const readCompetencia = () => {
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = normalizeCompetencia(params.get('competencia'));
+      const fromStorage = normalizeCompetencia(window.localStorage.getItem(FLEX_COMPETENCIA_STORAGE_KEY));
+      setCompetencia(fromUrl || fromStorage);
+    };
+
+    readCompetencia();
+    const onChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ competencia?: string }>).detail;
+      setCompetencia(normalizeCompetencia(detail?.competencia));
+    };
+    window.addEventListener(FLEX_COMPETENCIA_EVENT, onChange);
+    return () => window.removeEventListener(FLEX_COMPETENCIA_EVENT, onChange);
+  }, []);
 
   return (
     <main className="module-shell gkit-flex-shell gkit-flex-operational-shell">
       <aside className="module-sidebar gkit-flex-sidebar">
-        <Link className="module-sidebar-header gkit-flex-sidebar-header" href="/modulos/gkit-flex">
+        <Link className="module-sidebar-header gkit-flex-sidebar-header" href={withCompetencia('/modulos/gkit-flex', competencia)}>
           <BrandLogo className="module-sidebar-mark gkit-flex-sidebar-mark" label="Gestao mensal" />
           <div>
             <strong>GKIT Flex</strong>
@@ -39,7 +69,7 @@ export function AppFrame({ children, usuario }: { children: ReactNode; usuario: 
 
         <nav aria-label="Navegacao GKIT Flex">
           {navItems.map((item) => (
-            <Link className={isActive(pathname, item.href) ? 'active' : ''} href={item.href} key={item.href}>
+            <Link className={isActive(pathname, item.href) ? 'active' : ''} href={withCompetencia(item.href, competencia)} key={item.href}>
               <span>{item.label}</span>
             </Link>
           ))}

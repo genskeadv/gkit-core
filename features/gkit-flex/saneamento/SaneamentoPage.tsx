@@ -80,6 +80,7 @@ export function SaneamentoPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [categoria, setCategoria] = useState('');
   const [novaCategoria, setNovaCategoria] = useState('');
+  const [rowCategories, setRowCategories] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -101,6 +102,13 @@ export function SaneamentoPage() {
       if (!response.ok) throw new Error(payload.error || 'Erro ao carregar saneamento.');
       setData(payload);
       setSelectedIds((current) => current.filter((id) => (payload.rows || []).some((row: SanitizationRow) => row.id === id)));
+      setRowCategories((current) => {
+        const next: Record<string, string> = {};
+        for (const row of payload.rows || []) {
+          next[row.id] = current[row.id] || row.sugestao?.categoria || '';
+        }
+        return next;
+      });
     } catch (err) {
       setData(null);
       setSelectedIds([]);
@@ -146,6 +154,7 @@ export function SaneamentoPage() {
       if (!response.ok) throw new Error(payload.error || 'Erro ao classificar pagamentos.');
       setData(payload);
       setSelectedIds([]);
+      setRowCategories({});
       setCategoria('');
       setNovaCategoria('');
       setMessage(`${payload.updated || 0} pagamento(s) classificados em ${targetCategory}.`);
@@ -159,6 +168,14 @@ export function SaneamentoPage() {
   const rows = data?.rows || [];
   const groups = data?.groups || [];
   const categories = data?.categories || [];
+
+  function rowCategory(row: SanitizationRow) {
+    return rowCategories[row.id] || row.sugestao?.categoria || '';
+  }
+
+  function updateRowCategory(id: string, value: string) {
+    setRowCategories((current) => ({ ...current, [id]: value }));
+  }
 
   return (
     <main className="page-shell wide-shell flex-saneamento-page">
@@ -220,6 +237,9 @@ export function SaneamentoPage() {
             <button className="primary-button" onClick={() => applyCategory()} disabled={!canApply}>{saving ? 'Classificando...' : 'Aplicar categoria'}</button>
           </div>
         </div>
+        <datalist id="saneamento-categorias">
+          {categories.map((option) => <option key={option} value={option} />)}
+        </datalist>
       </section>
 
       {groups.length ? (
@@ -278,6 +298,7 @@ export function SaneamentoPage() {
                   <th>Descricao</th>
                   <th>Origem</th>
                   <th>Sugestao</th>
+                  <th>Classificar</th>
                   <th className="text-right">Valor</th>
                   <th></th>
                 </tr>
@@ -295,9 +316,19 @@ export function SaneamentoPage() {
                     </td>
                     <td>{sourceLabel(row)}</td>
                     <td>{row.sugestao ? <SuggestionPill suggestion={row.sugestao} /> : <span className="muted small-text">Sem sugestao</span>}</td>
+                    <td>
+                      <input
+                        className="inline-input"
+                        list="saneamento-categorias"
+                        value={rowCategory(row)}
+                        onChange={(event) => updateRowCategory(row.id, event.target.value)}
+                        placeholder="Categoria"
+                        disabled={!data?.canEdit || saving}
+                      />
+                    </td>
                     <td className="text-right">{formatMoney(row.valor_previsto)}</td>
                     <td className="text-right">
-                      {row.sugestao ? <button className="secondary-button" onClick={() => applyCategory([row.id], row.sugestao?.categoria)} disabled={!data?.canEdit || saving}>Aplicar</button> : null}
+                      <button className="secondary-button" onClick={() => applyCategory([row.id], rowCategory(row))} disabled={!data?.canEdit || saving || !rowCategory(row)}>Aplicar</button>
                     </td>
                   </tr>
                 ))}

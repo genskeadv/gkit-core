@@ -1,6 +1,8 @@
 import React from 'react';
 
 type MonthStatus = 'aberto' | 'fechado' | 'nao_aberto' | 'indisponivel' | string;
+const FLEX_COMPETENCIA_STORAGE_KEY = 'gkit-flex:competencia';
+const FLEX_COMPETENCIA_EVENT = 'gkit-flex:competencia-change';
 
 export function formatMonthLabel(value: string) {
   if (!value) return '-';
@@ -19,6 +21,24 @@ function currentYearMonthOptions() {
     const value = `${year}-${String(month).padStart(2, '0')}`;
     return { value, label: formatMonthLabel(value) };
   });
+}
+
+function normalizeCompetencia(value: string | null | undefined) {
+  const text = String(value || '').trim();
+  return /^\d{4}-\d{2}/.test(text) ? text.slice(0, 7) : '';
+}
+
+function persistCompetencia(value: string) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(FLEX_COMPETENCIA_STORAGE_KEY, value);
+
+  const url = new URL(window.location.href);
+  if (url.searchParams.get('competencia') !== value) {
+    url.searchParams.set('competencia', value);
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  window.dispatchEvent(new CustomEvent(FLEX_COMPETENCIA_EVENT, { detail: { competencia: value } }));
 }
 
 export function statusLabel(status: MonthStatus) {
@@ -60,15 +80,37 @@ export function MonthContextHeader({
   secondaryStatus?: { label: string; status: MonthStatus };
   children?: React.ReactNode;
 }) {
-  const monthOptions = currentYearMonthOptions();
-  const monthValues = new Set(monthOptions.map((option) => option.value));
+  const monthOptions = React.useMemo(() => currentYearMonthOptions(), []);
+  const monthValues = React.useMemo(() => new Set(monthOptions.map((option) => option.value)), [monthOptions]);
   const selectedCompetencia = monthValues.has(competencia) ? competencia : monthOptions[0]?.value || competencia;
+  const restoredRef = React.useRef(false);
 
   React.useEffect(() => {
+    if (!onCompetenciaChange) return;
+    if (!restoredRef.current && typeof window !== 'undefined') {
+      restoredRef.current = true;
+      const urlCompetencia = normalizeCompetencia(new URLSearchParams(window.location.search).get('competencia'));
+      const storedCompetencia = normalizeCompetencia(window.localStorage.getItem(FLEX_COMPETENCIA_STORAGE_KEY));
+      const restored = [urlCompetencia, storedCompetencia].find((value) => value && monthValues.has(value));
+
+      if (restored && restored !== competencia) {
+        onCompetenciaChange(restored);
+        return;
+      }
+    }
+
     if (onCompetenciaChange && selectedCompetencia && selectedCompetencia !== competencia) {
       onCompetenciaChange(selectedCompetencia);
+      return;
     }
-  }, [competencia, onCompetenciaChange, selectedCompetencia]);
+
+    if (selectedCompetencia && monthValues.has(selectedCompetencia)) persistCompetencia(selectedCompetencia);
+  }, [competencia, monthValues, onCompetenciaChange, selectedCompetencia]);
+
+  function handleCompetenciaChange(value: string) {
+    persistCompetencia(value);
+    onCompetenciaChange?.(value);
+  }
 
   return (
     <>
@@ -91,7 +133,7 @@ export function MonthContextHeader({
               <select
                 className="text-input"
                 value={selectedCompetencia}
-                onChange={(event) => onCompetenciaChange(event.target.value)}
+                onChange={(event) => handleCompetenciaChange(event.target.value)}
               >
                 {monthOptions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
