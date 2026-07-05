@@ -18784,17 +18784,66 @@ body:has(.gkit-flex-operational-shell) {
   overflow: visible !important;
 }
 
+.gkit-flex-operational-shell .flex-saneamento-table th:first-child,
+.gkit-flex-operational-shell .flex-saneamento-table td:first-child {
+  text-align: center;
+  width: 44px;
+}
+
+.gkit-flex-operational-shell .flex-saneamento-table th:nth-child(2),
+.gkit-flex-operational-shell .flex-saneamento-table td:nth-child(2) {
+  text-align: center;
+  width: 70px;
+}
+
+.gkit-flex-operational-shell .flex-saneamento-table td {
+  vertical-align: middle;
+}
+
+.gkit-flex-operational-shell .flex-saneamento-payment-cell {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(320px, 1fr) minmax(500px, auto);
+}
+
+.gkit-flex-operational-shell .flex-saneamento-payment-copy {
+  min-width: 0;
+}
+
+.gkit-flex-operational-shell .flex-saneamento-payment-copy strong {
+  display: block;
+  line-height: 1.35;
+}
+
+.gkit-flex-operational-shell .flex-saneamento-payment-copy p {
+  margin: 3px 0 0;
+}
+
 .gkit-flex-operational-shell .flex-saneamento-row-actions {
   align-items: center !important;
   display: flex !important;
   flex-wrap: wrap !important;
   gap: 8px !important;
-  margin-top: 8px !important;
+  grid-column: auto !important;
+  justify-content: flex-end !important;
+  margin-top: 0 !important;
 }
 
 .gkit-flex-operational-shell .flex-saneamento-row-actions .inline-input {
-  max-width: 240px !important;
-  min-width: 180px !important;
+  max-width: 300px !important;
+  min-width: 220px !important;
+}
+
+@media (max-width: 1180px) {
+  .gkit-flex-operational-shell .flex-saneamento-payment-cell {
+    align-items: flex-start;
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-flex-operational-shell .flex-saneamento-row-actions {
+    justify-content: flex-start !important;
+  }
 }
 
 @media (max-width: 560px) {

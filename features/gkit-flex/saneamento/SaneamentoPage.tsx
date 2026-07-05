@@ -143,7 +143,10 @@ export function SaneamentoPage() {
   const categories = data?.categories || [];
 
   function rowCategory(row: SanitizationRow) {
-    return rowCategories[row.id] || row.sugestao?.categoria || '';
+    if (Object.prototype.hasOwnProperty.call(rowCategories, row.id)) {
+      return rowCategories[row.id];
+    }
+    return row.sugestao?.categoria || '';
   }
 
   function updateRowCategory(id: string, value: string) {
@@ -241,19 +244,23 @@ export function SaneamentoPage() {
                     </td>
                     <td>{formatDay(row)}</td>
                     <td>
-                      <strong>{row.descricao}</strong>
-                      <p className="muted small-text">{row.centro || 'Sem centro'}</p>
-                      <div className="module-inline-actions flex-saneamento-row-actions">
-                        {row.sugestao ? <SuggestionPill suggestion={row.sugestao} /> : <span className="muted small-text">Sem sugestao da previsao</span>}
-                        <input
-                          className="inline-input"
-                          list="saneamento-categorias"
-                          value={rowCategory(row)}
-                          onChange={(event) => updateRowCategory(row.id, event.target.value)}
-                          placeholder="Categoria"
-                          disabled={!data?.canEdit || saving}
-                        />
-                        <button className="secondary-button" onClick={() => applyCategory([row.id], rowCategory(row))} disabled={!data?.canEdit || saving || !rowCategory(row)}>Aplicar</button>
+                      <div className="flex-saneamento-payment-cell">
+                        <div className="flex-saneamento-payment-copy">
+                          <strong>{row.descricao}</strong>
+                          <p className="muted small-text">{row.centro || 'Sem centro'}</p>
+                        </div>
+                        <div className="module-inline-actions flex-saneamento-row-actions">
+                          {row.sugestao ? <SuggestionPill suggestion={row.sugestao} /> : <span className="muted small-text">Sem sugestao da previsao</span>}
+                          <input
+                            className="inline-input"
+                            list="saneamento-categorias"
+                            value={rowCategory(row)}
+                            onChange={(event) => updateRowCategory(row.id, event.target.value)}
+                            placeholder="Categoria"
+                            disabled={!data?.canEdit || saving}
+                          />
+                          <button className="secondary-button" onClick={() => applyCategory([row.id], rowCategory(row))} disabled={!data?.canEdit || saving || !rowCategory(row)}>Aplicar</button>
+                        </div>
                       </div>
                     </td>
                     <td className="text-right">{formatMoney(row.valor_previsto)}</td>
