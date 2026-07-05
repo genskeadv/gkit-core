@@ -18350,7 +18350,8 @@ a.button {
   width: 100% !important;
 }
 
-.gkit-flex-operational-shell .dashboard-month input {
+.gkit-flex-operational-shell .dashboard-month input,
+.gkit-flex-operational-shell .dashboard-month select {
   min-height: 34px !important;
   padding: 7px 10px !important;
 }
@@ -18682,7 +18683,8 @@ a.button {
   width: auto !important;
 }
 
-.gkit-flex-operational-shell .month-context-toolbar .dashboard-month input {
+.gkit-flex-operational-shell .month-context-toolbar .dashboard-month input,
+.gkit-flex-operational-shell .month-context-toolbar .dashboard-month select {
   min-height: 34px !important;
   width: 132px !important;
 }
@@ -18756,6 +18758,7 @@ a.button {
   }
 
   .gkit-flex-operational-shell .month-context-toolbar .dashboard-month input,
+  .gkit-flex-operational-shell .month-context-toolbar .dashboard-month select,
   .gkit-flex-operational-shell .month-context-toolbar .month-context-actions {
     width: 100% !important;
   }

@@ -9,6 +9,18 @@ export function formatMonthLabel(value: string) {
   return `${month}/${year}`;
 }
 
+function currentYearMonthOptions() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  return Array.from({ length: currentMonth }, (_, index) => {
+    const month = currentMonth - index;
+    const value = `${year}-${String(month).padStart(2, '0')}`;
+    return { value, label: formatMonthLabel(value) };
+  });
+}
+
 export function statusLabel(status: MonthStatus) {
   if (status === 'aberto') return 'Aberto';
   if (status === 'fechado') return 'Fechado';
@@ -48,6 +60,16 @@ export function MonthContextHeader({
   secondaryStatus?: { label: string; status: MonthStatus };
   children?: React.ReactNode;
 }) {
+  const monthOptions = currentYearMonthOptions();
+  const monthValues = new Set(monthOptions.map((option) => option.value));
+  const selectedCompetencia = monthValues.has(competencia) ? competencia : monthOptions[0]?.value || competencia;
+
+  React.useEffect(() => {
+    if (onCompetenciaChange && selectedCompetencia && selectedCompetencia !== competencia) {
+      onCompetenciaChange(selectedCompetencia);
+    }
+  }, [competencia, onCompetenciaChange, selectedCompetencia]);
+
   return (
     <>
       <section className="month-context-header">
@@ -66,20 +88,25 @@ export function MonthContextHeader({
           <label className="field-label dashboard-month">
             Competencia
             {onCompetenciaChange ? (
-              <input
+              <select
                 className="text-input"
-                type="month"
-                value={competencia}
+                value={selectedCompetencia}
                 onChange={(event) => onCompetenciaChange(event.target.value)}
-              />
+              >
+                {monthOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
             ) : (
-              <input
+              <select
                 className="text-input"
-                type="month"
-                value={competencia}
+                value={selectedCompetencia}
                 disabled
-                readOnly
-              />
+              >
+                {monthOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
             )}
           </label>
           {children ? <div className="month-context-actions">{children}</div> : null}
