@@ -14,6 +14,7 @@ type CadastroItem = {
   origem: string;
   usos: number;
   aliases: string[];
+  naoGerarAutomaticamenteNaPrevia: boolean;
 };
 
 type CadastroResumo = {
@@ -81,7 +82,21 @@ function impactRows(preview: ReclassPreview | null) {
   ].filter(([, value]) => Number(value) > 0);
 }
 
-function CadastroTable({ title, description, items }: { title: string; description: string; items: CadastroItem[] }) {
+function CadastroTable({
+  title,
+  description,
+  items,
+  showForecastRule = false,
+  savingRuleId = '',
+  onToggleForecastRule,
+}: {
+  title: string;
+  description: string;
+  items: CadastroItem[];
+  showForecastRule?: boolean;
+  savingRuleId?: string;
+  onToggleForecastRule?: (item: CadastroItem, checked: boolean) => Promise<void>;
+}) {
   const [filter, setFilter] = useState('');
   const filtered = useMemo(() => {
     const term = filter.trim().toLowerCase();
@@ -116,6 +131,7 @@ function CadastroTable({ title, description, items }: { title: string; descripti
                 <th>Origem</th>
                 <th>Status</th>
                 <th className="text-right">Usos</th>
+                {showForecastRule ? <th>Previa</th> : null}
                 <th>Aliases</th>
               </tr>
             </thead>
@@ -129,6 +145,19 @@ function CadastroTable({ title, description, items }: { title: string; descripti
                   <td>{origemLabel(item.origem)}</td>
                   <td><StatusBadge status={item.status === 'ativo' ? 'ok' : 'indisponivel'} label={item.status === 'ativo' ? 'Ativo' : 'Inativo'} compact /></td>
                   <td className="text-right">{item.usos}</td>
+                  {showForecastRule ? (
+                    <td>
+                      <label className="checkbox-row compact-checkbox-row">
+                        <input
+                          type="checkbox"
+                          checked={item.naoGerarAutomaticamenteNaPrevia}
+                          disabled={savingRuleId === item.id || !onToggleForecastRule}
+                          onChange={(event) => onToggleForecastRule?.(item, event.target.checked)}
+                        />
+                        <span>{savingRuleId === item.id ? 'Salvando...' : 'Nao gerar automaticamente'}</span>
+                      </label>
+                    </td>
+                  ) : null}
                   <td className="small-text muted">{item.aliases.length ? item.aliases.join(', ') : '-'}</td>
                 </tr>
               ))}
@@ -294,6 +323,7 @@ export function MasterDataPage() {
   const [data, setData] = useState<CadastroResumo | null>(null);
   const [loading, setLoading] = useState(true);
   const [extracting, setExtracting] = useState(false);
+  const [savingRuleId, setSavingRuleId] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -328,6 +358,27 @@ export function MasterDataPage() {
       setError(err instanceof Error ? err.message : 'Erro ao extrair cadastros.');
     } finally {
       setExtracting(false);
+    }
+  }
+
+  async function toggleForecastRule(item: CadastroItem, checked: boolean) {
+    setSavingRuleId(item.id);
+    setError('');
+    setSuccess('');
+    try {
+      const response = await fetch('/api/gkit-flex/cadastros/regras-previsao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cadastroId: item.id, naoGerarAutomaticamente: checked }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Erro ao atualizar regra da categoria.');
+      setData(payload.resumo);
+      setSuccess(checked ? `${item.nome}: nao sera gerada automaticamente na previa.` : `${item.nome}: voltou a ser gerada automaticamente na previa.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar regra da categoria.');
+    } finally {
+      setSavingRuleId('');
     }
   }
 
@@ -374,7 +425,14 @@ export function MasterDataPage() {
 
       <ReclassificationPanel data={data} onDone={load} />
 
-      <CadastroTable title="Categorias" description="Categorias usadas em pagamentos e comissoes." items={data?.categorias || []} />
+      <CadastroTable
+        title="Categorias"
+        description="Categorias usadas em pagamentos e comissoes."
+        items={data?.categorias || []}
+        showForecastRule
+        savingRuleId={savingRuleId}
+        onToggleForecastRule={toggleForecastRule}
+      />
       <CadastroTable title="Centros" description="Centros gerenciais usados em pagamentos." items={data?.centros || []} />
       <CadastroTable title="Carteiras" description="Carteiras/vendedores usados no calculo de comissoes." items={data?.carteiras || []} />
     </main>

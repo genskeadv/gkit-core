@@ -11,6 +11,7 @@ export type CadastroItem = {
   origem: string;
   usos: number;
   aliases: string[];
+  naoGerarAutomaticamenteNaPrevia: boolean;
   created_at?: string;
   updated_at?: string;
 };
@@ -109,7 +110,7 @@ export async function getCadastrosResumo() {
 
   const { data: cadastros, error } = await supabase
     .from('gkit_cadastros')
-    .select('id, tipo, nome, slug, status, origem, usos, created_at, updated_at')
+    .select('id, tipo, nome, slug, status, origem, usos, metadata, created_at, updated_at')
     .order('tipo', { ascending: true })
     .order('nome', { ascending: true });
   if (error) throw new Error(`Erro ao listar cadastros: ${error.message}`);
@@ -127,18 +128,23 @@ export async function getCadastrosResumo() {
     aliasMap.set(alias.cadastro_id as string, arr);
   }
 
-  const items: CadastroItem[] = (cadastros || []).map((item) => ({
-    id: item.id as string,
-    tipo: item.tipo as CadastroTipo,
-    nome: item.nome as string,
-    slug: item.slug as string,
-    status: item.status as 'ativo' | 'inativo',
-    origem: String(item.origem || 'manual'),
-    usos: Number(item.usos || 0),
-    aliases: aliasMap.get(item.id as string) || [],
-    created_at: item.created_at as string,
-    updated_at: item.updated_at as string,
-  }));
+  const items: CadastroItem[] = (cadastros || []).map((item) => {
+    const metadata = (item.metadata || {}) as Record<string, unknown>;
+    const previsoes = (metadata.gkit_flex_previsoes || {}) as Record<string, unknown>;
+    return {
+      id: item.id as string,
+      tipo: item.tipo as CadastroTipo,
+      nome: item.nome as string,
+      slug: item.slug as string,
+      status: item.status as 'ativo' | 'inativo',
+      origem: String(item.origem || 'manual'),
+      usos: Number(item.usos || 0),
+      aliases: aliasMap.get(item.id as string) || [],
+      naoGerarAutomaticamenteNaPrevia: Boolean(previsoes.nao_gerar_automaticamente),
+      created_at: item.created_at as string,
+      updated_at: item.updated_at as string,
+    };
+  });
 
   return {
     configured: true,
@@ -207,4 +213,45 @@ export async function extractCadastrosFromOperationalData() {
   });
 
   return { encontrados: unique.size, criados: created, atualizados: updated, resumo: await getCadastrosResumo() };
+}
+
+export async function updateCategoriaForecastAutomationRule(cadastroId: string, naoGerarAutomaticamente: boolean) {
+  const supabase = getSupabaseAdmin();
+  assertConfigured(supabase);
+
+  const { data: cadastro, error: cadastroError } = await supabase
+    .from('gkit_cadastros')
+    .select('id, tipo, nome, metadata')
+    .eq('id', cadastroId)
+    .maybeSingle();
+  if (cadastroError) throw new Error(`Erro ao consultar categoria: ${cadastroError.message}`);
+  if (!cadastro?.id) throw new Error('Categoria nao encontrada.');
+  if (cadastro.tipo !== 'categoria') throw new Error('Essa regra so pode ser aplicada a categorias.');
+
+  const metadata = ((cadastro.metadata || {}) as Record<string, unknown>);
+  const previsoes = ((metadata.gkit_flex_previsoes || {}) as Record<string, unknown>);
+  const nextMetadata = {
+    ...metadata,
+    gkit_flex_previsoes: {
+      ...previsoes,
+      nao_gerar_automaticamente: naoGerarAutomaticamente,
+    },
+  };
+
+  const { error: updateError } = await supabase
+    .from('gkit_cadastros')
+    .update({ metadata: nextMetadata, updated_at: new Date().toISOString() })
+    .eq('id', cadastro.id);
+  if (updateError) throw new Error(`Erro ao atualizar regra da categoria: ${updateError.message}`);
+
+  await logEvent({
+    supabase,
+    modulo: 'cadastros',
+    action: 'atualizar_regra_previsao_categoria',
+    entidadeTipo: 'gkit_cadastros',
+    entidadeId: String(cadastro.id),
+    detalhe: { categoria: cadastro.nome, naoGerarAutomaticamente },
+  });
+
+  return { ok: true, cadastroId: String(cadastro.id), naoGerarAutomaticamente, resumo: await getCadastrosResumo() };
 }

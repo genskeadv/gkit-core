@@ -57,6 +57,11 @@ function isCommissionPaymentSource(row: { origem_tipo?: string | null; categoria
   return normalizeKey(row.origem_tipo) === 'comissao' || normalizeKey(row.categoria).includes('comiss') || normalizeKey(row.centro).includes('comiss');
 }
 
+function isAutomaticForecastBlocked(row: { categoria?: string | null }, blockedCategoryKeys: Set<string>): boolean {
+  const categoria = normalizeKey(row.categoria);
+  return Boolean(categoria && blockedCategoryKeys.has(categoria));
+}
+
 export function sanitizeCompetencia(value?: string | null): string {
   if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value.slice(0, 10);
   if (value && /^\d{4}-\d{2}$/.test(value)) return `${value}-01`;
@@ -392,8 +397,10 @@ async function seedPaymentForecast(supabase: NonNullable<ReturnType<typeof getSu
     .order('descricao', { ascending: true });
   if (error) throw new Error(`Erro ao consultar pagamentos do fechamento anterior: ${error.message}`);
 
+  const blockedCategoryKeys = await listAutomaticForecastBlockedCategories(supabase);
   const payload = (rows || [])
     .filter((row) => !isCommissionPaymentSource(row))
+    .filter((row) => !isAutomaticForecastBlocked(row, blockedCategoryKeys))
     .map((row, index) => ({
       competencia,
       descricao: String(row.descricao || ''),
@@ -417,6 +424,27 @@ async function seedPaymentForecast(supabase: NonNullable<ReturnType<typeof getSu
   const { error: insertError } = await supabase.from('gkit_flex_previsao_pagamentos').insert(fullPayload);
   if (insertError) throw new Error(`Erro ao gerar previsao de pagamentos: ${insertError.message}`);
   return fullPayload.length;
+}
+
+async function listAutomaticForecastBlockedCategories(supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>) {
+  const { data, error } = await supabase
+    .from('gkit_cadastros')
+    .select('nome, slug, metadata')
+    .eq('tipo', 'categoria')
+    .eq('status', 'ativo');
+  if (error) throw new Error(`Erro ao consultar regras de previsao das categorias: ${error.message}`);
+
+  const keys = new Set<string>();
+  for (const row of data || []) {
+    const metadata = (row.metadata || {}) as Record<string, unknown>;
+    const previsoes = (metadata.gkit_flex_previsoes || {}) as Record<string, unknown>;
+    if (!previsoes.nao_gerar_automaticamente) continue;
+    const nomeKey = normalizeKey(row.nome as string);
+    const slugKey = normalizeKey(String(row.slug || '').replace(/_/g, ' '));
+    if (nomeKey) keys.add(nomeKey);
+    if (slugKey) keys.add(slugKey);
+  }
+  return keys;
 }
 
 async function buildAutomaticPaymentForecast(
