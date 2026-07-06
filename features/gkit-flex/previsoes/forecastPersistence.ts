@@ -45,6 +45,18 @@ function roundMoney(value: number): number {
 const AUTOMATIC_COLLABORATOR_FORECAST = 'Automatico Flex - colaboradores';
 const AUTOMATIC_COMMISSION_FORECAST = 'Automatico Flex - comissoes';
 
+function normalizeKey(value?: string | null): string {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function isCommissionPaymentSource(row: { origem_tipo?: string | null; categoria?: string | null; centro?: string | null }): boolean {
+  return normalizeKey(row.origem_tipo) === 'comissao' || normalizeKey(row.categoria).includes('comiss') || normalizeKey(row.centro).includes('comiss');
+}
+
 export function sanitizeCompetencia(value?: string | null): string {
   if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value.slice(0, 10);
   if (value && /^\d{4}-\d{2}$/.test(value)) return `${value}-01`;
@@ -345,15 +357,23 @@ async function seedRevenueForecast(supabase: NonNullable<ReturnType<typeof getSu
 async function seedPaymentForecast(supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>, competencia: string, origemCompetencia: string, overwrite: boolean) {
   const existing = await supabase
     .from('gkit_flex_previsao_pagamentos')
-    .select('id')
+    .select('id, categoria, centro')
     .eq('competencia', competencia)
-    .limit(1);
+    .limit(5000);
   if (existing.error) throw new Error(`Erro ao consultar previsao de pagamentos: ${existing.error.message}`);
   if (existing.data?.length && !overwrite) return 0;
 
+  const preservedCommissionForecasts = (existing.data || []).filter((row) => isCommissionPaymentSource(row));
+
   if (overwrite) {
-    const { error: deleteError } = await supabase.from('gkit_flex_previsao_pagamentos').delete().eq('competencia', competencia);
-    if (deleteError) throw new Error(`Erro ao substituir previsao de pagamentos: ${deleteError.message}`);
+    const idsToDelete = (existing.data || [])
+      .filter((row) => !isCommissionPaymentSource(row))
+      .map((row) => row.id)
+      .filter(Boolean);
+    if (idsToDelete.length) {
+      const { error: deleteError } = await supabase.from('gkit_flex_previsao_pagamentos').delete().in('id', idsToDelete);
+      if (deleteError) throw new Error(`Erro ao substituir previsao de pagamentos: ${deleteError.message}`);
+    }
   }
 
   const { data: month, error: monthError } = await supabase
@@ -373,7 +393,7 @@ async function seedPaymentForecast(supabase: NonNullable<ReturnType<typeof getSu
   if (error) throw new Error(`Erro ao consultar pagamentos do fechamento anterior: ${error.message}`);
 
   const payload = (rows || [])
-    .filter((row) => row.origem_tipo !== 'comissao')
+    .filter((row) => !isCommissionPaymentSource(row))
     .map((row, index) => ({
       competencia,
       descricao: String(row.descricao || ''),
@@ -387,8 +407,11 @@ async function seedPaymentForecast(supabase: NonNullable<ReturnType<typeof getSu
       ordem: index,
     }));
 
-  const automaticPayload = await buildAutomaticPaymentForecast(supabase, competencia, payload.length);
-  const fullPayload = [...payload, ...automaticPayload];
+  const automaticPayload = await buildAutomaticPaymentForecast(supabase, competencia, origemCompetencia, payload.length);
+  const filteredAutomaticPayload = preservedCommissionForecasts.length
+    ? automaticPayload.filter((row) => !isCommissionPaymentSource(row))
+    : automaticPayload;
+  const fullPayload = [...payload, ...filteredAutomaticPayload];
 
   if (!fullPayload.length) return 0;
   const { error: insertError } = await supabase.from('gkit_flex_previsao_pagamentos').insert(fullPayload);
@@ -399,6 +422,7 @@ async function seedPaymentForecast(supabase: NonNullable<ReturnType<typeof getSu
 async function buildAutomaticPaymentForecast(
   supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
   competencia: string,
+  commissionCompetencia: string,
   initialOrder: number,
 ) {
   const colaboradoresData = await listGkitFlexColaboradores();
@@ -423,26 +447,26 @@ async function buildAutomaticPaymentForecast(
   const { data: latestExecution, error: executionError } = await supabase
     .from('comissao_execucoes')
     .select('id, total_comissao, created_at')
-    .eq('competencia', competencia)
+    .eq('competencia', commissionCompetencia)
     .eq('status', 'processado')
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (executionError) throw new Error(`Erro ao consultar comissao do mes: ${executionError.message}`);
+  if (executionError) throw new Error(`Erro ao consultar comissao do mes anterior: ${executionError.message}`);
 
   const commissionTotal = roundMoney(Number(latestExecution?.total_comissao || 0));
   const commissionRows = latestExecution?.id && commissionTotal > 0
     ? [{
         competencia,
-        descricao: 'Comissoes calculadas do mes',
+        descricao: 'Comissoes calculadas do mes anterior',
         vencimento_dia: 25,
         vencimento_texto: '25',
         valor_previsto: commissionTotal,
-        categoria: 'Comissoes',
+        categoria: 'Comiss\u00f5es',
         centro: 'Equipe',
-        origem_competencia: competencia,
+        origem_competencia: commissionCompetencia,
         origem_item_id: String(latestExecution.id),
-        observacao: `${AUTOMATIC_COMMISSION_FORECAST}. Fonte: ultima apuracao de receitas (${latestExecution.created_at || ''}).`,
+        observacao: `${AUTOMATIC_COMMISSION_FORECAST}. Fonte: apuracao de receitas da competencia anterior (${commissionCompetencia}, ${latestExecution.created_at || ''}).`,
         ordem: initialOrder + colaboradorRows.length,
       }]
     : [];
