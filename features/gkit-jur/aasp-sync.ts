@@ -7,6 +7,7 @@ type AaspSyncResult = {
   sucesso: number
   semResultado: number
   erro: number
+  finalizado: boolean
   tarefasGeradas: number
   movimentosRecebidos: number
   movimentosNovos: number
@@ -224,6 +225,7 @@ async function insertSyncLog(input: {
 export async function syncGkitJurAaspBatch(options: {
   data?: string
   diferencial?: boolean
+  shouldContinue?: () => boolean
 }): Promise<AaspSyncResult> {
   const startedAt = new Date().toISOString()
   let requestPayload: Record<string, any> = {}
@@ -264,20 +266,26 @@ export async function syncGkitJurAaspBatch(options: {
         totalMovimentacoesRecebidas: publications.length,
         totalResultados: publications.length,
       })
-      return { erro: 0, movimentosNovos: 0, movimentosRecebidos: publications.length, processos: 0, semResultado: 1, sucesso: 0, tarefasGeradas: 0 }
+      return { erro: 0, finalizado: true, movimentosNovos: 0, movimentosRecebidos: publications.length, processos: 0, semResultado: 1, sucesso: 0, tarefasGeradas: 0 }
     }
 
     const result: AaspSyncResult = {
       erro: 0,
+      finalizado: true,
       movimentosNovos: 0,
       movimentosRecebidos: publications.length,
-      processos: movimentosByProcess.size,
+      processos: 0,
       semResultado: 0,
       sucesso: 0,
       tarefasGeradas: 0,
     }
 
     for (const { processo, movimentos } of movimentosByProcess.values()) {
+      if (options.shouldContinue && !options.shouldContinue()) {
+        result.finalizado = false
+        break
+      }
+
       const hashes = movimentos.map((movimento) => text(movimento.hash_movimento)).filter(Boolean)
       const existingResult = hashes.length
         ? await admin().schema('gkit_jur').from('movimentacoes').select('hash_movimento').eq('processo_id', processo.id).in('hash_movimento', hashes)
@@ -315,6 +323,7 @@ export async function syncGkitJurAaspBatch(options: {
       })
 
       result.movimentosNovos += novos.length
+      result.processos += 1
       result.sucesso += 1
       result.tarefasGeradas += tarefasGeradas
     }
@@ -340,6 +349,6 @@ export async function syncGkitJurAaspBatch(options: {
       totalMovimentacoesRecebidas: 0,
       totalResultados: 0,
     })
-    return { erro: 1, movimentosNovos: 0, movimentosRecebidos: 0, processos: 0, semResultado: 0, sucesso: 0, tarefasGeradas: 0 }
+    return { erro: 1, finalizado: true, movimentosNovos: 0, movimentosRecebidos: 0, processos: 0, semResultado: 0, sucesso: 0, tarefasGeradas: 0 }
   }
 }

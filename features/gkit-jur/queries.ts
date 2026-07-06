@@ -55,6 +55,8 @@ const DEFAULT_PROCESS_STATUS = 'ativo'
 const OPEN_TASK_STATUSES = ['aberta', 'em_andamento', 'aguardando_terceiro']
 const GKIT_JUR_CRON_SCHEDULE = '0 6 * * *'
 const GKIT_JUR_CRON_TIMEZONE = 'America/Sao_Paulo'
+const GKIT_JUR_CRON_DEFAULT_DATAJUD_LIMIT = 8
+const GKIT_JUR_CRON_DEFAULT_TIME_BUDGET_MS = 240_000
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -1814,7 +1816,7 @@ export async function getGkitJurIntegracaoData(): Promise<GkitJurIntegracaoData>
   return {
     cron: {
       ativo: Boolean(process.env.CRON_SECRET),
-      batchLimit: envPositiveInt(process.env.GKIT_JUR_CRON_DATAJUD_LIMIT, 25, 25),
+      batchLimit: envPositiveInt(process.env.GKIT_JUR_CRON_DATAJUD_LIMIT, GKIT_JUR_CRON_DEFAULT_DATAJUD_LIMIT, 10),
       horarioLocal: '03:00',
       lastError: cronError,
       lastFinishedAt: cronFinishedAt,
@@ -1833,7 +1835,7 @@ export async function getGkitJurIntegracaoData(): Promise<GkitJurIntegracaoData>
       running: cronRunning,
       schedule: GKIT_JUR_CRON_SCHEDULE,
       status: cronStatus,
-      timeBudgetMs: envPositiveInt(process.env.GKIT_JUR_CRON_TIME_BUDGET_MS, 270_000, 290_000),
+      timeBudgetMs: envPositiveInt(process.env.GKIT_JUR_CRON_TIME_BUDGET_MS, GKIT_JUR_CRON_DEFAULT_TIME_BUDGET_MS, 260_000),
       timezone: GKIT_JUR_CRON_TIMEZONE,
     },
     metrics: {

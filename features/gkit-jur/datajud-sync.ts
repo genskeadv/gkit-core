@@ -19,9 +19,11 @@ type SyncOneResult = {
 
 type SyncBatchResult = {
   processos: number
+  selecionados: number
   sucesso: number
   semResultado: number
   erro: number
+  finalizado: boolean
   tarefasGeradas: number
   movimentosRecebidos: number
   movimentosNovos: number
@@ -673,6 +675,7 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
 
 export async function syncGkitJurDataJudBatch(options: {
   limit: number
+  shouldContinue?: () => boolean
   tribunal?: string
 }): Promise<SyncBatchResult> {
   const limit = Math.max(1, Math.min(options.limit, 25))
@@ -702,16 +705,24 @@ export async function syncGkitJurDataJudBatch(options: {
 
   const result: SyncBatchResult = {
     erro: 0,
+    finalizado: true,
     tarefasGeradas: 0,
     movimentosNovos: 0,
     movimentosRecebidos: 0,
-    processos: rows.length,
+    processos: 0,
+    selecionados: rows.length,
     semResultado: 0,
     sucesso: 0,
   }
 
   for (const row of rows) {
+    if (options.shouldContinue && !options.shouldContinue()) {
+      result.finalizado = false
+      break
+    }
+
     const sync = await syncOneProcess(row)
+    result.processos += 1
     if (sync.status === 'sucesso') result.sucesso += 1
     if (sync.status === 'sem_resultado') result.semResultado += 1
     if (sync.status === 'erro') result.erro += 1

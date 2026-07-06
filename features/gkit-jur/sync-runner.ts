@@ -26,21 +26,31 @@ export type GkitJurSyncRunOptions = {
   tribunal?: string
 }
 
+const DEFAULT_TIME_BUDGET_MS = 240_000
+const MAX_TIME_BUDGET_MS = 260_000
+const DATAJUD_NEXT_PROCESS_RESERVE_MS = 40_000
+const AASP_START_RESERVE_MS = 60_000
+const AASP_NEXT_PROCESS_RESERVE_MS = 30_000
+
 function positiveInt(value: unknown, fallback: number, max: number) {
   const parsed = Number.parseInt(String(value ?? ''), 10)
   if (!Number.isFinite(parsed) || parsed < 1) return fallback
   return Math.min(parsed, max)
 }
 
-function shouldContinue(startedAt: number, timeBudgetMs: number) {
-  return Date.now() - startedAt < timeBudgetMs
+function remainingBudgetMs(startedAt: number, timeBudgetMs: number) {
+  return timeBudgetMs - (Date.now() - startedAt)
+}
+
+function hasBudgetFor(startedAt: number, timeBudgetMs: number, reserveMs: number) {
+  return remainingBudgetMs(startedAt, timeBudgetMs) > reserveMs
 }
 
 export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promise<GkitJurSyncRunResult> {
   const provider = options.provider ?? 'redundante'
   const dataJudBatchLimit = positiveInt(options.dataJudBatchLimit, 25, 25)
   const maxDataJudBatches = positiveInt(options.maxDataJudBatches, 30, 100)
-  const timeBudgetMs = positiveInt(options.timeBudgetMs, 270_000, 290_000)
+  const timeBudgetMs = positiveInt(options.timeBudgetMs, DEFAULT_TIME_BUDGET_MS, MAX_TIME_BUDGET_MS)
   const startedAt = Date.now()
   const result: GkitJurSyncRunResult = {
     dataJudBatches: 0,
@@ -57,13 +67,14 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
 
   if (provider === 'datajud' || provider === 'redundante') {
     for (let batch = 0; batch < maxDataJudBatches; batch += 1) {
-      if (!shouldContinue(startedAt, timeBudgetMs)) {
+      if (!hasBudgetFor(startedAt, timeBudgetMs, DATAJUD_NEXT_PROCESS_RESERVE_MS)) {
         result.finalizado = false
         break
       }
 
       const dataJudResult = await syncGkitJurDataJudBatch({
         limit: dataJudBatchLimit,
+        shouldContinue: () => hasBudgetFor(startedAt, timeBudgetMs, DATAJUD_NEXT_PROCESS_RESERVE_MS),
         tribunal: options.tribunal,
       })
 
@@ -76,15 +87,26 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
       result.sucesso += dataJudResult.sucesso
       result.tarefasGeradas += dataJudResult.tarefasGeradas
 
-      if (dataJudResult.processos < dataJudBatchLimit) break
+      if (!dataJudResult.finalizado) {
+        result.finalizado = false
+        break
+      }
+
+      if (dataJudResult.selecionados < dataJudBatchLimit) break
       if (batch === maxDataJudBatches - 1) result.finalizado = false
     }
   }
 
-  if ((provider === 'aasp' || provider === 'redundante') && shouldContinue(startedAt, timeBudgetMs)) {
+  if (provider === 'aasp' || provider === 'redundante') {
+    if (!hasBudgetFor(startedAt, timeBudgetMs, AASP_START_RESERVE_MS)) {
+      result.finalizado = false
+      return result
+    }
+
     const aaspResult = await syncGkitJurAaspBatch({
       data: options.aaspData,
       diferencial: options.aaspDiferencial ?? true,
+      shouldContinue: () => hasBudgetFor(startedAt, timeBudgetMs, AASP_NEXT_PROCESS_RESERVE_MS),
     })
     result.erro += aaspResult.erro
     result.movimentosNovos += aaspResult.movimentosNovos
@@ -93,6 +115,7 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
     result.semResultado += aaspResult.semResultado
     result.sucesso += aaspResult.sucesso
     result.tarefasGeradas += aaspResult.tarefasGeradas
+    if (!aaspResult.finalizado) result.finalizado = false
   }
 
   return result
