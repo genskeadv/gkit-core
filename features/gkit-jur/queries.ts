@@ -97,7 +97,11 @@ function numberValue(value: unknown, fallback = 0) {
 
 function stringList(value: unknown) {
   return Array.isArray(value)
-    ? value.map((item) => text(item)).filter(Boolean)
+    ? value.map((item) => {
+      if (typeof item === 'string') return text(item)
+      const record = recordValue(item)
+      return text(record.label) || text(record.titulo) || text(record.motivo) || text(record.tipo)
+    }).filter(Boolean)
     : []
 }
 

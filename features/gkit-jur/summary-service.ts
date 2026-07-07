@@ -53,26 +53,50 @@ function readinessLevel(input: {
   return 'sem_base'
 }
 
+function readinessDescription(nivel: GkitJurNivelProntidao) {
+  if (nivel === 'pronto') return 'pronto para acompanhamento operacional'
+  if (nivel === 'parcial') return 'com base parcial para acompanhamento'
+  if (nivel === 'capa') return 'com capa identificada, mas ainda sem base historica suficiente'
+  if (nivel === 'desatualizado') return 'com base operacional desatualizada'
+  if (nivel === 'erro') return 'com erro de monitoramento que exige verificacao'
+  return 'sem base operacional suficiente'
+}
+
 function summaryText(input: {
+  carteiraId: string | null
   classe: string | null
+  clienteNome: string | null
   movementCount: number
   nivel: GkitJurNivelProntidao
   numeroCnj: string
   orgao: string | null
   relevanteCount: number
+  responsavelId: string | null
   tribunal: string | null
   ultimaMovimentacao: string | null
 }) {
+  const classe = input.classe ? ` de ${input.classe}` : ''
+  const tribunal = input.tribunal ? ` no ${input.tribunal}` : ''
+  const orgao = input.orgao ? `, em tramitacao no ${input.orgao}` : ''
+  const ultima = input.ultimaMovimentacao
+    ? `Ultimo marco considerado em ${dateLabel(input.ultimaMovimentacao) ?? input.ultimaMovimentacao}.`
+    : 'Ainda nao ha marco processual recente consolidado na base local.'
+  const base = input.movementCount
+    ? `A base local esta ${input.nivel === 'pronto' ? 'completa para operacao' : 'em formacao'}, com ${input.movementCount.toLocaleString('pt-BR')} movimentacao(oes) analisada(s) e ${input.relevanteCount.toLocaleString('pt-BR')} relevante(s).`
+    : 'Ainda nao ha movimentacoes locais suficientes para uma leitura operacional conclusiva.'
+  const ownership = [
+    input.clienteNome ? `Cliente: ${input.clienteNome}.` : 'Cliente ainda nao identificado.',
+    input.carteiraId ? 'Carteira operacional definida.' : 'Carteira operacional pendente.',
+    input.responsavelId ? 'Responsavel operacional definido.' : 'Ponto de atencao: ainda sem responsavel operacional definido.',
+  ]
+
   const parts = [
-    `Processo ${input.numeroCnj}${input.tribunal ? ` no ${input.tribunal}` : ''}.`,
-    input.classe ? `Classe: ${input.classe}.` : '',
-    input.orgao ? `Orgao julgador: ${input.orgao}.` : '',
-    input.ultimaMovimentacao ? `Ultima movimentacao considerada: ${dateLabel(input.ultimaMovimentacao) ?? input.ultimaMovimentacao}.` : '',
-    input.movementCount
-      ? `Base local com ${input.movementCount.toLocaleString('pt-BR')} movimentacao(oes), sendo ${input.relevanteCount.toLocaleString('pt-BR')} relevante(s).`
-      : 'Ainda sem movimentacoes locais suficientes para leitura operacional.',
-    `Nivel de prontidao: ${input.nivel}.`,
-  ].filter(Boolean)
+    `Processo ${input.numeroCnj}${classe}${tribunal}${orgao}.`,
+    ultima,
+    base,
+    `Nivel de prontidao: ${readinessDescription(input.nivel)}.`,
+    ...ownership,
+  ]
 
   return parts.join(' ')
 }
@@ -170,12 +194,15 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
     || latestMovements.map((item) => text(item.data)).find(Boolean)
     || null
   const resumoOperacional = summaryText({
+    carteiraId: text(processo.carteira_id) || null,
     classe: text(processo.classe_nome) || null,
+    clienteNome: text(processo.cliente_nome) || null,
     movementCount,
     nivel,
     numeroCnj: text(processo.numero_cnj, 'sem CNJ'),
     orgao: text(processo.orgao_julgador_nome) || null,
     relevanteCount: relevantCount,
+    responsavelId: text(processo.responsavel_id) || null,
     tribunal: text(processo.tribunal_sigla) || null,
     ultimaMovimentacao,
   })

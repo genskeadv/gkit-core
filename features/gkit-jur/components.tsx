@@ -186,6 +186,34 @@ function listOrFallback(items: string[], fallback: string) {
   return items.length ? items : [fallback]
 }
 
+function executiveProcessSummary(data: GkitJurProcessDetailData, relevantMovements: number) {
+  const { movimentacoes, processo, resumo } = data
+  const classe = processo.classeNome || resumo?.faseProcessual
+  const tribunal = processo.tribunalSigla
+  const orgao = processo.orgaoJulgadorNome
+  const latestDate = formatDate(resumo?.ultimaMovimentacaoConsideradaEm ?? processo.ultimaMovimentacaoEm)
+  const movementCount = resumo?.movimentacoesConsideradas ?? movimentacoes.length
+  const relevantCount = resumo?.movimentacoesRelevantes ?? relevantMovements
+  const readiness = readinessLabel(resumo?.nivelProntidao).toLowerCase()
+  const abertura = [
+    `Processo ${processo.numeroCnj}`,
+    tribunal ? `no ${tribunal}` : null,
+    classe ? `classe ${classe}` : null,
+    orgao ? `em tramitacao no ${orgao}` : null,
+  ].filter(Boolean).join(', ')
+  const base = resumo
+    ? `A base local esta ${readiness}, com ${movementCount.toLocaleString('pt-BR')} movimentacao(oes) analisada(s) e ${relevantCount.toLocaleString('pt-BR')} relevante(s).`
+    : 'Ainda nao existe resumo operacional salvo para este processo; a proxima sincronizacao deve consolidar capa, movimentacoes, tarefas e alertas.'
+  const latest = latestDate !== '-' ? `Ultimo marco considerado em ${latestDate}.` : 'Ainda sem marco processual recente consolidado.'
+  const ownership = [
+    processo.clienteNome ? `vinculado a ${processo.clienteNome}` : 'sem cliente vinculado',
+    processo.carteiraNome ? `na carteira ${processo.carteiraNome}` : 'sem carteira operacional',
+    processo.responsavelNome ? `sob responsabilidade de ${processo.responsavelNome}` : 'ainda sem responsavel operacional definido',
+  ].join(', ')
+
+  return `${abertura}. ${latest} ${base} Na operacao, esta ${ownership}.`
+}
+
 function ProcessStatusBadge({ status }: { status: string }) {
   const tone = status === 'ativo' || status === 'monitorando' ? 'ok' : status === 'erro' ? 'danger' : 'warn'
   return <span className={`status-badge ${tone}`}>{statusLabel(status)}</span>
@@ -1046,9 +1074,11 @@ function GkitJurProcessDashboard({
   const score = readinessScore(readiness)
   const relevantMovements = movimentacoes.filter((item) => item.relevante || item.geraAlerta).length
   const latestEvent = timeline[0]?.titulo ?? 'Sem evento recente registrado'
-  const summaryText = resumo?.resumoOperacional
-    ?? 'Resumo operacional ainda nao gerado. A proxima sincronizacao deve consolidar capa, movimentacoes, tarefas e alertas aqui.'
+  const summaryText = executiveProcessSummary(data, relevantMovements)
   const updatedAt = resumo?.geradoEm ?? resumo?.updatedAt ?? processo.updatedAt
+  const summaryStatus = resumo
+    ? `${readinessLabel(readiness)} | ${formatDateTime(updatedAt ?? null)}`
+    : 'Sem registro em processos_resumos'
 
   const cards = [
     { label: 'Tarefas abertas', value: tarefas.length.toLocaleString('pt-BR'), hint: tarefas[0]?.titulo ?? 'Sem tarefa aberta' },
@@ -1061,6 +1091,22 @@ function GkitJurProcessDashboard({
     <GkitJurSection className="gkit-jur-process-dashboard" title="Dashboard do processo" description="Visao operacional para decidir o proximo movimento sem garimpar a pagina inteira.">
       <GkitJurProcessTimelinePreview rows={timeline} />
 
+      <article className={`gkit-jur-process-summary-card ${resumo ? 'ready' : 'pending'}`}>
+        <div className="gkit-jur-process-summary-head">
+          <div>
+            <span>Resumo operacional</span>
+            <h3>{resumo?.faseProcessual || processo.titulo || 'Leitura executiva do processo'}</h3>
+          </div>
+          <span className={`suite-pill ${readinessTone(readiness)}`}>{summaryStatus}</span>
+        </div>
+        <p>{summaryText}</p>
+        <div className="gkit-jur-process-summary-meta">
+          <span>Fonte: <strong>{resumo?.fonteResumo || 'sincronizacao pendente'}</strong></span>
+          <span>Modelo: <strong>{resumo?.modeloVersao || '-'}</strong></span>
+          <span>Movimentacoes relevantes: <strong>{(resumo?.movimentacoesRelevantes ?? relevantMovements).toLocaleString('pt-BR')}</strong></span>
+        </div>
+      </article>
+
       <div className="gkit-jur-process-dashboard-main">
         <article className={`gkit-jur-process-readiness ${readinessTone(readiness)}`}>
           <div className="gkit-jur-readiness-ring" style={{ '--readiness': `${score}%` } as CSSProperties}>
@@ -1070,7 +1116,6 @@ function GkitJurProcessDashboard({
           <div>
             <span className={`suite-pill ${readinessTone(readiness)}`}>{readinessLabel(readiness)}</span>
             <h3>{processo.numeroCnj}</h3>
-            <p>{summaryText}</p>
             <small>
               {processo.clienteNome || 'Sem cliente'} | {processo.carteiraNome || 'Sem carteira'} | {processo.responsavelNome || 'Sem responsavel'}
             </small>
