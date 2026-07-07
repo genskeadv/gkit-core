@@ -12,8 +12,11 @@ export type GkitJurSyncProcessRow = {
 }
 
 type SyncOneResult = {
+  erroCodigo: string | null
+  httpStatus: number | null
   status: 'sucesso' | 'erro' | 'sem_resultado'
   tarefasGeradas: number
+  transient: boolean
   movimentosRecebidos: number
   movimentosNovos: number
 }
@@ -43,7 +46,8 @@ type MovementTaskRule = {
 }
 
 const DEFAULT_DATAJUD_BASE_URL = 'https://api-publica.datajud.cnj.jus.br'
-const DEFAULT_DATAJUD_REQUEST_TIMEOUT_MS = 45_000
+const DEFAULT_DATAJUD_REQUEST_TIMEOUT_MS = 22_000
+const MAX_DATAJUD_REQUEST_TIMEOUT_MS = 45_000
 const INTEGRATION_TASK_ORIGIN = 'integracao_movimentacao'
 const LEGACY_TASK_ORIGINS = ['datajud_movimentacao', 'aasp_movimentacao']
 const MOVEMENT_INSERT_CHUNK_SIZE = 25
@@ -70,6 +74,12 @@ function numberOrNull(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function positiveInt(value: unknown, fallback: number, max: number) {
+  const parsed = Number.parseInt(String(value ?? ''), 10)
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback
+  return Math.min(parsed, max)
+}
+
 function dateOrNull(value: unknown) {
   if (!value) return null
   const date = new Date(String(value))
@@ -86,10 +96,15 @@ function normalizeForMatch(value: unknown) {
 function dataJudConfig() {
   const baseUrl = text(process.env.DATAJUD_BASE_URL, DEFAULT_DATAJUD_BASE_URL).replace(/\/+$/, '')
   const apiKey = text(process.env.DATAJUD_API_KEY)
+  const requestTimeoutMs = positiveInt(
+    process.env.GKIT_JUR_DATAJUD_REQUEST_TIMEOUT_MS ?? process.env.DATAJUD_REQUEST_TIMEOUT_MS,
+    DEFAULT_DATAJUD_REQUEST_TIMEOUT_MS,
+    MAX_DATAJUD_REQUEST_TIMEOUT_MS,
+  )
   if (!apiKey) {
     throw new Error('DATAJUD_API_KEY não configurada no ambiente.')
   }
-  return { apiKey, baseUrl }
+  return { apiKey, baseUrl, requestTimeoutMs }
 }
 
 function dataJudSearchPayload(numeroCnjLimpo: string) {
@@ -108,7 +123,7 @@ function dataJudSearchPayload(numeroCnjLimpo: string) {
 }
 
 async function fetchDataJudProcess(row: GkitJurSyncProcessRow) {
-  const { apiKey, baseUrl } = dataJudConfig()
+  const { apiKey, baseUrl, requestTimeoutMs } = dataJudConfig()
   const requestPayload = dataJudSearchPayload(row.numero_cnj_limpo)
   const response = await fetch(`${baseUrl}/${row.tribunal_alias}/_search`, {
     body: JSON.stringify(requestPayload),
@@ -117,7 +132,7 @@ async function fetchDataJudProcess(row: GkitJurSyncProcessRow) {
       'Content-Type': 'application/json',
     },
     method: 'POST',
-    signal: AbortSignal.timeout(DEFAULT_DATAJUD_REQUEST_TIMEOUT_MS),
+    signal: AbortSignal.timeout(requestTimeoutMs),
   })
 
   const responseBody = await response.json().catch(() => null) as Record<string, any> | null
@@ -639,7 +654,7 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
         totalResultados,
       })
       await refreshSummaryBestEffort(row.id)
-      return { status: 'sem_resultado', tarefasGeradas: 0, movimentosRecebidos: 0, movimentosNovos: 0 }
+      return { erroCodigo: null, httpStatus: response.status, status: 'sem_resultado', tarefasGeradas: 0, transient: false, movimentosRecebidos: 0, movimentosNovos: 0 }
     }
 
     const source = hit._source ?? {}
@@ -679,7 +694,7 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
 
     await refreshSummaryBestEffort(row.id)
 
-    return { status: 'sucesso', tarefasGeradas, movimentosRecebidos: movimentos.length, movimentosNovos: novos.length }
+    return { erroCodigo: null, httpStatus: response.status, status: 'sucesso', tarefasGeradas, transient: false, movimentosRecebidos: movimentos.length, movimentosNovos: novos.length }
   } catch (error) {
     const finishedAt = new Date().toISOString()
     const message = error instanceof Error ? error.message : 'Erro desconhecido na consulta DataJud.'
@@ -694,8 +709,10 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
       updated_at: finishedAt,
     }).eq('id', row.id)
 
+    const erroCodigo = httpStatus ? `HTTP_${httpStatus}` : isTransient ? 'DATAJUD_TRANSIENT_ERROR' : 'DATAJUD_ERROR'
+
     await insertSyncLog({
-      erroCodigo: httpStatus ? `HTTP_${httpStatus}` : isTransient ? 'DATAJUD_TRANSIENT_ERROR' : 'DATAJUD_ERROR',
+      erroCodigo,
       erroMensagem: message,
       finishedAt,
       httpStatus,
@@ -712,17 +729,19 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
 
     await refreshSummaryBestEffort(row.id)
 
-    return { status: 'erro', tarefasGeradas: 0, movimentosRecebidos: 0, movimentosNovos: 0 }
+    return { erroCodigo, httpStatus, status: 'erro', tarefasGeradas: 0, transient: isTransient, movimentosRecebidos: 0, movimentosNovos: 0 }
   }
 }
 
 export async function syncGkitJurDataJudBatch(options: {
   limit: number
+  maxTransientErrors?: number
   processoId?: string
   shouldContinue?: () => boolean
   tribunal?: string
 }): Promise<SyncBatchResult> {
   const limit = Math.max(1, Math.min(options.limit, 25))
+  const maxTransientErrors = Math.max(1, Math.min(options.maxTransientErrors ?? 4, 10))
   let candidateResult = await admin()
     .schema('gkit_jur')
     .rpc('proximos_processos_sync', {
@@ -772,6 +791,9 @@ export async function syncGkitJurDataJudBatch(options: {
     sucesso: 0,
   }
 
+  let transientErrors = 0
+  let consecutiveTransientErrors = 0
+
   for (const row of rows) {
     if (options.shouldContinue && !options.shouldContinue()) {
       result.finalizado = false
@@ -783,9 +805,20 @@ export async function syncGkitJurDataJudBatch(options: {
     if (sync.status === 'sucesso') result.sucesso += 1
     if (sync.status === 'sem_resultado') result.semResultado += 1
     if (sync.status === 'erro') result.erro += 1
+    if (sync.transient) {
+      transientErrors += 1
+      consecutiveTransientErrors += 1
+    } else {
+      consecutiveTransientErrors = 0
+    }
     result.tarefasGeradas += sync.tarefasGeradas
     result.movimentosRecebidos += sync.movimentosRecebidos
     result.movimentosNovos += sync.movimentosNovos
+
+    if (transientErrors >= maxTransientErrors || consecutiveTransientErrors >= Math.min(2, maxTransientErrors)) {
+      result.finalizado = false
+      break
+    }
   }
 
   return result

@@ -10,7 +10,8 @@ export const maxDuration = 300
 const JOB_KEY = 'gkit_jur_nightly_sync'
 const CRON_SCHEDULE = '0 6 * * *'
 const LOCK_TTL_MS = 30 * 60 * 1000
-const DEFAULT_CRON_DATAJUD_LIMIT = 8
+const DEFAULT_CRON_DATAJUD_LIMIT = 4
+const DEFAULT_CRON_DATAJUD_MAX_TRANSIENT_ERRORS = 2
 const DEFAULT_CRON_TIME_BUDGET_MS = 240_000
 
 function admin() {
@@ -120,6 +121,7 @@ export async function GET(request: NextRequest) {
     const result = await runGkitJurSync({
       aaspDiferencial: true,
       dataJudBatchLimit: positiveInt(process.env.GKIT_JUR_CRON_DATAJUD_LIMIT, DEFAULT_CRON_DATAJUD_LIMIT, 10),
+      dataJudMaxTransientErrors: positiveInt(process.env.GKIT_JUR_CRON_DATAJUD_MAX_TRANSIENT_ERRORS, DEFAULT_CRON_DATAJUD_MAX_TRANSIENT_ERRORS, 10),
       maxDataJudBatches: positiveInt(process.env.GKIT_JUR_CRON_DATAJUD_BATCHES, 30, 100),
       provider: 'redundante',
       timeBudgetMs: positiveInt(process.env.GKIT_JUR_CRON_TIME_BUDGET_MS, DEFAULT_CRON_TIME_BUDGET_MS, 260_000),

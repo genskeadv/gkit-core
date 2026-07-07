@@ -20,6 +20,7 @@ export type GkitJurSyncRunOptions = {
   aaspData?: string
   aaspDiferencial?: boolean
   dataJudBatchLimit?: number
+  dataJudMaxTransientErrors?: number
   maxDataJudBatches?: number
   processoId?: string
   provider?: GkitJurSyncProvider
@@ -50,6 +51,7 @@ function hasBudgetFor(startedAt: number, timeBudgetMs: number, reserveMs: number
 export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promise<GkitJurSyncRunResult> {
   const provider = options.provider ?? 'redundante'
   const dataJudBatchLimit = positiveInt(options.dataJudBatchLimit, 25, 25)
+  const dataJudMaxTransientErrors = positiveInt(options.dataJudMaxTransientErrors, 4, 10)
   const maxDataJudBatches = positiveInt(options.maxDataJudBatches, 30, 100)
   const timeBudgetMs = positiveInt(options.timeBudgetMs, DEFAULT_TIME_BUDGET_MS, MAX_TIME_BUDGET_MS)
   const startedAt = Date.now()
@@ -75,6 +77,7 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
 
       const dataJudResult = await syncGkitJurDataJudBatch({
         limit: dataJudBatchLimit,
+        maxTransientErrors: dataJudMaxTransientErrors,
         processoId: options.processoId,
         shouldContinue: () => hasBudgetFor(startedAt, timeBudgetMs, DATAJUD_NEXT_PROCESS_RESERVE_MS),
         tribunal: options.tribunal,
