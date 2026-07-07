@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { generateTasksFromMovements, type GkitJurSyncProcessRow } from './datajud-sync'
+import {
+  applyMovementRetentionBestEffort,
+  fetchExistingMovementHashes,
+  generateTasksFromMovements,
+  type GkitJurSyncProcessRow,
+} from './datajud-sync'
 import { refreshGkitJurProcessSummary } from './summary-service'
 
 type AaspSyncResult = {
@@ -296,12 +301,7 @@ export async function syncGkitJurAaspBatch(options: {
       }
 
       const hashes = movimentos.map((movimento) => text(movimento.hash_movimento)).filter(Boolean)
-      const existingResult = hashes.length
-        ? await admin().schema('gkit_jur').from('movimentacoes').select('hash_movimento').eq('processo_id', processo.id).in('hash_movimento', hashes)
-        : { data: [], error: null }
-
-      if (existingResult.error) throw new Error(existingResult.error.message)
-      const existingHashes = new Set(((existingResult.data ?? []) as Array<Record<string, unknown>>).map((item) => text(item.hash_movimento)))
+      const existingHashes = hashes.length ? await fetchExistingMovementHashes(processo.id, hashes) : new Set<string>()
       const novos = movimentos.filter((movimento) => !existingHashes.has(text(movimento.hash_movimento)))
 
       if (novos.length) {
@@ -331,6 +331,7 @@ export async function syncGkitJurAaspBatch(options: {
         totalResultados: movimentos.length,
       })
 
+      await applyMovementRetentionBestEffort(processo.id)
       await refreshSummaryBestEffort(processo.id)
 
       result.movimentosNovos += novos.length

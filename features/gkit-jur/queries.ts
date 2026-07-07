@@ -60,6 +60,8 @@ const GKIT_JUR_CRON_SCHEDULE = '0 6 * * *'
 const GKIT_JUR_CRON_TIMEZONE = 'America/Sao_Paulo'
 const GKIT_JUR_CRON_DEFAULT_DATAJUD_LIMIT = 8
 const GKIT_JUR_CRON_DEFAULT_TIME_BUDGET_MS = 240_000
+const MOVEMENT_PROCESS_SCOPE_LIMIT = 5000
+const PROCESS_LIST_SELECT = 'id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento'
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -1471,19 +1473,42 @@ function matchesMovementFilters(row: GkitJurMovimentacao, processo: GkitJurProce
   return true
 }
 
+async function resolveMovementProcessScope(filters: GkitJurMovimentacaoFilters) {
+  if (!filters.carteiraId && !filters.responsavelId && !filters.tribunal) return null
+
+  let query = admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select(PROCESS_LIST_SELECT)
+    .eq('status', DEFAULT_PROCESS_STATUS)
+
+  if (filters.carteiraId) query = query.eq('carteira_id', filters.carteiraId)
+  if (filters.responsavelId) query = query.eq('responsavel_id', filters.responsavelId)
+  if (filters.tribunal) query = query.eq('tribunal_sigla', filters.tribunal)
+
+  const result = await query.limit(MOVEMENT_PROCESS_SCOPE_LIMIT)
+  if (result.error) throw new Error(result.error.message)
+  return (result.data ?? []) as Array<Record<string, unknown>>
+}
+
 export async function listGkitJurMovimentacoes(filters: GkitJurMovimentacaoFilters = buildGkitJurMovimentacaoFilters()): Promise<GkitJurMovimentacoesData> {
   const from = (filters.page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE
+  const scopedProcessRows = await resolveMovementProcessScope(filters)
+  const scopedProcessIds = scopedProcessRows
+    ? scopedProcessRows.map((row) => text(row.id)).filter(Boolean)
+    : null
 
   let movimentacoesQuery = admin()
     .schema('gkit_jur')
     .from('movimentacoes')
     .select('id,processo_id,nome,data_hora,origem,relevante,gera_alerta')
 
-  if (filters.origem) movimentacoesQuery = movimentacoesQuery.eq('origem', filters.origem)
-  if (filters.relevancia === 'relevante') movimentacoesQuery = movimentacoesQuery.eq('relevante', true)
-  if (filters.relevancia === 'alerta') movimentacoesQuery = movimentacoesQuery.eq('gera_alerta', true)
-  if (filters.relevancia === 'informativa') {
+  if (scopedProcessIds) movimentacoesQuery = scopedProcessIds.length ? movimentacoesQuery.in('processo_id', scopedProcessIds) : null
+  if (filters.origem && movimentacoesQuery) movimentacoesQuery = movimentacoesQuery.eq('origem', filters.origem)
+  if (filters.relevancia === 'relevante' && movimentacoesQuery) movimentacoesQuery = movimentacoesQuery.eq('relevante', true)
+  if (filters.relevancia === 'alerta' && movimentacoesQuery) movimentacoesQuery = movimentacoesQuery.eq('gera_alerta', true)
+  if (filters.relevancia === 'informativa' && movimentacoesQuery) {
     movimentacoesQuery = movimentacoesQuery.eq('relevante', false).eq('gera_alerta', false)
   }
 
@@ -1491,8 +1516,10 @@ export async function listGkitJurMovimentacoes(filters: GkitJurMovimentacaoFilte
     getGkitJurDashboardMetrics(),
     getFilterOptions(),
     movimentacoesQuery
-      .order('data_hora', { ascending: filters.dir === 'asc', nullsFirst: false })
-      .limit(1000),
+      ? movimentacoesQuery
+        .order('data_hora', { ascending: filters.dir === 'asc', nullsFirst: false })
+        .limit(1000)
+      : Promise.resolve({ data: [], error: null }),
     admin()
       .schema('gkit_jur')
       .from('movimentacoes')
@@ -1509,15 +1536,22 @@ export async function listGkitJurMovimentacoes(filters: GkitJurMovimentacaoFilte
   const rawProcessRows = new Map<string, Record<string, unknown>>()
 
   if (processoIds.length) {
-    const processosResult = await admin()
-      .schema('gkit_jur')
-      .from('processos')
-      .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento')
-      .eq('status', DEFAULT_PROCESS_STATUS)
-      .in('id', processoIds)
+    const scopedRowsById = new Map((scopedProcessRows ?? []).map((row) => [String(row.id), row]))
+    const missingProcessIds = scopedProcessRows ? processoIds.filter((id) => !scopedRowsById.has(id)) : processoIds
+    const loadedRows = scopedProcessRows
+      ? processoIds.map((id) => scopedRowsById.get(id)).filter(Boolean) as Array<Record<string, unknown>>
+      : []
+    const processosResult = missingProcessIds.length
+      ? await admin()
+        .schema('gkit_jur')
+        .from('processos')
+        .select(PROCESS_LIST_SELECT)
+        .eq('status', DEFAULT_PROCESS_STATUS)
+        .in('id', missingProcessIds)
+      : { data: [], error: null }
 
     if (processosResult.error) throw new Error(processosResult.error.message)
-    const rows = (processosResult.data ?? []) as Array<Record<string, unknown>>
+    const rows = [...loadedRows, ...((processosResult.data ?? []) as Array<Record<string, unknown>>)]
     const maps = await lookupMaps(rows)
     rows.forEach((row) => {
       rawProcessRows.set(String(row.id), row)

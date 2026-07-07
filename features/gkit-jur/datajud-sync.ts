@@ -52,6 +52,8 @@ const INTEGRATION_TASK_ORIGIN = 'integracao_movimentacao'
 const LEGACY_TASK_ORIGINS = ['datajud_movimentacao', 'aasp_movimentacao']
 const MOVEMENT_INSERT_CHUNK_SIZE = 25
 const MOVEMENT_LOOKUP_CHUNK_SIZE = 25
+const MOVEMENT_RETENTION_KEEP_RECENT = Number(process.env.GKIT_JUR_MOVEMENT_RETENTION_KEEP_RECENT ?? '30')
+const MOVEMENT_RETENTION_BATCH_SIZE = Number(process.env.GKIT_JUR_MOVEMENT_RETENTION_BATCH_SIZE ?? '1000')
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -228,25 +230,55 @@ async function insertMovimentacoesInChunks(movimentos: Array<Record<string, any>
   }
 }
 
-async function fetchExistingMovementHashes(processoId: string, hashes: string[]) {
+export async function fetchExistingMovementHashes(processoId: string, hashes: string[]) {
   const existingHashes = new Set<string>()
 
   for (let from = 0; from < hashes.length; from += MOVEMENT_LOOKUP_CHUNK_SIZE) {
-    const existingResult = await admin()
-      .schema('gkit_jur')
-      .from('movimentacoes')
-      .select('hash_movimento')
-      .eq('processo_id', processoId)
-      .in('hash_movimento', hashes.slice(from, from + MOVEMENT_LOOKUP_CHUNK_SIZE))
+    const chunk = hashes.slice(from, from + MOVEMENT_LOOKUP_CHUNK_SIZE)
+    const [activeResult, archivedResult] = await Promise.all([
+      admin()
+        .schema('gkit_jur')
+        .from('movimentacoes')
+        .select('hash_movimento')
+        .eq('processo_id', processoId)
+        .in('hash_movimento', chunk),
+      admin()
+        .schema('gkit_jur')
+        .from('movimentacoes_arquivo')
+        .select('hash_movimento')
+        .eq('processo_id', processoId)
+        .in('hash_movimento', chunk),
+    ])
 
-    if (existingResult.error) throw new Error(existingResult.error.message)
+    if (activeResult.error) throw new Error(activeResult.error.message)
+    if (archivedResult.error) throw new Error(archivedResult.error.message)
 
-    for (const item of (existingResult.data ?? []) as Array<Record<string, unknown>>) {
+    for (const item of (activeResult.data ?? []) as Array<Record<string, unknown>>) {
+      existingHashes.add(text(item.hash_movimento))
+    }
+    for (const item of (archivedResult.data ?? []) as Array<Record<string, unknown>>) {
       existingHashes.add(text(item.hash_movimento))
     }
   }
 
   return existingHashes
+}
+
+export async function applyMovementRetentionBestEffort(processoId: string) {
+  if (!Number.isFinite(MOVEMENT_RETENTION_KEEP_RECENT) || MOVEMENT_RETENTION_KEEP_RECENT < 1) return
+
+  try {
+    await admin()
+      .schema('gkit_jur')
+      .rpc('aplicar_retencao_movimentacoes', {
+        p_batch_size: Number.isFinite(MOVEMENT_RETENTION_BATCH_SIZE) ? MOVEMENT_RETENTION_BATCH_SIZE : 1000,
+        p_dry_run: false,
+        p_keep_recent: MOVEMENT_RETENTION_KEEP_RECENT,
+        p_processo_id: processoId,
+      })
+  } catch {
+    // A retencao nao deve invalidar a sincronizacao do processo.
+  }
 }
 
 function renderTemplate(template: string, input: { movimento: string; numeroCnj: string }) {
@@ -653,6 +685,7 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
         totalMovimentacoesRecebidas: 0,
         totalResultados,
       })
+      await applyMovementRetentionBestEffort(row.id)
       await refreshSummaryBestEffort(row.id)
       return { erroCodigo: null, httpStatus: response.status, status: 'sem_resultado', tarefasGeradas: 0, transient: false, movimentosRecebidos: 0, movimentosNovos: 0 }
     }
@@ -692,6 +725,7 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
       totalResultados,
     })
 
+    await applyMovementRetentionBestEffort(row.id)
     await refreshSummaryBestEffort(row.id)
 
     return { erroCodigo: null, httpStatus: response.status, status: 'sucesso', tarefasGeradas, transient: false, movimentosRecebidos: movimentos.length, movimentosNovos: novos.length }
