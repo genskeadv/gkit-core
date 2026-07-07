@@ -118,7 +118,6 @@ function fallbackResumoInteligente(input: {
     doQueSeTrata,
     faseAtual,
     leituraExecutiva: [
-      doQueSeTrata,
       `A leitura automatica indica ${faseAtual}.`,
       ultimosMarcos.length ? `Principais marcos: ${listLabel(ultimosMarcos)}.` : 'Ainda nao ha marcos suficientes na base local.',
       proximasAcoes.length ? `Proxima acao sugerida: ${proximasAcoes[0]}.` : null,

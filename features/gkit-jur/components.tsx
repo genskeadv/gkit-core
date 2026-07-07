@@ -131,6 +131,40 @@ export function GkitJurSection({
   )
 }
 
+function GkitJurCollapsibleSection({
+  children,
+  className,
+  defaultOpen = true,
+  description,
+  id,
+  title,
+}: {
+  children: ReactNode
+  className?: string
+  defaultOpen?: boolean
+  description?: string
+  id?: string
+  title: string
+}) {
+  return (
+    <details className={className ? `suite-panel gkit-jur-collapsible ${className}` : 'suite-panel gkit-jur-collapsible'} id={id} open={defaultOpen}>
+      <summary className="suite-panel-heading gkit-jur-collapsible-summary">
+        <div>
+          <h2>{title}</h2>
+          {description ? <p>{description}</p> : null}
+        </div>
+        <span className="button secondary gkit-jur-collapsible-toggle">
+          <span className="when-open">Recolher</span>
+          <span className="when-closed">Expandir</span>
+        </span>
+      </summary>
+      <div className="gkit-jur-collapsible-body">
+        {children}
+      </div>
+    </details>
+  )
+}
+
 function formatDate(value: string | null) {
   if (!value) return '-'
   return new Date(value).toLocaleDateString('pt-BR')
@@ -1064,9 +1098,24 @@ function GkitJurProcessSignalList({
   )
 }
 
+function withoutRepeatedSmartContext(summary: string, context?: string | null) {
+  const cleanSummary = summary.trim()
+  const cleanContext = String(context ?? '').trim()
+  if (!cleanSummary || !cleanContext || !cleanSummary.startsWith(cleanContext)) return summary
+
+  const deduped = cleanSummary
+    .slice(cleanContext.length)
+    .replace(/^[\s.,:;-]+/, '')
+    .trim()
+
+  return deduped || summary
+}
+
 function GkitJurProcessDashboard({
+  canWrite,
   data,
 }: {
+  canWrite: boolean
   data: GkitJurProcessDetailData
 }) {
   const { documentos, movimentacoes, processo, resumo, tarefas, timeline } = data
@@ -1075,7 +1124,10 @@ function GkitJurProcessDashboard({
   const score = readinessScore(readiness)
   const relevantMovements = movimentacoes.filter((item) => item.relevante || item.geraAlerta).length
   const latestEvent = timeline[0]?.titulo ?? 'Sem evento recente registrado'
-  const summaryText = smartSummary?.leituraExecutiva || executiveProcessSummary(data, relevantMovements)
+  const summaryText = withoutRepeatedSmartContext(
+    smartSummary?.leituraExecutiva || executiveProcessSummary(data, relevantMovements),
+    smartSummary?.doQueSeTrata,
+  )
   const updatedAt = resumo?.geradoEm ?? resumo?.updatedAt ?? processo.updatedAt
   const summaryStatus = resumo
     ? `${readinessLabel(readiness)} | ${formatDateTime(updatedAt ?? null)}`
@@ -1094,7 +1146,17 @@ function GkitJurProcessDashboard({
   ]
 
   return (
-    <GkitJurSection className="gkit-jur-process-dashboard" title="Dashboard do processo" description="Visao operacional para decidir o proximo movimento sem garimpar a pagina inteira.">
+    <GkitJurSection
+      action={canWrite ? (
+        <div className="gkit-jur-process-dashboard-actions">
+          <a className="button primary-button" href="#tarefas">Criar tarefa</a>
+          <a className="button secondary" href="#ajustes-operacionais">Ajustes operacionais</a>
+        </div>
+      ) : null}
+      className="gkit-jur-process-dashboard"
+      title="Dashboard do processo"
+      description="Visao operacional para decidir o proximo movimento sem garimpar a pagina inteira."
+    >
       <GkitJurProcessTimelinePreview rows={timeline} />
 
       <article className={`gkit-jur-process-summary-card ${resumo ? 'ready' : 'pending'}`}>
@@ -1214,7 +1276,7 @@ export function GkitJurProcessDetailPage({
 
   return (
     <>
-      <GkitJurProcessDashboard data={data} />
+      <GkitJurProcessDashboard canWrite={canWrite} data={data} />
       {statusSuggestion ? (
         <GkitJurSection title="Sugestão operacional" description="Movimentação encontrada pela integração indica possível encerramento.">
           <div className="suite-alert warning gkit-jur-status-suggestion">
@@ -1242,7 +1304,11 @@ export function GkitJurProcessDetailPage({
         </GkitJurSection>
       ) : null}
 
-      <GkitJurSection title="Ajustes operacionais" description="Corrija os vínculos usados por inbox, filtros e futuras rotinas.">
+      <GkitJurCollapsibleSection
+        id="ajustes-operacionais"
+        title="Ajustes operacionais"
+        description="Corrija os vinculos usados por inbox, filtros e futuras rotinas."
+      >
         <form action={action} className="card module-form module-form-grid gkit-jur-process-form">
           <input name="id" type="hidden" value={processo.id} />
 
@@ -1292,12 +1358,12 @@ export function GkitJurProcessDetailPage({
             {processo.urlProcesso ? <Link className="button secondary" href={processo.urlProcesso}>Abrir origem</Link> : null}
           </div>
         </form>
-      </GkitJurSection>
+      </GkitJurCollapsibleSection>
 
-      <GkitJurSection
+      <GkitJurCollapsibleSection
         className="gkit-jur-task-panel"
         title="Tarefas do processo"
-        description="Providências manuais agora; depois a integração passa a criar tarefas nesta mesma fila."
+        description="Providencias manuais agora; depois a integracao passa a criar tarefas nesta mesma fila."
         id="tarefas"
       >
         {canWrite ? (
@@ -1352,7 +1418,7 @@ export function GkitJurProcessDetailPage({
         ) : (
           <div className="suite-empty-block success">Nenhuma tarefa aberta para este processo.</div>
         )}
-      </GkitJurSection>
+      </GkitJurCollapsibleSection>
 
       <GkitJurSection
         className="gkit-jur-timeline-panel"

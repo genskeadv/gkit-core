@@ -5461,7 +5461,59 @@ tbody tr:hover {
 }
 
 .gkit-jur-process-dashboard > .suite-panel-heading {
+  align-items: center;
   margin-bottom: 14px;
+}
+
+.gkit-jur-process-dashboard-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.gkit-jur-process-dashboard-actions .button {
+  min-height: 38px;
+}
+
+.gkit-jur-collapsible {
+  scroll-margin-top: 16px;
+}
+
+.gkit-jur-collapsible-summary {
+  cursor: pointer;
+  list-style: none;
+  margin-bottom: 0;
+  user-select: none;
+}
+
+.gkit-jur-collapsible-summary::-webkit-details-marker {
+  display: none;
+}
+
+.gkit-jur-collapsible-toggle {
+  pointer-events: none;
+}
+
+.gkit-jur-collapsible .when-closed {
+  display: none;
+}
+
+.gkit-jur-collapsible:not([open]) .when-open {
+  display: none;
+}
+
+.gkit-jur-collapsible:not([open]) .when-closed {
+  display: inline;
+}
+
+.gkit-jur-collapsible-body {
+  margin-top: 14px;
+}
+
+.gkit-jur-collapsible:not([open]) {
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .gkit-jur-process-timeline-preview {
@@ -5943,17 +5995,22 @@ tbody tr:hover {
 @media (max-width: 720px) {
   .gkit-jur-process-timeline-head,
   .gkit-jur-process-summary-head,
-  .gkit-jur-process-readiness {
+  .gkit-jur-process-readiness,
+  .gkit-jur-collapsible-summary {
     align-items: stretch;
     grid-template-columns: 1fr;
   }
 
   .gkit-jur-process-timeline-head,
-  .gkit-jur-process-summary-head {
+  .gkit-jur-process-summary-head,
+  .gkit-jur-process-dashboard-actions {
     flex-direction: column;
   }
 
-  .gkit-jur-process-timeline-head .button {
+  .gkit-jur-process-timeline-head .button,
+  .gkit-jur-process-dashboard-actions,
+  .gkit-jur-process-dashboard-actions .button,
+  .gkit-jur-collapsible-toggle {
     justify-content: center;
     width: 100%;
   }
