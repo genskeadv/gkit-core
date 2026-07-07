@@ -163,6 +163,28 @@ export type GkitJurProcessDetail = GkitJurProcessListItem & {
   updatedAt: string | null;
 };
 
+export type GkitJurProcessSummary = {
+  baseSincronizacaoEm: string | null;
+  criterioProntidao: Record<string, unknown>;
+  erroMensagem: string | null;
+  faseProcessual: string | null;
+  fonteResumo: string | null;
+  geradoEm: string | null;
+  metadata: Record<string, unknown>;
+  modeloVersao: string | null;
+  movimentacoesConsideradas: number;
+  movimentacoesRelevantes: number;
+  nivelProntidao: GkitJurNivelProntidao;
+  pendenciasIdentificadas: string[];
+  proximasAcoesSugeridas: string[];
+  resumoOperacional: string | null;
+  riscosAlertas: string[];
+  statusResumo: string;
+  ultimaMovimentacaoConsideradaEm: string | null;
+  ultimosEventosRelevantes: string[];
+  updatedAt: string | null;
+};
+
 export type GkitJurMovimentacao = {
   id: string;
   processoId: string;
@@ -254,6 +276,7 @@ export type GkitJurProcessDetailData = {
   formData: GkitJurFormData;
   movimentacoes: GkitJurMovimentacao[];
   processo: GkitJurProcessDetail;
+  resumo: GkitJurProcessSummary | null;
   statusSuggestion: GkitJurProcessStatusSuggestion | null;
   tarefas: GkitJurTarefa[];
   timeline: GkitJurTimelineItem[];

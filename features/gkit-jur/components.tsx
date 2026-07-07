@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { ModuleShell, type ModuleNavGroup } from '@/features/shared/module-shell'
 import type { PlatformUsuario } from '@/lib/auth/platform'
 import {
@@ -155,6 +155,35 @@ function formatDateTimeLocal(value: string | null) {
 
 function statusLabel(value: string) {
   return value.replace(/_/g, ' ')
+}
+
+function readinessLabel(value: string | null | undefined) {
+  if (value === 'pronto') return 'Pronto'
+  if (value === 'parcial') return 'Parcial'
+  if (value === 'capa') return 'So com capa'
+  if (value === 'desatualizado') return 'Desatualizado'
+  if (value === 'erro') return 'Com erro'
+  return 'Sem base'
+}
+
+function readinessTone(value: string | null | undefined) {
+  if (value === 'pronto') return 'success'
+  if (value === 'parcial' || value === 'capa' || value === 'desatualizado') return 'warning'
+  if (value === 'erro') return 'danger'
+  return 'muted'
+}
+
+function readinessScore(value: string | null | undefined) {
+  if (value === 'pronto') return 100
+  if (value === 'parcial') return 68
+  if (value === 'desatualizado') return 48
+  if (value === 'capa') return 34
+  if (value === 'erro') return 12
+  return 0
+}
+
+function listOrFallback(items: string[], fallback: string) {
+  return items.length ? items : [fallback]
 }
 
 function ProcessStatusBadge({ status }: { status: string }) {
@@ -953,6 +982,147 @@ function GkitJurDocumentoList({
   )
 }
 
+function GkitJurProcessTimelinePreview({ rows }: { rows: GkitJurTimelineItem[] }) {
+  const previewRows = rows.slice(0, 7)
+  return (
+    <div className="gkit-jur-process-timeline-preview">
+      <div className="gkit-jur-process-timeline-head">
+        <div>
+          <span>Linha do tempo</span>
+          <strong>Ultimos acontecimentos</strong>
+        </div>
+        <Link className="button secondary" href="#timeline">Ver completa</Link>
+      </div>
+      {previewRows.length ? (
+        <div className="gkit-jur-process-timeline-rail" role="list">
+          {previewRows.map((row, index) => (
+            <article className={`gkit-jur-process-timeline-node ${priorityTone(row.prioridade)} ${row.tipo}`} key={row.id} role="listitem">
+              <span>{index + 1}</span>
+              <div>
+                <small>{formatDate(row.dataReferencia)} | {statusLabel(row.tipo)}</small>
+                <strong>{row.titulo}</strong>
+                {row.descricao ? <p>{row.descricao}</p> : null}
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="suite-empty-block compact">Sem eventos registrados para montar a linha do tempo.</div>
+      )}
+    </div>
+  )
+}
+
+function GkitJurProcessSignalList({
+  fallback,
+  items,
+  title,
+  tone,
+}: {
+  fallback: string
+  items: string[]
+  title: string
+  tone: 'danger' | 'primary' | 'success' | 'warning'
+}) {
+  return (
+    <article className={`gkit-jur-process-signal ${tone}`}>
+      <span>{title}</span>
+      <ul>
+        {listOrFallback(items, fallback).slice(0, 4).map((item, index) => (
+          <li key={`${title}-${index}-${item}`}>{item}</li>
+        ))}
+      </ul>
+    </article>
+  )
+}
+
+function GkitJurProcessDashboard({
+  data,
+}: {
+  data: GkitJurProcessDetailData
+}) {
+  const { documentos, movimentacoes, processo, resumo, tarefas, timeline } = data
+  const readiness = resumo?.nivelProntidao ?? null
+  const score = readinessScore(readiness)
+  const relevantMovements = movimentacoes.filter((item) => item.relevante || item.geraAlerta).length
+  const latestEvent = timeline[0]?.titulo ?? 'Sem evento recente registrado'
+  const summaryText = resumo?.resumoOperacional
+    ?? 'Resumo operacional ainda nao gerado. A proxima sincronizacao deve consolidar capa, movimentacoes, tarefas e alertas aqui.'
+  const updatedAt = resumo?.geradoEm ?? resumo?.updatedAt ?? processo.updatedAt
+
+  const cards = [
+    { label: 'Tarefas abertas', value: tarefas.length.toLocaleString('pt-BR'), hint: tarefas[0]?.titulo ?? 'Sem tarefa aberta' },
+    { label: 'Movimentacoes', value: movimentacoes.length.toLocaleString('pt-BR'), hint: `${relevantMovements.toLocaleString('pt-BR')} relevante(s) ou alerta(s)` },
+    { label: 'Documentos', value: documentos.length.toLocaleString('pt-BR'), hint: documentos[0]?.titulo ?? 'Nenhum documento ativo' },
+    { label: 'Ultimo marco', value: formatDate(timeline[0]?.dataReferencia ?? processo.ultimaMovimentacaoEm), hint: latestEvent },
+  ]
+
+  return (
+    <GkitJurSection className="gkit-jur-process-dashboard" title="Dashboard do processo" description="Visao operacional para decidir o proximo movimento sem garimpar a pagina inteira.">
+      <GkitJurProcessTimelinePreview rows={timeline} />
+
+      <div className="gkit-jur-process-dashboard-main">
+        <article className={`gkit-jur-process-readiness ${readinessTone(readiness)}`}>
+          <div className="gkit-jur-readiness-ring" style={{ '--readiness': `${score}%` } as CSSProperties}>
+            <strong>{score}%</strong>
+            <span>prontidao</span>
+          </div>
+          <div>
+            <span className={`suite-pill ${readinessTone(readiness)}`}>{readinessLabel(readiness)}</span>
+            <h3>{processo.numeroCnj}</h3>
+            <p>{summaryText}</p>
+            <small>
+              {processo.clienteNome || 'Sem cliente'} | {processo.carteiraNome || 'Sem carteira'} | {processo.responsavelNome || 'Sem responsavel'}
+            </small>
+          </div>
+        </article>
+
+        <div className="gkit-jur-process-stat-grid">
+          {cards.map((card) => (
+            <article key={card.label}>
+              <span>{card.label}</span>
+              <strong>{card.value}</strong>
+              <small>{card.hint}</small>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <div className="gkit-jur-process-signals">
+        <GkitJurProcessSignalList
+          fallback={resumo ? 'Nenhuma pendencia operacional destacada.' : 'Resumo ainda pendente de geracao.'}
+          items={resumo?.pendenciasIdentificadas ?? []}
+          title="Pendencias"
+          tone="warning"
+        />
+        <GkitJurProcessSignalList
+          fallback="Nenhum risco critico destacado no resumo atual."
+          items={resumo?.riscosAlertas ?? []}
+          title="Riscos e alertas"
+          tone="danger"
+        />
+        <GkitJurProcessSignalList
+          fallback="Sem proxima acao sugerida pelo resumo."
+          items={resumo?.proximasAcoesSugeridas ?? []}
+          title="Proximas acoes"
+          tone="success"
+        />
+      </div>
+
+      <div className="gkit-jur-process-facts">
+        <span>Status: <strong>{optionLabel(gkitJurStatusOptions, processo.status)}</strong></span>
+        <span>Monitoramento: <strong>{optionLabel(gkitJurMonitoramentoOptions, processo.statusMonitoramento)}</strong></span>
+        <span>Tribunal: <strong>{processo.tribunalSigla || '-'}</strong></span>
+        <span>Classe: <strong>{processo.classeNome || resumo?.faseProcessual || '-'}</strong></span>
+        <span>Orgao: <strong>{processo.orgaoJulgadorNome || '-'}</strong></span>
+        <span>Sincronizacao: <strong>{formatDateTime(processo.ultimaSincronizacaoEm ?? resumo?.baseSincronizacaoEm ?? null)}</strong></span>
+        <span>Resumo: <strong>{formatDateTime(updatedAt ?? null)}</strong></span>
+        <span>Eventos considerados: <strong>{(resumo?.movimentacoesConsideradas ?? movimentacoes.length).toLocaleString('pt-BR')}</strong></span>
+      </div>
+    </GkitJurSection>
+  )
+}
+
 export function GkitJurProcessDetailPage({
   action,
   canWrite,
@@ -984,35 +1154,7 @@ export function GkitJurProcessDetailPage({
 
   return (
     <>
-      <GkitJurSection title="Resumo do processo" description="Dados principais vindos da importação e dos vínculos operacionais.">
-        <div className="gkit-jur-detail-grid">
-          <article>
-            <span>CNJ</span>
-            <strong>{processo.numeroCnj}</strong>
-          </article>
-          <article>
-            <span>Cliente</span>
-            <strong>{processo.clienteNome || 'Não vinculado'}</strong>
-          </article>
-          <article>
-            <span>Carteira</span>
-            <strong>{processo.carteiraNome || 'Não definida'}</strong>
-          </article>
-          <article>
-            <span>Responsável</span>
-            <strong>{processo.responsavelNome || 'Não definido'}</strong>
-          </article>
-          <article>
-            <span>Tribunal</span>
-            <strong>{processo.tribunalSigla || '-'}</strong>
-          </article>
-          <article>
-            <span>Última movimentação</span>
-            <strong>{formatDate(processo.ultimaMovimentacaoEm)}</strong>
-          </article>
-        </div>
-      </GkitJurSection>
-
+      <GkitJurProcessDashboard data={data} />
       {statusSuggestion ? (
         <GkitJurSection title="Sugestão operacional" description="Movimentação encontrada pela integração indica possível encerramento.">
           <div className="suite-alert warning gkit-jur-status-suggestion">

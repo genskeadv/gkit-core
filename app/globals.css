@@ -5456,6 +5456,417 @@ tbody tr:hover {
   overflow-wrap: anywhere;
 }
 
+.gkit-jur-process-dashboard {
+  overflow: hidden;
+}
+
+.gkit-jur-process-dashboard > .suite-panel-heading {
+  margin-bottom: 14px;
+}
+
+.gkit-jur-process-timeline-preview {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(26, 54, 93, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--suite-module-card-radius, 8px);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
+  color: #fff;
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 14px;
+}
+
+.gkit-jur-process-timeline-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.gkit-jur-process-timeline-head div {
+  display: grid;
+  gap: 3px;
+}
+
+.gkit-jur-process-timeline-head span,
+.gkit-jur-process-timeline-node small {
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.gkit-jur-process-timeline-head strong {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.1;
+}
+
+.gkit-jur-process-timeline-head .button {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.26);
+  color: #fff;
+}
+
+.gkit-jur-process-timeline-rail {
+  display: grid;
+  gap: 10px;
+  grid-auto-columns: minmax(220px, 1fr);
+  grid-auto-flow: column;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scrollbar-width: thin;
+}
+
+.gkit-jur-process-timeline-node {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  min-height: 146px;
+  padding: 12px;
+  position: relative;
+}
+
+.gkit-jur-process-timeline-node::after {
+  background: rgba(255, 255, 255, 0.22);
+  content: "";
+  height: 2px;
+  left: 42px;
+  position: absolute;
+  right: -12px;
+  top: 27px;
+}
+
+.gkit-jur-process-timeline-node:last-child::after {
+  display: none;
+}
+
+.gkit-jur-process-timeline-node > span {
+  align-items: center;
+  background: #38bdf8;
+  border-radius: 999px;
+  color: #082f49;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  height: 30px;
+  justify-content: center;
+  position: relative;
+  width: 30px;
+  z-index: 1;
+}
+
+.gkit-jur-process-timeline-node.warning > span {
+  background: #fbbf24;
+  color: #422006;
+}
+
+.gkit-jur-process-timeline-node.danger > span {
+  background: #fb7185;
+  color: #4c0519;
+}
+
+.gkit-jur-process-timeline-node.success > span {
+  background: #34d399;
+  color: #052e16;
+}
+
+.gkit-jur-process-timeline-node div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.gkit-jur-process-timeline-node strong,
+.gkit-jur-process-timeline-node p {
+  display: -webkit-box;
+  letter-spacing: 0;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+}
+
+.gkit-jur-process-timeline-node strong {
+  -webkit-line-clamp: 3;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.gkit-jur-process-timeline-node p {
+  -webkit-line-clamp: 2;
+  color: rgba(226, 232, 240, 0.8);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.gkit-jur-process-dashboard-main {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.9fr);
+}
+
+.gkit-jur-process-readiness {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 124px minmax(0, 1fr);
+  min-height: 220px;
+  padding: 18px;
+}
+
+.gkit-jur-process-readiness h3,
+.gkit-jur-process-readiness p,
+.gkit-jur-process-readiness small {
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.gkit-jur-process-readiness h3 {
+  color: var(--new-ink);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 10px;
+  overflow-wrap: anywhere;
+}
+
+.gkit-jur-process-readiness p {
+  color: var(--new-ink);
+  font-size: 14px;
+  line-height: 1.55;
+  margin-top: 10px;
+}
+
+.gkit-jur-process-readiness small {
+  color: var(--new-muted);
+  display: block;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 10px;
+}
+
+.gkit-jur-readiness-ring {
+  --readiness: 0%;
+  align-items: center;
+  aspect-ratio: 1;
+  background:
+    radial-gradient(circle at center, #fff 0 57%, transparent 58%),
+    conic-gradient(#16a34a var(--readiness), rgba(148, 163, 184, 0.28) 0);
+  border-radius: 999px;
+  display: grid;
+  justify-items: center;
+  padding: 24px;
+}
+
+.gkit-jur-process-readiness.warning .gkit-jur-readiness-ring {
+  background:
+    radial-gradient(circle at center, #fff 0 57%, transparent 58%),
+    conic-gradient(#f59e0b var(--readiness), rgba(148, 163, 184, 0.28) 0);
+}
+
+.gkit-jur-process-readiness.danger .gkit-jur-readiness-ring {
+  background:
+    radial-gradient(circle at center, #fff 0 57%, transparent 58%),
+    conic-gradient(#e11d48 var(--readiness), rgba(148, 163, 184, 0.28) 0);
+}
+
+.gkit-jur-process-readiness.muted .gkit-jur-readiness-ring {
+  background:
+    radial-gradient(circle at center, #fff 0 57%, transparent 58%),
+    conic-gradient(#64748b var(--readiness), rgba(148, 163, 184, 0.28) 0);
+}
+
+.gkit-jur-readiness-ring strong {
+  color: var(--new-ink);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.gkit-jur-readiness-ring span {
+  color: var(--new-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.gkit-jur-process-stat-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gkit-jur-process-stat-grid article {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 7px;
+  min-height: 105px;
+  padding: 13px;
+}
+
+.gkit-jur-process-stat-grid span,
+.gkit-jur-process-signal > span,
+.gkit-jur-process-facts span {
+  color: var(--new-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.gkit-jur-process-stat-grid strong {
+  color: var(--new-ink);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.gkit-jur-process-stat-grid small {
+  color: var(--new-muted);
+  display: -webkit-box;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.gkit-jur-process-signals {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
+.gkit-jur-process-signal {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-left: 4px solid #2563eb;
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 10px;
+  min-height: 150px;
+  padding: 14px;
+}
+
+.gkit-jur-process-signal.warning {
+  border-left-color: #d97706;
+}
+
+.gkit-jur-process-signal.danger {
+  border-left-color: #e11d48;
+}
+
+.gkit-jur-process-signal.success {
+  border-left-color: #059669;
+}
+
+.gkit-jur-process-signal ul {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gkit-jur-process-signal li {
+  color: var(--new-ink);
+  font-size: 13px;
+  line-height: 1.35;
+  padding-left: 14px;
+  position: relative;
+}
+
+.gkit-jur-process-signal li::before {
+  background: currentColor;
+  border-radius: 999px;
+  content: "";
+  height: 5px;
+  left: 0;
+  opacity: 0.46;
+  position: absolute;
+  top: 7px;
+  width: 5px;
+}
+
+.gkit-jur-process-facts {
+  background: rgba(248, 250, 252, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.gkit-jur-process-facts span {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  border-right: 1px solid rgba(148, 163, 184, 0.16);
+  display: grid;
+  gap: 5px;
+  min-height: 66px;
+  padding: 11px 12px;
+}
+
+.gkit-jur-process-facts strong {
+  color: var(--new-ink);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1100px) {
+  .gkit-jur-process-dashboard-main,
+  .gkit-jur-process-signals {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-process-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .gkit-jur-process-timeline-head,
+  .gkit-jur-process-readiness {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-process-timeline-head {
+    flex-direction: column;
+  }
+
+  .gkit-jur-process-timeline-head .button {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .gkit-jur-process-readiness {
+    min-height: 0;
+  }
+
+  .gkit-jur-readiness-ring {
+    max-width: 150px;
+  }
+
+  .gkit-jur-process-stat-grid,
+  .gkit-jur-process-facts {
+    grid-template-columns: 1fr;
+  }
+}
+
 .gkit-jur-status-suggestion {
   align-items: center;
   display: flex;

@@ -32,6 +32,7 @@ import type {
   GkitJurMovimentacaoTarefaData,
   GkitJurMovimentacaoTarefaRegra,
   GkitJurMovimentacoesData,
+  GkitJurNivelProntidao,
   GkitJurPendenciasData,
   GkitJurProcessDetail,
   GkitJurProcessDetailData,
@@ -39,6 +40,7 @@ import type {
   GkitJurProcessFilters,
   GkitJurProcessListData,
   GkitJurProcessListItem,
+  GkitJurProcessSummary,
   GkitJurProcessStatusSuggestion,
   GkitJurProcessoStatus,
   GkitJurSaneamentoSuggestion,
@@ -86,6 +88,31 @@ export function canConfigureGkitJur(permissions: string[]) {
 
 function text(value: unknown, fallback = '') {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback
+}
+
+function numberValue(value: unknown, fallback = 0) {
+  const parsed = typeof value === 'number' ? value : Number.parseInt(String(value ?? ''), 10)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function stringList(value: unknown) {
+  return Array.isArray(value)
+    ? value.map((item) => text(item)).filter(Boolean)
+    : []
+}
+
+function recordValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
+
+function nivelProntidao(value: unknown): GkitJurNivelProntidao {
+  const current = text(value)
+  if (['sem_base', 'capa', 'parcial', 'pronto', 'desatualizado', 'erro'].includes(current)) {
+    return current as GkitJurNivelProntidao
+  }
+  return 'sem_base'
 }
 
 function normalizeName(value: unknown) {
@@ -819,6 +846,46 @@ function statusSuggestionFromTarefas(tarefas: GkitJurTarefa[], processo: GkitJur
   return null
 }
 
+function mapProcessSummary(row: Record<string, unknown>): GkitJurProcessSummary {
+  return {
+    baseSincronizacaoEm: text(row.base_sincronizacao_em) || null,
+    criterioProntidao: recordValue(row.criterio_prontidao),
+    erroMensagem: text(row.erro_mensagem) || null,
+    faseProcessual: text(row.fase_processual) || null,
+    fonteResumo: text(row.fonte_resumo) || null,
+    geradoEm: text(row.gerado_em) || null,
+    metadata: recordValue(row.metadata),
+    modeloVersao: text(row.modelo_versao) || null,
+    movimentacoesConsideradas: numberValue(row.movimentacoes_consideradas),
+    movimentacoesRelevantes: numberValue(row.movimentacoes_relevantes),
+    nivelProntidao: nivelProntidao(row.nivel_prontidao),
+    pendenciasIdentificadas: stringList(row.pendencias_identificadas),
+    proximasAcoesSugeridas: stringList(row.proximas_acoes_sugeridas),
+    resumoOperacional: text(row.resumo_operacional) || null,
+    riscosAlertas: stringList(row.riscos_alertas),
+    statusResumo: text(row.status_resumo, 'pendente'),
+    ultimaMovimentacaoConsideradaEm: text(row.ultima_movimentacao_considerada_em) || null,
+    ultimosEventosRelevantes: stringList(row.ultimos_eventos_relevantes),
+    updatedAt: text(row.updated_at) || null,
+  }
+}
+
+async function getGkitJurProcessSummary(processoId: string): Promise<GkitJurProcessSummary | null> {
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('processos_resumos')
+    .select('processo_id,nivel_prontidao,status_resumo,resumo_operacional,pendencias_identificadas,riscos_alertas,proximas_acoes_sugeridas,ultimos_eventos_relevantes,movimentacoes_consideradas,movimentacoes_relevantes,ultima_movimentacao_considerada_em,base_sincronizacao_em,gerado_em,updated_at,erro_mensagem,fase_processual,fonte_resumo,modelo_versao,criterio_prontidao,metadata')
+    .eq('processo_id', processoId)
+    .maybeSingle()
+
+  if (result.error) {
+    if (result.error.code === '42P01' || result.error.code === 'PGRST205') return null
+    throw new Error(result.error.message)
+  }
+
+  return result.data ? mapProcessSummary(result.data as Record<string, unknown>) : null
+}
+
 function mapDocumento(row: Record<string, unknown>, maps: Awaited<ReturnType<typeof lookupTarefaMaps>>, fallback?: {
   carteiraNome: string | null
   responsavelNome: string | null
@@ -952,7 +1019,7 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
   const row = processoResult.data as Record<string, unknown>
   const maps = await lookupMaps([row])
   const item = mapProcesso(row, maps)
-  const [movimentacoesResult, tarefasResult, documentosResult, eventosResult] = await Promise.all([
+  const [movimentacoesResult, tarefasResult, documentosResult, eventosResult, resumo] = await Promise.all([
     admin()
       .schema('gkit_jur')
       .from('movimentacoes')
@@ -986,6 +1053,7 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
       .order('data_evento', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(50),
+    getGkitJurProcessSummary(id),
   ])
 
   if (movimentacoesResult.error) throw new Error(movimentacoesResult.error.message)
@@ -1033,6 +1101,7 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
     formData,
     movimentacoes,
     processo,
+    resumo,
     statusSuggestion: statusSuggestionFromTarefas(tarefas, processo),
     tarefas,
     timeline: buildProcessTimeline({ documentos, eventos, movimentacoes, tarefas }),
