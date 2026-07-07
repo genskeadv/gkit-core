@@ -13,7 +13,7 @@ export default async function GkitJurBuscaRoute({ searchParams }: { searchParams
   return (
     <GkitJurShell
       active="processos"
-      description="Busca transversal em processos ativos, tarefas abertas e movimentacoes."
+      description="Busca transversal em processos ativos, tarefas abertas e movimentações."
       title="Busca global"
       usuario={context.usuario}
     >

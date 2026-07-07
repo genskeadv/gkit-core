@@ -1,10 +1,17 @@
 import { GkitJurMovimentacoesPage, GkitJurShell } from '@/features/gkit-jur/components'
-import { listGkitJurMovimentacoes, requireGkitJurContext } from '@/features/gkit-jur/queries'
+import { buildGkitJurMovimentacaoFilters, listGkitJurMovimentacoes, requireGkitJurContext } from '@/features/gkit-jur/queries'
+import { moduleTarget, type ModuleSearchParams } from '@/lib/auth/platform'
 
-export default async function GkitJurMovimentacoesRoute() {
+export default async function GkitJurMovimentacoesRoute({
+  searchParams,
+}: {
+  searchParams?: Promise<ModuleSearchParams>
+}) {
+  const params = await searchParams
+  const filters = buildGkitJurMovimentacaoFilters(params)
   const [context, data] = await Promise.all([
-    requireGkitJurContext('/modulos/gkit-jur/movimentacoes'),
-    listGkitJurMovimentacoes(),
+    requireGkitJurContext(moduleTarget('/modulos/gkit-jur/movimentacoes', params)),
+    listGkitJurMovimentacoes(filters),
   ])
 
   return (

@@ -48,7 +48,7 @@ function dateLabel(value: unknown) {
 function compactMovement(row: MovementSummaryRow) {
   return {
     data: row.data_hora ?? row.created_at ?? null,
-    nome: text(row.nome, 'Movimentacao processual'),
+    nome: text(row.nome, 'Movimentação processual'),
     origem: text(row.origem, 'datajud'),
     relevante: Boolean(row.relevante || row.gera_alerta),
   }
@@ -74,8 +74,8 @@ function inferPhaseFromMovements(movements: Array<ReturnType<typeof compactMovem
   const joined = movements.map((item) => item.nome).join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
   if (/\bsentenca|julgad[ao]|procedente|improcedente|homolog/.test(joined)) return 'sentenca ou julgamento recente'
   if (/\bacordao|recurso ordinario|agravo|embargos|turma|tribunal/.test(joined)) return 'fase recursal'
-  if (/\baudiencia|instrucao|conciliacao|depoimento|pericia/.test(joined)) return 'instrucao ou audiencia'
-  if (/\bintimacao|prazo|manifestar|contestacao|replica|despacho/.test(joined)) return 'cumprimento de prazo ou manifestacao'
+  if (/\baudiencia|instrucao|conciliacao|depoimento|pericia/.test(joined)) return 'instrução ou audiência'
+  if (/\bintimacao|prazo|manifestar|contestacao|replica|despacho/.test(joined)) return 'cumprimento de prazo ou manifestação'
   return classe || 'fase processual em acompanhamento'
 }
 
@@ -96,31 +96,31 @@ function fallbackResumoInteligente(input: {
   const ultimosMarcos = baseMovements.slice(0, 5).map(movementLabel)
   const principaisAndamentos = baseMovements.slice().reverse().slice(-5).map(movementLabel)
   const riscosAlertas = [
-    input.movementCount === 0 ? 'Sem movimentacoes locais suficientes para leitura juridica conclusiva.' : null,
-    input.tarefas.some((task) => task.prioridade === 'critica' || task.prioridade === 'alta') ? 'Ha tarefas abertas de prioridade alta ou critica.' : null,
-    !input.clienteNome ? 'Cliente ainda nao identificado no cadastro operacional.' : null,
+    input.movementCount === 0 ? 'Sem movimentações locais suficientes para leitura jurídica conclusiva.' : null,
+    input.tarefas.some((task) => task.prioridade === 'critica' || task.prioridade === 'alta') ? 'Há tarefas abertas de prioridade alta ou crítica.' : null,
+    !input.clienteNome ? 'Cliente ainda não identificado no cadastro operacional.' : null,
   ].filter(Boolean) as string[]
   const proximasAcoes = input.tarefas.length
     ? input.tarefas.slice(0, 5).map((task) => {
-      const prazo = task.prazo ? ` ate ${dateLabel(task.prazo) ?? task.prazo}` : ''
+      const prazo = task.prazo ? ` até ${dateLabel(task.prazo) ?? task.prazo}` : ''
       return `${task.titulo}${prazo}`
     })
-    : ['Revisar ultimos andamentos e confirmar se ha prazo, intimacao ou providencia pendente.']
+    : ['Revisar últimos andamentos e confirmar se há prazo, intimação ou providência pendente.']
   const doQueSeTrata = [
     `Processo ${input.numeroCnj}`,
     input.classe ? `classe ${input.classe}` : null,
     input.tribunal ? `no ${input.tribunal}` : null,
     input.orgao ? `em ${input.orgao}` : null,
-    input.titulo ? `titulo: ${input.titulo}` : null,
+    input.titulo ? `título: ${input.titulo}` : null,
   ].filter(Boolean).join(', ')
 
   return {
     doQueSeTrata,
     faseAtual,
     leituraExecutiva: [
-      `A leitura automatica indica ${faseAtual}.`,
-      ultimosMarcos.length ? `Principais marcos: ${listLabel(ultimosMarcos)}.` : 'Ainda nao ha marcos suficientes na base local.',
-      proximasAcoes.length ? `Proxima acao sugerida: ${proximasAcoes[0]}.` : null,
+      `A leitura automática indica ${faseAtual}.`,
+      ultimosMarcos.length ? `Principais marcos: ${listLabel(ultimosMarcos)}.` : 'Ainda não há marcos suficientes na base local.',
+      proximasAcoes.length ? `Próxima ação sugerida: ${proximasAcoes[0]}.` : null,
     ].filter(Boolean).join(' '),
     nivelConfianca: input.movementCount >= MIN_READY_MOVEMENTS ? 'medio' : 'baixo',
     precisaRevisaoHumana: true,
@@ -208,7 +208,7 @@ async function generateOpenAiResumoInteligente(input: {
   const body = {
     input: [
       {
-        content: 'Voce e um assistente juridico operacional. Analise apenas os dados fornecidos. Nao invente fatos, pedidos, valores, partes ou prazos. Se a base for insuficiente, marque baixa confianca e peça revisao humana. Escreva em portugues do Brasil, com linguagem objetiva para um escritorio juridico.',
+        content: 'Você é um assistente jurídico operacional. Analise apenas os dados fornecidos. Não invente fatos, pedidos, valores, partes ou prazos. Se a base for insuficiente, marque baixa confiança e peça revisão humana. Escreva em português do Brasil, com linguagem objetiva para um escritório jurídico.',
         role: 'developer',
       },
       {
@@ -305,9 +305,9 @@ function readinessLevel(input: {
 function readinessDescription(nivel: GkitJurNivelProntidao) {
   if (nivel === 'pronto') return 'pronto para acompanhamento operacional'
   if (nivel === 'parcial') return 'com base parcial para acompanhamento'
-  if (nivel === 'capa') return 'com capa identificada, mas ainda sem base historica suficiente'
+  if (nivel === 'capa') return 'com capa identificada, mas ainda sem base histórica suficiente'
   if (nivel === 'desatualizado') return 'com base operacional desatualizada'
-  if (nivel === 'erro') return 'com erro de monitoramento que exige verificacao'
+  if (nivel === 'erro') return 'com erro de monitoramento que exige verificação'
   return 'sem base operacional suficiente'
 }
 
@@ -326,24 +326,24 @@ function summaryText(input: {
 }) {
   const classe = input.classe ? ` de ${input.classe}` : ''
   const tribunal = input.tribunal ? ` no ${input.tribunal}` : ''
-  const orgao = input.orgao ? `, em tramitacao no ${input.orgao}` : ''
+  const orgao = input.orgao ? `, em tramitação no ${input.orgao}` : ''
   const ultima = input.ultimaMovimentacao
-    ? `Ultimo marco considerado em ${dateLabel(input.ultimaMovimentacao) ?? input.ultimaMovimentacao}.`
-    : 'Ainda nao ha marco processual recente consolidado na base local.'
+    ? `Último marco considerado em ${dateLabel(input.ultimaMovimentacao) ?? input.ultimaMovimentacao}.`
+    : 'Ainda não há marco processual recente consolidado na base local.'
   const base = input.movementCount
-    ? `A base local esta ${input.nivel === 'pronto' ? 'completa para operacao' : 'em formacao'}, com ${input.movementCount.toLocaleString('pt-BR')} movimentacao(oes) analisada(s) e ${input.relevanteCount.toLocaleString('pt-BR')} relevante(s).`
-    : 'Ainda nao ha movimentacoes locais suficientes para uma leitura operacional conclusiva.'
+    ? `A base local está ${input.nivel === 'pronto' ? 'completa para operação' : 'em formação'}, com ${input.movementCount.toLocaleString('pt-BR')} movimentação(ões) analisada(s) e ${input.relevanteCount.toLocaleString('pt-BR')} relevante(s).`
+    : 'Ainda não há movimentações locais suficientes para uma leitura operacional conclusiva.'
   const ownership = [
-    input.clienteNome ? `Cliente: ${input.clienteNome}.` : 'Cliente ainda nao identificado.',
+    input.clienteNome ? `Cliente: ${input.clienteNome}.` : 'Cliente ainda não identificado.',
     input.carteiraId ? 'Carteira operacional definida.' : 'Carteira operacional pendente.',
-    input.responsavelId ? 'Responsavel operacional definido.' : 'Ponto de atencao: ainda sem responsavel operacional definido.',
+    input.responsavelId ? 'Responsável operacional definido.' : 'Ponto de atenção: ainda sem responsável operacional definido.',
   ]
 
   const parts = [
     `Processo ${input.numeroCnj}${classe}${tribunal}${orgao}.`,
     ultima,
     base,
-    `Nivel de prontidao: ${readinessDescription(input.nivel)}.`,
+    `Nível de prontidão: ${readinessDescription(input.nivel)}.`,
     ...ownership,
   ]
 
@@ -373,7 +373,7 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
     .single()
 
   if (processoResult.error || !processoResult.data) {
-    throw new Error(processoResult.error?.message ?? 'Processo nao encontrado para resumo operacional.')
+    throw new Error(processoResult.error?.message ?? 'Processo não encontrado para resumo operacional.')
   }
 
   const processo = processoResult.data as Record<string, unknown>
@@ -469,12 +469,12 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
   })
   const pendencias = [
     !text(processo.carteira_id) ? { tipo: 'sem_carteira', label: 'Vincular carteira operacional.' } : null,
-    !text(processo.responsavel_id) ? { tipo: 'sem_responsavel', label: 'Definir responsavel pelo acompanhamento.' } : null,
+    !text(processo.responsavel_id) ? { tipo: 'sem_responsavel', label: 'Definir responsável pelo acompanhamento.' } : null,
     nivel === 'sem_base' || nivel === 'capa' ? { tipo: 'sincronizacao', label: 'Enriquecer base antes do resumo final.' } : null,
   ].filter(Boolean)
   const riscos = [
     text(processo.status_monitoramento) === 'erro' ? { tipo: 'monitoramento', label: 'Ultima coleta registrou erro.' } : null,
-    successSyncCount === 0 && movementCount > 0 ? { tipo: 'historico_parcial', label: 'Ha movimentacoes sem sincronizacao concluida.' } : null,
+    successSyncCount === 0 && movementCount > 0 ? { tipo: 'historico_parcial', label: 'Há movimentações sem sincronização concluída.' } : null,
   ].filter(Boolean)
   const criterio = {
     hasCapa,

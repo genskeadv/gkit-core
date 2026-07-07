@@ -20,8 +20,8 @@ export default async function GkitJurMovimentacaoTarefaRoute({
   return (
     <GkitJurShell
       active="configuracoes"
-      description="Regras de conversao de movimentacoes das integracoes em tarefas operacionais."
-      title="Movimentacao -> tarefa"
+      description="Regras de conversão de movimentações das integrações em tarefas operacionais."
+      title="Movimentação para tarefa"
       usuario={context.usuario}
     >
       <GkitJurMovimentacaoTarefaPage

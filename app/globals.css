@@ -5369,6 +5369,32 @@ tbody tr:hover {
   margin-right: auto;
 }
 
+.gkit-jur-active-filters {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.gkit-jur-active-filters span {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(107, 47, 132, 0.18);
+  border-radius: 999px;
+  color: var(--new-ink);
+  display: inline-flex;
+  font-size: 12px;
+  gap: 5px;
+  min-height: 30px;
+  padding: 5px 9px;
+}
+
+.gkit-jur-active-filters strong {
+  color: var(--new-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .gkit-jur-pagination {
   align-items: center;
   border-top: 1px solid rgba(148, 163, 184, 0.18);

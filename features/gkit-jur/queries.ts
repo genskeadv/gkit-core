@@ -29,6 +29,7 @@ import type {
   GkitJurMonitoramentoNivel,
   GkitJurMonitoramentoStatus,
   GkitJurMovimentacao,
+  GkitJurMovimentacaoFilters,
   GkitJurMovimentacaoTarefaData,
   GkitJurMovimentacaoTarefaRegra,
   GkitJurMovimentacoesData,
@@ -125,6 +126,16 @@ function normalizeName(value: unknown) {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^\w\s]/g, ' ')
     .replace(/\b(condominio|cond|edificio|residencial|associacao|assoc)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+}
+
+function normalizeSearch(value: unknown) {
+  return text(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s.-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase()
@@ -330,6 +341,23 @@ export function buildGkitJurProcessFilters(params?: ModuleSearchParams | null): 
     saneamento: singleParam(params?.saneamento),
     sort,
     status: singleParam(params?.status),
+    tribunal: singleParam(params?.tribunal),
+  }
+}
+
+export function buildGkitJurMovimentacaoFilters(params?: ModuleSearchParams | null): GkitJurMovimentacaoFilters {
+  const dir = singleParam(params?.dir) === 'asc' ? 'asc' : 'desc'
+  const sort = singleParam(params?.sort) || 'data_hora'
+
+  return {
+    carteiraId: singleParam(params?.carteira_id),
+    dir,
+    origem: singleParam(params?.origem),
+    page: positiveInt(singleParam(params?.page), 1),
+    q: singleParam(params?.q).trim(),
+    relevancia: singleParam(params?.relevancia),
+    responsavelId: singleParam(params?.responsavel_id),
+    sort,
     tribunal: singleParam(params?.tribunal),
   }
 }
@@ -1411,22 +1439,74 @@ export async function getGkitJurPendencias(): Promise<GkitJurPendenciasData> {
   return { groups: [semCliente, semCarteira, semResponsavel, semTribunal], metrics, ...sugestoes }
 }
 
-export async function listGkitJurMovimentacoes(): Promise<GkitJurMovimentacoesData> {
-  const [metrics, movimentacoesResult] = await Promise.all([
+function movementSortValue(row: GkitJurMovimentacao, sort: string) {
+  if (sort === 'nome') return row.nome
+  if (sort === 'origem') return row.origem
+  if (sort === 'processo') return row.numeroCnj
+  return row.dataHora ?? ''
+}
+
+function matchesMovementFilters(row: GkitJurMovimentacao, processo: GkitJurProcessListItem | undefined, filters: GkitJurMovimentacaoFilters) {
+  if (!processo) return false
+  if (filters.carteiraId && processo.carteiraNome == null) return false
+  if (filters.responsavelId && processo.responsavelNome == null) return false
+  if (filters.tribunal && processo.tribunalSigla !== filters.tribunal) return false
+  if (filters.origem && row.origem !== filters.origem) return false
+  if (filters.relevancia === 'relevante' && !row.relevante) return false
+  if (filters.relevancia === 'alerta' && !row.geraAlerta) return false
+  if (filters.relevancia === 'informativa' && (row.relevante || row.geraAlerta)) return false
+  if (filters.q) {
+    const haystack = normalizeSearch([
+      row.nome,
+      row.origem,
+      row.numeroCnj,
+      row.clienteNome,
+      processo.titulo,
+      processo.classeNome,
+      processo.carteiraNome,
+      processo.responsavelNome,
+    ].filter(Boolean).join(' '))
+    if (!haystack.includes(normalizeSearch(filters.q))) return false
+  }
+  return true
+}
+
+export async function listGkitJurMovimentacoes(filters: GkitJurMovimentacaoFilters = buildGkitJurMovimentacaoFilters()): Promise<GkitJurMovimentacoesData> {
+  const from = (filters.page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE
+
+  let movimentacoesQuery = admin()
+    .schema('gkit_jur')
+    .from('movimentacoes')
+    .select('id,processo_id,nome,data_hora,origem,relevante,gera_alerta')
+
+  if (filters.origem) movimentacoesQuery = movimentacoesQuery.eq('origem', filters.origem)
+  if (filters.relevancia === 'relevante') movimentacoesQuery = movimentacoesQuery.eq('relevante', true)
+  if (filters.relevancia === 'alerta') movimentacoesQuery = movimentacoesQuery.eq('gera_alerta', true)
+  if (filters.relevancia === 'informativa') {
+    movimentacoesQuery = movimentacoesQuery.eq('relevante', false).eq('gera_alerta', false)
+  }
+
+  const [metrics, filterOptions, movimentacoesResult, origensResult] = await Promise.all([
     getGkitJurDashboardMetrics(),
+    getFilterOptions(),
+    movimentacoesQuery
+      .order('data_hora', { ascending: filters.dir === 'asc', nullsFirst: false })
+      .limit(1000),
     admin()
       .schema('gkit_jur')
       .from('movimentacoes')
-      .select('id,processo_id,nome,data_hora,origem,relevante,gera_alerta')
-      .order('data_hora', { ascending: false, nullsFirst: false })
-      .limit(100),
+      .select('origem')
+      .limit(5000),
   ])
 
   if (movimentacoesResult.error) throw new Error(movimentacoesResult.error.message)
+  if (origensResult.error) throw new Error(origensResult.error.message)
 
   const movements = (movimentacoesResult.data ?? []) as Array<Record<string, unknown>>
   const processoIds = [...new Set(movements.map((row) => text(row.processo_id)).filter(Boolean))]
   const processoMap = new Map<string, GkitJurProcessListItem>()
+  const rawProcessRows = new Map<string, Record<string, unknown>>()
 
   if (processoIds.length) {
     const processosResult = await admin()
@@ -1439,14 +1519,51 @@ export async function listGkitJurMovimentacoes(): Promise<GkitJurMovimentacoesDa
     if (processosResult.error) throw new Error(processosResult.error.message)
     const rows = (processosResult.data ?? []) as Array<Record<string, unknown>>
     const maps = await lookupMaps(rows)
-    rows.forEach((row) => processoMap.set(String(row.id), mapProcesso(row, maps)))
+    rows.forEach((row) => {
+      rawProcessRows.set(String(row.id), row)
+      processoMap.set(String(row.id), mapProcesso(row, maps))
+    })
   }
 
+  const mapped = movements
+    .map((row) => mapMovimentacao(row, processoMap))
+    .filter((row) => {
+      const processo = processoMap.get(row.processoId)
+      const raw = rawProcessRows.get(row.processoId)
+      if (!processo || !raw) return false
+      if (filters.carteiraId && text(raw.carteira_id) !== filters.carteiraId) return false
+      if (filters.responsavelId && text(raw.responsavel_id) !== filters.responsavelId) return false
+      return matchesMovementFilters(row, processo, filters)
+    })
+    .sort((a, b) => {
+      const left = movementSortValue(a, filters.sort)
+      const right = movementSortValue(b, filters.sort)
+      const result = String(left).localeCompare(String(right), 'pt-BR', { numeric: true })
+      return filters.dir === 'asc' ? result : -result
+    })
+
+  const total = mapped.length
+  const origens = [...new Set(((origensResult.data ?? []) as Array<Record<string, unknown>>)
+    .map((row) => text(row.origem))
+    .filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+
   return {
+    filterOptions: {
+      ...filterOptions,
+      origens: origens.map((origem) => ({ label: origem, value: origem })),
+    },
+    filters,
     metrics,
-    movimentacoes: movements
-      .filter((row) => processoMap.has(text(row.processo_id)))
-      .map((row) => mapMovimentacao(row, processoMap)),
+    movimentacoes: mapped.slice(from, to),
+    pagination: {
+      currentPage: filters.page,
+      from: total ? from + 1 : 0,
+      pageSize: PAGE_SIZE,
+      to: Math.min(to, total),
+      total,
+      totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+    },
   }
 }
 

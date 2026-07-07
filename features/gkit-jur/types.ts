@@ -212,6 +212,22 @@ export type GkitJurMovimentacao = {
   geraAlerta: boolean;
 };
 
+export type GkitJurMovimentacaoFilters = {
+  carteiraId: string;
+  dir: 'asc' | 'desc';
+  origem: string;
+  page: number;
+  q: string;
+  relevancia: string;
+  responsavelId: string;
+  sort: string;
+  tribunal: string;
+};
+
+export type GkitJurMovimentacaoFilterOptions = GkitJurProcessFilterOptions & {
+  origens: GkitJurSelectOption[];
+};
+
 export type GkitJurTarefa = {
   id: string;
   processoId: string;
@@ -334,8 +350,18 @@ export type GkitJurPendenciasData = {
 };
 
 export type GkitJurMovimentacoesData = {
+  filterOptions: GkitJurMovimentacaoFilterOptions;
+  filters: GkitJurMovimentacaoFilters;
   metrics: GkitJurDashboardMetrics;
   movimentacoes: GkitJurMovimentacao[];
+  pagination: {
+    currentPage: number;
+    from: number;
+    pageSize: number;
+    to: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
 export type GkitJurAuditoriaItem = {

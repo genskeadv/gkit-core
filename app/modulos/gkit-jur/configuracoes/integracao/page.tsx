@@ -37,8 +37,8 @@ export default async function GkitJurIntegracaoRoute({
   return (
     <GkitJurShell
       active="configuracoes"
-      description="Conexao, provedores, fila e execucoes da integracao juridica."
-      title="Integracao juridica"
+      description="Conexão, provedores, fila e execuções da integração jurídica."
+      title="Integração jurídica"
       usuario={context.usuario}
     >
       <GkitJurIntegracaoPage
