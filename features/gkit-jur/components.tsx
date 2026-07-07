@@ -1741,7 +1741,11 @@ export function GkitJurAgentePage({
         action={canWrite ? (
           <form action={runMonitoramentoAction} className="gkit-jur-agent-monitor-action">
             <input name="limit" type="hidden" value="25" />
-            <button className="button primary-button" type="submit">Rodar monitoramento</button>
+            <GkitJurSyncSubmitButton
+              idleLabel="Rodar monitoramento"
+              pendingHint="Analisando processos pendentes e atualizando os resumos inteligentes."
+              pendingLabel="Monitorando..."
+            />
           </form>
         ) : null}
       >
