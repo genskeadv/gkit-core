@@ -30,7 +30,7 @@ export function ModuleShell({
   actions?: ReactNode
   brand: string
   children: ReactNode
-  description: string
+  description?: string
   eyebrow: string
   navGroups: ModuleNavGroup[]
   product: string
@@ -94,7 +94,7 @@ export function ModuleShell({
               <div>
                 <p className="platform-kicker">{eyebrow}</p>
                 <h1>{title}</h1>
-                <p>{description}</p>
+                {description ? <p>{description}</p> : null}
               </div>
             </div>
             {actions ? <div className="module-page-actions">{actions}</div> : null}

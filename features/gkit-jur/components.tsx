@@ -69,7 +69,7 @@ export function GkitJurShell({
   active: GkitJurTab
   actions?: ReactNode
   children: ReactNode
-  description: string
+  description?: string
   title: string
   usuario: PlatformUsuario
 }) {
