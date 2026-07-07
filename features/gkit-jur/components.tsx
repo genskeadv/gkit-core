@@ -1632,7 +1632,7 @@ function GkitJurSaneamentoSuggestions({
                 <small>
                   {[
                     row.motivo,
-                    row.clienteConfianca ? `confianca ${row.clienteConfianca}` : null,
+                    row.clienteConfianca ? `confiança ${row.clienteConfianca}` : null,
                     suggestionSourceLabel(row.clienteFonte),
                     row.clienteCandidato ? `candidato: ${row.clienteCandidato}` : null,
                   ].filter(Boolean).join(' | ')}
@@ -1964,8 +1964,8 @@ export function GkitJurAgentePage({
             <span>IA <strong>{data.monitoramento.fonteOpenAi.toLocaleString('pt-BR')}</strong></span>
             <span>Local <strong>{data.monitoramento.fonteLocal.toLocaleString('pt-BR')}</strong></span>
             <span>Pendentes <strong>{data.monitoramento.pendentesResumo.toLocaleString('pt-BR')}</strong></span>
-            <span>Revisao <strong>{data.monitoramento.precisaRevisaoHumana.toLocaleString('pt-BR')}</strong></span>
-            <span>Baixa confianca <strong>{data.monitoramento.baixaConfianca.toLocaleString('pt-BR')}</strong></span>
+            <span>Revisão <strong>{data.monitoramento.precisaRevisaoHumana.toLocaleString('pt-BR')}</strong></span>
+            <span>Baixa confiança <strong>{data.monitoramento.baixaConfianca.toLocaleString('pt-BR')}</strong></span>
             <span>Desatualizados <strong>{data.monitoramento.desatualizados.toLocaleString('pt-BR')}</strong></span>
           </div>
         </div>
@@ -1976,7 +1976,7 @@ export function GkitJurAgentePage({
               <Link href={`/modulos/gkit-jur/processos/${item.processoId}`} key={item.processoId} role="listitem">
                 <div>
                   <h3>{item.numeroCnj}</h3>
-                  <p>{item.titulo || item.clienteNome || 'Processo sem titulo operacional'}</p>
+                  <p>{item.titulo || item.clienteNome || 'Processo sem título operacional'}</p>
                 </div>
                 <span className={`suite-pill ${item.motivo.includes('Baixa') || item.motivo.includes('Falha') ? 'danger' : item.precisaRevisaoHumana ? 'warning' : 'primary'}`}>
                   {item.motivo}
@@ -2634,7 +2634,7 @@ export function GkitJurIntegracaoPage({
             <select disabled={!canSync} name="provider" defaultValue="datajud">
               <option value="redundante">Redundante: DataJud + AASP</option>
               <option value="datajud">DataJud</option>
-              <option value="aasp">AASP Intimacoes</option>
+              <option value="aasp">AASP Intimações</option>
             </select>
           </label>
           <label>
@@ -2690,7 +2690,7 @@ export function GkitJurIntegracaoPage({
             const synced = Math.max(0, tribunal.totalAtivos - tribunal.semSincronizacao)
             const progress = tribunal.totalAtivos ? Math.round((synced / tribunal.totalAtivos) * 100) : 0
             const pendencias = [
-              tribunal.semSincronizacao ? `${tribunal.semSincronizacao.toLocaleString('pt-BR')} sem primeira sync` : '',
+              tribunal.semSincronizacao ? `${tribunal.semSincronizacao.toLocaleString('pt-BR')} sem primeira sincronização` : '',
               tribunal.atrasados ? `${tribunal.atrasados.toLocaleString('pt-BR')} atrasado(s)` : '',
               tribunal.erro ? `${tribunal.erro.toLocaleString('pt-BR')} com erro` : '',
               tribunal.saneamentoProcessos ? `${tribunal.saneamentoProcessos.toLocaleString('pt-BR')} em saneamento` : '',
@@ -2710,7 +2710,7 @@ export function GkitJurIntegracaoPage({
                     <span style={{ width: `${progress}%` }} />
                   </div>
                   <small>
-                    {synced.toLocaleString('pt-BR')} de {tribunal.totalAtivos.toLocaleString('pt-BR')} processos com sync
+                    {synced.toLocaleString('pt-BR')} de {tribunal.totalAtivos.toLocaleString('pt-BR')} processos com sincronização
                   </small>
                 </div>
                 <dl>
@@ -2723,7 +2723,7 @@ export function GkitJurIntegracaoPage({
                     <dd>{tribunal.monitorando.toLocaleString('pt-BR')}</dd>
                   </div>
                   <div>
-                    <dt>Sem sync</dt>
+                    <dt>Sem sincronização</dt>
                     <dd>{tribunal.semSincronizacao.toLocaleString('pt-BR')}</dd>
                   </div>
                   <div>

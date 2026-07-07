@@ -1640,7 +1640,7 @@ function sortInboxItems(items: GkitJurInboxItem[], ordenacao: GkitJurInboxOrdena
     }
 
     if (ordenacao === 'responsavel') {
-      const ownerDiff = compareText(a.responsavelNome || 'Sem responsavel', b.responsavelNome || 'Sem responsavel')
+      const ownerDiff = compareText(a.responsavelNome || 'Sem responsável', b.responsavelNome || 'Sem responsável')
       if (ownerDiff !== 0) return ownerDiff
       return compareInboxPriority(a, b)
     }
@@ -2154,11 +2154,11 @@ async function getGkitJurAgenteMonitoramento() {
       : stale
         ? 'Resumo mais antigo que o processo'
         : hasError
-          ? 'Falha na geracao por IA'
+          ? 'Falha na geração por IA'
           : nivelConfianca === 'baixo'
-            ? 'Baixa confianca'
+            ? 'Baixa confiança'
             : needsReview
-              ? 'Aguardando revisao humana'
+              ? 'Aguardando revisão humana'
               : null
 
     if (motivo) {
