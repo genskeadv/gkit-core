@@ -1,6 +1,7 @@
 import {
   createGkitJurAgenteFonteAction,
   createGkitJurAgenteReceitaAction,
+  runGkitJurAgenteMonitoramentoAction,
   runGkitJurAgenteReceitaAction,
   validateGkitJurAgenteExecucaoAction,
 } from '@/features/gkit-jur/actions'
@@ -25,6 +26,7 @@ export default async function GkitJurAgenteRoute() {
         createFonteAction={createGkitJurAgenteFonteAction}
         createReceitaAction={createGkitJurAgenteReceitaAction}
         data={data}
+        runMonitoramentoAction={runGkitJurAgenteMonitoramentoAction}
         runReceitaAction={runGkitJurAgenteReceitaAction}
         validateExecucaoAction={validateGkitJurAgenteExecucaoAction}
       />

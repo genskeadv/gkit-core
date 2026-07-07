@@ -1070,15 +1070,21 @@ function GkitJurProcessDashboard({
   data: GkitJurProcessDetailData
 }) {
   const { documentos, movimentacoes, processo, resumo, tarefas, timeline } = data
+  const smartSummary = resumo?.resumoInteligente ?? null
   const readiness = resumo?.nivelProntidao ?? null
   const score = readinessScore(readiness)
   const relevantMovements = movimentacoes.filter((item) => item.relevante || item.geraAlerta).length
   const latestEvent = timeline[0]?.titulo ?? 'Sem evento recente registrado'
-  const summaryText = executiveProcessSummary(data, relevantMovements)
+  const summaryText = smartSummary?.leituraExecutiva || executiveProcessSummary(data, relevantMovements)
   const updatedAt = resumo?.geradoEm ?? resumo?.updatedAt ?? processo.updatedAt
   const summaryStatus = resumo
     ? `${readinessLabel(readiness)} | ${formatDateTime(updatedAt ?? null)}`
     : 'Sem registro em processos_resumos'
+  const summaryTitle = smartSummary?.faseAtual || resumo?.faseProcessual || processo.titulo || 'Leitura executiva do processo'
+  const summarySource = smartSummary?.fonte === 'openai' ? 'IA + base local' : resumo?.fonteResumo || 'sincronizacao pendente'
+  const confidenceLabel = smartSummary?.nivelConfianca
+    ? `${smartSummary.nivelConfianca}${smartSummary.precisaRevisaoHumana ? ' | revisar' : ''}`
+    : '-'
 
   const cards = [
     { label: 'Tarefas abertas', value: tarefas.length.toLocaleString('pt-BR'), hint: tarefas[0]?.titulo ?? 'Sem tarefa aberta' },
@@ -1094,17 +1100,20 @@ function GkitJurProcessDashboard({
       <article className={`gkit-jur-process-summary-card ${resumo ? 'ready' : 'pending'}`}>
         <div className="gkit-jur-process-summary-head">
           <div>
-            <span>Resumo operacional</span>
-            <h3>{resumo?.faseProcessual || processo.titulo || 'Leitura executiva do processo'}</h3>
+            <span>{smartSummary ? 'Resumo inteligente' : 'Resumo operacional'}</span>
+            <h3>{summaryTitle}</h3>
           </div>
           <span className={`suite-pill ${readinessTone(readiness)}`}>{summaryStatus}</span>
         </div>
+        {smartSummary?.doQueSeTrata ? <small className="gkit-jur-smart-context">{smartSummary.doQueSeTrata}</small> : null}
         <p>{summaryText}</p>
         <div className="gkit-jur-process-summary-meta">
-          <span>Fonte: <strong>{resumo?.fonteResumo || 'sincronizacao pendente'}</strong></span>
-          <span>Modelo: <strong>{resumo?.modeloVersao || '-'}</strong></span>
+          <span>Fonte: <strong>{summarySource}</strong></span>
+          <span>Modelo: <strong>{smartSummary?.modelo || resumo?.modeloVersao || '-'}</strong></span>
+          <span>Confianca: <strong>{confidenceLabel}</strong></span>
           <span>Movimentacoes relevantes: <strong>{(resumo?.movimentacoesRelevantes ?? relevantMovements).toLocaleString('pt-BR')}</strong></span>
         </div>
+        {smartSummary?.erroGeracaoIa ? <small className="gkit-jur-smart-warning">IA indisponivel: usando leitura local.</small> : null}
       </article>
 
       <div className="gkit-jur-process-dashboard-main">
@@ -1142,15 +1151,21 @@ function GkitJurProcessDashboard({
         />
         <GkitJurProcessSignalList
           fallback="Nenhum risco critico destacado no resumo atual."
-          items={resumo?.riscosAlertas ?? []}
+          items={smartSummary?.riscosAlertas?.length ? smartSummary.riscosAlertas : resumo?.riscosAlertas ?? []}
           title="Riscos e alertas"
           tone="danger"
         />
         <GkitJurProcessSignalList
           fallback="Sem proxima acao sugerida pelo resumo."
-          items={resumo?.proximasAcoesSugeridas ?? []}
+          items={smartSummary?.proximasAcoesSugeridas?.length ? smartSummary.proximasAcoesSugeridas : resumo?.proximasAcoesSugeridas ?? []}
           title="Proximas acoes"
           tone="success"
+        />
+        <GkitJurProcessSignalList
+          fallback="Sem principais andamentos destacados pelo agente."
+          items={smartSummary?.principaisAndamentos ?? []}
+          title="Andamentos chave"
+          tone="primary"
         />
       </div>
 
@@ -1464,6 +1479,13 @@ function SuggestionValue({ label, value }: { label: string; value: string | null
   )
 }
 
+function suggestionSourceLabel(value: GkitJurSaneamentoSuggestion['clienteFonte']) {
+  if (value === 'cliente_nome') return 'cliente_nome'
+  if (value === 'titulo_parte') return 'titulo'
+  if (value === 'metadata') return 'dados do processo'
+  return null
+}
+
 function GkitJurSaneamentoSuggestions({
   action,
   canWrite,
@@ -1477,7 +1499,7 @@ function GkitJurSaneamentoSuggestions({
 }) {
   return (
     <GkitJurSection
-      description={`Sugestões encontradas: ${totals.total} processos, ${totals.cliente} cliente(s), ${totals.carteira} carteira(s), ${totals.responsavel} responsável(is).`}
+      description={`Sugestoes encontradas: ${totals.total} processos, ${totals.cliente} cliente(s) (${totals.clienteAltaConfianca} alta confianca, ${totals.clienteMediaConfianca} revisar), ${totals.carteira} carteira(s), ${totals.responsavel} responsavel(is).`}
       title="Sugestões de saneamento"
     >
       {rows.length ? (
@@ -1485,7 +1507,13 @@ function GkitJurSaneamentoSuggestions({
           <div className="gkit-jur-suggestion-list" role="list">
             {rows.map((row) => (
               <label className="gkit-jur-suggestion-row" key={row.processo.id} role="listitem">
-                <input disabled={!canWrite} name="processo_id" type="checkbox" value={row.processo.id} defaultChecked />
+                <input
+                  defaultChecked={row.clienteConfianca !== 'media'}
+                  disabled={!canWrite}
+                  name="processo_id"
+                  type="checkbox"
+                  value={row.processo.id}
+                />
                 <div>
                   <h3>{row.processo.numeroCnj}</h3>
                   <p>{row.processo.clienteNome || row.processo.titulo || 'Processo sem cliente identificado'}</p>
@@ -1493,7 +1521,14 @@ function GkitJurSaneamentoSuggestions({
                 <SuggestionValue label="Cliente" value={row.clienteNome} />
                 <SuggestionValue label="Carteira" value={row.carteiraNome} />
                 <SuggestionValue label="Responsável" value={row.responsavelNome} />
-                <small>{row.motivo}</small>
+                <small>
+                  {[
+                    row.motivo,
+                    row.clienteConfianca ? `confianca ${row.clienteConfianca}` : null,
+                    suggestionSourceLabel(row.clienteFonte),
+                    row.clienteCandidato ? `candidato: ${row.clienteCandidato}` : null,
+                  ].filter(Boolean).join(' | ')}
+                </small>
               </label>
             ))}
           </div>
@@ -1661,6 +1696,7 @@ export function GkitJurAgentePage({
   createFonteAction,
   createReceitaAction,
   data,
+  runMonitoramentoAction,
   runReceitaAction,
   validateExecucaoAction,
 }: {
@@ -1668,6 +1704,7 @@ export function GkitJurAgentePage({
   createFonteAction: (formData: FormData) => Promise<void>
   createReceitaAction: (formData: FormData) => Promise<void>
   data: GkitJurAgenteData
+  runMonitoramentoAction: (formData: FormData) => Promise<void>
   runReceitaAction: (formData: FormData) => Promise<void>
   validateExecucaoAction: (formData: FormData) => Promise<void>
 }) {
@@ -1697,6 +1734,57 @@ export function GkitJurAgentePage({
           <span className="metric-hint">pedem intervenção humana</span>
         </article>
       </section>
+
+      <GkitJurSection
+        title="Monitoramento do resumo inteligente"
+        description="Agente auxiliar acompanha cobertura, confianca e reprocessamento dos resumos dos processos ativos."
+        action={canWrite ? (
+          <form action={runMonitoramentoAction} className="gkit-jur-agent-monitor-action">
+            <input name="limit" type="hidden" value="25" />
+            <button className="button primary-button" type="submit">Rodar monitoramento</button>
+          </form>
+        ) : null}
+      >
+        <div className="gkit-jur-agent-monitor">
+          <article className="gkit-jur-agent-monitor-hero">
+            <span>Cobertura</span>
+            <strong>{data.monitoramento.coberturaPercentual}%</strong>
+            <small>
+              {data.monitoramento.resumosInteligentes.toLocaleString('pt-BR')} de {data.monitoramento.totalAtivos.toLocaleString('pt-BR')} processo(s) ativo(s)
+            </small>
+          </article>
+          <div className="gkit-jur-agent-monitor-grid">
+            <span>OpenAI <strong>{data.monitoramento.openAiConfigurado ? 'configurado' : 'modo local'}</strong></span>
+            <span>Modelo <strong>{data.monitoramento.modeloConfigurado}</strong></span>
+            <span>IA <strong>{data.monitoramento.fonteOpenAi.toLocaleString('pt-BR')}</strong></span>
+            <span>Local <strong>{data.monitoramento.fonteLocal.toLocaleString('pt-BR')}</strong></span>
+            <span>Pendentes <strong>{data.monitoramento.pendentesResumo.toLocaleString('pt-BR')}</strong></span>
+            <span>Revisao <strong>{data.monitoramento.precisaRevisaoHumana.toLocaleString('pt-BR')}</strong></span>
+            <span>Baixa confianca <strong>{data.monitoramento.baixaConfianca.toLocaleString('pt-BR')}</strong></span>
+            <span>Desatualizados <strong>{data.monitoramento.desatualizados.toLocaleString('pt-BR')}</strong></span>
+          </div>
+        </div>
+
+        {data.monitoramento.fila.length ? (
+          <div className="suite-table-list compact gkit-jur-agent-monitor-list" role="list">
+            {data.monitoramento.fila.map((item) => (
+              <Link href={`/modulos/gkit-jur/processos/${item.processoId}`} key={item.processoId} role="listitem">
+                <div>
+                  <h3>{item.numeroCnj}</h3>
+                  <p>{item.titulo || item.clienteNome || 'Processo sem titulo operacional'}</p>
+                </div>
+                <span className={`suite-pill ${item.motivo.includes('Baixa') || item.motivo.includes('Falha') ? 'danger' : item.precisaRevisaoHumana ? 'warning' : 'primary'}`}>
+                  {item.motivo}
+                </span>
+                <strong>{item.faseAtual || '-'}</strong>
+                <small>{item.resumoUpdatedAt ? formatDateTime(item.resumoUpdatedAt) : 'Sem resumo'}</small>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="suite-empty-block success">Nenhum processo ativo exige reprocessamento do resumo inteligente agora.</div>
+        )}
+      </GkitJurSection>
 
       <div className="gkit-jur-agent-grid">
         <GkitJurSection title="Fonte" description="Cadastre uma origem técnica para futuras coletas.">

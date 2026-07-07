@@ -12,8 +12,22 @@ type MovementSummaryRow = {
   relevante: boolean | null
 }
 
-const SUMMARY_MODEL_VERSION = 'operacional-v1'
+type GkitJurResumoInteligente = {
+  doQueSeTrata: string
+  faseAtual: string
+  leituraExecutiva: string
+  nivelConfianca: 'alto' | 'medio' | 'baixo'
+  precisaRevisaoHumana: boolean
+  principaisAndamentos: string[]
+  proximasAcoesSugeridas: string[]
+  riscosAlertas: string[]
+  ultimosMarcos: string[]
+}
+
+const SUMMARY_MODEL_VERSION = 'inteligente-v1'
 const MIN_READY_MOVEMENTS = 5
+const INTELLIGENT_SUMMARY_MAX_MOVEMENTS = 80
+const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses'
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -37,6 +51,242 @@ function compactMovement(row: MovementSummaryRow) {
     nome: text(row.nome, 'Movimentacao processual'),
     origem: text(row.origem, 'datajud'),
     relevante: Boolean(row.relevante || row.gera_alerta),
+  }
+}
+
+function compactText(value: unknown, maxLength = 900) {
+  const current = text(value)
+    .replace(/\s+/g, ' ')
+    .trim()
+  return current.length > maxLength ? `${current.slice(0, maxLength - 1).trim()}...` : current
+}
+
+function listLabel(items: string[]) {
+  return items.filter(Boolean).slice(0, 3).join('; ')
+}
+
+function movementLabel(row: ReturnType<typeof compactMovement>) {
+  const date = dateLabel(row.data) ?? (text(row.data) || 'sem data')
+  return `${date}: ${compactText(row.nome, 220)}`
+}
+
+function inferPhaseFromMovements(movements: Array<ReturnType<typeof compactMovement>>, classe: string | null) {
+  const joined = movements.map((item) => item.nome).join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  if (/\bsentenca|julgad[ao]|procedente|improcedente|homolog/.test(joined)) return 'sentenca ou julgamento recente'
+  if (/\bacordao|recurso ordinario|agravo|embargos|turma|tribunal/.test(joined)) return 'fase recursal'
+  if (/\baudiencia|instrucao|conciliacao|depoimento|pericia/.test(joined)) return 'instrucao ou audiencia'
+  if (/\bintimacao|prazo|manifestar|contestacao|replica|despacho/.test(joined)) return 'cumprimento de prazo ou manifestacao'
+  return classe || 'fase processual em acompanhamento'
+}
+
+function fallbackResumoInteligente(input: {
+  classe: string | null
+  clienteNome: string | null
+  latestMovements: Array<ReturnType<typeof compactMovement>>
+  movementCount: number
+  numeroCnj: string
+  orgao: string | null
+  relevantMovements: Array<ReturnType<typeof compactMovement>>
+  tarefas: Array<{ prazo: string | null; prioridade: string; status: string; titulo: string }>
+  titulo: string | null
+  tribunal: string | null
+}): GkitJurResumoInteligente {
+  const baseMovements = input.relevantMovements.length ? input.relevantMovements : input.latestMovements
+  const faseAtual = inferPhaseFromMovements(baseMovements, input.classe)
+  const ultimosMarcos = baseMovements.slice(0, 5).map(movementLabel)
+  const principaisAndamentos = baseMovements.slice().reverse().slice(-5).map(movementLabel)
+  const riscosAlertas = [
+    input.movementCount === 0 ? 'Sem movimentacoes locais suficientes para leitura juridica conclusiva.' : null,
+    input.tarefas.some((task) => task.prioridade === 'critica' || task.prioridade === 'alta') ? 'Ha tarefas abertas de prioridade alta ou critica.' : null,
+    !input.clienteNome ? 'Cliente ainda nao identificado no cadastro operacional.' : null,
+  ].filter(Boolean) as string[]
+  const proximasAcoes = input.tarefas.length
+    ? input.tarefas.slice(0, 5).map((task) => {
+      const prazo = task.prazo ? ` ate ${dateLabel(task.prazo) ?? task.prazo}` : ''
+      return `${task.titulo}${prazo}`
+    })
+    : ['Revisar ultimos andamentos e confirmar se ha prazo, intimacao ou providencia pendente.']
+  const doQueSeTrata = [
+    `Processo ${input.numeroCnj}`,
+    input.classe ? `classe ${input.classe}` : null,
+    input.tribunal ? `no ${input.tribunal}` : null,
+    input.orgao ? `em ${input.orgao}` : null,
+    input.titulo ? `titulo: ${input.titulo}` : null,
+  ].filter(Boolean).join(', ')
+
+  return {
+    doQueSeTrata,
+    faseAtual,
+    leituraExecutiva: [
+      doQueSeTrata,
+      `A leitura automatica indica ${faseAtual}.`,
+      ultimosMarcos.length ? `Principais marcos: ${listLabel(ultimosMarcos)}.` : 'Ainda nao ha marcos suficientes na base local.',
+      proximasAcoes.length ? `Proxima acao sugerida: ${proximasAcoes[0]}.` : null,
+    ].filter(Boolean).join(' '),
+    nivelConfianca: input.movementCount >= MIN_READY_MOVEMENTS ? 'medio' : 'baixo',
+    precisaRevisaoHumana: true,
+    principaisAndamentos,
+    proximasAcoesSugeridas: proximasAcoes,
+    riscosAlertas,
+    ultimosMarcos,
+  }
+}
+
+function resumoInteligenteSchema() {
+  return {
+    additionalProperties: false,
+    properties: {
+      doQueSeTrata: { type: 'string' },
+      faseAtual: { type: 'string' },
+      leituraExecutiva: { type: 'string' },
+      nivelConfianca: { enum: ['alto', 'medio', 'baixo'], type: 'string' },
+      precisaRevisaoHumana: { type: 'boolean' },
+      principaisAndamentos: { items: { type: 'string' }, type: 'array' },
+      proximasAcoesSugeridas: { items: { type: 'string' }, type: 'array' },
+      riscosAlertas: { items: { type: 'string' }, type: 'array' },
+      ultimosMarcos: { items: { type: 'string' }, type: 'array' },
+    },
+    required: [
+      'doQueSeTrata',
+      'faseAtual',
+      'leituraExecutiva',
+      'nivelConfianca',
+      'precisaRevisaoHumana',
+      'principaisAndamentos',
+      'proximasAcoesSugeridas',
+      'riscosAlertas',
+      'ultimosMarcos',
+    ],
+    type: 'object',
+  }
+}
+
+function extractResponseText(payload: any): string | null {
+  if (typeof payload?.output_text === 'string') return payload.output_text
+  const parts: string[] = []
+  for (const item of payload?.output ?? []) {
+    for (const content of item?.content ?? []) {
+      if (typeof content?.text === 'string') parts.push(content.text)
+    }
+  }
+  return parts.join('').trim() || null
+}
+
+function sanitizeResumoInteligente(value: unknown): GkitJurResumoInteligente | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const record = value as Record<string, unknown>
+  const nivel = text(record.nivelConfianca)
+  if (!['alto', 'medio', 'baixo'].includes(nivel)) return null
+
+  return {
+    doQueSeTrata: compactText(record.doQueSeTrata, 900),
+    faseAtual: compactText(record.faseAtual, 240),
+    leituraExecutiva: compactText(record.leituraExecutiva, 1200),
+    nivelConfianca: nivel as GkitJurResumoInteligente['nivelConfianca'],
+    precisaRevisaoHumana: Boolean(record.precisaRevisaoHumana),
+    principaisAndamentos: Array.isArray(record.principaisAndamentos) ? record.principaisAndamentos.map((item) => compactText(item, 320)).filter(Boolean).slice(0, 8) : [],
+    proximasAcoesSugeridas: Array.isArray(record.proximasAcoesSugeridas) ? record.proximasAcoesSugeridas.map((item) => compactText(item, 320)).filter(Boolean).slice(0, 8) : [],
+    riscosAlertas: Array.isArray(record.riscosAlertas) ? record.riscosAlertas.map((item) => compactText(item, 320)).filter(Boolean).slice(0, 8) : [],
+    ultimosMarcos: Array.isArray(record.ultimosMarcos) ? record.ultimosMarcos.map((item) => compactText(item, 320)).filter(Boolean).slice(0, 8) : [],
+  }
+}
+
+async function generateOpenAiResumoInteligente(input: {
+  classe: string | null
+  clienteNome: string | null
+  latestMovements: Array<ReturnType<typeof compactMovement>>
+  numeroCnj: string
+  orgao: string | null
+  relevantMovements: Array<ReturnType<typeof compactMovement>>
+  tarefas: Array<{ prazo: string | null; prioridade: string; status: string; titulo: string }>
+  titulo: string | null
+  tribunal: string | null
+}) {
+  const apiKey = text(process.env.OPENAI_API_KEY)
+  if (!apiKey) return null
+
+  const model = text(process.env.GKIT_JUR_AI_MODEL, 'gpt-5.1-mini')
+  const body = {
+    input: [
+      {
+        content: 'Voce e um assistente juridico operacional. Analise apenas os dados fornecidos. Nao invente fatos, pedidos, valores, partes ou prazos. Se a base for insuficiente, marque baixa confianca e peça revisao humana. Escreva em portugues do Brasil, com linguagem objetiva para um escritorio juridico.',
+        role: 'developer',
+      },
+      {
+        content: JSON.stringify({
+          capa: {
+            classe: input.classe,
+            clienteNome: input.clienteNome,
+            numeroCnj: input.numeroCnj,
+            orgao: input.orgao,
+            titulo: input.titulo,
+            tribunal: input.tribunal,
+          },
+          movimentacoesRecentes: input.latestMovements.map((item) => ({
+            data: item.data,
+            nome: compactText(item.nome, 500),
+            origem: item.origem,
+            relevante: item.relevante,
+          })),
+          movimentacoesRelevantes: input.relevantMovements.map((item) => ({
+            data: item.data,
+            nome: compactText(item.nome, 500),
+            origem: item.origem,
+            relevante: item.relevante,
+          })),
+          tarefasAbertas: input.tarefas,
+        }),
+        role: 'user',
+      },
+    ],
+    max_output_tokens: 1600,
+    model,
+    store: false,
+    text: {
+      format: {
+        name: 'gkit_jur_resumo_inteligente',
+        schema: resumoInteligenteSchema(),
+        strict: true,
+        type: 'json_schema',
+      },
+    },
+  }
+
+  const response = await fetch(OPENAI_RESPONSES_URL, {
+    body: JSON.stringify(body),
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+      'content-type': 'application/json',
+    },
+    method: 'POST',
+  })
+
+  if (!response.ok) {
+    throw new Error(`OpenAI retornou ${response.status} ao gerar resumo inteligente.`)
+  }
+
+  const payload = await response.json()
+  const outputText = extractResponseText(payload)
+  if (!outputText) throw new Error('OpenAI nao retornou texto para o resumo inteligente.')
+  return sanitizeResumoInteligente(JSON.parse(outputText))
+}
+
+async function generateResumoInteligente(input: Parameters<typeof fallbackResumoInteligente>[0]) {
+  const fallback = fallbackResumoInteligente(input)
+  try {
+    const ai = await generateOpenAiResumoInteligente(input)
+    return {
+      fonte: ai ? 'openai' : 'sistema',
+      modelo: ai ? text(process.env.GKIT_JUR_AI_MODEL, 'gpt-5.1-mini') : 'regras-locais',
+      resumo: ai ?? fallback,
+    }
+  } catch (error) {
+    return {
+      erro: error instanceof Error ? error.message : 'Falha ao gerar resumo inteligente com IA.',
+      fonte: 'sistema',
+      modelo: 'regras-locais',
+      resumo: fallback,
+    }
   }
 }
 
@@ -119,7 +369,7 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
   const processoResult = await admin()
     .schema('gkit_jur')
     .from('processos')
-    .select('id,numero_cnj,tribunal_sigla,classe_nome,orgao_julgador_nome,data_ajuizamento,ultima_sincronizacao_em,ultima_movimentacao_em,status_monitoramento,cliente_nome,carteira_id,responsavel_id')
+    .select('id,numero_cnj,titulo,tribunal_sigla,classe_nome,orgao_julgador_nome,data_ajuizamento,ultima_sincronizacao_em,ultima_movimentacao_em,status_monitoramento,cliente_nome,carteira_id,responsavel_id')
     .eq('id', processoId)
     .single()
 
@@ -145,7 +395,7 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
       .select('nome,data_hora,origem,relevante,gera_alerta,created_at')
       .eq('processo_id', processoId)
       .order('data_hora', { ascending: false, nullsFirst: false })
-      .limit(10),
+      .limit(INTELLIGENT_SUMMARY_MAX_MOVEMENTS),
     admin()
       .schema('gkit_jur')
       .from('movimentacoes')
@@ -153,7 +403,7 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
       .eq('processo_id', processoId)
       .or('relevante.eq.true,gera_alerta.eq.true')
       .order('data_hora', { ascending: false, nullsFirst: false })
-      .limit(10),
+      .limit(INTELLIGENT_SUMMARY_MAX_MOVEMENTS),
     admin()
       .schema('gkit_jur')
       .from('tarefas')
@@ -206,6 +456,18 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
     tribunal: text(processo.tribunal_sigla) || null,
     ultimaMovimentacao,
   })
+  const intelligent = await generateResumoInteligente({
+    classe: text(processo.classe_nome) || null,
+    clienteNome: text(processo.cliente_nome) || null,
+    latestMovements,
+    movementCount,
+    numeroCnj: text(processo.numero_cnj, 'sem CNJ'),
+    orgao: text(processo.orgao_julgador_nome) || null,
+    relevantMovements,
+    tarefas: openTasks,
+    titulo: text(processo.titulo) || null,
+    tribunal: text(processo.tribunal_sigla) || null,
+  })
   const pendencias = [
     !text(processo.carteira_id) ? { tipo: 'sem_carteira', label: 'Vincular carteira operacional.' } : null,
     !text(processo.responsavel_id) ? { tipo: 'sem_responsavel', label: 'Definir responsavel pelo acompanhamento.' } : null,
@@ -223,11 +485,12 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
   }
   const hashPayload = JSON.stringify({
     criterio,
+    intelligent,
     latestMovements,
     nivel,
     openTasks,
     relevantMovements,
-    resumoOperacional,
+    resumoOperacional: intelligent.resumo.leituraExecutiva || resumoOperacional,
   })
   const now = new Date().toISOString()
   const payload = {
@@ -235,10 +498,17 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
     criterio_prontidao: criterio,
     erro_mensagem: nivel === 'erro' ? 'Processo sem base operacional e com monitoramento em erro.' : null,
     fase_processual: text(processo.classe_nome) || null,
-    fonte_resumo: 'sistema',
+    fonte_resumo: intelligent.fonte === 'openai' ? 'hibrido' : 'sistema',
     gerado_em: nivel === 'sem_base' ? null : now,
     metadata: {
       latestMovements,
+      resumoInteligente: {
+        ...intelligent.resumo,
+        erroGeracaoIa: intelligent.erro ?? null,
+        fonte: intelligent.fonte,
+        geradoEm: now,
+        modelo: intelligent.modelo,
+      },
       openTasks,
       processo: {
         clienteNome: text(processo.cliente_nome) || null,
@@ -251,13 +521,15 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
     movimentacoes_relevantes: relevantCount,
     nivel_prontidao: nivel,
     pendencias_identificadas: pendencias,
-    proximas_acoes_sugeridas: openTasks,
+    proximas_acoes_sugeridas: intelligent.resumo.proximasAcoesSugeridas.length ? intelligent.resumo.proximasAcoesSugeridas.map((label) => ({ label })) : openTasks,
     resumo_hash: createHash('sha256').update(hashPayload).digest('hex'),
-    resumo_operacional: resumoOperacional,
-    riscos_alertas: riscos,
+    resumo_operacional: intelligent.resumo.leituraExecutiva || resumoOperacional,
+    riscos_alertas: intelligent.resumo.riscosAlertas.length ? intelligent.resumo.riscosAlertas.map((label) => ({ label })) : riscos,
     status_resumo: nivel === 'sem_base' ? 'pendente' : 'gerado',
     ultima_movimentacao_considerada_em: ultimaMovimentacao,
-    ultimos_eventos_relevantes: relevantMovements.length ? relevantMovements : latestMovements.slice(0, 5),
+    ultimos_eventos_relevantes: intelligent.resumo.ultimosMarcos.length
+      ? intelligent.resumo.ultimosMarcos.map((label) => ({ label }))
+      : relevantMovements.length ? relevantMovements : latestMovements.slice(0, 5),
     updated_at: now,
   }
 
@@ -308,4 +580,83 @@ export async function refreshGkitJurProcessSummaries(options: { limit?: number; 
   }
 
   return { processados: rows.length, totals }
+}
+
+export async function refreshGkitJurIntelligentSummaryMonitor(options: { limit?: number } = {}) {
+  const limit = Math.max(1, Math.min(options.limit ?? 25, 100))
+  const processosResult = await admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select('id,updated_at')
+    .eq('status', 'ativo')
+    .order('updated_at', { ascending: false })
+    .limit(2000)
+
+  if (processosResult.error) throw new Error(processosResult.error.message)
+
+  const processos = (processosResult.data ?? []) as Array<Record<string, unknown>>
+  const processoIds = processos.map((row) => text(row.id)).filter(Boolean)
+  const resumoMap = new Map<string, Record<string, unknown>>()
+
+  for (let index = 0; index < processoIds.length; index += 100) {
+    const batchIds = processoIds.slice(index, index + 100)
+    if (!batchIds.length) continue
+    const summariesResult = await admin()
+      .schema('gkit_jur')
+      .from('processos_resumos')
+      .select('processo_id,updated_at,metadata,status_resumo')
+      .in('processo_id', batchIds)
+
+    if (summariesResult.error) throw new Error(summariesResult.error.message)
+    for (const row of (summariesResult.data ?? []) as Array<Record<string, unknown>>) {
+      resumoMap.set(text(row.processo_id), row)
+    }
+  }
+
+  const queue = processos.filter((processo) => {
+    const processoId = text(processo.id)
+    const resumo = resumoMap.get(processoId)
+    const metadata = resumo && typeof resumo.metadata === 'object' && resumo.metadata !== null ? resumo.metadata as Record<string, unknown> : {}
+    const inteligente = metadata.resumoInteligente && typeof metadata.resumoInteligente === 'object' && !Array.isArray(metadata.resumoInteligente)
+      ? metadata.resumoInteligente as Record<string, unknown>
+      : {}
+    const processoUpdatedAt = Date.parse(text(processo.updated_at))
+    const resumoUpdatedAt = Date.parse(text(resumo?.updated_at))
+    const stale = Number.isFinite(processoUpdatedAt) && Number.isFinite(resumoUpdatedAt) && processoUpdatedAt > resumoUpdatedAt
+
+    return !resumo
+      || !Object.keys(inteligente).length
+      || Boolean(inteligente.erroGeracaoIa)
+      || stale
+  }).slice(0, limit)
+
+  const totals: Record<GkitJurNivelProntidao, number> = {
+    capa: 0,
+    desatualizado: 0,
+    erro: 0,
+    parcial: 0,
+    pronto: 0,
+    sem_base: 0,
+  }
+  const erros: Array<{ erro: string; processoId: string }> = []
+
+  for (const row of queue) {
+    const processoId = text(row.id)
+    try {
+      const result = await refreshGkitJurProcessSummary(processoId)
+      totals[result.nivel] += 1
+    } catch (error) {
+      erros.push({
+        erro: error instanceof Error ? error.message : 'Erro inesperado ao reprocessar resumo inteligente.',
+        processoId,
+      })
+    }
+  }
+
+  return {
+    erros,
+    processados: queue.length - erros.length,
+    selecionados: queue.length,
+    totals,
+  }
 }

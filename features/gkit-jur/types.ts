@@ -177,6 +177,21 @@ export type GkitJurProcessSummary = {
   nivelProntidao: GkitJurNivelProntidao;
   pendenciasIdentificadas: string[];
   proximasAcoesSugeridas: string[];
+  resumoInteligente: {
+    doQueSeTrata: string | null;
+    erroGeracaoIa: string | null;
+    faseAtual: string | null;
+    fonte: string | null;
+    geradoEm: string | null;
+    leituraExecutiva: string | null;
+    modelo: string | null;
+    nivelConfianca: 'alto' | 'medio' | 'baixo' | null;
+    precisaRevisaoHumana: boolean;
+    principaisAndamentos: string[];
+    proximasAcoesSugeridas: string[];
+    riscosAlertas: string[];
+    ultimosMarcos: string[];
+  } | null;
   resumoOperacional: string | null;
   riscosAlertas: string[];
   statusResumo: string;
@@ -294,6 +309,9 @@ export type GkitJurSaneamentoSuggestion = {
   processo: GkitJurProcessListItem;
   clienteId: string | null;
   clienteNome: string | null;
+  clienteCandidato: string | null;
+  clienteConfianca: 'alta' | 'media' | null;
+  clienteFonte: string | null;
   carteiraId: string | null;
   carteiraNome: string | null;
   responsavelId: string | null;
@@ -307,6 +325,8 @@ export type GkitJurPendenciasData = {
   suggestions: GkitJurSaneamentoSuggestion[];
   suggestionTotals: {
     cliente: number;
+    clienteAltaConfianca: number;
+    clienteMediaConfianca: number;
     carteira: number;
     responsavel: number;
     total: number;
@@ -436,6 +456,20 @@ export type GkitJurAgenteExecucao = {
   createdAt: string;
 };
 
+export type GkitJurAgenteMonitoramentoItem = {
+  processoId: string;
+  numeroCnj: string;
+  titulo: string | null;
+  clienteNome: string | null;
+  faseAtual: string | null;
+  fonte: string | null;
+  nivelConfianca: 'alto' | 'medio' | 'baixo' | null;
+  precisaRevisaoHumana: boolean;
+  motivo: string;
+  resumoUpdatedAt: string | null;
+  processoUpdatedAt: string | null;
+};
+
 export type GkitJurAgenteData = {
   carteiras: GkitJurSelectOption[];
   fontes: GkitJurAgenteFonte[];
@@ -446,6 +480,22 @@ export type GkitJurAgenteData = {
     receitasAtivas: number;
     pendentes: number;
     falhas: number;
+  };
+  monitoramento: {
+    coberturaPercentual: number;
+    erroGeracaoIa: number;
+    fonteLocal: number;
+    fonteOpenAi: number;
+    modeloConfigurado: string;
+    openAiConfigurado: boolean;
+    pendentesResumo: number;
+    precisaRevisaoHumana: number;
+    resumosInteligentes: number;
+    totalAtivos: number;
+    baixaConfianca: number;
+    desatualizados: number;
+    fila: GkitJurAgenteMonitoramentoItem[];
+    ultimaGeracaoEm: string | null;
   };
 };
 

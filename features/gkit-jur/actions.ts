@@ -6,6 +6,7 @@ import { canAccess } from '@/lib/auth/permissions'
 import { requireModuleAccess } from '@/lib/auth/platform'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getGkitJurSaneamentoSuggestions } from './queries'
+import { refreshGkitJurIntelligentSummaryMonitor, refreshGkitJurProcessSummary } from './summary-service'
 import { runGkitJurSync } from './sync-runner'
 
 function admin() {
@@ -163,6 +164,8 @@ export async function applyGkitJurSaneamentoSuggestionsAction(formData: FormData
       .eq('id', suggestion.processo.id)
 
     if (error) throw new Error(error.message)
+
+    await refreshGkitJurProcessSummary(suggestion.processo.id)
   }
 
   revalidateGkitJur()
@@ -669,4 +672,89 @@ export async function validateGkitJurAgenteExecucaoAction(formData: FormData) {
 
   revalidateGkitJur()
   redirect('/modulos/gkit-jur/agente')
+}
+
+export async function runGkitJurAgenteMonitoramentoAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.sync')
+  const limit = Math.max(1, Math.min(Number.parseInt(text(formData, 'limit') || '25', 10) || 25, 100))
+  const now = new Date().toISOString()
+
+  const insertResult = await admin()
+    .schema('gkit_jur')
+    .from('agente_execucoes')
+    .insert({
+      status: 'em_execucao',
+      iniciado_em: now,
+      solicitado_por: context.usuario.id,
+      payload: {
+        limit,
+        origem: 'monitoramento_resumo_inteligente',
+        rotina: 'resumos_inteligentes',
+      },
+    })
+    .select('id')
+    .single()
+
+  if (insertResult.error || !insertResult.data) {
+    throw new Error(insertResult.error?.message ?? 'Nao foi possivel iniciar o monitoramento do agente.')
+  }
+
+  const execucaoId = insertResult.data.id
+
+  try {
+    const result = await refreshGkitJurIntelligentSummaryMonitor({ limit })
+    const status = result.erros.length ? 'precisa_intervencao' : 'sucesso'
+
+    const updateResult = await admin()
+      .schema('gkit_jur')
+      .from('agente_execucoes')
+      .update({
+        erro_mensagem: result.erros.length ? `${result.erros.length} processo(s) falharam no reprocessamento.` : null,
+        finalizado_em: new Date().toISOString(),
+        payload: {
+          limit,
+          origem: 'monitoramento_resumo_inteligente',
+          resultado: result,
+          rotina: 'resumos_inteligentes',
+        },
+        status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', execucaoId)
+
+    if (updateResult.error) throw new Error(updateResult.error.message)
+
+    await admin().schema('gkit_jur').from('agente_logs').insert({
+      execucao_id: execucaoId,
+      nivel: result.erros.length ? 'warn' : 'info',
+      step: 'monitoramento_resumo_inteligente',
+      mensagem: `Monitoramento processou ${result.processados} resumo(s) inteligente(s).`,
+      payload: result,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erro inesperado no monitoramento do agente.'
+    await admin()
+      .schema('gkit_jur')
+      .from('agente_execucoes')
+      .update({
+        erro_mensagem: message,
+        finalizado_em: new Date().toISOString(),
+        status: 'falha',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', execucaoId)
+    throw error
+  }
+
+  await admin().schema('gkit_jur').from('eventos_operacionais').insert({
+    user_id: context.usuario.id,
+    entidade_tipo: 'agente_execucao',
+    entidade_id: execucaoId,
+    acao: 'agente_monitoramento_resumo_inteligente',
+    descricao: 'Monitoramento do resumo inteligente executado pelo agente auxiliar.',
+    payload: { limit },
+  })
+
+  revalidateGkitJur()
+  redirect('/modulos/gkit-jur/agente?monitoramento=ok')
 }

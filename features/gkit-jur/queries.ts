@@ -130,6 +130,164 @@ function normalizeName(value: unknown) {
     .toLowerCase()
 }
 
+const CLIENT_MATCH_STOP_WORDS = new Set([
+  'administradora',
+  'administracao',
+  'advogados',
+  'assessoria',
+  'associacao',
+  'assoc',
+  'clube',
+  'cond',
+  'condominio',
+  'convention',
+  'ed',
+  'edificio',
+  'empreendimento',
+  'imoveis',
+  'ltda',
+  'me',
+  'residencial',
+  'residence',
+  's',
+  'sa',
+  'service',
+  'spe',
+])
+
+const CLIENT_ENTITY_SIGNAL = /\b(condominio|cond|edificio|residencial|associacao|assoc|home|park|tower|building|residence|plaza|village|jardim|villa|vilas)\b/i
+
+function normalizeClientMatch(value: unknown) {
+  return text(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\b(cnpj|cpf)\b[:\s\d./-]*/gi, ' ')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+}
+
+function clientTokens(value: unknown) {
+  return normalizeClientMatch(value)
+    .split(' ')
+    .filter((token) => token.length > 2 && !CLIENT_MATCH_STOP_WORDS.has(token))
+}
+
+function cleanClientMatchKey(value: unknown) {
+  return clientTokens(value).join(' ')
+}
+
+function clientTokenScore(candidate: string, clientName: string) {
+  const candidateTokens = new Set(clientTokens(candidate))
+  const clientTokensSet = new Set(clientTokens(clientName))
+  if (!candidateTokens.size || !clientTokensSet.size) return 0
+
+  let intersection = 0
+  candidateTokens.forEach((token) => {
+    if (clientTokensSet.has(token)) intersection += 1
+  })
+
+  const union = new Set([...candidateTokens, ...clientTokensSet]).size
+  const coverage = intersection / Math.min(candidateTokens.size, clientTokensSet.size)
+  const jaccard = union ? intersection / union : 0
+  return Math.max(jaccard, coverage * 0.92)
+}
+
+function clientCandidateCoverage(candidate: string, clientName: string) {
+  const candidateTokens = new Set(clientTokens(candidate))
+  const clientTokensSet = new Set(clientTokens(clientName))
+  if (!candidateTokens.size || !clientTokensSet.size) return 0
+
+  let intersection = 0
+  candidateTokens.forEach((token) => {
+    if (clientTokensSet.has(token)) intersection += 1
+  })
+
+  return intersection / candidateTokens.size
+}
+
+function hasClientEntitySignal(value: unknown) {
+  return CLIENT_ENTITY_SIGNAL.test(normalizeClientMatch(value))
+}
+
+function uniqueById(values: ClienteSuggestionSource[]) {
+  const byId = new Map<string, ClienteSuggestionSource>()
+  values.forEach((item) => byId.set(item.id, item))
+  return [...byId.values()]
+}
+
+function pushClientMap(map: Map<string, ClienteSuggestionSource[]>, key: string, source: ClienteSuggestionSource) {
+  if (!key) return
+  const values = map.get(key) ?? []
+  if (!values.some((item) => item.id === source.id)) values.push(source)
+  map.set(key, values)
+}
+
+type ClienteCandidateSource = 'cliente_nome' | 'titulo_parte' | 'metadata'
+
+type ClienteCandidate = {
+  label: string
+  source: ClienteCandidateSource
+}
+
+type ClienteMatch = {
+  candidate: ClienteCandidate
+  confidence: 'alta' | 'media'
+  matchType: string
+  score: number
+  source: ClienteSuggestionSource
+}
+
+function addClienteCandidate(candidates: ClienteCandidate[], label: unknown, source: ClienteCandidateSource, requireSignal = false) {
+  const value = text(label)
+    .replace(/\b(autor|autora|requerente|reclamante|exequente|cliente|envolvido|parte)\b\s*[:;-]?\s*/gi, '')
+    .replace(/\b(cnpj|cpf)\b[:\s\d./-]*/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (value.length < 4) return
+  if (requireSignal && !hasClientEntitySignal(value)) return
+  if (candidates.some((item) => normalizeClientMatch(item.label) === normalizeClientMatch(value))) return
+  candidates.push({ label: value, source })
+}
+
+function addTitleCandidates(candidates: ClienteCandidate[], titulo: unknown) {
+  const value = text(titulo)
+  if (!value) return
+  value
+    .split(/\s+(?:x|vs\.?|versus|contra)\s+/i)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .forEach((part) => addClienteCandidate(candidates, part, 'titulo_parte', true))
+}
+
+function addMetadataCandidates(candidates: ClienteCandidate[], value: unknown, depth = 0) {
+  if (depth > 4 || value == null) return
+  if (typeof value === 'string') {
+    addClienteCandidate(candidates, value, 'metadata', true)
+    return
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item) => addMetadataCandidates(candidates, item, depth + 1))
+    return
+  }
+
+  const record = recordValue(value)
+  for (const key of ['nome', 'name', 'label', 'titulo', 'razao_social', 'nome_fantasia', 'parte', 'envolvido']) {
+    if (record[key]) addClienteCandidate(candidates, record[key], 'metadata', true)
+  }
+  Object.values(record).forEach((item) => addMetadataCandidates(candidates, item, depth + 1))
+}
+
+function clienteCandidates(row: Record<string, unknown>) {
+  const candidates: ClienteCandidate[] = []
+  addClienteCandidate(candidates, row.cliente_nome, 'cliente_nome')
+  addTitleCandidates(candidates, row.titulo)
+  addMetadataCandidates(candidates, row.metadata_datajud)
+  return candidates
+}
+
 function singleParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? '' : value ?? ''
 }
@@ -303,6 +461,8 @@ type ClienteSuggestionSource = {
   carteiraId: string | null
   id: string
   label: string
+  matchKeys: string[]
+  searchKeys: string[]
 }
 
 type ResponsavelSuggestionSource = {
@@ -351,16 +511,25 @@ async function getSuggestionSources() {
   ]))
   const carteiraMap = new Map(((carteirasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome)]))
   const clienteMap = new Map<string, ClienteSuggestionSource>()
+  const clienteExactMap = new Map<string, ClienteSuggestionSource[]>()
+  const clienteCleanMap = new Map<string, ClienteSuggestionSource[]>()
+  const clienteSearchIndex: ClienteSuggestionSource[] = []
 
   for (const row of (clientesResult.data ?? []) as Array<Record<string, unknown>>) {
+    const names = [text(row.nome_fantasia), text(row.nome), text(row.razao_social)].filter(Boolean)
     const source = {
       carteiraId: text(row.carteira_id) || null,
       id: String(row.id),
       label: text(row.nome_fantasia, text(row.nome, text(row.razao_social, 'Cliente sem nome'))),
+      matchKeys: [...new Set(names.map((name) => normalizeName(name)).filter(Boolean))],
+      searchKeys: [...new Set(names.map((name) => cleanClientMatchKey(name)).filter(Boolean))],
     }
-    for (const key of [normalizeName(row.nome_fantasia), normalizeName(row.nome), normalizeName(row.razao_social)].filter(Boolean)) {
+    for (const key of source.matchKeys) {
       if (!clienteMap.has(key)) clienteMap.set(key, source)
+      pushClientMap(clienteExactMap, key, source)
     }
+    for (const key of source.searchKeys) pushClientMap(clienteCleanMap, key, source)
+    clienteSearchIndex.push(source)
   }
 
   const carteiraByClienteName = new Map<string, string>()
@@ -399,9 +568,79 @@ async function getSuggestionSources() {
     carteiraByClienteName,
     carteiraByResponsavelId,
     carteiraMap,
+    clienteCleanMap,
+    clienteExactMap,
     clienteMap,
+    clienteSearchIndex,
     responsavelByCarteira,
   }
+}
+
+function uniqueClientMatch(values: ClienteSuggestionSource[] | undefined) {
+  const unique = values ? uniqueById(values) : []
+  return unique.length === 1 ? unique[0] : null
+}
+
+function findClienteSuggestion(row: Record<string, unknown>, sources: Awaited<ReturnType<typeof getSuggestionSources>>): ClienteMatch | null {
+  const candidates = clienteCandidates(row)
+
+  for (const candidate of candidates) {
+    const exact = uniqueClientMatch(sources.clienteExactMap.get(normalizeName(candidate.label)))
+    if (exact) {
+      return {
+        candidate,
+        confidence: 'alta',
+        matchType: candidate.source === 'cliente_nome' ? 'cliente por nome' : `cliente por ${candidate.source.replace('_', ' ')}`,
+        score: 1,
+        source: exact,
+      }
+    }
+
+    const clean = uniqueClientMatch(sources.clienteCleanMap.get(cleanClientMatchKey(candidate.label)))
+    if (clean) {
+      return {
+        candidate,
+        confidence: 'alta',
+        matchType: `cliente por equivalencia (${candidate.source.replace('_', ' ')})`,
+        score: 0.98,
+        source: clean,
+      }
+    }
+  }
+
+  const fuzzyMatches: ClienteMatch[] = []
+  for (const candidate of candidates.filter((item) => hasClientEntitySignal(item.label))) {
+    const candidateKey = cleanClientMatchKey(candidate.label)
+    if (candidateKey.length < 6 || clientTokens(candidateKey).length < 2) continue
+
+    for (const source of sources.clienteSearchIndex) {
+      const bestMatch = source.searchKeys.reduce((best, key) => {
+        const score = clientTokenScore(candidateKey, key)
+        const coverage = clientCandidateCoverage(candidateKey, key)
+        return score > best.score ? { coverage, score } : best
+      }, { coverage: 0, score: 0 })
+      const bestScore = bestMatch.score
+      if (bestScore < 0.82) continue
+      if (bestMatch.coverage < 0.86) continue
+
+      fuzzyMatches.push({
+        candidate,
+        confidence: bestScore >= 0.88 ? 'alta' : 'media',
+        matchType: `cliente por similaridade (${candidate.source.replace('_', ' ')})`,
+        score: bestScore,
+        source,
+      })
+    }
+  }
+
+  const ranked = fuzzyMatches.sort((a, b) => b.score - a.score)
+  const best = ranked[0]
+  if (!best) return null
+
+  const tied = ranked.filter((item) => item.source.id !== best.source.id && best.score - item.score < 0.08)
+  if (tied.length) return null
+
+  return best
 }
 
 function buildSuggestion(row: Record<string, unknown>, maps: Awaited<ReturnType<typeof lookupMaps>>, sources: Awaited<ReturnType<typeof getSuggestionSources>>) {
@@ -410,7 +649,8 @@ function buildSuggestion(row: Record<string, unknown>, maps: Awaited<ReturnType<
   const carteiraIdAtual = text(row.carteira_id) || null
   const responsavelIdAtual = text(row.responsavel_id) || null
   const clienteNameKey = normalizeName(row.cliente_nome)
-  const clienteSuggestion = clienteIdAtual ? null : sources.clienteMap.get(clienteNameKey) ?? null
+  const clienteMatch = clienteIdAtual ? null : findClienteSuggestion(row, sources)
+  const clienteSuggestion = clienteMatch?.source ?? null
   const clienteId = clienteIdAtual ?? clienteSuggestion?.id ?? null
   const carteiraFromCliente = (clienteId ? sources.carteiraByClienteId.get(clienteId) ?? null : null)
     ?? clienteSuggestion?.carteiraId
@@ -427,7 +667,7 @@ function buildSuggestion(row: Record<string, unknown>, maps: Awaited<ReturnType<
   if (!clienteSuggestion && !hasCarteiraSuggestion && !responsavelSuggestion) return null
 
   const motivos = []
-  if (clienteSuggestion) motivos.push('cliente por nome')
+  if (clienteMatch) motivos.push(`${clienteMatch.matchType} (${clienteMatch.confidence})`)
   if (hasCarteiraSuggestion && carteiraFromCliente === carteiraId) motivos.push('carteira por cliente')
   if (hasCarteiraSuggestion && carteiraFromResponsavel === carteiraId) motivos.push('carteira por responsável')
   if (responsavelSuggestion) motivos.push('responsável da carteira')
@@ -436,6 +676,9 @@ function buildSuggestion(row: Record<string, unknown>, maps: Awaited<ReturnType<
     processo,
     clienteId: clienteSuggestion?.id ?? null,
     clienteNome: clienteSuggestion?.label ?? null,
+    clienteCandidato: clienteMatch?.candidate.label ?? null,
+    clienteConfianca: clienteMatch?.confidence ?? null,
+    clienteFonte: clienteMatch?.candidate.source ?? null,
     carteiraId: hasCarteiraSuggestion ? carteiraId : null,
     carteiraNome: hasCarteiraSuggestion && carteiraId ? sources.carteiraMap.get(carteiraId) ?? null : null,
     responsavelId: responsavelSuggestion?.usuarioId ?? null,
@@ -450,7 +693,7 @@ export async function getGkitJurSaneamentoSuggestions(limit = 8) {
     admin()
       .schema('gkit_jur')
       .from('processos')
-      .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,updated_at')
+      .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,metadata_datajud,updated_at')
       .eq('status', DEFAULT_PROCESS_STATUS)
       .or('cliente_id.is.null,carteira_id.is.null,responsavel_id.is.null')
       .order('updated_at', { ascending: false })
@@ -469,6 +712,8 @@ export async function getGkitJurSaneamentoSuggestions(limit = 8) {
     suggestions: suggestions.slice(0, limit),
     suggestionTotals: {
       cliente: suggestions.filter((item) => item.clienteId).length,
+      clienteAltaConfianca: suggestions.filter((item) => item.clienteId && item.clienteConfianca === 'alta').length,
+      clienteMediaConfianca: suggestions.filter((item) => item.clienteId && item.clienteConfianca === 'media').length,
       carteira: suggestions.filter((item) => item.carteiraId).length,
       responsavel: suggestions.filter((item) => item.responsavelId).length,
       total: suggestions.length,
@@ -851,6 +1096,10 @@ function statusSuggestionFromTarefas(tarefas: GkitJurTarefa[], processo: GkitJur
 }
 
 function mapProcessSummary(row: Record<string, unknown>): GkitJurProcessSummary {
+  const metadata = recordValue(row.metadata)
+  const resumoInteligente = recordValue(metadata.resumoInteligente)
+  const nivelConfianca = text(resumoInteligente.nivelConfianca)
+
   return {
     baseSincronizacaoEm: text(row.base_sincronizacao_em) || null,
     criterioProntidao: recordValue(row.criterio_prontidao),
@@ -858,13 +1107,28 @@ function mapProcessSummary(row: Record<string, unknown>): GkitJurProcessSummary 
     faseProcessual: text(row.fase_processual) || null,
     fonteResumo: text(row.fonte_resumo) || null,
     geradoEm: text(row.gerado_em) || null,
-    metadata: recordValue(row.metadata),
+    metadata,
     modeloVersao: text(row.modelo_versao) || null,
     movimentacoesConsideradas: numberValue(row.movimentacoes_consideradas),
     movimentacoesRelevantes: numberValue(row.movimentacoes_relevantes),
     nivelProntidao: nivelProntidao(row.nivel_prontidao),
     pendenciasIdentificadas: stringList(row.pendencias_identificadas),
     proximasAcoesSugeridas: stringList(row.proximas_acoes_sugeridas),
+    resumoInteligente: Object.keys(resumoInteligente).length ? {
+      doQueSeTrata: text(resumoInteligente.doQueSeTrata) || null,
+      erroGeracaoIa: text(resumoInteligente.erroGeracaoIa) || null,
+      faseAtual: text(resumoInteligente.faseAtual) || null,
+      fonte: text(resumoInteligente.fonte) || null,
+      geradoEm: text(resumoInteligente.geradoEm) || null,
+      leituraExecutiva: text(resumoInteligente.leituraExecutiva) || null,
+      modelo: text(resumoInteligente.modelo) || null,
+      nivelConfianca: ['alto', 'medio', 'baixo'].includes(nivelConfianca) ? nivelConfianca as 'alto' | 'medio' | 'baixo' : null,
+      precisaRevisaoHumana: Boolean(resumoInteligente.precisaRevisaoHumana),
+      principaisAndamentos: stringList(resumoInteligente.principaisAndamentos),
+      proximasAcoesSugeridas: stringList(resumoInteligente.proximasAcoesSugeridas),
+      riscosAlertas: stringList(resumoInteligente.riscosAlertas),
+      ultimosMarcos: stringList(resumoInteligente.ultimosMarcos),
+    } : null,
     resumoOperacional: text(row.resumo_operacional) || null,
     riscosAlertas: stringList(row.riscos_alertas),
     statusResumo: text(row.status_resumo, 'pendente'),
@@ -1693,12 +1957,137 @@ function agentStatus(value: unknown): GkitJurAgenteExecucaoStatus {
   return 'pendente'
 }
 
+async function getGkitJurAgenteMonitoramento() {
+  const processosResult = await admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select('id,numero_cnj,numero_cnj_limpo,titulo,cliente_nome,updated_at')
+    .eq('status', DEFAULT_PROCESS_STATUS)
+    .order('updated_at', { ascending: false })
+    .limit(2000)
+
+  if (processosResult.error) throw new Error(processosResult.error.message)
+
+  const processos = (processosResult.data ?? []) as Array<Record<string, unknown>>
+  const processoIds = processos.map((row) => text(row.id)).filter(Boolean)
+  const resumoMap = new Map<string, Record<string, unknown>>()
+
+  for (let index = 0; index < processoIds.length; index += 100) {
+    const ids = processoIds.slice(index, index + 100)
+    if (!ids.length) continue
+    const resumoResult = await admin()
+      .schema('gkit_jur')
+      .from('processos_resumos')
+      .select('processo_id,metadata,modelo_versao,fonte_resumo,updated_at,gerado_em,status_resumo')
+      .in('processo_id', ids)
+
+    if (resumoResult.error) throw new Error(resumoResult.error.message)
+    for (const row of (resumoResult.data ?? []) as Array<Record<string, unknown>>) {
+      resumoMap.set(text(row.processo_id), row)
+    }
+  }
+
+  let resumosInteligentes = 0
+  let precisaRevisaoHumana = 0
+  let baixaConfianca = 0
+  let erroGeracaoIa = 0
+  let fonteOpenAi = 0
+  let fonteLocal = 0
+  let desatualizados = 0
+  let ultimaGeracaoEm: string | null = null
+  const fila: GkitJurAgenteData['monitoramento']['fila'] = []
+
+  for (const processo of processos) {
+    const processoId = text(processo.id)
+    const resumo = resumoMap.get(processoId)
+    const metadata = recordValue(resumo?.metadata)
+    const inteligente = recordValue(metadata.resumoInteligente)
+    const processoUpdatedAt = text(processo.updated_at) || null
+    const resumoUpdatedAt = text(resumo?.updated_at) || null
+    const stale = Boolean(
+      processoUpdatedAt
+      && resumoUpdatedAt
+      && Number.isFinite(Date.parse(processoUpdatedAt))
+      && Number.isFinite(Date.parse(resumoUpdatedAt))
+      && Date.parse(processoUpdatedAt) > Date.parse(resumoUpdatedAt),
+    )
+
+    if (resumoUpdatedAt && (!ultimaGeracaoEm || Date.parse(resumoUpdatedAt) > Date.parse(ultimaGeracaoEm))) {
+      ultimaGeracaoEm = resumoUpdatedAt
+    }
+
+    const hasSmartSummary = Boolean(Object.keys(inteligente).length)
+    const nivelConfianca = text(inteligente.nivelConfianca)
+    const fonte = text(inteligente.fonte) || text(resumo?.fonte_resumo) || null
+    const hasError = Boolean(text(inteligente.erroGeracaoIa))
+    const needsReview = Boolean(inteligente.precisaRevisaoHumana)
+
+    if (hasSmartSummary) {
+      resumosInteligentes += 1
+      if (fonte === 'openai') fonteOpenAi += 1
+      else fonteLocal += 1
+      if (needsReview) precisaRevisaoHumana += 1
+      if (nivelConfianca === 'baixo') baixaConfianca += 1
+      if (hasError) erroGeracaoIa += 1
+      if (stale) desatualizados += 1
+    }
+
+    const motivo = !hasSmartSummary
+      ? 'Sem resumo inteligente'
+      : stale
+        ? 'Resumo mais antigo que o processo'
+        : hasError
+          ? 'Falha na geracao por IA'
+          : nivelConfianca === 'baixo'
+            ? 'Baixa confianca'
+            : needsReview
+              ? 'Aguardando revisao humana'
+              : null
+
+    if (motivo) {
+      fila.push({
+        processoId,
+        numeroCnj: formatCnj(text(processo.numero_cnj, text(processo.numero_cnj_limpo))),
+        titulo: text(processo.titulo) || null,
+        clienteNome: text(processo.cliente_nome) || null,
+        faseAtual: text(inteligente.faseAtual) || null,
+        fonte,
+        nivelConfianca: ['alto', 'medio', 'baixo'].includes(nivelConfianca) ? nivelConfianca as 'alto' | 'medio' | 'baixo' : null,
+        precisaRevisaoHumana: needsReview,
+        motivo,
+        resumoUpdatedAt,
+        processoUpdatedAt,
+      })
+    }
+  }
+
+  const totalAtivos = processos.length
+
+  return {
+    coberturaPercentual: totalAtivos ? Math.round((resumosInteligentes / totalAtivos) * 100) : 0,
+    erroGeracaoIa,
+    fonteLocal,
+    fonteOpenAi,
+    modeloConfigurado: text(process.env.GKIT_JUR_AI_MODEL, 'gpt-5.1-mini'),
+    openAiConfigurado: Boolean(text(process.env.OPENAI_API_KEY)),
+    pendentesResumo: Math.max(0, totalAtivos - resumosInteligentes),
+    precisaRevisaoHumana,
+    resumosInteligentes,
+    totalAtivos,
+    baixaConfianca,
+    desatualizados,
+    fila: fila.slice(0, 12),
+    ultimaGeracaoEm,
+  }
+}
+
 export async function getGkitJurAgenteData(): Promise<GkitJurAgenteData> {
-  const [carteirasResult, fontesResult, receitasResult, execucoesResult] = await Promise.all([
+  const [carteirasResult, fontesResult, receitasResult, execucoesResult, monitoramento] = await Promise.all([
     admin().schema('core').from('carteiras').select('id,nome').eq('status', 'ativo').order('nome', { ascending: true }),
     admin().schema('gkit_jur').from('agente_fontes').select('id,carteira_id,nome,tipo,url_base,exige_captcha,exige_2fa,ativo').order('created_at', { ascending: false }).limit(100),
     admin().schema('gkit_jur').from('agente_receitas').select('id,fonte_id,carteira_id,nome,descricao,tipo_coleta,periodicidade,script_key,tipo_arquivo_esperado,ativo').order('created_at', { ascending: false }).limit(100),
     admin().schema('gkit_jur').from('agente_execucoes').select('id,receita_id,fonte_id,carteira_id,status,iniciado_em,finalizado_em,erro_mensagem,tentativas,created_at').order('created_at', { ascending: false }).limit(50),
+    getGkitJurAgenteMonitoramento(),
   ])
 
   for (const result of [carteirasResult, fontesResult, receitasResult, execucoesResult]) {
@@ -1774,6 +2163,7 @@ export async function getGkitJurAgenteData(): Promise<GkitJurAgenteData> {
       pendentes: execucoes.filter((item) => ['pendente', 'em_execucao', 'aguardando_validacao'].includes(item.status)).length,
       falhas: execucoes.filter((item) => ['falha', 'precisa_intervencao'].includes(item.status)).length,
     },
+    monitoramento,
   }
 }
 
