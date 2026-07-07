@@ -600,6 +600,16 @@ export type GkitJurIntegracaoSyncFeedback = {
   tarefas: number;
 } | null;
 
+export type GkitJurProcessSyncFeedback = {
+  erros: number;
+  mensagem: string | null;
+  novas: number;
+  processos: number;
+  semResultado: number;
+  status: 'ok' | 'erro';
+  tarefas: number;
+} | null;
+
 export type GkitJurMovimentacaoTarefaRegra = {
   id: string;
   nome: string;

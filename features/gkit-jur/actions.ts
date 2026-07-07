@@ -72,6 +72,12 @@ function safeReturnTo(formData: FormData, fallback: string) {
   return fallback
 }
 
+function withParams(path: string, params: URLSearchParams, hash = '') {
+  const [pathWithoutHash] = path.split('#')
+  const [pathname] = pathWithoutHash.split('?')
+  return `${pathname}?${params.toString()}${hash}`
+}
+
 function revalidateGkitJur() {
   revalidatePath('/modulos/gkit-jur')
   revalidatePath('/modulos/gkit-jur/inbox')
@@ -204,6 +210,46 @@ export async function syncGkitJurDataJudAction(formData: FormData) {
   })
 
   redirect(`/modulos/gkit-jur/configuracoes/integracao?${params.toString()}`)
+}
+
+export async function syncGkitJurProcessNowAction(formData: FormData) {
+  await requireGkitJurWrite('gkit_jur.processos.sync')
+  const processoId = requiredText(formData, 'processo_id', 'Processo')
+  await getActiveJurProcess(processoId)
+
+  const target = safeReturnTo(formData, `/modulos/gkit-jur/processos/${processoId}`)
+  let result
+  let errorMessage = ''
+
+  try {
+    result = await runGkitJurSync({
+      dataJudBatchLimit: 1,
+      dataJudMaxTransientErrors: 1,
+      maxDataJudBatches: 1,
+      processoId,
+      provider: 'datajud',
+      timeBudgetMs: 120_000,
+    })
+  } catch (error) {
+    errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao atualizar o processo.'
+  }
+
+  revalidateGkitJur()
+  revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  revalidatePath('/modulos/gkit-jur/auditoria')
+  revalidatePath('/modulos/gkit-jur/movimentacoes')
+
+  const params = new URLSearchParams({
+    erros: String(result?.erro ?? 1),
+    novas: String(result?.movimentosNovos ?? 0),
+    processos: String(result?.processos ?? 0),
+    sem_resultado: String(result?.semResultado ?? 0),
+    sync_processo: errorMessage ? 'erro' : 'ok',
+    tarefas: String(result?.tarefasGeradas ?? 0),
+  })
+  if (errorMessage) params.set('mensagem', errorMessage.slice(0, 180))
+
+  redirect(withParams(target, params))
 }
 
 export async function saveGkitJurMovimentacaoTarefaRegraAction(formData: FormData) {
