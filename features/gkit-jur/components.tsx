@@ -34,6 +34,7 @@ import type {
   GkitJurProcessFilters,
   GkitJurProcessListData,
   GkitJurProcessListItem,
+  GkitJurProcessSyncFeedback,
   GkitJurSaneamentoSuggestion,
   GkitJurSelectOption,
   GkitJurTarefa,
@@ -218,7 +219,10 @@ function readinessScore(value: string | null | undefined) {
 }
 
 function listOrFallback(items: string[], fallback: string) {
-  return items.length ? items : [fallback]
+  const unique = [...new Map(items
+    .map((item) => [item.replace(/\s+/g, ' ').trim().toLowerCase(), item.trim()] as const)
+    .filter(([key]) => Boolean(key))).values()]
+  return unique.length ? unique : [fallback]
 }
 
 function executiveProcessSummary(data: GkitJurProcessDetailData, relevantMovements: number) {
@@ -1156,9 +1160,11 @@ function withoutRepeatedSmartContext(summary: string, context?: string | null) {
 function GkitJurProcessDashboard({
   canWrite,
   data,
+  syncAction,
 }: {
   canWrite: boolean
   data: GkitJurProcessDetailData
+  syncAction?: (formData: FormData) => Promise<void>
 }) {
   const { documentos, movimentacoes, processo, resumo, tarefas, timeline } = data
   const smartSummary = resumo?.resumoInteligente ?? null
@@ -1189,10 +1195,21 @@ function GkitJurProcessDashboard({
 
   return (
     <GkitJurSection
-      action={canWrite ? (
+      action={(canWrite || syncAction) ? (
         <div className="gkit-jur-process-dashboard-actions">
-          <a className="button primary-button" href="#tarefas">Criar tarefa</a>
-          <a className="button secondary" href="#ajustes-operacionais">Ajustes operacionais</a>
+          {syncAction ? (
+            <form action={syncAction} className="gkit-jur-process-sync-form">
+              <input name="processo_id" type="hidden" value={processo.id} />
+              <input name="return_to" type="hidden" value={`/modulos/gkit-jur/processos/${processo.id}`} />
+              <GkitJurSyncSubmitButton
+                idleLabel="Atualizar agora"
+                pendingHint="Consultando DataJud, atualizando resumo e aplicando retenção."
+                pendingLabel="Atualizando..."
+              />
+            </form>
+          ) : null}
+          {canWrite ? <a className="button primary-button" href="#tarefas">Criar tarefa</a> : null}
+          {canWrite ? <a className="button secondary" href="#ajustes-operacionais">Ajustes operacionais</a> : null}
         </div>
       ) : null}
       className="gkit-jur-process-dashboard"
@@ -1289,22 +1306,28 @@ function GkitJurProcessDashboard({
 
 export function GkitJurProcessDetailPage({
   action,
+  canSync,
   canWrite,
   createDocumentoAction,
   createEventoAction,
   createTarefaAction,
   createTarefaFromReferenceAction,
   data,
+  syncAction,
+  syncFeedback,
   updateTarefaPlanejamentoAction,
   updateTarefaStatusAction,
 }: {
   action: (formData: FormData) => Promise<void>
+  canSync: boolean
   canWrite: boolean
   createDocumentoAction: (formData: FormData) => Promise<void>
   createEventoAction: (formData: FormData) => Promise<void>
   createTarefaAction: (formData: FormData) => Promise<void>
   createTarefaFromReferenceAction: (formData: FormData) => Promise<void>
   data: GkitJurProcessDetailData
+  syncAction: (formData: FormData) => Promise<void>
+  syncFeedback: GkitJurProcessSyncFeedback
   updateTarefaPlanejamentoAction: (formData: FormData) => Promise<void>
   updateTarefaStatusAction: (formData: FormData) => Promise<void>
 }) {
@@ -1318,7 +1341,20 @@ export function GkitJurProcessDetailPage({
 
   return (
     <>
-      <GkitJurProcessDashboard canWrite={canWrite} data={data} />
+      {syncFeedback ? (
+        <div className={`suite-alert ${syncFeedback.status === 'erro' || syncFeedback.erros ? 'warning' : 'success'} gkit-jur-process-sync-feedback`}>
+          {syncFeedback.status === 'erro' ? (
+            <span>{syncFeedback.mensagem || 'Não foi possível atualizar o processo agora.'}</span>
+          ) : (
+            <span>
+              Processo atualizado. {syncFeedback.novas.toLocaleString('pt-BR')} movimentação(ões) nova(s), {syncFeedback.tarefas.toLocaleString('pt-BR')} tarefa(s) gerada(s).
+              {syncFeedback.semResultado ? ` ${syncFeedback.semResultado.toLocaleString('pt-BR')} consulta(s) sem resultado.` : ''}
+              {syncFeedback.erros ? ` ${syncFeedback.erros.toLocaleString('pt-BR')} erro(s) registrado(s).` : ''}
+            </span>
+          )}
+        </div>
+      ) : null}
+      <GkitJurProcessDashboard canWrite={canWrite} data={data} syncAction={canSync ? syncAction : undefined} />
       {statusSuggestion ? (
         <GkitJurSection title="Sugestão operacional" description="Movimentação encontrada pela integração indica possível encerramento.">
           <div className="suite-alert warning gkit-jur-status-suggestion">

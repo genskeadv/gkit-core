@@ -5500,7 +5500,27 @@ tbody tr:hover {
 }
 
 .gkit-jur-process-dashboard-actions .button {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  margin-top: 0;
   min-height: 38px;
+}
+
+.gkit-jur-process-sync-form {
+  margin: 0;
+}
+
+.gkit-jur-process-sync-form .gkit-jur-sync-submit {
+  gap: 4px;
+}
+
+.gkit-jur-process-sync-form .gkit-jur-sync-submit .button {
+  min-width: 150px;
+}
+
+.gkit-jur-process-sync-feedback {
+  margin-bottom: 14px;
 }
 
 .gkit-jur-collapsible {

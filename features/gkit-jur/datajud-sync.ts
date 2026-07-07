@@ -376,6 +376,16 @@ function integrationTaskHash(row: GkitJurSyncProcessRow, ruleId: string, dateKey
   return `${INTEGRATION_TASK_ORIGIN}:${row.id}:${ruleId}:${dateKey}`
 }
 
+function isPublicationRule(rule: MovementTaskRule) {
+  return rule.tipo_tarefa === 'publicacao'
+}
+
+function maxDateKey(left: string, right: string) {
+  if (left === 'sem-data') return right
+  if (right === 'sem-data') return left
+  return right > left ? right : left
+}
+
 function taskSource(provider: string, providerLabel: string) {
   return { label: providerLabel, provider }
 }
@@ -438,6 +448,7 @@ export async function generateTasksFromMovements(
     legacyHashes: string[]
     movimentos: Array<Record<string, any>>
     origemHash: string
+    publicationBucket: boolean
     rule: MovementTaskRule
   }>()
   const matchedHashes: string[] = []
@@ -445,34 +456,68 @@ export async function generateTasksFromMovements(
   for (const movimento of movimentos) {
     const matchedRules = rules.filter((rule) => movementMatchesRule(movimento, rule))
     for (const rule of matchedRules) {
-      const dateKey = closureStatusSuggestion(rule, [movimento]) ? 'encerramento' : movementDateKey(movimento)
-      const origemHash = integrationTaskHash(row, rule.id, dateKey)
-      const group = taskGroups.get(origemHash) ?? {
-        dateKey,
-        legacyHashes: LEGACY_TASK_ORIGINS.map((origin) => `${origin}:${row.id}:${rule.id}:${dateKey}`),
+      const movementDate = closureStatusSuggestion(rule, [movimento]) ? 'encerramento' : movementDateKey(movimento)
+      const publicationBucket = isPublicationRule(rule) && movementDate !== 'encerramento'
+      const groupKey = publicationBucket ? `${INTEGRATION_TASK_ORIGIN}:${row.id}:${rule.id}:publicacoes-abertas` : integrationTaskHash(row, rule.id, movementDate)
+      const group = taskGroups.get(groupKey) ?? {
+        dateKey: movementDate,
+        legacyHashes: [],
         movimentos: [],
-        origemHash,
+        origemHash: groupKey,
+        publicationBucket,
         rule,
       }
+      if (publicationBucket) {
+        group.dateKey = maxDateKey(group.dateKey, movementDate)
+        group.origemHash = integrationTaskHash(row, rule.id, `publicacoes-${group.dateKey}`)
+      }
+      group.legacyHashes = [...new Set([
+        ...group.legacyHashes,
+        integrationTaskHash(row, rule.id, movementDate),
+        ...LEGACY_TASK_ORIGINS.map((origin) => `${origin}:${row.id}:${rule.id}:${movementDate}`),
+      ])]
       group.movimentos.push(movimento)
-      taskGroups.set(origemHash, group)
+      taskGroups.set(groupKey, group)
       matchedHashes.push(text(movimento.hash_movimento))
     }
   }
 
   if (!taskGroups.size) return 0
 
-  const hashes = [...new Set([...taskGroups.keys(), ...[...taskGroups.values()].flatMap((group) => group.legacyHashes)])]
-  const existingResult = await admin()
-    .schema('gkit_jur')
-    .from('tarefas')
-    .select('id,origem,origem_hash,payload,status')
-    .in('origem', [INTEGRATION_TASK_ORIGIN, ...LEGACY_TASK_ORIGINS])
-    .in('origem_hash', hashes)
-
+  const hashes = [...new Set([...taskGroups.values()].flatMap((group) => [group.origemHash, ...group.legacyHashes]))]
+  const publicationRuleIds = [...new Set([...taskGroups.values()]
+    .filter((group) => group.publicationBucket)
+    .map((group) => group.rule.id))]
+  const [existingResult, openPublicationResult] = await Promise.all([
+    admin()
+      .schema('gkit_jur')
+      .from('tarefas')
+      .select('id,origem,origem_hash,payload,status')
+      .in('origem', [INTEGRATION_TASK_ORIGIN, ...LEGACY_TASK_ORIGINS])
+      .in('origem_hash', hashes),
+    publicationRuleIds.length
+      ? admin()
+        .schema('gkit_jur')
+        .from('tarefas')
+        .select('id,origem,origem_hash,payload,status')
+        .eq('processo_id', row.id)
+        .eq('tipo', 'publicacao')
+        .in('origem', [INTEGRATION_TASK_ORIGIN, ...LEGACY_TASK_ORIGINS])
+        .in('status', ['aberta', 'em_andamento', 'aguardando_terceiro'])
+      : Promise.resolve({ data: [], error: null }),
+  ])
   if (existingResult.error) throw new Error(existingResult.error.message)
+  if (openPublicationResult.error) throw new Error(openPublicationResult.error.message)
 
   const existingTasks = new Map(((existingResult.data ?? []) as Array<Record<string, unknown>>).map((item) => [text(item.origem_hash), item]))
+  const openPublicationTasks = new Map<string, Record<string, unknown>>()
+  for (const item of (openPublicationResult.data ?? []) as Array<Record<string, unknown>>) {
+    const payload = item.payload && typeof item.payload === 'object' ? item.payload as Record<string, unknown> : {}
+    const ruleId = text(payload.regra_id)
+    if (ruleId && publicationRuleIds.includes(ruleId) && !openPublicationTasks.has(ruleId)) {
+      openPublicationTasks.set(ruleId, item)
+    }
+  }
   const newTasks: Array<Record<string, any>> = []
   const updates: Array<PromiseLike<unknown>> = []
 
@@ -483,15 +528,17 @@ export async function generateTasksFromMovements(
     const nextSource = taskSource(provider, providerLabel)
     const sugestaoStatus = closureStatusSuggestion(group.rule, group.movimentos)
     const payload = {
-      data_movimentacao: group.dateKey,
+      data_movimentacao: group.publicationBucket ? 'publicacoes-abertas' : group.dateKey,
       fontes: [nextSource],
       regra_id: group.rule.id,
       regra_nome: group.rule.nome,
       movimentacao_hashes: payloadMovimentos.map((movimento) => movimento.hash),
       movimentacoes: payloadMovimentos,
+      ...(group.publicationBucket ? { estrategia_agrupamento: 'tarefa_aberta_por_processo_regra' } : {}),
       ...(sugestaoStatus ? { sugestao_status: sugestaoStatus } : {}),
     }
-    const existingTask = existingTasks.get(group.origemHash)
+    const existingTask = (group.publicationBucket ? openPublicationTasks.get(group.rule.id) : null)
+      ?? existingTasks.get(group.origemHash)
       ?? group.legacyHashes.map((hash) => existingTasks.get(hash)).find(Boolean)
 
     if (!existingTask) {
@@ -519,7 +566,9 @@ export async function generateTasksFromMovements(
     const currentHashes = new Set(currentMovimentos.map((movimento: Record<string, any>) => text(movimento.hash)).filter(Boolean))
     const missingMovimentos = payloadMovimentos.filter((movimento) => !currentHashes.has(movimento.hash))
 
-    const shouldCanonicalize = text(existingTask.origem) !== INTEGRATION_TASK_ORIGIN || text(existingTask.origem_hash) !== group.origemHash
+    const nextOrigemHash = group.publicationBucket ? text(existingTask.origem_hash, group.origemHash) : group.origemHash
+    const shouldCanonicalize = text(existingTask.origem) !== INTEGRATION_TASK_ORIGIN
+      || (!group.publicationBucket && text(existingTask.origem_hash) !== group.origemHash)
 
     if ((missingMovimentos.length || shouldCanonicalize) && ['aberta', 'em_andamento', 'aguardando_terceiro'].includes(text(existingTask.status, 'aberta'))) {
       const mergedMovimentos = [...currentMovimentos, ...missingMovimentos]
@@ -529,8 +578,8 @@ export async function generateTasksFromMovements(
         .update({
           descricao: groupedTaskDescription(group.rule, row, group.dateKey, mergedMovimentos),
           origem: INTEGRATION_TASK_ORIGIN,
-          origem_hash: group.origemHash,
-          origem_id: group.origemHash,
+          origem_hash: nextOrigemHash,
+          origem_id: nextOrigemHash,
           payload: {
             ...currentPayload,
             ...payload,
