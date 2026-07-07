@@ -428,6 +428,8 @@ export type GkitJurAgenteData = {
 
 export type GkitJurMonitoramentoNivel = 'verde' | 'amarelo' | 'vermelho' | 'cinza';
 
+export type GkitJurNivelProntidao = 'sem_base' | 'capa' | 'parcial' | 'pronto' | 'desatualizado' | 'erro';
+
 export type GkitJurIntegracaoTribunal = {
   alias: string | null;
   atrasados: number;
@@ -476,6 +478,17 @@ export type GkitJurIntegracaoData = {
     semMapeamento: number;
     semSincronizacao: number;
     totalAtivos: number;
+  };
+  prontidao: {
+    aceitaveis: number;
+    capa: number;
+    desatualizado: number;
+    erro: number;
+    naoProntos: number;
+    parcial: number;
+    pronto: number;
+    semBase: number;
+    semResumo: number;
   };
   tribunais: GkitJurIntegracaoTribunal[];
 };

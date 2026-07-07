@@ -21,6 +21,7 @@ export type GkitJurSyncRunOptions = {
   aaspDiferencial?: boolean
   dataJudBatchLimit?: number
   maxDataJudBatches?: number
+  processoId?: string
   provider?: GkitJurSyncProvider
   timeBudgetMs?: number
   tribunal?: string
@@ -28,7 +29,7 @@ export type GkitJurSyncRunOptions = {
 
 const DEFAULT_TIME_BUDGET_MS = 240_000
 const MAX_TIME_BUDGET_MS = 260_000
-const DATAJUD_NEXT_PROCESS_RESERVE_MS = 40_000
+const DATAJUD_NEXT_PROCESS_RESERVE_MS = 70_000
 const AASP_START_RESERVE_MS = 60_000
 const AASP_NEXT_PROCESS_RESERVE_MS = 30_000
 
@@ -74,6 +75,7 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
 
       const dataJudResult = await syncGkitJurDataJudBatch({
         limit: dataJudBatchLimit,
+        processoId: options.processoId,
         shouldContinue: () => hasBudgetFor(startedAt, timeBudgetMs, DATAJUD_NEXT_PROCESS_RESERVE_MS),
         tribunal: options.tribunal,
       })

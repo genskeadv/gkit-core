@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { refreshGkitJurProcessSummary } from './summary-service'
 
 export type GkitJurSyncProcessRow = {
   carteira_id: string | null
@@ -42,11 +43,22 @@ type MovementTaskRule = {
 }
 
 const DEFAULT_DATAJUD_BASE_URL = 'https://api-publica.datajud.cnj.jus.br'
+const DEFAULT_DATAJUD_REQUEST_TIMEOUT_MS = 45_000
 const INTEGRATION_TASK_ORIGIN = 'integracao_movimentacao'
 const LEGACY_TASK_ORIGINS = ['datajud_movimentacao', 'aasp_movimentacao']
+const MOVEMENT_INSERT_CHUNK_SIZE = 25
+const MOVEMENT_LOOKUP_CHUNK_SIZE = 25
 
 function admin() {
   return createSupabaseAdminClient() as any
+}
+
+async function refreshSummaryBestEffort(processoId: string) {
+  try {
+    await refreshGkitJurProcessSummary(processoId)
+  } catch {
+    // O resumo operacional nao deve invalidar a sincronizacao de origem.
+  }
 }
 
 function text(value: unknown, fallback = '') {
@@ -105,7 +117,7 @@ async function fetchDataJudProcess(row: GkitJurSyncProcessRow) {
       'Content-Type': 'application/json',
     },
     method: 'POST',
-    signal: AbortSignal.timeout(25_000),
+    signal: AbortSignal.timeout(DEFAULT_DATAJUD_REQUEST_TIMEOUT_MS),
   })
 
   const responseBody = await response.json().catch(() => null) as Record<string, any> | null
@@ -188,6 +200,38 @@ function buildMovimentacoes(processoId: string, movimentos: unknown[]) {
         gera_alerta: false,
       }
     })
+}
+
+async function insertMovimentacoesInChunks(movimentos: Array<Record<string, any>>) {
+  for (let from = 0; from < movimentos.length; from += MOVEMENT_INSERT_CHUNK_SIZE) {
+    const insertResult = await admin()
+      .schema('gkit_jur')
+      .from('movimentacoes')
+      .insert(movimentos.slice(from, from + MOVEMENT_INSERT_CHUNK_SIZE))
+
+    if (insertResult.error) throw new Error(insertResult.error.message)
+  }
+}
+
+async function fetchExistingMovementHashes(processoId: string, hashes: string[]) {
+  const existingHashes = new Set<string>()
+
+  for (let from = 0; from < hashes.length; from += MOVEMENT_LOOKUP_CHUNK_SIZE) {
+    const existingResult = await admin()
+      .schema('gkit_jur')
+      .from('movimentacoes')
+      .select('hash_movimento')
+      .eq('processo_id', processoId)
+      .in('hash_movimento', hashes.slice(from, from + MOVEMENT_LOOKUP_CHUNK_SIZE))
+
+    if (existingResult.error) throw new Error(existingResult.error.message)
+
+    for (const item of (existingResult.data ?? []) as Array<Record<string, unknown>>) {
+      existingHashes.add(text(item.hash_movimento))
+    }
+  }
+
+  return existingHashes
 }
 
 function renderTemplate(template: string, input: { movimento: string; numeroCnj: string }) {
@@ -594,23 +638,18 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
         totalMovimentacoesRecebidas: 0,
         totalResultados,
       })
+      await refreshSummaryBestEffort(row.id)
       return { status: 'sem_resultado', tarefasGeradas: 0, movimentosRecebidos: 0, movimentosNovos: 0 }
     }
 
     const source = hit._source ?? {}
     const movimentos = buildMovimentacoes(row.id, Array.isArray(source.movimentos) ? source.movimentos : [])
     const hashes = movimentos.map((movimento) => movimento.hash_movimento)
-    const existingResult = hashes.length
-      ? await admin().schema('gkit_jur').from('movimentacoes').select('hash_movimento').eq('processo_id', row.id).in('hash_movimento', hashes)
-      : { data: [], error: null }
-
-    if (existingResult.error) throw new Error(existingResult.error.message)
-    const existingHashes = new Set(((existingResult.data ?? []) as Array<Record<string, unknown>>).map((item) => text(item.hash_movimento)))
+    const existingHashes = hashes.length ? await fetchExistingMovementHashes(row.id, hashes) : new Set<string>()
     const novos = movimentos.filter((movimento) => !existingHashes.has(movimento.hash_movimento))
 
     if (novos.length) {
-      const insertResult = await admin().schema('gkit_jur').from('movimentacoes').insert(novos)
-      if (insertResult.error) throw new Error(insertResult.error.message)
+      await insertMovimentacoesInChunks(novos)
     }
 
     const tarefasGeradas = await generateTasksFromMovements(row, novos)
@@ -637,6 +676,8 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
       totalMovimentacoesRecebidas: movimentos.length,
       totalResultados,
     })
+
+    await refreshSummaryBestEffort(row.id)
 
     return { status: 'sucesso', tarefasGeradas, movimentosRecebidos: movimentos.length, movimentosNovos: novos.length }
   } catch (error) {
@@ -669,29 +710,45 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
       totalResultados: 0,
     })
 
+    await refreshSummaryBestEffort(row.id)
+
     return { status: 'erro', tarefasGeradas: 0, movimentosRecebidos: 0, movimentosNovos: 0 }
   }
 }
 
 export async function syncGkitJurDataJudBatch(options: {
   limit: number
+  processoId?: string
   shouldContinue?: () => boolean
   tribunal?: string
 }): Promise<SyncBatchResult> {
   const limit = Math.max(1, Math.min(options.limit, 25))
-  let query = admin()
+  let candidateResult = await admin()
     .schema('gkit_jur')
-    .from('processos')
-    .select('id,numero_cnj,numero_cnj_limpo,tribunal_alias,carteira_id,responsavel_id')
-    .eq('status', 'ativo')
-    .eq('status_monitoramento', 'monitorando')
-    .not('tribunal_alias', 'is', null)
-    .order('ultima_sincronizacao_em', { ascending: true, nullsFirst: true })
-    .limit(limit)
+    .rpc('proximos_processos_sync', {
+      p_limit: limit,
+      p_processo_id: options.processoId ?? null,
+      p_tribunal: options.tribunal ?? null,
+    })
 
-  if (options.tribunal) query = query.eq('tribunal_sigla', options.tribunal)
+  if (candidateResult.error?.code === 'PGRST202') {
+    let fallbackQuery = admin()
+      .schema('gkit_jur')
+      .from('processos')
+      .select('id,numero_cnj,numero_cnj_limpo,tribunal_alias,carteira_id,responsavel_id')
+      .eq('status', 'ativo')
+      .not('tribunal_alias', 'is', null)
+      .order('ultima_sincronizacao_em', { ascending: true, nullsFirst: true })
+      .limit(limit)
 
-  const { data, error } = await query
+    if (options.processoId) fallbackQuery = fallbackQuery.eq('id', options.processoId)
+    else fallbackQuery = fallbackQuery.eq('status_monitoramento', 'monitorando')
+    if (options.tribunal) fallbackQuery = fallbackQuery.eq('tribunal_sigla', options.tribunal)
+
+    candidateResult = await fallbackQuery
+  }
+
+  const { data, error } = candidateResult
   if (error) throw new Error(error.message)
 
   const rows = ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { generateTasksFromMovements, type GkitJurSyncProcessRow } from './datajud-sync'
+import { refreshGkitJurProcessSummary } from './summary-service'
 
 type AaspSyncResult = {
   processos: number
@@ -26,6 +27,14 @@ const CNJ_PATTERN = /\b\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4}\b/g
 
 function admin() {
   return createSupabaseAdminClient() as any
+}
+
+async function refreshSummaryBestEffort(processoId: string) {
+  try {
+    await refreshGkitJurProcessSummary(processoId)
+  } catch {
+    // A atualizacao de resumo nao deve invalidar a coleta da AASP.
+  }
 }
 
 function text(value: unknown, fallback = '') {
@@ -321,6 +330,8 @@ export async function syncGkitJurAaspBatch(options: {
         totalMovimentacoesRecebidas: movimentos.length,
         totalResultados: movimentos.length,
       })
+
+      await refreshSummaryBestEffort(processo.id)
 
       result.movimentosNovos += novos.length
       result.processos += 1

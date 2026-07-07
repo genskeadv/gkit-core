@@ -2042,12 +2042,12 @@ export function GkitJurIntegracaoPage({
   syncAction: (formData: FormData) => Promise<void>
 }) {
   const totalSincronizado = Math.max(0, data.metrics.totalAtivos - data.metrics.semSincronizacao)
-  const totalProgress = data.metrics.totalAtivos ? Math.round((totalSincronizado / data.metrics.totalAtivos) * 100) : 0
+  const prontidaoProgress = data.metrics.totalAtivos ? Math.round((data.prontidao.aceitaveis / data.metrics.totalAtivos) * 100) : 0
   const cards = [
     { title: 'Processos ativos', value: data.metrics.totalAtivos.toLocaleString('pt-BR'), hint: 'base operacional monitorável' },
-    { title: 'Tribunais cobertos', value: data.metrics.configurados.toLocaleString('pt-BR'), hint: 'com alias DataJud configurado' },
+    { title: 'Prontos', value: data.prontidao.aceitaveis.toLocaleString('pt-BR'), hint: 'com resumo operacional aceitável' },
+    { title: 'Não prontos', value: data.prontidao.naoProntos.toLocaleString('pt-BR'), hint: 'prioridade da fila automática' },
     { title: 'Críticos', value: data.metrics.criticos.toLocaleString('pt-BR'), hint: 'sem mapeamento ou com erro' },
-    { title: 'Sem primeira sync', value: data.metrics.semSincronizacao.toLocaleString('pt-BR'), hint: 'aguardam primeira consulta' },
   ]
 
   const cronPillClass = data.cron.status === 'erro'
@@ -2194,15 +2194,16 @@ export function GkitJurIntegracaoPage({
       <GkitJurSection title="Semáforo de monitoramento" description="Acompanhe a prontidão da integração por tribunal, priorizando processos ativos.">
         <div className="gkit-jur-sync-overview">
           <div>
-            <span>Progresso geral</span>
-            <strong>{totalProgress}% sincronizado</strong>
+            <span>Prontidão operacional</span>
+            <strong>{prontidaoProgress}% pronto</strong>
             <small>
-              {totalSincronizado.toLocaleString('pt-BR')} de {data.metrics.totalAtivos.toLocaleString('pt-BR')} processos ativos com primeira sincronizacao.
+              {data.prontidao.aceitaveis.toLocaleString('pt-BR')} pronto(s), {data.prontidao.parcial.toLocaleString('pt-BR')} parcial(is), {data.prontidao.capa.toLocaleString('pt-BR')} só com capa e {data.prontidao.semResumo.toLocaleString('pt-BR')} sem resumo recalculado.
             </small>
           </div>
           <div aria-hidden="true" className="gkit-jur-sync-progress">
-            <span style={{ width: `${totalProgress}%` }} />
+            <span style={{ width: `${prontidaoProgress}%` }} />
           </div>
+          <small>{totalSincronizado.toLocaleString('pt-BR')} de {data.metrics.totalAtivos.toLocaleString('pt-BR')} processos ativos já têm primeira sincronização.</small>
         </div>
         <div className="gkit-jur-monitoring-list">
           {data.tribunais.map((tribunal) => {

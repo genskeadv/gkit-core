@@ -1712,7 +1712,7 @@ async function fetchAllActiveProcessMonitoringRows() {
     const result = await admin()
       .schema('gkit_jur')
       .from('processos')
-      .select('tribunal_sigla,tribunal_alias,status_monitoramento,ultima_sincronizacao_em,carteira_id,responsavel_id')
+      .select('id,tribunal_sigla,tribunal_alias,status_monitoramento,ultima_sincronizacao_em,carteira_id,responsavel_id')
       .eq('status', DEFAULT_PROCESS_STATUS)
       .range(from, from + pageSize - 1)
 
@@ -1740,8 +1740,62 @@ function tribunalMonitoramentoStatus(nivel: GkitJurMonitoramentoNivel, item: Omi
   return 'Sem processos ativos'
 }
 
+async function getReadinessMetrics(activeProcessIds: Set<string>) {
+  const totals = {
+    aceitaveis: 0,
+    capa: 0,
+    desatualizado: 0,
+    erro: 0,
+    naoProntos: 0,
+    parcial: 0,
+    pronto: 0,
+    semBase: 0,
+    semResumo: activeProcessIds.size,
+  }
+
+  if (!activeProcessIds.size) return totals
+
+  const pageSize = 1000
+  for (let from = 0; ; from += pageSize) {
+    const result = await admin()
+      .schema('gkit_jur')
+      .from('processos_resumos')
+      .select('processo_id,nivel_prontidao')
+      .range(from, from + pageSize - 1)
+
+    if (result.error) {
+      if (result.error.code === '42P01' || result.error.code === 'PGRST205') return totals
+      throw new Error(result.error.message)
+    }
+
+    const data = (result.data ?? []) as Array<Record<string, unknown>>
+    for (const row of data) {
+      const processoId = text(row.processo_id)
+      if (!activeProcessIds.has(processoId)) continue
+      totals.semResumo -= 1
+      const nivel = text(row.nivel_prontidao)
+      if (nivel === 'pronto') totals.pronto += 1
+      else if (nivel === 'parcial') totals.parcial += 1
+      else if (nivel === 'capa') totals.capa += 1
+      else if (nivel === 'desatualizado') totals.desatualizado += 1
+      else if (nivel === 'erro') totals.erro += 1
+      else totals.semBase += 1
+    }
+
+    if (data.length < pageSize) break
+  }
+
+  totals.semResumo = Math.max(0, totals.semResumo)
+  totals.aceitaveis = totals.pronto
+  totals.naoProntos = Math.max(0, activeProcessIds.size - totals.aceitaveis)
+
+  return totals
+}
+
 export async function getGkitJurIntegracaoData(): Promise<GkitJurIntegracaoData> {
   const rows = await fetchAllActiveProcessMonitoringRows()
+  const activeProcessIds = new Set(rows.map((row) => text(row.id)).filter(Boolean))
+  const prontidao = await getReadinessMetrics(activeProcessIds)
   const cronResult = await admin()
     .schema('gkit_jur')
     .from('cron_locks')
@@ -1846,6 +1900,7 @@ export async function getGkitJurIntegracaoData(): Promise<GkitJurIntegracaoData>
       semSincronizacao: tribunais.reduce((total, item) => total + item.semSincronizacao, 0),
       totalAtivos: rows.length,
     },
+    prontidao,
     tribunais,
   }
 }
