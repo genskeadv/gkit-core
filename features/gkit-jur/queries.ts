@@ -1694,6 +1694,7 @@ function mapPublicacao(
     arq: text(row.arq) || null,
     pub: text(row.pub) || null,
     textoPreview: text(row.texto_preview) || null,
+    textoCompleto: text(row.texto_completo) || null,
     textoHash: text(row.texto_hash),
     status: publicacaoStatus(row.status),
     decisaoTratamento: publicacaoDecisao(row.decisao_tratamento),
@@ -1734,6 +1735,7 @@ function matchesPublicacaoFilters(row: GkitJurPublicacao, filters: GkitJurPublic
       row.termo,
       row.origemOrgao,
       row.textoPreview,
+      row.textoCompleto,
       row.clienteNome,
       row.carteiraNome,
       row.responsavelNome,
@@ -1793,7 +1795,7 @@ export async function listGkitJurPublicacoes(filters: GkitJurPublicacaoFilters =
   let publicacoesQuery = admin()
     .schema('gkit_jur')
     .from('publicacoes_monitoradas')
-    .select('id,processo_id,numero_cnj_limpo,fonte,fonte_evento_id,data_disponibilizacao,data_publicacao,jornal,termo,origem_orgao,arq,pub,texto_preview,texto_hash,status,decisao_tratamento,classificacao_ia,confianca_ia,sugestao_ia,tarefa_id,tratado_por,tratado_em,motivo_tratamento,conteudo_removido_em,created_at,updated_at')
+    .select('id,processo_id,numero_cnj_limpo,fonte,fonte_evento_id,data_disponibilizacao,data_publicacao,jornal,termo,origem_orgao,arq,pub,texto_preview,texto_completo,texto_hash,status,decisao_tratamento,classificacao_ia,confianca_ia,sugestao_ia,tarefa_id,tratado_por,tratado_em,motivo_tratamento,conteudo_removido_em,created_at,updated_at')
 
   if (scopedProcessIds) publicacoesQuery = scopedProcessIds.length ? publicacoesQuery.in('processo_id', scopedProcessIds) : null
   if (filters.status && publicacoesQuery) publicacoesQuery = publicacoesQuery.eq('status', filters.status)

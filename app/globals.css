@@ -5522,14 +5522,20 @@ tbody tr:hover {
 }
 
 .gkit-jur-publication-card {
-  background: rgba(255, 255, 255, 0.94);
+  background: #fff;
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-left: 4px solid rgba(99, 102, 241, 0.5);
   border-radius: var(--suite-module-card-radius, 8px);
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.07);
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(290px, 0.34fr);
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
   padding: 16px;
+}
+
+.gkit-jur-publication-card :where(h3, h4, p, small, span, button, summary, textarea, select, input, a) {
+  font-family: inherit;
+  letter-spacing: 0;
 }
 
 .gkit-jur-publication-card.danger {
@@ -5554,7 +5560,7 @@ tbody tr:hover {
 .gkit-jur-publication-head,
 .gkit-jur-publication-title-row,
 .gkit-jur-publication-actions {
-  align-items: center;
+  align-items: flex-start;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -5573,6 +5579,13 @@ tbody tr:hover {
   color: var(--new-muted);
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.gkit-jur-publication-title-row > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
 }
 
 .gkit-jur-publication-title-row h3,
@@ -5597,6 +5610,46 @@ tbody tr:hover {
 .gkit-jur-publication-text {
   color: #334155;
   font-size: 14px;
+}
+
+.gkit-jur-publication-full {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: var(--suite-module-card-radius, 8px);
+  overflow: hidden;
+}
+
+.gkit-jur-publication-full summary {
+  align-items: center;
+  background: rgba(248, 250, 252, 0.88);
+  color: var(--new-accent);
+  cursor: pointer;
+  display: flex;
+  font-size: 12px;
+  font-weight: 760;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 8px 10px;
+}
+
+.gkit-jur-publication-full summary::after {
+  color: var(--new-muted);
+  content: "Abrir";
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.gkit-jur-publication-full[open] summary::after {
+  content: "Fechar";
+}
+
+.gkit-jur-publication-full div {
+  color: #1f2937;
+  font-size: 13px;
+  line-height: 1.58;
+  max-height: 360px;
+  overflow: auto;
+  padding: 11px 12px;
+  white-space: pre-wrap;
 }
 
 .gkit-jur-publication-evidence {
@@ -5626,6 +5679,7 @@ tbody tr:hover {
   background: rgba(248, 250, 252, 0.82);
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: var(--suite-module-card-radius, 8px);
+  height: fit-content;
   padding: 12px;
 }
 
@@ -5650,17 +5704,23 @@ tbody tr:hover {
 }
 
 .gkit-jur-publication-actions {
-  justify-content: flex-start;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-content: stretch;
 }
 
 .gkit-jur-publication-actions .button,
 .gkit-jur-publication-quick-form .button {
+  justify-content: center;
   min-height: 34px;
   padding: 8px 11px;
+  width: 100%;
 }
 
 .gkit-jur-publication-quick-form {
-  display: inline-flex;
+  display: block;
+  min-width: 0;
 }
 
 .gkit-jur-publication-decision .gkit-jur-inline-form {

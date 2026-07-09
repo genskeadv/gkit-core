@@ -1804,6 +1804,7 @@ function plainPublicacaoText(item: GkitJurPublicacao) {
     item.origemOrgao,
     item.jornal,
     item.textoPreview,
+    item.textoCompleto,
     item.processoTitulo,
     item.clienteNome,
   ].filter(Boolean).join(' ').toLowerCase()
@@ -1941,20 +1942,49 @@ function publicacaoDecision(item: GkitJurPublicacao): PublicacaoDecision {
   }
 }
 
-function publicacaoShortText(value: string | null) {
-  if (!value) return 'Publicacao sem preview textual.'
-  const compact = value.replace(/\s+/g, ' ').trim()
-  const stop = compact.search(/\b(?:Data de disponibilizacao|Tipo de comunicacao|Meio:|Parte\\(s\\):|Advogado\\(s\\):)/i)
-  const sliced = stop > 80 ? compact.slice(0, stop).trim() : compact
-  return sliced.length > 280 ? `${sliced.slice(0, 277)}...` : sliced
+function compactPublicacaoText(value: string | null) {
+  return value?.replace(/\s+/g, ' ').trim() ?? ''
+}
+
+function limitPublicacaoText(value: string, max = 310) {
+  return value.length > max ? `${value.slice(0, max - 3).trim()}...` : value
+}
+
+function publicacaoShortText(item: GkitJurPublicacao) {
+  const source = compactPublicacaoText(item.textoPreview || item.textoCompleto)
+  if (!source) return 'Publicacao sem preview textual.'
+  const withoutProcess = source
+    .replace(/^Processo:\s*\S+\s*/i, '')
+    .replace(/\s+Data de disponibiliza\S*:\s*/i, ' | ')
+    .replace(/\s+Tipo de comunica\S*:\s*/i, ' | ')
+    .replace(/\s+Meio:\s*/i, ' | ')
+  const withoutHeader = withoutProcess.replace(/^[^|]{0,220}\|\s*/, '').trim()
+  const partyStart = withoutHeader.search(/\bParte\(s\):/i)
+  const partyFocused = partyStart >= 0 ? withoutHeader.slice(partyStart).replace(/^Parte\(s\):\s*/i, '').trim() : withoutHeader
+  const operativeStart = partyFocused.search(/\b(?:Id\.|Vistos|Intime-se|Manifeste-se|Defiro|Indefiro|Ante|Expeca-se|Designo|Cumpra-se|Certifico)\b/i)
+  const focused = operativeStart >= 0 ? partyFocused.slice(operativeStart).trim() : partyFocused.trim()
+  return limitPublicacaoText(focused || source)
+}
+
+function publicacaoFullText(item: GkitJurPublicacao) {
+  return item.textoCompleto?.trim() || item.textoPreview?.trim() || 'Texto completo indisponivel para esta publicacao.'
+}
+
+function publicacaoFonteLabel(value: string) {
+  if (value.toLowerCase() === 'aasp') return 'AASP'
+  if (value.toLowerCase() === 'datajud') return 'DataJud'
+  return value
+}
+
+function cleanPublicacaoLabel(value: string | null) {
+  return value?.replace(/_/g, ' ') ?? null
 }
 
 function publicacaoPeopleLine(item: GkitJurPublicacao) {
   return [
     item.clienteNome || item.processoTitulo,
-    !item.processoId ? publicacaoProcessStateLabel(item) : null,
     item.responsavelNome ? `Resp. ${item.responsavelNome}` : null,
-    item.carteiraNome,
+    cleanPublicacaoLabel(item.carteiraNome),
   ].filter(Boolean).join(' - ') || 'Sem vinculo operacional completo'
 }
 
@@ -2160,10 +2190,10 @@ function GkitJurPublicacaoCard({
         <div className="gkit-jur-publication-head">
           <div>
             <span className={`suite-pill ${publicacaoStatusTone(item.status)}`}>{publicacaoStatusLabel(item.status)}</span>
-            <span className="suite-pill primary">{item.fonte}</span>
-            <span className={`suite-pill ${decision.tone}`}>{decision.priority}</span>
+            <span className="suite-pill primary">{publicacaoFonteLabel(item.fonte)}</span>
+            <span className={`suite-pill ${decision.tone}`}>Prioridade {decision.priority}</span>
           </div>
-          <strong>{formatDate(item.dataDisponibilizacao || item.dataPublicacao)}</strong>
+          <strong>Publicada em {formatDate(item.dataDisponibilizacao || item.dataPublicacao)}</strong>
         </div>
 
         <div className="gkit-jur-publication-title-row">
@@ -2174,7 +2204,12 @@ function GkitJurPublicacaoCard({
           {item.tratadoEm ? <span className="gkit-jur-publication-treated">Tratada em {formatDateTime(item.tratadoEm)}</span> : null}
         </div>
 
-        <p className="gkit-jur-publication-text">{publicacaoShortText(item.textoPreview)}</p>
+        <p className="gkit-jur-publication-text">{publicacaoShortText(item)}</p>
+
+        <details className="gkit-jur-publication-full">
+          <summary>Ler publicacao completa</summary>
+          <div>{publicacaoFullText(item)}</div>
+        </details>
 
         <div className="gkit-jur-publication-evidence">
           {decision.evidence.map((signal) => <span key={signal}>{signal}</span>)}

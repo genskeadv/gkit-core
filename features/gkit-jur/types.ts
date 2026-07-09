@@ -261,6 +261,7 @@ export type GkitJurPublicacao = {
   arq: string | null;
   pub: string | null;
   textoPreview: string | null;
+  textoCompleto: string | null;
   textoHash: string;
   status: GkitJurPublicacaoStatus;
   decisaoTratamento: GkitJurPublicacaoDecisao | null;
