@@ -5769,6 +5769,207 @@ tbody tr:hover {
   padding-top: 10px;
 }
 
+.gkit-jur-process-command-center {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.36fr);
+  margin-bottom: 14px;
+}
+
+.gkit-jur-process-primary-call,
+.gkit-jur-process-sensitive-call,
+.gkit-jur-process-call-card,
+.gkit-jur-process-pulse a {
+  border-radius: var(--suite-module-card-radius, 8px);
+}
+
+.gkit-jur-process-primary-call {
+  background:
+    radial-gradient(circle at 8% 18%, rgba(20, 184, 166, 0.17), transparent 32%),
+    radial-gradient(circle at 94% 6%, rgba(106, 50, 130, 0.28), transparent 34%),
+    linear-gradient(135deg, #101827, #243142);
+  border: 1px solid rgba(15, 23, 42, 0.22);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.13);
+  color: #fff;
+  display: grid;
+  gap: 12px;
+  min-height: 234px;
+  padding: 18px;
+}
+
+.gkit-jur-process-primary-call > span,
+.gkit-jur-process-sensitive-call > span,
+.gkit-jur-process-call-card > span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.gkit-jur-process-primary-call strong {
+  color: #fff;
+  font-size: clamp(28px, 4vw, 50px);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.gkit-jur-process-primary-call p {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 760px;
+}
+
+.gkit-jur-process-primary-call > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gkit-jur-process-primary-call small {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  font-weight: 400;
+  padding: 5px 8px;
+}
+
+.gkit-jur-process-primary-call .button {
+  justify-self: start;
+}
+
+.gkit-jur-process-sensitive-call {
+  align-content: start;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.07);
+  display: grid;
+  gap: 10px;
+  min-height: 234px;
+  padding: 14px;
+}
+
+.gkit-jur-process-sensitive-call > span,
+.gkit-jur-process-call-card > span {
+  color: var(--new-muted);
+}
+
+.gkit-jur-process-sensitive-call strong,
+.gkit-jur-process-call-card strong {
+  color: var(--new-ink);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.gkit-jur-process-sensitive-call p,
+.gkit-jur-process-call-card p {
+  color: var(--new-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.gkit-jur-process-sensitive-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.gkit-jur-process-sensitive-meta small {
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+  color: var(--new-muted);
+  font-size: 12px;
+  font-weight: 400;
+  padding: 5px 8px;
+}
+
+.gkit-jur-process-sensitive-call .button {
+  justify-self: start;
+}
+
+.gkit-jur-process-pulse {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.gkit-jur-process-pulse a {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  color: var(--new-ink);
+  display: grid;
+  gap: 5px;
+  min-height: 76px;
+  padding: 12px;
+  text-decoration: none;
+}
+
+.gkit-jur-process-pulse span {
+  color: var(--new-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.gkit-jur-process-pulse strong {
+  color: var(--new-ink);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.gkit-jur-process-call-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.gkit-jur-process-call-card {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-top: 4px solid rgba(99, 102, 241, 0.5);
+  color: var(--new-ink);
+  display: grid;
+  gap: 9px;
+  min-height: 176px;
+  padding: 14px;
+  text-decoration: none;
+}
+
+.gkit-jur-process-call-card.danger {
+  border-top-color: #ef4444;
+}
+
+.gkit-jur-process-call-card.warning {
+  border-top-color: #f59e0b;
+}
+
+.gkit-jur-process-call-card.primary {
+  border-top-color: #14b8a6;
+}
+
+.gkit-jur-process-call-card.muted,
+.gkit-jur-process-primary-call.success {
+  border-top-color: rgba(148, 163, 184, 0.62);
+}
+
+.gkit-jur-process-call-card em {
+  align-self: end;
+  color: var(--new-accent);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+}
+
 .gkit-jur-pagination {
   align-items: center;
   border-top: 1px solid rgba(148, 163, 184, 0.18);
@@ -8017,6 +8218,8 @@ tbody tr:hover {
   .gkit-jur-inbox-command-center,
   .gkit-jur-inbox-layout,
   .gkit-jur-inbox-call-grid,
+  .gkit-jur-process-command-center,
+  .gkit-jur-process-call-grid,
   .gkit-jur-agent-monitor,
   .gkit-jur-agent-grid,
   .gkit-jur-agent-form {
@@ -8083,6 +8286,10 @@ tbody tr:hover {
   }
 
   .gkit-jur-inbox-pulse {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gkit-jur-process-pulse {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -20241,10 +20448,21 @@ body:has(.gkit-flex-operational-shell) {
   .gkit-jur-inbox-queues nav {
     grid-template-columns: 1fr;
   }
+
+  .gkit-jur-process-pulse {
+    grid-template-columns: 1fr;
+  }
 }
 
 .gkit-jur-shell .gkit-jur-publication-decision :where(strong, b, h4, .button, button, a.button, .suite-pill, summary),
 .gkit-jur-shell .gkit-jur-publication-card :where(strong, b, h3, h4, .button, button, a.button, .suite-pill, summary) {
+  font-weight: 400 !important;
+}
+
+.gkit-jur-shell .gkit-jur-process-primary-call :where(strong, b, .button, button, a.button, small),
+.gkit-jur-shell .gkit-jur-process-sensitive-call :where(strong, b, .button, button, a.button, small),
+.gkit-jur-shell .gkit-jur-process-call-card :where(strong, b, .button, button, a.button, em),
+.gkit-jur-shell .gkit-jur-process-pulse :where(strong, b, span) {
   font-weight: 400 !important;
 }
 

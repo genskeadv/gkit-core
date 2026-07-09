@@ -656,12 +656,185 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
   )
 }
 
+function processHref(params: Record<string, string>) {
+  const search = new URLSearchParams(params)
+  return `/modulos/gkit-jur/processos?${search.toString()}`
+}
+
+function processRiskScore(row: GkitJurProcessListItem) {
+  let score = 20
+  if (!row.responsavelNome) score += 28
+  if (!row.clienteNome) score += 22
+  if (!row.carteiraNome) score += 18
+  if (row.statusMonitoramento === 'erro') score += 24
+  if (!row.ultimaMovimentacaoEm) score += 10
+  return Math.min(100, score)
+}
+
+function processRiskReason(row: GkitJurProcessListItem) {
+  if (!row.responsavelNome) return 'Ainda nao existe dono operacional definido para o acompanhamento.'
+  if (!row.clienteNome) return 'O processo esta ativo, mas ainda nao foi ligado a um cliente.'
+  if (!row.carteiraNome) return 'Falta carteira para orientar fila, responsavel e rotina de tratamento.'
+  if (row.statusMonitoramento === 'erro') return 'A sincronizacao precisa de revisao antes de confiar no acompanhamento.'
+  if (!row.ultimaMovimentacaoEm) return 'Nao ha movimentacao recente consolidada na base local.'
+  return 'Processo ativo com dados suficientes para acompanhamento operacional.'
+}
+
+function processOwnerLabel(row: GkitJurProcessListItem | null) {
+  if (!row) return 'Sem processo em foco'
+  return row.responsavelNome || row.carteiraNome || row.clienteNome || 'Sem vinculo operacional'
+}
+
+function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData }) {
+  const { metrics } = data
+  const saneamentoTotal = metrics.semCliente + metrics.semCarteira + metrics.semResponsavel
+  const sensitiveProcess = [...data.processes]
+    .sort((a, b) => processRiskScore(b) - processRiskScore(a))[0] ?? null
+  const primary =
+    metrics.semResponsavel > 0
+      ? {
+        action: 'Atribuir responsaveis',
+        description: 'Priorize processos ativos sem dono antes de gerar tarefas, prazos ou leitura automatizada.',
+        href: processHref({ saneamento: 'sem_responsavel' }),
+        meta: `${metrics.semResponsavel.toLocaleString('pt-BR')} sem responsavel`,
+        title: 'Definir donos operacionais',
+        tone: 'warning',
+      }
+      : metrics.semCliente > 0
+        ? {
+          action: 'Vincular clientes',
+          description: 'Complete o elo com o cliente para que publicacoes, tarefas e historico aparecam no contexto certo.',
+          href: processHref({ saneamento: 'sem_cliente' }),
+          meta: `${metrics.semCliente.toLocaleString('pt-BR')} sem cliente`,
+          title: 'Fechar vinculos de cliente',
+          tone: 'primary',
+        }
+        : metrics.processosComErro > 0
+          ? {
+            action: 'Revisar erros',
+            description: 'Ha processos ativos com monitoramento em erro; eles devem sair da fila cega antes da rotina diaria.',
+            href: processHref({ monitoramento: 'erro' }),
+            meta: `${metrics.processosComErro.toLocaleString('pt-BR')} com erro`,
+            title: 'Recuperar sincronizacoes',
+            tone: 'danger',
+          }
+          : {
+            action: 'Revisar base',
+            description: 'Os vinculos essenciais estao sob controle; acompanhe os ativos com menor movimentacao primeiro.',
+            href: processHref({ sort: 'ultima_movimentacao_em', dir: 'asc' }),
+            meta: `${metrics.processosAtivos.toLocaleString('pt-BR')} ativos`,
+            title: 'Base pronta para acompanhamento',
+            tone: 'success',
+          }
+  const pulse = [
+    { href: '/modulos/gkit-jur/processos', label: 'Ativos', value: metrics.processosAtivos },
+    { href: processHref({ monitoramento: 'monitorando' }), label: 'Monitorados', value: metrics.processosMonitorados },
+    { href: '/modulos/gkit-jur/movimentacoes', label: 'Mov. 7 dias', value: metrics.movimentacoesUltimos7Dias },
+    { href: processHref({ monitoramento: 'erro' }), label: 'Erros', value: metrics.processosComErro },
+  ]
+  const calls = [
+    {
+      count: metrics.semResponsavel,
+      description: 'Sem responsavel, o processo pode receber publicacao e ficar sem tratamento claro.',
+      href: processHref({ saneamento: 'sem_responsavel' }),
+      label: 'Resolver donos',
+      tone: metrics.semResponsavel > 0 ? 'warning' : 'muted',
+      title: 'Responsavel pendente',
+    },
+    {
+      count: metrics.semCliente,
+      description: 'Corrige o elo com Ciclo/cliente e evita publicacao sem contexto de atendimento.',
+      href: processHref({ saneamento: 'sem_cliente' }),
+      label: 'Vincular cliente',
+      tone: metrics.semCliente > 0 ? 'primary' : 'muted',
+      title: 'Cliente pendente',
+    },
+    {
+      count: metrics.semCarteira,
+      description: 'Organiza a fila operacional e ajuda a distribuir tarefa por carteira.',
+      href: processHref({ saneamento: 'sem_carteira' }),
+      label: 'Definir carteira',
+      tone: metrics.semCarteira > 0 ? 'primary' : 'muted',
+      title: 'Carteira pendente',
+    },
+    {
+      count: metrics.processosComErro,
+      description: 'Processos com erro de monitoramento precisam de intervencao antes do tratamento automatico.',
+      href: processHref({ monitoramento: 'erro' }),
+      label: 'Revisar sincronizacao',
+      tone: metrics.processosComErro > 0 ? 'danger' : 'muted',
+      title: 'Monitoramento em erro',
+    },
+  ]
+
+  return (
+    <>
+      <section className="gkit-jur-process-command-center">
+        <article className={`gkit-jur-process-primary-call ${primary.tone}`}>
+          <span>Proxima melhor acao</span>
+          <strong>{primary.title}</strong>
+          <p>{primary.description}</p>
+          <div>
+            <small>{primary.meta}</small>
+            <small>{saneamentoTotal.toLocaleString('pt-BR')} pendencias de saneamento</small>
+          </div>
+          <Link className="button primary-button" href={primary.href}>{primary.action}</Link>
+        </article>
+
+        <aside className="gkit-jur-process-sensitive-call">
+          <span>Processo mais sensivel</span>
+          {sensitiveProcess ? (
+            <>
+              <strong>{sensitiveProcess.numeroCnj}</strong>
+              <p>{processRiskReason(sensitiveProcess)}</p>
+              <div className="gkit-jur-process-sensitive-meta">
+                <small>{processOwnerLabel(sensitiveProcess)}</small>
+                <small>{sensitiveProcess.tribunalSigla || 'Sem tribunal'}</small>
+                <small>{sensitiveProcess.ultimaMovimentacaoEm ? `Mov. ${formatDate(sensitiveProcess.ultimaMovimentacaoEm)}` : 'Sem movimentacao'}</small>
+              </div>
+              <div className="gkit-jur-score" aria-label={`Score ${processRiskScore(sensitiveProcess)}`}>
+                <span style={{ width: `${processRiskScore(sensitiveProcess)}%` }} />
+              </div>
+              <Link className="button secondary" href={`/modulos/gkit-jur/processos/${sensitiveProcess.id}`}>Abrir processo</Link>
+            </>
+          ) : (
+            <>
+              <strong>Nenhum processo no recorte</strong>
+              <p>Ajuste os filtros ou volte para a visao de ativos.</p>
+            </>
+          )}
+        </aside>
+      </section>
+
+      <section className="gkit-jur-process-pulse" aria-label="Pulso dos processos">
+        {pulse.map((item) => (
+          <Link href={item.href} key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value.toLocaleString('pt-BR')}</strong>
+          </Link>
+        ))}
+      </section>
+
+      <section className="gkit-jur-process-call-grid" aria-label="Chamadas de saneamento">
+        {calls.map((call) => (
+          <Link className={`gkit-jur-process-call-card ${call.tone}`} href={call.href} key={call.title}>
+            <span>{call.count.toLocaleString('pt-BR')} item(ns)</span>
+            <strong>{call.title}</strong>
+            <p>{call.description}</p>
+            <em>{call.label}</em>
+          </Link>
+        ))}
+      </section>
+    </>
+  )
+}
+
 export function GkitJurProcessesPage({ data }: { data: GkitJurProcessListData }) {
   return (
     <>
-      <MetricCards metrics={data.metrics} />
+      <GkitJurProcessCommandCenter data={data} />
 
-      <GkitJurSection title="Processos acompanhados" description="Consulte, filtre e abra o processo para corrigir vínculos operacionais.">
+      <GkitJurSection title="Consulta operacional" description="Use filtros apenas quando precisar investigar ou abrir um processo especifico.">
         <div className="gkit-jur-list-note">
           <span>Padrão: processos ativos</span>
           <small>Encerrados aparecem apenas quando o status for selecionado no filtro.</small>
