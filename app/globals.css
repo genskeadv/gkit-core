@@ -7046,10 +7046,185 @@ tbody tr:hover {
   color: #92400e;
 }
 
+.gkit-jur-lab-shell {
+  background:
+    linear-gradient(180deg, #f8fafc 0%, #eef4f6 42%, #f8fafc 100%);
+  color: var(--new-ink);
+  display: grid;
+  gap: 16px;
+  min-height: 100vh;
+  padding: 18px clamp(18px, 3vw, 36px) 36px;
+}
+
+.gkit-jur-lab-topbar {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(150px, 0.18fr) minmax(320px, 1fr) minmax(150px, 0.2fr);
+  position: sticky;
+  top: 12px;
+  z-index: 20;
+}
+
+.gkit-jur-lab-mark,
+.gkit-jur-lab-user,
+.gkit-jur-lab-command {
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: var(--suite-module-card-radius, 8px);
+  box-shadow: 0 14px 38px rgba(15, 23, 42, 0.08);
+}
+
+.gkit-jur-lab-mark {
+  align-items: center;
+  color: var(--new-ink);
+  display: flex;
+  gap: 8px;
+  min-height: 52px;
+  padding: 10px 12px;
+  text-decoration: none;
+}
+
+.gkit-jur-lab-mark span {
+  align-items: center;
+  background: var(--new-purple);
+  border-radius: 7px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 11px;
+  height: 30px;
+  justify-content: center;
+  letter-spacing: 0;
+  width: 38px;
+}
+
+.gkit-jur-lab-mark strong {
+  color: var(--new-ink);
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.gkit-jur-lab-command {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 52px;
+  padding: 7px;
+}
+
+.gkit-jur-lab-command label {
+  display: block;
+  min-width: 0;
+}
+
+.gkit-jur-lab-command label span {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.gkit-jur-lab-command input {
+  background: transparent;
+  border: 0;
+  color: var(--new-ink);
+  font-size: 15px;
+  height: 38px;
+  outline: 0;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.gkit-jur-lab-command input::placeholder {
+  color: #64748b;
+}
+
+.gkit-jur-lab-user {
+  align-content: center;
+  display: grid;
+  min-height: 52px;
+  padding: 9px 12px;
+}
+
+.gkit-jur-lab-user span,
+.gkit-jur-lab-user small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gkit-jur-lab-user span {
+  color: var(--new-ink);
+  font-size: 13px;
+}
+
+.gkit-jur-lab-user small {
+  color: var(--new-muted);
+  font-size: 12px;
+}
+
+.gkit-jur-lab-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.gkit-jur-lab-modes a {
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  color: var(--new-muted);
+  font-size: 13px;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.gkit-jur-lab-modes a:first-child,
+.gkit-jur-lab-modes a:hover {
+  background: #fff;
+  color: var(--new-ink);
+}
+
+.gkit-jur-lab-shell-intro {
+  display: grid;
+  gap: 8px;
+  justify-self: center;
+  max-width: 880px;
+  padding: 10px 0 2px;
+  text-align: center;
+}
+
+.gkit-jur-lab-shell-intro span {
+  color: var(--new-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.gkit-jur-lab-shell-intro h1 {
+  color: var(--new-ink);
+  font-size: clamp(30px, 4vw, 52px);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
+}
+
+.gkit-jur-lab-shell-intro p {
+  color: var(--new-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: 680px;
+}
+
 .gkit-jur-lab {
   color: var(--new-ink);
   display: grid;
   gap: 16px;
+  justify-self: center;
+  max-width: 1480px;
+  width: 100%;
 }
 
 .gkit-jur-lab :where(h2, h3, p, strong, span, small) {
@@ -8552,6 +8727,7 @@ tbody tr:hover {
   .gkit-jur-inbox-call-grid,
   .gkit-jur-process-command-center,
   .gkit-jur-process-call-grid,
+  .gkit-jur-lab-topbar,
   .gkit-jur-lab-hero,
   .gkit-jur-lab-models,
   .gkit-jur-lab-radar,
@@ -20802,6 +20978,23 @@ body:has(.gkit-flex-operational-shell) {
 
   .gkit-jur-lab-hero h2 {
     font-size: 34px;
+  }
+
+  .gkit-jur-lab-shell {
+    padding: 12px;
+  }
+
+  .gkit-jur-lab-topbar {
+    position: static;
+  }
+
+  .gkit-jur-lab-command {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-lab-command .button {
+    justify-content: center;
+    width: 100%;
   }
 
   .gkit-jur-process-pulse {

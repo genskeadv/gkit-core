@@ -2517,6 +2517,45 @@ async function getGkitJurLabReadiness() {
   return counts
 }
 
+async function getGkitJurLabSmartSummary(totalAtivos: number): Promise<GkitJurLabData['smartSummary']> {
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('processos_resumos')
+    .select('metadata,updated_at')
+    .limit(5000)
+
+  if (result.error) throw new Error(result.error.message)
+
+  let resumosInteligentes = 0
+  let precisaRevisaoHumana = 0
+  let ultimaGeracaoEm: string | null = null
+
+  for (const row of (result.data ?? []) as Array<Record<string, unknown>>) {
+    const metadata = recordValue(row.metadata)
+    const inteligente = recordValue(metadata.resumoInteligente)
+    const updatedAt = text(row.updated_at) || null
+    const hasSmartSummary = Boolean(Object.keys(inteligente).length)
+
+    if (hasSmartSummary) {
+      resumosInteligentes += 1
+      if (Boolean(inteligente.precisaRevisaoHumana)) precisaRevisaoHumana += 1
+    }
+
+    if (updatedAt && (!ultimaGeracaoEm || Date.parse(updatedAt) > Date.parse(ultimaGeracaoEm))) {
+      ultimaGeracaoEm = updatedAt
+    }
+  }
+
+  return {
+    coberturaPercentual: totalAtivos ? Math.round((resumosInteligentes / totalAtivos) * 100) : 0,
+    pendentesResumo: Math.max(0, totalAtivos - resumosInteligentes),
+    precisaRevisaoHumana,
+    resumosInteligentes,
+    totalAtivos,
+    ultimaGeracaoEm,
+  }
+}
+
 async function listGkitJurLabBriefings(): Promise<GkitJurLabData['briefings']> {
   const resumoResult = await admin()
     .schema('gkit_jur')
@@ -2559,26 +2598,19 @@ async function listGkitJurLabBriefings(): Promise<GkitJurLabData['briefings']> {
 }
 
 export async function getGkitJurLab(): Promise<GkitJurLabData> {
-  const [inbox, metrics, readiness, monitoramento, briefings] = await Promise.all([
+  const [inbox, metrics, readiness, briefings] = await Promise.all([
     getGkitJurInbox(),
     getGkitJurDashboardMetrics(),
     getGkitJurLabReadiness(),
-    getGkitJurAgenteMonitoramento(),
     listGkitJurLabBriefings(),
   ])
+  const smartSummary = await getGkitJurLabSmartSummary(metrics.processosAtivos)
 
   return {
     inbox,
     metrics,
     readiness,
-    smartSummary: {
-      coberturaPercentual: monitoramento.coberturaPercentual,
-      pendentesResumo: monitoramento.pendentesResumo,
-      precisaRevisaoHumana: monitoramento.precisaRevisaoHumana,
-      resumosInteligentes: monitoramento.resumosInteligentes,
-      totalAtivos: monitoramento.totalAtivos,
-      ultimaGeracaoEm: monitoramento.ultimaGeracaoEm,
-    },
+    smartSummary,
     briefings,
   }
 }

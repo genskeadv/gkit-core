@@ -113,6 +113,58 @@ export function GkitJurShell({
   )
 }
 
+export function GkitJurLabShell({
+  children,
+  usuario,
+}: {
+  children: ReactNode
+  usuario: PlatformUsuario
+}) {
+  return (
+    <main className="gkit-jur-lab-shell">
+      <header className="gkit-jur-lab-topbar">
+        <Link className="gkit-jur-lab-mark" href="/modulos/gkit-jur/lab">
+          <span>GKIT</span>
+          <strong>Jur Lab</strong>
+        </Link>
+
+        <form action="/modulos/gkit-jur/busca" className="gkit-jur-lab-command" method="get">
+          <label>
+            <span>Comando juridico</span>
+            <input name="q" placeholder="Buscar processo, cliente, publicacao ou comando..." type="search" />
+          </label>
+          <button className="button primary-button" type="submit">Executar</button>
+        </form>
+
+        <div className="gkit-jur-lab-user">
+          <span>{usuario.nome}</span>
+          <small>{usuario.tipo}</small>
+        </div>
+      </header>
+
+      <nav className="gkit-jur-lab-modes" aria-label="Modos do laboratorio">
+        <a href="#hoje">Hoje</a>
+        <a href="#modelos">Modelos</a>
+        <a href="#risco">Risco</a>
+        <a href="#prontuario">Prontuario</a>
+        <a href="#advogados">Advogados</a>
+        <Link href="/modulos/gkit-jur/inbox">GKIT Jur classico</Link>
+      </nav>
+
+      <section className="gkit-jur-lab-shell-intro">
+        <span>Hipotese sem menu</span>
+        <h1>O trabalho juridico entra por contexto, risco e comando.</h1>
+        <p>
+          Esta versao remove o menu lateral para testar se a operacao fica mais clara quando a navegacao
+          deixa de ser cadastro e passa a ser decisao.
+        </p>
+      </section>
+
+      {children}
+    </main>
+  )
+}
+
 export function GkitJurSection({
   action,
   children,
@@ -539,7 +591,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
 
   return (
     <div className="gkit-jur-lab">
-      <section className="gkit-jur-lab-hero">
+      <section className="gkit-jur-lab-hero" id="hoje">
         <div>
           <span>GKIT Jur Lab</span>
           <h2>Um laboratorio para descobrir a experiencia juridica que vale defender.</h2>
@@ -604,7 +656,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
         ))}
       </section>
 
-      <section className="gkit-jur-lab-radar">
+      <section className="gkit-jur-lab-radar" id="risco">
         <div>
           <span>Radar de prontidao</span>
           <h3>O produto deveria mostrar confianca operacional antes de mostrar tabela.</h3>
@@ -623,7 +675,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
         </div>
       </section>
 
-      <section className="gkit-jur-lab-workbench">
+      <section className="gkit-jur-lab-workbench" id="prontuario">
         <div>
           <div className="gkit-jur-lab-section-title">
             <span>Amostra de atencao</span>
