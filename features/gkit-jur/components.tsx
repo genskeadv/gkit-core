@@ -152,11 +152,10 @@ export function GkitJurLabShell({
       </nav>
 
       <section className="gkit-jur-lab-shell-intro">
-        <span>Hipotese sem menu</span>
-        <h1>O trabalho juridico entra por contexto, risco e comando.</h1>
+        <span>Inteligencia, visao e controle para o juridico</span>
+        <h1>Legal Command Center</h1>
         <p>
-          Esta versao remove o menu lateral para testar se a operacao fica mais clara quando a navegacao
-          deixa de ser cadastro e passa a ser decisao.
+          Visao estrategica e operacional do contencioso, com prioridades reais antes de qualquer cadastro.
         </p>
       </section>
 
@@ -600,7 +599,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
     <div className="gkit-jur-lab">
       <section className="gkit-jur-lab-command-deck" id="hoje">
         <article className="gkit-jur-lab-briefing-card">
-          <span>Briefing de 1 minuto</span>
+          <span>Hoje no juridico</span>
           <h2>{topItem ? 'Ha decisao juridica esperando atencao humana.' : 'A operacao juridica esta sem alerta dominante.'}</h2>
           <p>
             {topItem
@@ -634,7 +633,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
 
         <aside className="gkit-jur-lab-copilot-card">
           <div className="gkit-jur-lab-copilot-head">
-            <span>AI Legal Copilot</span>
+            <span>Inteligencia juridica</span>
             <small>beta</small>
           </div>
           <form action="/modulos/gkit-jur/busca" className="gkit-jur-lab-copilot-input" method="get">
@@ -662,7 +661,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
       <section className="gkit-jur-lab-control-grid">
         <article className="gkit-jur-lab-priority-panel">
           <div className="gkit-jur-lab-section-title">
-            <span>Proximas decisoes</span>
+            <span>Prazos criticos</span>
             <h3>O sistema escolhe a fila; o humano confirma o tratamento.</h3>
           </div>
           <div className="gkit-jur-lab-action-stack">
@@ -680,7 +679,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
         <article className="gkit-jur-lab-risk-panel">
           <div className="gkit-jur-lab-section-title">
             <span>Radar de risco</span>
-            <h3>O que pode falhar antes de alguem abrir uma tabela.</h3>
+            <h3>Antecipacao de riscos antes que virem urgencia.</h3>
           </div>
           <div className="gkit-jur-lab-risk-orbit" aria-label="Radar de risco operacional">
             <span className="orbit-ring outer" />
@@ -699,7 +698,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
         </article>
 
         <aside className="gkit-jur-lab-context-panel">
-          <span>Contexto em foco</span>
+          <span>Processo em foco</span>
           <strong>{topItem ? topItem.titulo : data.briefings[0]?.numeroCnj ?? 'Sem processo em foco'}</strong>
           <p>{topItem ? topItem.subtitulo : data.briefings[0]?.resumoOperacional ?? 'Selecione um sinal para abrir o contexto juridico.'}</p>
           <dl>
