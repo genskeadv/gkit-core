@@ -20242,3 +20242,19 @@ body:has(.gkit-flex-operational-shell) {
     grid-template-columns: 1fr;
   }
 }
+
+.gkit-jur-shell .gkit-jur-publication-decision :where(strong, b, h4, .button, button, a.button, .suite-pill, summary),
+.gkit-jur-shell .gkit-jur-publication-card :where(strong, b, h3, h4, .button, button, a.button, .suite-pill, summary) {
+  font-weight: 400 !important;
+}
+
+.gkit-jur-shell .gkit-jur-publication-decision .button,
+.gkit-jur-shell .gkit-jur-publication-decision button.button,
+.gkit-jur-shell .gkit-jur-publication-decision a.button,
+.gkit-jur-shell .gkit-jur-publication-treatment > summary {
+  align-items: center !important;
+  display: inline-flex !important;
+  justify-content: center !important;
+  min-height: 42px !important;
+  text-align: center !important;
+}
