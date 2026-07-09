@@ -78,6 +78,11 @@ function termsList(value: string) {
     .filter(Boolean))]
 }
 
+function colorHex(value: string) {
+  const current = value.trim()
+  return /^#[0-9A-Fa-f]{6}$/.test(current) ? current.toLowerCase() : '#64748b'
+}
+
 function selectedIds(formData: FormData, key: string) {
   return [...new Set(formData.getAll(key)
     .map((value) => (typeof value === 'string' ? value.trim() : ''))
@@ -158,6 +163,85 @@ export async function updateGkitJurProcessoAction(formData: FormData) {
   revalidateGkitJur()
   revalidatePath(`/modulos/gkit-jur/processos/${id}`)
   redirect(`/modulos/gkit-jur/processos/${id}`)
+}
+
+export async function saveGkitJurEtiquetaAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.admin.write')
+  const id = text(formData, 'id')
+  const payload = {
+    nome: requiredText(formData, 'nome', 'Nome da etiqueta'),
+    cor: colorHex(text(formData, 'cor') || '#64748b'),
+    ativo: text(formData, 'ativo') === 'on',
+    atualizado_por: context.usuario.id,
+    updated_at: new Date().toISOString(),
+  }
+
+  const result = id
+    ? await admin().schema('gkit_jur').from('etiquetas').update(payload).eq('id', id)
+    : await admin().schema('gkit_jur').from('etiquetas').insert({ ...payload, criado_por: context.usuario.id })
+
+  if (result.error) throw new Error(result.error.message)
+
+  revalidateGkitJur()
+  revalidatePath('/modulos/gkit-jur/configuracoes')
+  revalidatePath('/modulos/gkit-jur/configuracoes/etiquetas')
+  redirect('/modulos/gkit-jur/configuracoes/etiquetas?saved=ok')
+}
+
+export async function updateGkitJurProcessoEtiquetaAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.write')
+  const processoId = requiredText(formData, 'processo_id', 'Processo')
+  const etiquetaId = requiredText(formData, 'etiqueta_id', 'Etiqueta')
+  const mode = allowed(text(formData, 'mode'), ['add', 'remove'] as const, 'add')
+  const target = safeReturnTo(formData, `/modulos/gkit-jur/processos/${processoId}`)
+
+  const result = mode === 'remove'
+    ? await admin()
+      .schema('gkit_jur')
+      .from('processo_etiquetas')
+      .delete()
+      .eq('processo_id', processoId)
+      .eq('etiqueta_id', etiquetaId)
+    : await admin()
+      .schema('gkit_jur')
+      .from('processo_etiquetas')
+      .upsert({ processo_id: processoId, etiqueta_id: etiquetaId, criado_por: context.usuario.id }, { onConflict: 'processo_id,etiqueta_id' })
+
+  if (result.error) throw new Error(result.error.message)
+
+  revalidateGkitJur()
+  revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  redirect(target)
+}
+
+export async function bulkUpdateGkitJurProcessoEtiquetasAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.write')
+  const processoIds = selectedIds(formData, 'processo_id')
+  const etiquetaId = requiredText(formData, 'etiqueta_id', 'Etiqueta')
+  const mode = allowed(text(formData, 'mode'), ['add', 'remove'] as const, 'add')
+  const target = safeReturnTo(formData, '/modulos/gkit-jur/processos')
+
+  if (!processoIds.length) redirect(target)
+
+  const result = mode === 'remove'
+    ? await admin()
+      .schema('gkit_jur')
+      .from('processo_etiquetas')
+      .delete()
+      .eq('etiqueta_id', etiquetaId)
+      .in('processo_id', processoIds)
+    : await admin()
+      .schema('gkit_jur')
+      .from('processo_etiquetas')
+      .upsert(
+        processoIds.map((processoId) => ({ processo_id: processoId, etiqueta_id: etiquetaId, criado_por: context.usuario.id })),
+        { onConflict: 'processo_id,etiqueta_id' },
+      )
+
+  if (result.error) throw new Error(result.error.message)
+
+  revalidateGkitJur()
+  redirect(target)
 }
 
 export async function applyGkitJurSaneamentoSuggestionsAction(formData: FormData) {

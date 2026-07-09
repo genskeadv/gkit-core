@@ -6028,6 +6028,151 @@ tbody tr:hover {
   grid-template-columns: minmax(280px, 1.7fr) minmax(96px, auto) minmax(150px, 0.7fr) minmax(140px, 0.7fr) minmax(130px, auto);
 }
 
+.gkit-jur-process-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) minmax(170px, auto);
+}
+
+.gkit-jur-process-row > .suite-row-link {
+  min-width: 0;
+}
+
+.gkit-jur-process-row-check {
+  accent-color: var(--gkli-primary);
+  height: 18px;
+  width: 18px;
+}
+
+.gkit-jur-tag-pills {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.gkit-jur-tag-pills > small {
+  color: var(--new-muted);
+}
+
+.gkit-jur-tag-pill {
+  align-items: center;
+  background: color-mix(in srgb, var(--tag-color, #64748b) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--tag-color, #64748b) 38%, #fff);
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--tag-color, #64748b) 74%, #111827);
+  display: inline-flex;
+  font-size: 11px;
+  gap: 5px;
+  line-height: 1;
+  padding: 5px 8px;
+}
+
+.gkit-jur-tag-pill i {
+  background: var(--tag-color, #64748b);
+  border-radius: 999px;
+  height: 7px;
+  width: 7px;
+}
+
+.gkit-jur-bulk-tag-form {
+  align-items: center;
+  background: rgba(248, 250, 252, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(220px, 1fr) minmax(170px, 0.45fr) minmax(120px, 0.32fr) auto;
+  margin: 0 0 10px;
+  padding: 10px;
+}
+
+.gkit-jur-bulk-tag-form div {
+  display: grid;
+  gap: 2px;
+}
+
+.gkit-jur-bulk-tag-form strong,
+.gkit-jur-process-detail-tags > div > span {
+  color: var(--new-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.gkit-jur-bulk-tag-form small {
+  color: var(--new-muted);
+  font-size: 12px;
+}
+
+.gkit-jur-process-tag-editor {
+  justify-self: end;
+  position: relative;
+}
+
+.gkit-jur-process-tag-editor > summary {
+  color: var(--new-muted);
+  cursor: pointer;
+  font-size: 12px;
+  list-style: none;
+  white-space: nowrap;
+}
+
+.gkit-jur-process-tag-editor > summary::-webkit-details-marker {
+  display: none;
+}
+
+.gkit-jur-process-tag-editor > div {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: var(--suite-module-card-radius, 8px);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+  display: grid;
+  gap: 8px;
+  min-width: 280px;
+  padding: 10px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+}
+
+.gkit-jur-process-tag-editor form,
+.gkit-jur-process-tag-remove form {
+  margin: 0;
+}
+
+.gkit-jur-process-tag-editor form {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.gkit-jur-process-tag-remove {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gkit-jur-process-detail-tags {
+  background: rgba(248, 250, 252, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px;
+}
+
+.gkit-jur-process-detail-tags > form {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(180px, 0.5fr) auto;
+  margin: 0;
+}
+
 .gkit-jur-process-list h3,
 .gkit-jur-movement-list h3,
 .gkit-jur-audit-list h3,
@@ -8617,6 +8762,21 @@ tbody tr:hover {
 .gkit-jur-rule-edit .gkit-jur-rule-form {
   border: 0;
   border-radius: 0;
+}
+
+.gkit-jur-tag-form {
+  align-items: end;
+  grid-template-columns: minmax(260px, 1fr) minmax(110px, 0.22fr) minmax(150px, auto) auto;
+}
+
+.gkit-jur-tag-list article {
+  grid-template-columns: minmax(260px, 1fr) auto minmax(120px, auto) minmax(180px, auto);
+}
+
+.gkit-jur-tag-list p {
+  color: var(--new-muted);
+  font-size: 12px;
+  margin: 6px 0 0;
 }
 
 .gkit-jur-rule-form {

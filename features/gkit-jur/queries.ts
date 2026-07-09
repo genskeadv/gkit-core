@@ -13,6 +13,8 @@ import type {
   GkitJurDocumento,
   GkitJurDocumentoStatus,
   GkitJurDocumentoTipo,
+  GkitJurEtiqueta,
+  GkitJurEtiquetasData,
   GkitJurEventoProcesso,
   GkitJurEventoTipo,
   GkitJurFormData,
@@ -342,6 +344,7 @@ export function buildGkitJurProcessFilters(params?: ModuleSearchParams | null): 
   return {
     carteiraId: singleParam(params?.carteira_id),
     dir,
+    etiquetaId: singleParam(params?.etiqueta_id),
     monitoramento: singleParam(params?.monitoramento),
     page: positiveInt(singleParam(params?.page), 1),
     q: singleParam(params?.q).trim(),
@@ -407,6 +410,7 @@ function mapProcesso(row: Record<string, unknown>, maps: {
   clientes: Map<string, string>
   carteiras: Map<string, string>
   responsaveis: Map<string, string>
+  etiquetas?: Map<string, GkitJurEtiqueta[]>
 }): GkitJurProcessListItem {
   const clienteId = text(row.cliente_id)
   const carteiraId = text(row.carteira_id)
@@ -428,7 +432,85 @@ function mapProcesso(row: Record<string, unknown>, maps: {
     ultimaSincronizacaoEm: text(row.ultima_sincronizacao_em) || null,
     status: status(row.status),
     statusMonitoramento: monitoramento(row.status_monitoramento),
+    etiquetas: maps.etiquetas?.get(String(row.id)) ?? [],
   }
+}
+
+function mapEtiqueta(row: Record<string, unknown>): GkitJurEtiqueta {
+  return {
+    id: String(row.id),
+    nome: text(row.nome, 'Etiqueta sem nome'),
+    cor: text(row.cor, '#64748b'),
+    ativo: Boolean(row.ativo),
+    updatedAt: text(row.updated_at) || null,
+  }
+}
+
+async function listGkitJurEtiquetas(onlyActive = false): Promise<GkitJurEtiqueta[]> {
+  let query = admin()
+    .schema('gkit_jur')
+    .from('etiquetas')
+    .select('id,nome,cor,ativo,updated_at')
+    .order('ativo', { ascending: false })
+    .order('nome', { ascending: true })
+    .limit(500)
+
+  if (onlyActive) query = query.eq('ativo', true)
+
+  const result = await query
+  if (result.error) {
+    if (String(result.error.message ?? '').includes('etiquetas')) return []
+    throw new Error(result.error.message)
+  }
+
+  return ((result.data ?? []) as Array<Record<string, unknown>>).map(mapEtiqueta)
+}
+
+async function lookupEtiquetas(processoIds: string[]) {
+  const ids = [...new Set(processoIds.filter(Boolean))]
+  if (!ids.length) return new Map<string, GkitJurEtiqueta[]>()
+
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('processo_etiquetas')
+    .select('processo_id,etiqueta_id')
+    .in('processo_id', ids)
+
+  if (result.error) {
+    if (String(result.error.message ?? '').includes('processo_etiquetas')) return new Map<string, GkitJurEtiqueta[]>()
+    throw new Error(result.error.message)
+  }
+
+  const etiquetaIds = [...new Set(((result.data ?? []) as Array<Record<string, unknown>>).map((row) => text(row.etiqueta_id)).filter(Boolean))]
+  const etiquetasResult = etiquetaIds.length
+    ? await admin()
+      .schema('gkit_jur')
+      .from('etiquetas')
+      .select('id,nome,cor,ativo,updated_at')
+      .in('id', etiquetaIds)
+    : { data: [], error: null }
+
+  if (etiquetasResult.error) throw new Error(etiquetasResult.error.message)
+
+  const etiquetasById = new Map(((etiquetasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [
+    String(row.id),
+    mapEtiqueta(row),
+  ]))
+  const tagMap = new Map<string, GkitJurEtiqueta[]>()
+  for (const row of (result.data ?? []) as Array<Record<string, unknown>>) {
+    const processoId = text(row.processo_id)
+    const etiqueta = etiquetasById.get(text(row.etiqueta_id))
+    if (!processoId || !etiqueta) continue
+    const current = tagMap.get(processoId) ?? []
+    current.push(etiqueta)
+    tagMap.set(processoId, current)
+  }
+
+  for (const [processoId, etiquetas] of tagMap.entries()) {
+    tagMap.set(processoId, etiquetas.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')))
+  }
+
+  return tagMap
 }
 
 async function lookupMaps(rows: Array<Record<string, unknown>>) {
@@ -468,10 +550,11 @@ function optionFromRow(row: Record<string, unknown>, labelKeys: string[]): GkitJ
 }
 
 async function getFilterOptions(): Promise<GkitJurProcessFilterOptions> {
-  const [carteirasResult, responsaveisResult, tribunaisResult] = await Promise.all([
+  const [carteirasResult, responsaveisResult, tribunaisResult, etiquetas] = await Promise.all([
     admin().schema('core').from('carteiras').select('id,nome').eq('status', 'ativo').order('nome', { ascending: true }),
     admin().schema('security').from('usuarios').select('id,nome,email').eq('status', 'ativo').order('nome', { ascending: true }),
     admin().schema('gkit_jur').from('processos').select('tribunal_sigla').eq('status', DEFAULT_PROCESS_STATUS).not('tribunal_sigla', 'is', null).limit(5000),
+    listGkitJurEtiquetas(true),
   ])
 
   if (carteirasResult.error) throw new Error(carteirasResult.error.message)
@@ -485,6 +568,7 @@ async function getFilterOptions(): Promise<GkitJurProcessFilterOptions> {
 
   return {
     carteiras: ((carteirasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => optionFromRow(row, ['nome'])),
+    etiquetas,
     responsaveis: ((responsaveisResult.data ?? []) as Array<Record<string, unknown>>).map((row) => optionFromRow(row, ['nome', 'email'])),
     tribunais: tribunais.map((tribunal) => ({ label: tribunal, value: tribunal })),
   }
@@ -506,6 +590,7 @@ async function getGkitJurFormData(): Promise<GkitJurFormData> {
   return {
     carteiras: filterOptions.carteiras,
     clientes: ((clientesResult.data ?? []) as Array<Record<string, unknown>>).map((row) => optionFromRow(row, ['nome_fantasia', 'nome', 'razao_social'])),
+    etiquetas: filterOptions.etiquetas,
     responsaveis: filterOptions.responsaveis,
   }
 }
@@ -834,6 +919,24 @@ function applyProcessFilters(query: any, filters: GkitJurProcessFilters) {
   return next
 }
 
+async function resolveEtiquetaProcessIds(etiquetaId: string) {
+  if (!etiquetaId) return null
+
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('processo_etiquetas')
+    .select('processo_id')
+    .eq('etiqueta_id', etiquetaId)
+    .limit(MOVEMENT_PROCESS_SCOPE_LIMIT)
+
+  if (result.error) {
+    if (String(result.error.message ?? '').includes('processo_etiquetas')) return []
+    throw new Error(result.error.message)
+  }
+
+  return [...new Set(((result.data ?? []) as Array<Record<string, unknown>>).map((row) => text(row.processo_id)).filter(Boolean))]
+}
+
 function sortColumn(sort: string) {
   if (['cliente_nome', 'tribunal_sigla', 'data_ajuizamento', 'ultima_movimentacao_em', 'updated_at'].includes(sort)) return sort
   return 'updated_at'
@@ -842,6 +945,7 @@ function sortColumn(sort: string) {
 export async function listGkitJurProcesses(filters: GkitJurProcessFilters = buildGkitJurProcessFilters()): Promise<GkitJurProcessListData> {
   const from = (filters.page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
+  const etiquetaProcessIds = await resolveEtiquetaProcessIds(filters.etiquetaId)
 
   let query = admin()
     .schema('gkit_jur')
@@ -849,19 +953,25 @@ export async function listGkitJurProcesses(filters: GkitJurProcessFilters = buil
     .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,updated_at,data_ajuizamento', { count: 'exact' })
 
   query = applyProcessFilters(query, filters)
-    .order(sortColumn(filters.sort), { ascending: filters.dir === 'asc', nullsFirst: false })
-    .range(from, to)
+  if (etiquetaProcessIds) query = etiquetaProcessIds.length ? query.in('id', etiquetaProcessIds) : null
+
+  query = query
+    ? query
+      .order(sortColumn(filters.sort), { ascending: filters.dir === 'asc', nullsFirst: false })
+      .range(from, to)
+    : null
 
   const [metrics, filterOptions, processosResult] = await Promise.all([
     getGkitJurDashboardMetrics(),
     getFilterOptions(),
-    query,
+    query ?? Promise.resolve({ data: [], error: null, count: 0 }),
   ])
 
   if (processosResult.error) throw new Error(processosResult.error.message)
 
   const rows = (processosResult.data ?? []) as Array<Record<string, unknown>>
   const maps = await lookupMaps(rows)
+  const etiquetas = await lookupEtiquetas(rows.map((row) => String(row.id)))
   const total = processosResult.count ?? 0
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
@@ -877,7 +987,7 @@ export async function listGkitJurProcesses(filters: GkitJurProcessFilters = buil
       total,
       totalPages,
     },
-    processes: rows.map((row) => mapProcesso(row, maps)),
+    processes: rows.map((row) => mapProcesso(row, { ...maps, etiquetas })),
   }
 }
 
@@ -1339,7 +1449,8 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
 
   const row = processoResult.data as Record<string, unknown>
   const maps = await lookupMaps([row])
-  const item = mapProcesso(row, maps)
+  const etiquetas = await lookupEtiquetas([id])
+  const item = mapProcesso(row, { ...maps, etiquetas })
   const [movimentacoesResult, tarefasResult, documentosResult, eventosResult, resumo] = await Promise.all([
     admin()
       .schema('gkit_jur')
@@ -3139,6 +3250,19 @@ export async function getGkitJurMovimentacaoTarefaData(): Promise<GkitJurMovimen
       ativas: regras.filter((regra) => regra.ativo).length,
       automaticas: regras.filter((regra) => regra.ativo && regra.gerarAutomaticamente).length,
       total: regras.length,
+    },
+  }
+}
+
+export async function getGkitJurEtiquetasData(): Promise<GkitJurEtiquetasData> {
+  const etiquetas = await listGkitJurEtiquetas(false)
+
+  return {
+    etiquetas,
+    metrics: {
+      ativas: etiquetas.filter((etiqueta) => etiqueta.ativo).length,
+      inativas: etiquetas.filter((etiqueta) => !etiqueta.ativo).length,
+      total: etiquetas.length,
     },
   }
 }

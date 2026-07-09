@@ -72,6 +72,14 @@ export type GkitJurSelectOption = {
   value: string;
 };
 
+export type GkitJurEtiqueta = {
+  id: string;
+  nome: string;
+  cor: string;
+  ativo: boolean;
+  updatedAt: string | null;
+};
+
 export type GkitJurProcessListItem = {
   id: string;
   numeroCnj: string;
@@ -87,11 +95,13 @@ export type GkitJurProcessListItem = {
   ultimaSincronizacaoEm: string | null;
   status: GkitJurProcessoStatus;
   statusMonitoramento: GkitJurMonitoramentoStatus;
+  etiquetas: GkitJurEtiqueta[];
 };
 
 export type GkitJurProcessFilters = {
   carteiraId: string;
   dir: 'asc' | 'desc';
+  etiquetaId: string;
   monitoramento: string;
   page: number;
   q: string;
@@ -104,6 +114,7 @@ export type GkitJurProcessFilters = {
 
 export type GkitJurProcessFilterOptions = {
   carteiras: GkitJurSelectOption[];
+  etiquetas: GkitJurEtiqueta[];
   responsaveis: GkitJurSelectOption[];
   tribunais: GkitJurSelectOption[];
 };
@@ -145,6 +156,7 @@ export type GkitJurGlobalSearchData = {
 export type GkitJurFormData = {
   carteiras: GkitJurSelectOption[];
   clientes: GkitJurSelectOption[];
+  etiquetas: GkitJurEtiqueta[];
   responsaveis: GkitJurSelectOption[];
 };
 
@@ -754,6 +766,15 @@ export type GkitJurMovimentacaoTarefaData = {
   metrics: {
     ativas: number;
     automaticas: number;
+    total: number;
+  };
+};
+
+export type GkitJurEtiquetasData = {
+  etiquetas: GkitJurEtiqueta[];
+  metrics: {
+    ativas: number;
+    inativas: number;
     total: number;
   };
 };

@@ -18,6 +18,8 @@ import type {
   GkitJurAuditoriaData,
   GkitJurDashboardMetrics,
   GkitJurDocumento,
+  GkitJurEtiqueta,
+  GkitJurEtiquetasData,
   GkitJurFormData,
   GkitJurGlobalSearchData,
   GkitJurGlobalSearchResult,
@@ -835,13 +837,22 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
 
 function filterHref(filters: GkitJurProcessFilters, page: number) {
   const params = new URLSearchParams()
-  Object.entries({ ...filters, page }).forEach(([key, value]) => {
-    if (key === 'page') {
-      if (Number(value) > 1) params.set(key, String(value))
-      return
-    }
+  const entries = {
+    carteira_id: filters.carteiraId,
+    dir: filters.dir,
+    etiqueta_id: filters.etiquetaId,
+    monitoramento: filters.monitoramento,
+    q: filters.q,
+    responsavel_id: filters.responsavelId,
+    saneamento: filters.saneamento,
+    sort: filters.sort,
+    status: filters.status,
+    tribunal: filters.tribunal,
+  }
+  Object.entries(entries).forEach(([key, value]) => {
     if (value) params.set(key, String(value))
   })
+  if (page > 1) params.set('page', String(page))
   const query = params.toString()
   return query ? `/modulos/gkit-jur/processos?${query}` : '/modulos/gkit-jur/processos'
 }
@@ -861,6 +872,29 @@ function movimentacaoHref(filters: GkitJurMovimentacaoFilters, page: number) {
 
 function activeValueLabel(options: GkitJurSelectOption[], value: string) {
   return options.find((option) => option.value === value)?.label ?? value
+}
+
+function tagOptions(tags: GkitJurEtiqueta[]): GkitJurSelectOption[] {
+  return tags.filter((tag) => tag.ativo).map((tag) => ({ label: tag.nome, value: tag.id }))
+}
+
+function etiquetaStyle(tag: GkitJurEtiqueta): CSSProperties {
+  return {
+    '--tag-color': tag.cor,
+  } as CSSProperties
+}
+
+function GkitJurEtiquetaPills({ empty = 'Sem etiqueta', tags }: { empty?: string; tags: GkitJurEtiqueta[] }) {
+  return (
+    <div className="gkit-jur-tag-pills">
+      {tags.length ? tags.map((tag) => (
+        <span className="gkit-jur-tag-pill" key={tag.id} style={etiquetaStyle(tag)}>
+          <i aria-hidden="true" />
+          {tag.nome}
+        </span>
+      )) : <small>{empty}</small>}
+    </div>
+  )
 }
 
 function GkitJurActiveFilterChips({ items }: { items: Array<{ label: string; value: string }> }) {
@@ -911,6 +945,7 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
     filters.carteiraId ? { label: 'Carteira', value: activeValueLabel(filterOptions.carteiras, filters.carteiraId) } : null,
     filters.responsavelId ? { label: 'Responsável', value: activeValueLabel(filterOptions.responsaveis, filters.responsavelId) } : null,
     filters.tribunal ? { label: 'Tribunal', value: filters.tribunal } : null,
+    filters.etiquetaId ? { label: 'Etiqueta', value: tagOptions(filterOptions.etiquetas).find((option) => option.value === filters.etiquetaId)?.label ?? filters.etiquetaId } : null,
     filters.monitoramento ? { label: 'Monitoramento', value: optionLabel(gkitJurMonitoramentoOptions, filters.monitoramento) } : null,
     filters.saneamento ? { label: 'Pendência', value: filters.saneamento.replace('sem_', 'Sem ').replace('_', ' ') } : null,
   ].filter(Boolean) as Array<{ label: string; value: string }>
@@ -949,6 +984,13 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
           options={filterOptions.tribunais}
           placeholder="Todos"
           value={filters.tribunal}
+        />
+        <SelectField
+          label="Etiqueta"
+          name="etiqueta_id"
+          options={tagOptions(filterOptions.etiquetas)}
+          placeholder="Todas"
+          value={filters.etiquetaId}
         />
         <SelectField
           label="Monitoramento"
@@ -1177,7 +1219,20 @@ function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData })
   )
 }
 
-export function GkitJurProcessesPage({ data }: { data: GkitJurProcessListData }) {
+export function GkitJurProcessesPage({
+  bulkEtiquetaAction,
+  canWrite,
+  data,
+  updateEtiquetaAction,
+}: {
+  bulkEtiquetaAction: (formData: FormData) => Promise<void>
+  canWrite: boolean
+  data: GkitJurProcessListData
+  updateEtiquetaAction: (formData: FormData) => Promise<void>
+}) {
+  const bulkFormId = 'gkit-jur-process-tags-bulk'
+  const returnTo = filterHref(data.filters, data.pagination.currentPage)
+
   return (
     <>
       <GkitJurProcessCommandCenter data={data} />
@@ -1188,7 +1243,36 @@ export function GkitJurProcessesPage({ data }: { data: GkitJurProcessListData })
           <small>Encerrados aparecem apenas quando o status for selecionado no filtro.</small>
         </div>
         <GkitJurFilterBar data={data} />
-        {data.processes.length ? <GkitJurProcessList rows={data.processes} /> : (
+        {data.processes.length && canWrite ? (
+          <form action={bulkEtiquetaAction} className="gkit-jur-bulk-tag-form" id={bulkFormId}>
+            <input name="return_to" type="hidden" value={returnTo} />
+            <div>
+              <strong>Etiquetas em lote</strong>
+              <small>Selecione processos nesta pagina filtrada e aplique uma etiqueta.</small>
+            </div>
+            <select name="etiqueta_id" required defaultValue="">
+              <option value="">Escolha a etiqueta</option>
+              {tagOptions(data.filterOptions.etiquetas).map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            <select name="mode" defaultValue="add">
+              <option value="add">Adicionar</option>
+              <option value="remove">Remover</option>
+            </select>
+            <button className="button secondary" type="submit">Aplicar nos selecionados</button>
+          </form>
+        ) : null}
+        {data.processes.length ? (
+          <GkitJurProcessTaggableList
+            bulkFormId={bulkFormId}
+            canWrite={canWrite}
+            returnTo={returnTo}
+            rows={data.processes}
+            tags={data.filterOptions.etiquetas}
+            updateEtiquetaAction={updateEtiquetaAction}
+          />
+        ) : (
           <div className="suite-empty-block">
             Nenhum processo encontrado com os filtros atuais.
           </div>
@@ -1294,6 +1378,112 @@ function GkitJurPager({ data }: { data: GkitJurProcessListData }) {
           Próxima
         </Link>
       </div>
+    </div>
+  )
+}
+
+function GkitJurProcessTagEditor({
+  action,
+  processo,
+  returnTo,
+  tags,
+}: {
+  action: (formData: FormData) => Promise<void>
+  processo: GkitJurProcessListItem
+  returnTo: string
+  tags: GkitJurEtiqueta[]
+}) {
+  const availableTags = tags.filter((tag) => tag.ativo && !processo.etiquetas.some((current) => current.id === tag.id))
+
+  return (
+    <details className="gkit-jur-process-tag-editor">
+      <summary>Etiquetas</summary>
+      <div>
+        {availableTags.length ? (
+          <form action={action}>
+            <input name="processo_id" type="hidden" value={processo.id} />
+            <input name="return_to" type="hidden" value={returnTo} />
+            <input name="mode" type="hidden" value="add" />
+            <select name="etiqueta_id" required defaultValue="">
+              <option value="">Adicionar etiqueta</option>
+              {availableTags.map((tag) => (
+                <option key={tag.id} value={tag.id}>{tag.nome}</option>
+              ))}
+            </select>
+            <button className="button secondary" type="submit">Adicionar</button>
+          </form>
+        ) : <small>Todas as etiquetas ativas ja estao no processo.</small>}
+        {processo.etiquetas.length ? (
+          <div className="gkit-jur-process-tag-remove">
+            {processo.etiquetas.map((tag) => (
+              <form action={action} key={tag.id}>
+                <input name="processo_id" type="hidden" value={processo.id} />
+                <input name="etiqueta_id" type="hidden" value={tag.id} />
+                <input name="return_to" type="hidden" value={returnTo} />
+                <input name="mode" type="hidden" value="remove" />
+                <button className="button secondary" style={etiquetaStyle(tag)} type="submit">Remover {tag.nome}</button>
+              </form>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </details>
+  )
+}
+
+function GkitJurProcessTaggableList({
+  bulkFormId,
+  canWrite,
+  returnTo,
+  rows,
+  tags,
+  updateEtiquetaAction,
+}: {
+  bulkFormId: string
+  canWrite: boolean
+  returnTo: string
+  rows: GkitJurProcessListItem[]
+  tags: GkitJurEtiqueta[]
+  updateEtiquetaAction: (formData: FormData) => Promise<void>
+}) {
+  return (
+    <div className="suite-table-list compact gkit-jur-process-list" role="list">
+      {rows.map((row) => (
+        <article className="gkit-jur-process-row" key={row.id} role="listitem">
+          {canWrite ? (
+            <input
+              aria-label={`Selecionar processo ${row.numeroCnj}`}
+              className="gkit-jur-process-row-check"
+              form={bulkFormId}
+              name="processo_id"
+              type="checkbox"
+              value={row.id}
+            />
+          ) : null}
+          <Link className="suite-row-link" href={`/modulos/gkit-jur/processos/${row.id}`}>
+            <div>
+              <h3>{row.numeroCnj} {row.titulo ? `- ${row.titulo}` : ''}</h3>
+              <p>{row.clienteNome || 'Cliente nao vinculado'}{row.pasta ? ` - Pasta ${row.pasta}` : ''}</p>
+              <GkitJurEtiquetaPills tags={row.etiquetas} />
+            </div>
+            <span className="suite-pill primary">{row.tribunalSigla || 'Sem tribunal'}</span>
+            <strong>{row.carteiraNome || 'Sem carteira'}</strong>
+            <small>{row.responsavelNome || 'Sem responsavel'}</small>
+            <div className="gkit-jur-row-stack">
+              <span className={`suite-pill ${row.status === 'ativo' ? 'primary' : 'muted'}`}>{statusLabel(row.status)}</span>
+              <small>{row.ultimaMovimentacaoEm ? `Mov. ${formatDate(row.ultimaMovimentacaoEm)}` : 'Sem movimentacao'}</small>
+            </div>
+          </Link>
+          {canWrite ? (
+            <GkitJurProcessTagEditor
+              action={updateEtiquetaAction}
+              processo={row}
+              returnTo={returnTo}
+              tags={tags}
+            />
+          ) : null}
+        </article>
+      ))}
     </div>
   )
 }
@@ -1764,6 +1954,57 @@ function GkitJurProcessDashboard({
   )
 }
 
+function GkitJurProcessDetailEtiquetas({
+  action,
+  canWrite,
+  processo,
+  tags,
+}: {
+  action: (formData: FormData) => Promise<void>
+  canWrite: boolean
+  processo: GkitJurProcessListItem
+  tags: GkitJurEtiqueta[]
+}) {
+  const returnTo = `/modulos/gkit-jur/processos/${processo.id}#ajustes-operacionais`
+  const availableTags = tags.filter((tag) => tag.ativo && !processo.etiquetas.some((current) => current.id === tag.id))
+
+  return (
+    <div className="gkit-jur-process-detail-tags">
+      <div>
+        <span>Etiquetas do processo</span>
+        <GkitJurEtiquetaPills tags={processo.etiquetas} />
+      </div>
+      {canWrite ? (
+        <form action={action}>
+          <input name="processo_id" type="hidden" value={processo.id} />
+          <input name="return_to" type="hidden" value={returnTo} />
+          <input name="mode" type="hidden" value="add" />
+          <select name="etiqueta_id" required defaultValue="">
+            <option value="">{availableTags.length ? 'Adicionar etiqueta' : 'Todas as etiquetas ativas ja aplicadas'}</option>
+            {availableTags.map((tag) => (
+              <option key={tag.id} value={tag.id}>{tag.nome}</option>
+            ))}
+          </select>
+          <button className="button secondary" disabled={!availableTags.length} type="submit">Adicionar</button>
+        </form>
+      ) : null}
+      {canWrite && processo.etiquetas.length ? (
+        <div className="gkit-jur-process-tag-remove">
+          {processo.etiquetas.map((tag) => (
+            <form action={action} key={tag.id}>
+              <input name="processo_id" type="hidden" value={processo.id} />
+              <input name="etiqueta_id" type="hidden" value={tag.id} />
+              <input name="return_to" type="hidden" value={returnTo} />
+              <input name="mode" type="hidden" value="remove" />
+              <button className="button secondary" style={etiquetaStyle(tag)} type="submit">Remover {tag.nome}</button>
+            </form>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export function GkitJurProcessDetailPage({
   action,
   canSync,
@@ -1775,6 +2016,7 @@ export function GkitJurProcessDetailPage({
   data,
   syncAction,
   syncFeedback,
+  updateEtiquetaAction,
   updateTarefaPlanejamentoAction,
   updateTarefaStatusAction,
 }: {
@@ -1788,6 +2030,7 @@ export function GkitJurProcessDetailPage({
   data: GkitJurProcessDetailData
   syncAction: (formData: FormData) => Promise<void>
   syncFeedback: GkitJurProcessSyncFeedback
+  updateEtiquetaAction: (formData: FormData) => Promise<void>
   updateTarefaPlanejamentoAction: (formData: FormData) => Promise<void>
   updateTarefaStatusAction: (formData: FormData) => Promise<void>
 }) {
@@ -1847,6 +2090,12 @@ export function GkitJurProcessDetailPage({
         title="Ajustes operacionais"
         description="Corrija os vinculos usados por inbox, filtros e futuras rotinas."
       >
+        <GkitJurProcessDetailEtiquetas
+          action={updateEtiquetaAction}
+          canWrite={canWrite}
+          processo={processo}
+          tags={formData.etiquetas}
+        />
         <form action={action} className="card module-form module-form-grid gkit-jur-process-form">
           <input name="id" type="hidden" value={processo.id} />
 
@@ -3248,6 +3497,12 @@ const gkitJurConfiguracoesItems = [
     label: 'Configurar regras',
   },
   {
+    title: 'Etiquetas',
+    description: 'Cores e nomes usados para classificar processos na lista e no cadastro.',
+    href: '/modulos/gkit-jur/configuracoes/etiquetas',
+    label: 'Configurar etiquetas',
+  },
+  {
     title: 'Agente auxiliar',
     description: 'Fontes, receitas, validações e execuções assistidas do módulo jurídico.',
     href: '/modulos/gkit-jur/agente',
@@ -3280,6 +3535,95 @@ export function GkitJurConfiguracoesPage() {
         ))}
       </div>
     </GkitJurSection>
+  )
+}
+
+function GkitJurEtiquetaForm({
+  action,
+  canWrite,
+  etiqueta,
+}: {
+  action: (formData: FormData) => Promise<void>
+  canWrite: boolean
+  etiqueta?: GkitJurEtiqueta
+}) {
+  return (
+    <form action={action} className="module-form module-form-grid gkit-jur-tag-form">
+      {etiqueta ? <input name="id" type="hidden" value={etiqueta.id} /> : null}
+      <label>
+        Nome da etiqueta
+        <input disabled={!canWrite} name="nome" required defaultValue={etiqueta?.nome ?? ''} placeholder="Ex.: Acordo, Estrategico, Revisar" />
+      </label>
+      <label>
+        Cor
+        <input disabled={!canWrite} name="cor" type="color" defaultValue={etiqueta?.cor ?? '#64748b'} />
+      </label>
+      <label className="suite-checkbox">
+        <input disabled={!canWrite} name="ativo" type="checkbox" defaultChecked={etiqueta?.ativo ?? true} />
+        <span>Etiqueta ativa</span>
+      </label>
+      {canWrite ? <button className="button primary-button" type="submit">{etiqueta ? 'Salvar etiqueta' : 'Criar etiqueta'}</button> : null}
+    </form>
+  )
+}
+
+export function GkitJurEtiquetasPage({
+  canWrite,
+  data,
+  saved,
+  saveAction,
+}: {
+  canWrite: boolean
+  data: GkitJurEtiquetasData
+  saved: boolean
+  saveAction: (formData: FormData) => Promise<void>
+}) {
+  const cards = [
+    { title: 'Etiquetas', value: data.metrics.total.toLocaleString('pt-BR'), hint: 'cadastros existentes' },
+    { title: 'Ativas', value: data.metrics.ativas.toLocaleString('pt-BR'), hint: 'disponiveis para processos' },
+    { title: 'Inativas', value: data.metrics.inativas.toLocaleString('pt-BR'), hint: 'preservadas no historico' },
+  ]
+
+  return (
+    <>
+      {saved ? <div className="suite-alert success">Etiqueta salva. Ela ja pode ser usada nos processos.</div> : null}
+      <section className="suite-kpi-grid compact">
+        {cards.map((card) => (
+          <article className="metric-card" key={card.title}>
+            <span className="metric-label">{card.title}</span>
+            <strong className="metric-value">{card.value}</strong>
+            <span className="metric-hint">{card.hint}</span>
+          </article>
+        ))}
+      </section>
+
+      <GkitJurSection title="Nova etiqueta" description="Defina um nome curto e uma cor para classificar processos.">
+        <GkitJurEtiquetaForm action={saveAction} canWrite={canWrite} />
+      </GkitJurSection>
+
+      <GkitJurSection title="Etiquetas cadastradas" description="Edite nomes, cores e disponibilidade sem remover etiquetas ja aplicadas.">
+        {data.etiquetas.length ? (
+          <div className="suite-table-list compact gkit-jur-tag-list" role="list">
+            {data.etiquetas.map((etiqueta) => (
+              <article key={etiqueta.id} role="listitem">
+                <div>
+                  <GkitJurEtiquetaPills tags={[etiqueta]} />
+                  <p>{etiqueta.ativo ? 'Disponivel para novos vinculos.' : 'Inativa para novos vinculos.'}</p>
+                </div>
+                <span className={`suite-pill ${etiqueta.ativo ? 'success' : 'muted'}`}>{etiqueta.ativo ? 'Ativa' : 'Inativa'}</span>
+                <small>{etiqueta.updatedAt ? formatDate(etiqueta.updatedAt) : 'Sem atualizacao'}</small>
+                <details className="gkit-jur-rule-edit">
+                  <summary>Editar etiqueta</summary>
+                  <GkitJurEtiquetaForm action={saveAction} canWrite={canWrite} etiqueta={etiqueta} />
+                </details>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="suite-empty-block">Nenhuma etiqueta cadastrada ainda.</div>
+        )}
+      </GkitJurSection>
+    </>
   )
 }
 
