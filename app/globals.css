@@ -7236,6 +7236,385 @@ tbody tr:hover {
   font-weight: 400;
 }
 
+.gkit-jur-lab :where(.button) {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 40px;
+}
+
+.gkit-jur-lab-command-deck {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.42fr);
+}
+
+.gkit-jur-lab-briefing-card,
+.gkit-jur-lab-copilot-card,
+.gkit-jur-lab-priority-panel,
+.gkit-jur-lab-risk-panel,
+.gkit-jur-lab-context-panel {
+  border-radius: var(--suite-module-card-radius, 8px);
+}
+
+.gkit-jur-lab-briefing-card {
+  background:
+    linear-gradient(118deg, rgba(59, 130, 246, 0.2), transparent 42%),
+    linear-gradient(238deg, rgba(20, 184, 166, 0.2), transparent 48%),
+    linear-gradient(135deg, #0b1220, #142033 56%, #123b3b);
+  border: 1px solid rgba(15, 23, 42, 0.24);
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.2);
+  color: #fff;
+  display: grid;
+  gap: 16px;
+  min-height: 420px;
+  padding: clamp(18px, 3.2vw, 34px);
+}
+
+.gkit-jur-lab-briefing-card > span,
+.gkit-jur-lab-copilot-head span,
+.gkit-jur-lab-copilot-answer span,
+.gkit-jur-lab-context-panel > span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.gkit-jur-lab-briefing-card h2 {
+  color: #fff;
+  font-size: clamp(38px, 5.8vw, 78px);
+  line-height: 0.95;
+  max-width: 980px;
+}
+
+.gkit-jur-lab-briefing-card p {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 15px;
+  line-height: 1.5;
+  max-width: 780px;
+}
+
+.gkit-jur-lab-briefing-metrics {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.gkit-jur-lab-briefing-metrics span {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--suite-module-card-radius, 8px);
+  color: rgba(255, 255, 255, 0.68);
+  display: grid;
+  gap: 5px;
+  min-height: 86px;
+  padding: 12px;
+}
+
+.gkit-jur-lab-briefing-metrics strong {
+  color: #fff;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.gkit-jur-lab-briefing-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gkit-jur-lab-copilot-card {
+  align-content: start;
+  background: rgba(12, 18, 31, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.18);
+  color: #fff;
+  display: grid;
+  gap: 12px;
+  min-height: 420px;
+  padding: 16px;
+}
+
+.gkit-jur-lab-copilot-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.gkit-jur-lab-copilot-head small {
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(129, 140, 248, 0.28);
+  border-radius: 999px;
+  color: #c7d2fe;
+  font-size: 11px;
+  padding: 4px 7px;
+  text-transform: uppercase;
+}
+
+.gkit-jur-lab-copilot-input {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.gkit-jur-lab-copilot-input label span {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.gkit-jur-lab-copilot-input input {
+  background: transparent;
+  border: 0;
+  color: #fff;
+  font-size: 16px;
+  min-height: 48px;
+  outline: 0;
+  width: 100%;
+}
+
+.gkit-jur-lab-copilot-input input::placeholder {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.gkit-jur-lab-copilot-input .button {
+  width: 100%;
+}
+
+.gkit-jur-lab-copilot-prompts {
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-jur-lab-copilot-prompts a,
+.gkit-jur-lab-copilot-answer {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--suite-module-card-radius, 8px);
+}
+
+.gkit-jur-lab-copilot-prompts a {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  padding: 11px 12px;
+  text-decoration: none;
+}
+
+.gkit-jur-lab-copilot-answer {
+  display: grid;
+  gap: 7px;
+  margin-top: auto;
+  padding: 12px;
+}
+
+.gkit-jur-lab-copilot-answer p {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.gkit-jur-lab-control-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.36fr) minmax(280px, 0.34fr);
+}
+
+.gkit-jur-lab-priority-panel,
+.gkit-jur-lab-risk-panel,
+.gkit-jur-lab-context-panel {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  display: grid;
+  gap: 12px;
+  min-height: 330px;
+  padding: 14px;
+}
+
+.gkit-jur-lab-action-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-jur-lab-action-stack a {
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: var(--suite-module-card-radius, 8px);
+  color: var(--new-ink);
+  display: grid;
+  gap: 5px;
+  min-height: 90px;
+  padding: 11px 12px;
+  text-decoration: none;
+}
+
+.gkit-jur-lab-action-stack span {
+  color: var(--new-muted);
+  font-size: 12px;
+}
+
+.gkit-jur-lab-action-stack strong {
+  color: var(--new-ink);
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.gkit-jur-lab-action-stack p,
+.gkit-jur-lab-action-stack small {
+  color: var(--new-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.gkit-jur-lab-risk-orbit {
+  aspect-ratio: 1;
+  align-self: center;
+  background:
+    linear-gradient(145deg, rgba(20, 184, 166, 0.14), transparent 60%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.95));
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 999px;
+  display: grid;
+  justify-self: center;
+  max-width: 260px;
+  place-items: center;
+  position: relative;
+  width: min(100%, 260px);
+}
+
+.gkit-jur-lab-risk-orbit .orbit-ring {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  position: absolute;
+}
+
+.gkit-jur-lab-risk-orbit .outer {
+  inset: 10%;
+}
+
+.gkit-jur-lab-risk-orbit .middle {
+  inset: 25%;
+}
+
+.gkit-jur-lab-risk-orbit .inner {
+  inset: 40%;
+}
+
+.gkit-jur-lab-risk-orbit i {
+  align-items: center;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 12px;
+  font-style: normal;
+  height: 34px;
+  justify-content: center;
+  left: var(--x);
+  position: absolute;
+  top: var(--y);
+  transform: translate(-50%, -50%);
+  width: 34px;
+}
+
+.gkit-jur-lab-risk-orbit i.danger {
+  background: #ef4444;
+}
+
+.gkit-jur-lab-risk-orbit i.warning {
+  background: #f59e0b;
+}
+
+.gkit-jur-lab-risk-orbit i.primary {
+  background: #14b8a6;
+}
+
+.gkit-jur-lab-risk-orbit > strong {
+  color: #fff;
+  font-size: 36px;
+  line-height: 1;
+}
+
+.gkit-jur-lab-risk-legend {
+  display: grid;
+  gap: 6px;
+}
+
+.gkit-jur-lab-risk-legend span {
+  align-items: center;
+  color: var(--new-muted);
+  display: flex;
+  font-size: 12px;
+  gap: 7px;
+}
+
+.gkit-jur-lab-risk-legend b {
+  background: #ef4444;
+  border-radius: 999px;
+  display: inline-flex;
+  height: 9px;
+  width: 9px;
+}
+
+.gkit-jur-lab-risk-legend span:nth-child(2) b {
+  background: #f59e0b;
+}
+
+.gkit-jur-lab-risk-legend span:nth-child(3) b {
+  background: #14b8a6;
+}
+
+.gkit-jur-lab-context-panel {
+  align-content: start;
+}
+
+.gkit-jur-lab-context-panel > span {
+  color: var(--new-muted);
+}
+
+.gkit-jur-lab-context-panel > strong {
+  color: var(--new-ink);
+  font-size: 20px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.gkit-jur-lab-context-panel > p {
+  color: var(--new-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.gkit-jur-lab-context-panel dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.gkit-jur-lab-context-panel dl div {
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 4px;
+  padding: 9px;
+}
+
+.gkit-jur-lab-context-panel dt {
+  color: var(--new-muted);
+  font-size: 11px;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.gkit-jur-lab-context-panel dd {
+  color: var(--new-ink);
+  font-size: 13px;
+  margin: 0;
+}
+
 .gkit-jur-lab-hero {
   background:
     linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(43, 37, 52, 0.96) 48%, rgba(20, 83, 77, 0.94));
@@ -8728,6 +9107,8 @@ tbody tr:hover {
   .gkit-jur-process-command-center,
   .gkit-jur-process-call-grid,
   .gkit-jur-lab-topbar,
+  .gkit-jur-lab-command-deck,
+  .gkit-jur-lab-control-grid,
   .gkit-jur-lab-hero,
   .gkit-jur-lab-models,
   .gkit-jur-lab-radar,
@@ -8807,6 +9188,7 @@ tbody tr:hover {
   }
 
   .gkit-jur-lab-constellation,
+  .gkit-jur-lab-briefing-metrics,
   .gkit-jur-lab-readiness {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -20972,6 +21354,7 @@ body:has(.gkit-flex-operational-shell) {
   }
 
   .gkit-jur-lab-constellation,
+  .gkit-jur-lab-briefing-metrics,
   .gkit-jur-lab-readiness {
     grid-template-columns: 1fr;
   }

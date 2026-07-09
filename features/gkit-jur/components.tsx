@@ -562,6 +562,13 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
   const topItem = data.inbox.items[0] ?? null
   const signalTotal = labSignalTotal(data)
   const readiness = labReadinessEntries(data)
+  const riskTotal = data.metrics.processosComErro + data.metrics.semResponsavel + data.metrics.semCliente
+  const primaryActions = data.inbox.proximasAcoes.slice(0, 4)
+  const copilotPrompts = [
+    'Quais publicacoes podem virar prazo?',
+    'Onde ha risco sem responsavel?',
+    'Resumo da carteira mais sensivel',
+  ]
   const experiments = [
     {
       id: 'situacao',
@@ -591,27 +598,127 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
 
   return (
     <div className="gkit-jur-lab">
-      <section className="gkit-jur-lab-hero" id="hoje">
-        <div>
-          <span>GKIT Jur Lab</span>
-          <h2>Um laboratorio para descobrir a experiencia juridica que vale defender.</h2>
+      <section className="gkit-jur-lab-command-deck" id="hoje">
+        <article className="gkit-jur-lab-briefing-card">
+          <span>Briefing de 1 minuto</span>
+          <h2>{topItem ? 'Ha decisao juridica esperando atencao humana.' : 'A operacao juridica esta sem alerta dominante.'}</h2>
           <p>
-            Este espaco testa modelos de produto antes de mexer na operacao: sala de situacao,
-            radar de risco e prontuario vivo, todos alimentados pelos sinais reais do GKIT Jur.
+            {topItem
+              ? `${topItem.motivo} O melhor proximo passo esta ligado a ${topItem.origem.toLowerCase()}.`
+              : 'O radar nao encontrou item critico no recorte atual; use os modos abaixo para investigar risco, publicacoes e prontuarios.'}
           </p>
-          <div className="gkit-jur-lab-hero-actions">
-            <a className="button primary-button" href="#modelos">Comparar modelos</a>
-            <a className="button secondary" href="#advogados">Roteiro com advogados</a>
+          <div className="gkit-jur-lab-briefing-metrics" aria-label="Sinais principais">
+            <span>
+              <strong>{signalTotal.toLocaleString('pt-BR')}</strong>
+              sinais
+            </span>
+            <span>
+              <strong>{data.inbox.metrics.publicacoes.toLocaleString('pt-BR')}</strong>
+              publicacoes
+            </span>
+            <span>
+              <strong>{riskTotal.toLocaleString('pt-BR')}</strong>
+              riscos
+            </span>
+            <span>
+              <strong>{data.smartSummary.coberturaPercentual}%</strong>
+              resumo
+            </span>
           </div>
-        </div>
-        <aside>
-          <span>Sinal dominante hoje</span>
-          <strong>{topItem ? topItem.titulo : 'Sem alerta critico'}</strong>
-          <p>{topItem ? topItem.motivo : 'A fila priorizada nao trouxe item de maior risco no recorte atual.'}</p>
-          <div>
-            <small>{signalTotal.toLocaleString('pt-BR')} sinais no radar</small>
-            <small>{data.smartSummary.coberturaPercentual}% com resumo</small>
+          <div className="gkit-jur-lab-briefing-actions">
+            {topItem ? <Link className="button primary-button" href={topItem.acaoUrl}>{topItem.acaoLabel}</Link> : null}
+            <Link className="button secondary" href="/modulos/gkit-jur/publicacoes">Tratar publicacoes</Link>
+            <a className="button secondary" href="#risco">Ver radar</a>
           </div>
+        </article>
+
+        <aside className="gkit-jur-lab-copilot-card">
+          <div className="gkit-jur-lab-copilot-head">
+            <span>AI Legal Copilot</span>
+            <small>beta</small>
+          </div>
+          <form action="/modulos/gkit-jur/busca" className="gkit-jur-lab-copilot-input" method="get">
+            <label>
+              <span>Pergunte ao copiloto</span>
+              <input name="q" placeholder="O que voce quer saber sobre seus processos?" type="search" />
+            </label>
+            <button className="button primary-button" type="submit">Perguntar</button>
+          </form>
+          <div className="gkit-jur-lab-copilot-prompts">
+            {copilotPrompts.map((prompt) => (
+              <Link href={`/modulos/gkit-jur/busca?q=${encodeURIComponent(prompt)}`} key={prompt}>{prompt}</Link>
+            ))}
+          </div>
+          <div className="gkit-jur-lab-copilot-answer">
+            <span>Resposta sugerida</span>
+            <p>
+              Comece por {primaryActions[0]?.title.toLowerCase() ?? 'revisar a fila de hoje'}:
+              ha {primaryActions[0]?.count.toLocaleString('pt-BR') ?? '0'} item(ns) nesse bloco.
+            </p>
+          </div>
+        </aside>
+      </section>
+
+      <section className="gkit-jur-lab-control-grid">
+        <article className="gkit-jur-lab-priority-panel">
+          <div className="gkit-jur-lab-section-title">
+            <span>Proximas decisoes</span>
+            <h3>O sistema escolhe a fila; o humano confirma o tratamento.</h3>
+          </div>
+          <div className="gkit-jur-lab-action-stack">
+            {primaryActions.map((action) => (
+              <Link href={action.href} key={action.title}>
+                <span>{priorityLabel(action.priority)}</span>
+                <strong>{action.title}</strong>
+                <p>{action.description}</p>
+                <small>{action.count.toLocaleString('pt-BR')} item(ns)</small>
+              </Link>
+            ))}
+          </div>
+        </article>
+
+        <article className="gkit-jur-lab-risk-panel">
+          <div className="gkit-jur-lab-section-title">
+            <span>Radar de risco</span>
+            <h3>O que pode falhar antes de alguem abrir uma tabela.</h3>
+          </div>
+          <div className="gkit-jur-lab-risk-orbit" aria-label="Radar de risco operacional">
+            <span className="orbit-ring outer" />
+            <span className="orbit-ring middle" />
+            <span className="orbit-ring inner" />
+            <i className="danger" style={{ '--x': '22%', '--y': '34%' } as CSSProperties}>{data.metrics.processosComErro}</i>
+            <i className="warning" style={{ '--x': '68%', '--y': '26%' } as CSSProperties}>{data.metrics.semResponsavel}</i>
+            <i className="primary" style={{ '--x': '58%', '--y': '70%' } as CSSProperties}>{data.metrics.semCliente}</i>
+            <strong>{riskTotal.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-lab-risk-legend">
+            <span><b /> erros de monitoramento</span>
+            <span><b /> sem responsavel</span>
+            <span><b /> sem cliente</span>
+          </div>
+        </article>
+
+        <aside className="gkit-jur-lab-context-panel">
+          <span>Contexto em foco</span>
+          <strong>{topItem ? topItem.titulo : data.briefings[0]?.numeroCnj ?? 'Sem processo em foco'}</strong>
+          <p>{topItem ? topItem.subtitulo : data.briefings[0]?.resumoOperacional ?? 'Selecione um sinal para abrir o contexto juridico.'}</p>
+          <dl>
+            <div>
+              <dt>Origem</dt>
+              <dd>{topItem?.origem ?? 'Prontuario'}</dd>
+            </div>
+            <div>
+              <dt>Dono</dt>
+              <dd>{topItem?.responsavelNome || topItem?.carteiraNome || 'Sem dono definido'}</dd>
+            </div>
+            <div>
+              <dt>Prontidao</dt>
+              <dd>{data.briefings[0] ? readinessLabel(data.briefings[0].nivelProntidao) : 'Sem base'}</dd>
+            </div>
+          </dl>
+          <Link className="button secondary" href={topItem?.acaoUrl ?? (data.briefings[0] ? `/modulos/gkit-jur/processos/${data.briefings[0].processoId}` : '/modulos/gkit-jur/inbox')}>
+            Abrir contexto
+          </Link>
         </aside>
       </section>
 
