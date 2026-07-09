@@ -7046,6 +7046,333 @@ tbody tr:hover {
   color: #92400e;
 }
 
+.gkit-jur-lab {
+  color: var(--new-ink);
+  display: grid;
+  gap: 16px;
+}
+
+.gkit-jur-lab :where(h2, h3, p, strong, span, small) {
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.gkit-jur-lab :where(strong, h2, h3, b, .button) {
+  font-weight: 400;
+}
+
+.gkit-jur-lab-hero {
+  background:
+    linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(43, 37, 52, 0.96) 48%, rgba(20, 83, 77, 0.94));
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: var(--suite-module-card-radius, 8px);
+  box-shadow: 0 26px 70px rgba(15, 23, 42, 0.18);
+  color: #fff;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.34fr);
+  min-height: 360px;
+  overflow: hidden;
+  padding: clamp(20px, 4vw, 34px);
+}
+
+.gkit-jur-lab-hero > div,
+.gkit-jur-lab-hero aside {
+  align-content: center;
+  display: grid;
+  gap: 14px;
+}
+
+.gkit-jur-lab-hero > div > span,
+.gkit-jur-lab-hero aside > span,
+.gkit-jur-lab-model > span,
+.gkit-jur-lab-radar > div:first-child > span,
+.gkit-jur-lab-section-title > span,
+.gkit-jur-lab-feedback span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.gkit-jur-lab-hero h2 {
+  color: #fff;
+  font-size: clamp(36px, 5.6vw, 72px);
+  line-height: 0.96;
+  max-width: 940px;
+}
+
+.gkit-jur-lab-hero p {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 15px;
+  line-height: 1.52;
+  max-width: 720px;
+}
+
+.gkit-jur-lab-hero-actions,
+.gkit-jur-lab-hero aside div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gkit-jur-lab-hero aside {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--suite-module-card-radius, 8px);
+  min-height: 260px;
+  padding: 16px;
+}
+
+.gkit-jur-lab-hero aside strong {
+  color: #fff;
+  font-size: 22px;
+  line-height: 1.12;
+}
+
+.gkit-jur-lab-hero aside small {
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
+.gkit-jur-lab-constellation,
+.gkit-jur-lab-models,
+.gkit-jur-lab-readiness {
+  display: grid;
+  gap: 12px;
+}
+
+.gkit-jur-lab-constellation {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.gkit-jur-lab-constellation article,
+.gkit-jur-lab-model,
+.gkit-jur-lab-readiness article,
+.gkit-jur-lab-focus-list a,
+.gkit-jur-lab-briefings a,
+.gkit-jur-lab-feedback {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--suite-module-card-radius, 8px);
+}
+
+.gkit-jur-lab-constellation article {
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  padding: 14px;
+}
+
+.gkit-jur-lab-constellation span,
+.gkit-jur-lab-model span,
+.gkit-jur-lab-readiness span,
+.gkit-jur-lab-focus-list span,
+.gkit-jur-lab-briefings span {
+  color: var(--new-muted);
+  font-size: 12px;
+}
+
+.gkit-jur-lab-constellation strong {
+  color: var(--new-ink);
+  font-size: 34px;
+  line-height: 1;
+}
+
+.gkit-jur-lab-constellation p,
+.gkit-jur-lab-model p,
+.gkit-jur-lab-radar p,
+.gkit-jur-lab-focus-list p,
+.gkit-jur-lab-briefings p {
+  color: var(--new-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.gkit-jur-lab-models {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gkit-jur-lab-model {
+  border-top: 4px solid #14b8a6;
+  display: grid;
+  gap: 13px;
+  min-height: 330px;
+  padding: 16px;
+}
+
+.gkit-jur-lab-model.radar {
+  border-top-color: #f59e0b;
+}
+
+.gkit-jur-lab-model.prontuario {
+  border-top-color: #6366f1;
+}
+
+.gkit-jur-lab-model h3,
+.gkit-jur-lab-radar h3,
+.gkit-jur-lab-section-title h3,
+.gkit-jur-lab-feedback h3 {
+  color: var(--new-ink);
+  font-size: 22px;
+  line-height: 1.14;
+}
+
+.gkit-jur-lab-model div {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+}
+
+.gkit-jur-lab-model div strong {
+  color: var(--new-ink);
+  font-size: 42px;
+  line-height: 1;
+}
+
+.gkit-jur-lab-model .button {
+  align-self: end;
+  justify-self: start;
+}
+
+.gkit-jur-lab-radar {
+  background: rgba(248, 250, 252, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(280px, 0.34fr) minmax(0, 1fr);
+  padding: 16px;
+}
+
+.gkit-jur-lab-radar > div:first-child {
+  align-content: center;
+  display: grid;
+  gap: 10px;
+}
+
+.gkit-jur-lab-radar > div:first-child > span,
+.gkit-jur-lab-section-title > span,
+.gkit-jur-lab-feedback span {
+  color: var(--new-muted);
+}
+
+.gkit-jur-lab-readiness {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.gkit-jur-lab-readiness article {
+  border-top: 4px solid rgba(148, 163, 184, 0.52);
+  display: grid;
+  gap: 8px;
+  min-height: 112px;
+  padding: 12px;
+}
+
+.gkit-jur-lab-readiness article.success {
+  border-top-color: #14b8a6;
+}
+
+.gkit-jur-lab-readiness article.warning {
+  border-top-color: #f59e0b;
+}
+
+.gkit-jur-lab-readiness article.danger {
+  border-top-color: #ef4444;
+}
+
+.gkit-jur-lab-readiness strong {
+  color: var(--new-ink);
+  font-size: 30px;
+  line-height: 1;
+}
+
+.gkit-jur-lab-workbench {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gkit-jur-lab-workbench > div {
+  display: grid;
+  gap: 10px;
+}
+
+.gkit-jur-lab-section-title {
+  display: grid;
+  gap: 6px;
+}
+
+.gkit-jur-lab-focus-list,
+.gkit-jur-lab-briefings {
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-jur-lab-focus-list a,
+.gkit-jur-lab-briefings a {
+  color: var(--new-ink);
+  display: grid;
+  gap: 7px;
+  min-height: 126px;
+  padding: 12px;
+  text-decoration: none;
+}
+
+.gkit-jur-lab-focus-list strong,
+.gkit-jur-lab-briefings strong {
+  color: var(--new-ink);
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.gkit-jur-lab-focus-list small,
+.gkit-jur-lab-briefings small {
+  color: var(--new-muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.gkit-jur-lab-feedback {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(260px, 0.36fr) minmax(0, 1fr);
+  padding: 16px;
+}
+
+.gkit-jur-lab-feedback > div {
+  display: grid;
+  gap: 6px;
+}
+
+.gkit-jur-lab-feedback ol {
+  color: var(--new-ink);
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.gkit-jur-lab-feedback li {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.gkit-jur-shell .gkit-jur-lab-hero :where(h2, strong) {
+  color: #fff !important;
+}
+
+.gkit-jur-shell .gkit-jur-lab-hero :where(p) {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.gkit-jur-shell .gkit-jur-lab-hero :where(span, small) {
+  color: rgba(255, 255, 255, 0.68) !important;
+}
+
 .gkit-jur-inbox-layout {
   display: grid;
   gap: 12px;
@@ -8225,6 +8552,11 @@ tbody tr:hover {
   .gkit-jur-inbox-call-grid,
   .gkit-jur-process-command-center,
   .gkit-jur-process-call-grid,
+  .gkit-jur-lab-hero,
+  .gkit-jur-lab-models,
+  .gkit-jur-lab-radar,
+  .gkit-jur-lab-workbench,
+  .gkit-jur-lab-feedback,
   .gkit-jur-agent-monitor,
   .gkit-jur-agent-grid,
   .gkit-jur-agent-form {
@@ -8295,6 +8627,11 @@ tbody tr:hover {
   }
 
   .gkit-jur-process-pulse {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gkit-jur-lab-constellation,
+  .gkit-jur-lab-readiness {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -20456,6 +20793,15 @@ body:has(.gkit-flex-operational-shell) {
 
   .gkit-jur-publication-treatment > summary {
     width: 100%;
+  }
+
+  .gkit-jur-lab-constellation,
+  .gkit-jur-lab-readiness {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-lab-hero h2 {
+    font-size: 34px;
   }
 
   .gkit-jur-process-pulse {

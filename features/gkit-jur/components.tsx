@@ -27,6 +27,7 @@ import type {
   GkitJurInboxPrioridade,
   GkitJurIntegracaoData,
   GkitJurIntegracaoSyncFeedback,
+  GkitJurLabData,
   GkitJurMovimentacaoTarefaData,
   GkitJurMovimentacaoFilters,
   GkitJurMovimentacoesData,
@@ -45,10 +46,11 @@ import type {
   GkitJurTimelineItem,
 } from './types'
 
-type GkitJurTab = 'inbox' | 'processos' | 'pendencias' | 'publicacoes' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria' | 'configuracoes'
+type GkitJurTab = 'inbox' | 'lab' | 'processos' | 'pendencias' | 'publicacoes' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria' | 'configuracoes'
 
 const activeHref: Record<GkitJurTab, string> = {
   inbox: '/modulos/gkit-jur/inbox',
+  lab: '/modulos/gkit-jur/lab',
   processos: '/modulos/gkit-jur/processos',
   pendencias: '/modulos/gkit-jur/pendencias',
   publicacoes: '/modulos/gkit-jur/publicacoes',
@@ -61,6 +63,7 @@ const activeHref: Record<GkitJurTab, string> = {
 
 const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-jur/inbox', title: 'Inbox' },
+  { href: '/modulos/gkit-jur/lab', title: 'Lab' },
   { href: '/modulos/gkit-jur/publicacoes', title: 'Publicacoes' },
   { href: '/modulos/gkit-jur/processos', title: 'Processos' },
   { href: '/modulos/gkit-jur/movimentacoes', title: 'Movimentações' },
@@ -482,6 +485,193 @@ export function GkitJurInboxPage({
         </div>
       </aside>
     </>
+  )
+}
+
+function labReadinessEntries(data: GkitJurLabData) {
+  return [
+    { label: 'Prontos', value: data.readiness.pronto, tone: 'success' },
+    { label: 'Parciais', value: data.readiness.parcial, tone: 'warning' },
+    { label: 'So capa', value: data.readiness.capa, tone: 'warning' },
+    { label: 'Sem base', value: data.readiness.sem_base, tone: 'muted' },
+    { label: 'Erro', value: data.readiness.erro + data.readiness.desatualizado, tone: 'danger' },
+  ]
+}
+
+function labSignalTotal(data: GkitJurLabData) {
+  return data.inbox.metrics.publicacoes
+    + data.inbox.metrics.criticos
+    + data.inbox.metrics.prazos
+    + data.inbox.metrics.pendencias
+    + data.inbox.metrics.automacoes
+}
+
+export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
+  const topItem = data.inbox.items[0] ?? null
+  const signalTotal = labSignalTotal(data)
+  const readiness = labReadinessEntries(data)
+  const experiments = [
+    {
+      id: 'situacao',
+      title: 'Sala de Situacao',
+      thesis: 'A primeira tela deve responder o que exige decisao humana agora.',
+      metric: signalTotal,
+      label: 'sinais para priorizar',
+      href: '/modulos/gkit-jur/inbox',
+    },
+    {
+      id: 'radar',
+      title: 'Radar de Risco',
+      thesis: 'Processos nao sao lista: sao sinais vitais de risco, prontidao e confianca.',
+      metric: data.metrics.processosComErro + data.metrics.semResponsavel + data.metrics.semCliente,
+      label: 'pontos de risco',
+      href: '/modulos/gkit-jur/processos',
+    },
+    {
+      id: 'prontuario',
+      title: 'Prontuario Vivo',
+      thesis: 'Cada processo deve abrir como briefing juridico, com resumo, risco e proxima acao.',
+      metric: data.smartSummary.coberturaPercentual,
+      label: 'cobertura de resumo',
+      href: data.briefings[0] ? `/modulos/gkit-jur/processos/${data.briefings[0].processoId}` : '/modulos/gkit-jur/processos',
+    },
+  ]
+
+  return (
+    <div className="gkit-jur-lab">
+      <section className="gkit-jur-lab-hero">
+        <div>
+          <span>GKIT Jur Lab</span>
+          <h2>Um laboratorio para descobrir a experiencia juridica que vale defender.</h2>
+          <p>
+            Este espaco testa modelos de produto antes de mexer na operacao: sala de situacao,
+            radar de risco e prontuario vivo, todos alimentados pelos sinais reais do GKIT Jur.
+          </p>
+          <div className="gkit-jur-lab-hero-actions">
+            <a className="button primary-button" href="#modelos">Comparar modelos</a>
+            <a className="button secondary" href="#advogados">Roteiro com advogados</a>
+          </div>
+        </div>
+        <aside>
+          <span>Sinal dominante hoje</span>
+          <strong>{topItem ? topItem.titulo : 'Sem alerta critico'}</strong>
+          <p>{topItem ? topItem.motivo : 'A fila priorizada nao trouxe item de maior risco no recorte atual.'}</p>
+          <div>
+            <small>{signalTotal.toLocaleString('pt-BR')} sinais no radar</small>
+            <small>{data.smartSummary.coberturaPercentual}% com resumo</small>
+          </div>
+        </aside>
+      </section>
+
+      <section className="gkit-jur-lab-constellation" aria-label="Sinais do laboratorio">
+        <article>
+          <span>Atencao humana</span>
+          <strong>{signalTotal.toLocaleString('pt-BR')}</strong>
+          <p>publicacoes, tarefas, criticos, saneamento e automacao.</p>
+        </article>
+        <article>
+          <span>Base ativa</span>
+          <strong>{data.metrics.processosAtivos.toLocaleString('pt-BR')}</strong>
+          <p>processos para transformar em acompanhamento inteligente.</p>
+        </article>
+        <article>
+          <span>Resumo inteligente</span>
+          <strong>{data.smartSummary.coberturaPercentual}%</strong>
+          <p>{data.smartSummary.resumosInteligentes.toLocaleString('pt-BR')} de {data.smartSummary.totalAtivos.toLocaleString('pt-BR')} ativos.</p>
+        </article>
+        <article>
+          <span>Revisao humana</span>
+          <strong>{data.smartSummary.precisaRevisaoHumana.toLocaleString('pt-BR')}</strong>
+          <p>briefings que assumem incerteza em vez de fingir certeza.</p>
+        </article>
+      </section>
+
+      <section className="gkit-jur-lab-models" id="modelos">
+        {experiments.map((experiment) => (
+          <article className={`gkit-jur-lab-model ${experiment.id}`} key={experiment.id}>
+            <span>{experiment.title}</span>
+            <h3>{experiment.thesis}</h3>
+            <div>
+              <strong>{experiment.id === 'prontuario' ? `${experiment.metric}%` : experiment.metric.toLocaleString('pt-BR')}</strong>
+              <small>{experiment.label}</small>
+            </div>
+            <p>
+              Teste com advogados: eles entendem a prioridade sem explicar a tela? Eles confiam na sugestao?
+              Eles sabem qual acao tomar em menos de um minuto?
+            </p>
+            <Link className="button secondary" href={experiment.href}>Abrir referencia atual</Link>
+          </article>
+        ))}
+      </section>
+
+      <section className="gkit-jur-lab-radar">
+        <div>
+          <span>Radar de prontidao</span>
+          <h3>O produto deveria mostrar confianca operacional antes de mostrar tabela.</h3>
+          <p>
+            A lista tradicional esconde a pergunta central: este processo esta pronto para receber uma decisao,
+            uma publicacao ou uma automacao?
+          </p>
+        </div>
+        <div className="gkit-jur-lab-readiness">
+          {readiness.map((item) => (
+            <article className={item.tone} key={item.label}>
+              <span>{item.label}</span>
+              <strong>{item.value.toLocaleString('pt-BR')}</strong>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="gkit-jur-lab-workbench">
+        <div>
+          <div className="gkit-jur-lab-section-title">
+            <span>Amostra de atencao</span>
+            <h3>Itens que ajudam a testar se a Sala de Situacao funciona.</h3>
+          </div>
+          <div className="gkit-jur-lab-focus-list">
+            {data.inbox.items.slice(0, 5).map((item) => (
+              <Link href={item.acaoUrl} key={item.id}>
+                <span>{priorityLabel(item.prioridade)}</span>
+                <strong>{item.titulo}</strong>
+                <p>{item.motivo}</p>
+                <small>{item.origem} - {item.responsavelNome || item.carteiraNome || 'Sem dono definido'}</small>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="gkit-jur-lab-section-title">
+            <span>Amostra de prontuario</span>
+            <h3>Processos para testar briefing juridico em vez de cadastro.</h3>
+          </div>
+          <div className="gkit-jur-lab-briefings">
+            {data.briefings.slice(0, 4).map((briefing) => (
+              <Link href={`/modulos/gkit-jur/processos/${briefing.processoId}`} key={briefing.processoId}>
+                <span>{readinessLabel(briefing.nivelProntidao)}</span>
+                <strong>{briefing.numeroCnj}</strong>
+                <p>{briefing.resumoOperacional || briefing.faseProcessual || 'Resumo operacional ainda incompleto.'}</p>
+                <small>{briefing.clienteNome || 'Sem cliente'} - {briefing.updatedAt ? formatDate(briefing.updatedAt) : 'Sem data'}</small>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="gkit-jur-lab-feedback" id="advogados">
+        <div>
+          <span>Roteiro de avaliacao</span>
+          <h3>Como colher opiniao dos advogados sem transformar isso em gosto pessoal.</h3>
+        </div>
+        <ol>
+          <li>Qual modelo te diz mais rapido o que fazer agora?</li>
+          <li>Em qual modelo voce confiaria para nao perder publicacao ou prazo?</li>
+          <li>O que precisa continuar auditavel mesmo que saia da tela principal?</li>
+          <li>Que informacao faria voce abrir menos abas do processo digital?</li>
+        </ol>
+      </section>
+    </div>
   )
 }
 

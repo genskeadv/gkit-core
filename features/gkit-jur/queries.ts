@@ -26,6 +26,7 @@ import type {
   GkitJurInboxPrioridade,
   GkitJurIntegracaoData,
   GkitJurIntegracaoTribunal,
+  GkitJurLabData,
   GkitJurMonitoramentoNivel,
   GkitJurMonitoramentoStatus,
   GkitJurMovimentacao,
@@ -2486,6 +2487,99 @@ export async function getGkitJurInbox(params?: ModuleSearchParams | null): Promi
         count: semRetorno.length,
       },
     ],
+  }
+}
+
+function emptyReadinessCounts(): Record<GkitJurNivelProntidao, number> {
+  return {
+    sem_base: 0,
+    capa: 0,
+    parcial: 0,
+    pronto: 0,
+    desatualizado: 0,
+    erro: 0,
+  }
+}
+
+async function getGkitJurLabReadiness() {
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('processos_resumos')
+    .select('nivel_prontidao')
+    .limit(5000)
+
+  if (result.error) throw new Error(result.error.message)
+
+  const counts = emptyReadinessCounts()
+  for (const row of (result.data ?? []) as Array<Record<string, unknown>>) {
+    counts[nivelProntidao(row.nivel_prontidao)] += 1
+  }
+  return counts
+}
+
+async function listGkitJurLabBriefings(): Promise<GkitJurLabData['briefings']> {
+  const resumoResult = await admin()
+    .schema('gkit_jur')
+    .from('processos_resumos')
+    .select('processo_id,nivel_prontidao,fase_processual,resumo_operacional,riscos_alertas,proximas_acoes_sugeridas,updated_at')
+    .order('updated_at', { ascending: false, nullsFirst: false })
+    .limit(8)
+
+  if (resumoResult.error) throw new Error(resumoResult.error.message)
+
+  const resumoRows = (resumoResult.data ?? []) as Array<Record<string, unknown>>
+  const processoIds = resumoRows.map((row) => text(row.processo_id)).filter(Boolean)
+  if (!processoIds.length) return []
+
+  const processosResult = await admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select('id,numero_cnj,numero_cnj_limpo,cliente_nome,titulo')
+    .in('id', processoIds)
+
+  if (processosResult.error) throw new Error(processosResult.error.message)
+
+  const processoMap = new Map(((processosResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [text(row.id), row]))
+
+  return resumoRows.map((row) => {
+    const processoId = text(row.processo_id)
+    const processo = processoMap.get(processoId)
+    return {
+      processoId,
+      numeroCnj: formatCnj(text(processo?.numero_cnj, text(processo?.numero_cnj_limpo))),
+      clienteNome: text(processo?.cliente_nome) || text(processo?.titulo) || null,
+      faseProcessual: text(row.fase_processual) || null,
+      nivelProntidao: nivelProntidao(row.nivel_prontidao),
+      resumoOperacional: text(row.resumo_operacional) || null,
+      riscosAlertas: stringList(row.riscos_alertas).slice(0, 3),
+      proximasAcoesSugeridas: stringList(row.proximas_acoes_sugeridas).slice(0, 3),
+      updatedAt: text(row.updated_at) || null,
+    }
+  })
+}
+
+export async function getGkitJurLab(): Promise<GkitJurLabData> {
+  const [inbox, metrics, readiness, monitoramento, briefings] = await Promise.all([
+    getGkitJurInbox(),
+    getGkitJurDashboardMetrics(),
+    getGkitJurLabReadiness(),
+    getGkitJurAgenteMonitoramento(),
+    listGkitJurLabBriefings(),
+  ])
+
+  return {
+    inbox,
+    metrics,
+    readiness,
+    smartSummary: {
+      coberturaPercentual: monitoramento.coberturaPercentual,
+      pendentesResumo: monitoramento.pendentesResumo,
+      precisaRevisaoHumana: monitoramento.precisaRevisaoHumana,
+      resumosInteligentes: monitoramento.resumosInteligentes,
+      totalAtivos: monitoramento.totalAtivos,
+      ultimaGeracaoEm: monitoramento.ultimaGeracaoEm,
+    },
+    briefings,
   }
 }
 

@@ -539,6 +539,33 @@ export type GkitJurInboxData = {
   }>;
 };
 
+export type GkitJurLabBriefing = {
+  processoId: string;
+  numeroCnj: string;
+  clienteNome: string | null;
+  faseProcessual: string | null;
+  nivelProntidao: GkitJurNivelProntidao;
+  resumoOperacional: string | null;
+  riscosAlertas: string[];
+  proximasAcoesSugeridas: string[];
+  updatedAt: string | null;
+};
+
+export type GkitJurLabData = {
+  inbox: GkitJurInboxData;
+  metrics: GkitJurDashboardMetrics;
+  readiness: Record<GkitJurNivelProntidao, number>;
+  smartSummary: {
+    coberturaPercentual: number;
+    pendentesResumo: number;
+    precisaRevisaoHumana: number;
+    resumosInteligentes: number;
+    totalAtivos: number;
+    ultimaGeracaoEm: string | null;
+  };
+  briefings: GkitJurLabBriefing[];
+};
+
 export type GkitJurAgenteFonte = {
   id: string;
   nome: string;
