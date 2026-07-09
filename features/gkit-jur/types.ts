@@ -224,6 +224,92 @@ export type GkitJurMovimentacaoFilters = {
   tribunal: string;
 };
 
+export type GkitJurPublicacaoStatus =
+  | 'pendente'
+  | 'triada_ia'
+  | 'em_tratamento'
+  | 'tratada'
+  | 'dispensada'
+  | 'duplicada'
+  | 'erro';
+
+export type GkitJurPublicacaoDecisao =
+  | 'gerar_prazo'
+  | 'gerar_tarefa'
+  | 'registrar_ciencia'
+  | 'vincular_documento'
+  | 'atualizar_resumo'
+  | 'dispensar_sem_acao'
+  | 'marcar_duplicada'
+  | 'revisar_cadastro_processo';
+
+export type GkitJurPublicacao = {
+  id: string;
+  processoId: string | null;
+  numeroCnj: string;
+  fonte: string;
+  fonteEventoId: string | null;
+  dataDisponibilizacao: string | null;
+  dataPublicacao: string | null;
+  jornal: string | null;
+  termo: string | null;
+  origemOrgao: string | null;
+  arq: string | null;
+  pub: string | null;
+  textoPreview: string | null;
+  textoHash: string;
+  status: GkitJurPublicacaoStatus;
+  decisaoTratamento: GkitJurPublicacaoDecisao | null;
+  classificacaoIa: Record<string, unknown>;
+  confiancaIa: number | null;
+  sugestaoIa: string | null;
+  tarefaId: string | null;
+  tratadoPor: string | null;
+  tratadoEm: string | null;
+  motivoTratamento: string | null;
+  conteudoRemovidoEm: string | null;
+  clienteNome: string | null;
+  carteiraNome: string | null;
+  responsavelNome: string | null;
+  processoTitulo: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type GkitJurPublicacaoFilters = {
+  carteiraId: string;
+  dir: 'asc' | 'desc';
+  fonte: string;
+  page: number;
+  q: string;
+  responsavelId: string;
+  sort: string;
+  status: string;
+  tribunal: string;
+};
+
+export type GkitJurPublicacaoFilterOptions = GkitJurProcessFilterOptions & {
+  fontes: GkitJurSelectOption[];
+  statuses: GkitJurSelectOption[];
+};
+
+export type GkitJurPublicacoesData = {
+  filterOptions: GkitJurPublicacaoFilterOptions;
+  filters: GkitJurPublicacaoFilters;
+  metrics: {
+    total: number;
+    pendentes: number;
+    triadasIa: number;
+    emTratamento: number;
+    tratadas: number;
+    dispensadas: number;
+    erros: number;
+    semProcesso: number;
+  };
+  pagination: GkitJurPagination;
+  publicacoes: GkitJurPublicacao[];
+};
+
 export type GkitJurMovimentacaoFilterOptions = GkitJurProcessFilterOptions & {
   origens: GkitJurSelectOption[];
 };

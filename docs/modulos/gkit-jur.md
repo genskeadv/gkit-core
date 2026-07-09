@@ -4,6 +4,8 @@
 
 O GKIT Jur e o modulo juridico da GKIT Suite. Ele deve acompanhar processos judiciais por numero CNJ, consultar dados publicos no DataJud/CNJ, armazenar capa processual, movimentacoes, historico de sincronizacoes e preparar a base para prazos, alertas, relatorios e inteligencia juridica.
 
+Para publicacoes e intimacoes, a direcao aprovada e tratar esses itens como caixa de entrada operacional, nao como arquivo permanente de conteudo bruto. A especificacao detalhada esta em `docs/modulos/gkit-jur-caixa-publicacoes.md`.
+
 O modulo nao deve recriar cadastros transversais. Sempre que possivel, deve referenciar clientes, carteiras, usuarios, administradoras e entidades ja existentes no Core, Ciclo e demais modulos.
 
 ## Decisoes adaptadas para o gkit-core
@@ -16,6 +18,7 @@ O modulo nao deve recriar cadastros transversais. Sempre que possivel, deve refe
 - Menu inicial: Cockpit, Processos, Prazos, Agenda, Documentos, Relatorios e Cadastros.
 - Entrada operacional: cockpit em `/modulos/gkit-jur`.
 - Integracao inicial: API Publica DataJud/CNJ.
+- Direcao de publicacoes: caixa de entrada com IA sugerindo providencias e humano confirmando tratamento.
 - Permissoes devem seguir o padrao `gkit_jur.recurso.acao`.
 
 ## O que ja existe
@@ -48,11 +51,24 @@ O modulo nao deve recriar cadastros transversais. Sempre que possivel, deve refe
 
 - Job automatico real de monitoramento, se a infraestrutura de cron ainda nao estiver definida.
 - Integracao direta com PJe, e-SAJ, Projudi ou APIs privadas.
-- Captura de publicacoes e intimacoes em diario oficial.
+- Captura completa de publicacoes e intimacoes em diario oficial como arquivo permanente.
 - Peticionamento, download automatico de pecas ou OCR.
 - Classificacao avancada por IA.
 - Integracao WhatsApp.
 - Relatorios financeiros ou cobranca.
+
+## Evolucao aprovada: caixa de publicacoes
+
+Publicacoes e intimacoes devem evoluir para uma caixa de entrada propria. A meta nao e guardar todo o conteudo para sempre, pois o processo digital e as fontes oficiais seguem como origem formal. A meta e garantir tratamento:
+
+- capturar o item com metadados minimos, preview e hash;
+- sugerir classificacao e providencia por IA;
+- exigir confirmacao humana para tratar, dispensar ou vincular;
+- registrar decisao, usuario, data, tarefa/prazo/documento vinculado e motivo;
+- retirar itens tratados da fila principal;
+- aplicar retencao ao conteudo pesado depois de prazo configuravel, mantendo a trilha minima.
+
+Documento-base: `docs/modulos/gkit-jur-caixa-publicacoes.md`.
 
 ## Modelo de navegacao
 

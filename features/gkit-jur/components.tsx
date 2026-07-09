@@ -6,6 +6,7 @@ import {
   gkitJurDocumentoTipoOptions,
   gkitJurEventoTipoOptions,
   gkitJurMonitoramentoOptions,
+  gkitJurPublicacaoDecisaoOptions,
   gkitJurStatusOptions,
   gkitJurTarefaPrioridadeOptions,
   gkitJurTarefaStatusOptions,
@@ -35,18 +36,22 @@ import type {
   GkitJurProcessListData,
   GkitJurProcessListItem,
   GkitJurProcessSyncFeedback,
+  GkitJurPublicacao,
+  GkitJurPublicacaoFilters,
+  GkitJurPublicacoesData,
   GkitJurSaneamentoSuggestion,
   GkitJurSelectOption,
   GkitJurTarefa,
   GkitJurTimelineItem,
 } from './types'
 
-type GkitJurTab = 'inbox' | 'processos' | 'pendencias' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria' | 'configuracoes'
+type GkitJurTab = 'inbox' | 'processos' | 'pendencias' | 'publicacoes' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria' | 'configuracoes'
 
 const activeHref: Record<GkitJurTab, string> = {
   inbox: '/modulos/gkit-jur/inbox',
   processos: '/modulos/gkit-jur/processos',
   pendencias: '/modulos/gkit-jur/pendencias',
+  publicacoes: '/modulos/gkit-jur/publicacoes',
   movimentacoes: '/modulos/gkit-jur/movimentacoes',
   agente: '/modulos/gkit-jur/agente',
   cadastros: '/modulos/gkit-jur/cadastros',
@@ -56,6 +61,7 @@ const activeHref: Record<GkitJurTab, string> = {
 
 const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-jur/inbox', title: 'Inbox' },
+  { href: '/modulos/gkit-jur/publicacoes', title: 'Publicacoes' },
   { href: '/modulos/gkit-jur/processos', title: 'Processos' },
   { href: '/modulos/gkit-jur/movimentacoes', title: 'Movimentações' },
 ]
@@ -1744,6 +1750,264 @@ export function GkitJurPendenciasPage({
           </GkitJurSection>
         ))}
       </div>
+    </>
+  )
+}
+
+function publicacaoHref(filters: GkitJurPublicacaoFilters, page: number) {
+  const params = new URLSearchParams()
+  Object.entries({ ...filters, page }).forEach(([key, value]) => {
+    if (key === 'page') {
+      if (Number(value) > 1) params.set(key, String(value))
+      return
+    }
+    if (value) params.set(key, String(value))
+  })
+  const query = params.toString()
+  return query ? `/modulos/gkit-jur/publicacoes?${query}` : '/modulos/gkit-jur/publicacoes'
+}
+
+function publicacaoStatusLabel(status: GkitJurPublicacao['status']) {
+  const labels: Record<GkitJurPublicacao['status'], string> = {
+    duplicada: 'Duplicada',
+    dispensada: 'Dispensada',
+    em_tratamento: 'Em tratamento',
+    erro: 'Erro',
+    pendente: 'Pendente',
+    tratada: 'Tratada',
+    triada_ia: 'Triada por IA',
+  }
+  return labels[status]
+}
+
+function publicacaoStatusTone(status: GkitJurPublicacao['status']) {
+  if (status === 'tratada' || status === 'dispensada' || status === 'duplicada') return 'success'
+  if (status === 'erro') return 'danger'
+  if (status === 'em_tratamento' || status === 'triada_ia') return 'warning'
+  return 'primary'
+}
+
+function GkitJurPublicacaoFilterBar({ data }: { data: GkitJurPublicacoesData }) {
+  const { filterOptions, filters, pagination } = data
+  const activeFilters = [
+    filters.q ? { label: 'Busca', value: filters.q } : null,
+    filters.status ? { label: 'Status', value: activeValueLabel(filterOptions.statuses, filters.status) } : null,
+    filters.fonte ? { label: 'Fonte', value: filters.fonte } : null,
+    filters.carteiraId ? { label: 'Carteira', value: activeValueLabel(filterOptions.carteiras, filters.carteiraId) } : null,
+    filters.responsavelId ? { label: 'Responsavel', value: activeValueLabel(filterOptions.responsaveis, filters.responsavelId) } : null,
+    filters.tribunal ? { label: 'Tribunal', value: filters.tribunal } : null,
+  ].filter(Boolean) as Array<{ label: string; value: string }>
+
+  return (
+    <form className="gkit-jur-filter-bar" method="get">
+      <div className="gkit-jur-filter-fields">
+        <label>
+          <span>Busca</span>
+          <input defaultValue={filters.q} name="q" placeholder="CNJ, cliente, orgao ou texto" type="search" />
+        </label>
+        <SelectField label="Status" name="status" options={filterOptions.statuses} placeholder="Todos" value={filters.status} />
+        <SelectField label="Fonte" name="fonte" options={filterOptions.fontes} placeholder="Todas" value={filters.fonte} />
+        <SelectField label="Carteira" name="carteira_id" options={filterOptions.carteiras} placeholder="Todas" value={filters.carteiraId} />
+        <SelectField label="Responsavel" name="responsavel_id" options={filterOptions.responsaveis} placeholder="Todos" value={filters.responsavelId} />
+        <SelectField label="Tribunal" name="tribunal" options={filterOptions.tribunais} placeholder="Todos" value={filters.tribunal} />
+        <SelectField
+          label="Ordenar"
+          name="sort"
+          options={[
+            { label: 'Data da publicacao', value: 'data_disponibilizacao' },
+            { label: 'Criacao na caixa', value: 'created_at' },
+            { label: 'Tratamento', value: 'tratado_em' },
+            { label: 'Processo', value: 'processo' },
+            { label: 'Fonte', value: 'fonte' },
+            { label: 'Status', value: 'status' },
+          ]}
+          placeholder="Data da publicacao"
+          value={filters.sort}
+        />
+        <SelectField
+          label="Direcao"
+          name="dir"
+          options={[
+            { label: 'Mais recentes', value: 'desc' },
+            { label: 'Mais antigas', value: 'asc' },
+          ]}
+          placeholder="Mais recentes"
+          value={filters.dir}
+        />
+      </div>
+      <div className="gkit-jur-filter-actions">
+        <span>{pagination.from}-{pagination.to} de {pagination.total}</span>
+        <button className="button" type="submit">Filtrar</button>
+        <Link className="button secondary" href="/modulos/gkit-jur/publicacoes">Limpar</Link>
+      </div>
+      <GkitJurActiveFilterChips items={activeFilters} />
+    </form>
+  )
+}
+
+function GkitJurPublicacaoPager({ data }: { data: GkitJurPublicacoesData }) {
+  const { filters, pagination } = data
+  return (
+    <div className="gkit-jur-pagination">
+      <span>Pagina {pagination.currentPage} de {pagination.totalPages}</span>
+      <div>
+        <Link
+          aria-disabled={pagination.currentPage <= 1}
+          className={pagination.currentPage <= 1 ? 'button secondary disabled' : 'button secondary'}
+          href={publicacaoHref(filters, Math.max(1, pagination.currentPage - 1))}
+        >
+          Anterior
+        </Link>
+        <Link
+          aria-disabled={pagination.currentPage >= pagination.totalPages}
+          className={pagination.currentPage >= pagination.totalPages ? 'button secondary disabled' : 'button secondary'}
+          href={publicacaoHref(filters, Math.min(pagination.totalPages, pagination.currentPage + 1))}
+        >
+          Proxima
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+function GkitJurPublicacaoCard({
+  canWrite,
+  item,
+  returnTo,
+  tratamentoAction,
+}: {
+  canWrite: boolean
+  item: GkitJurPublicacao
+  returnTo: string
+  tratamentoAction: (formData: FormData) => Promise<void>
+}) {
+  const done = ['tratada', 'dispensada', 'duplicada'].includes(item.status)
+  return (
+    <article className="suite-row-card gkit-jur-publication-card">
+      <div className="suite-row-card-main">
+        <div>
+          <span className={`suite-pill ${publicacaoStatusTone(item.status)}`}>{publicacaoStatusLabel(item.status)}</span>
+          <span className="suite-pill primary">{item.fonte}</span>
+        </div>
+        <h3>{item.numeroCnj}</h3>
+        <p>{item.textoPreview || 'Publicacao sem preview textual.'}</p>
+        <small>
+          {[item.jornal, item.origemOrgao, item.arq ? `Arq ${item.arq}` : null, item.pub ? `Pub ${item.pub}` : null].filter(Boolean).join(' - ') || 'Metadados pendentes'}
+        </small>
+      </div>
+      <div className="suite-row-card-meta">
+        <strong>{formatDate(item.dataDisponibilizacao || item.dataPublicacao)}</strong>
+        <span>{item.clienteNome || item.processoTitulo || 'Processo sem vinculo operacional'}</span>
+        <small>{item.responsavelNome || item.carteiraNome || 'Sem responsavel definido'}</small>
+        {item.tratadoEm ? <small>Tratada em {formatDateTime(item.tratadoEm)}</small> : null}
+      </div>
+      {item.sugestaoIa || item.motivoTratamento ? (
+        <div className="suite-row-card-note">
+          {item.sugestaoIa ? <p><strong>IA:</strong> {item.sugestaoIa}</p> : null}
+          {item.motivoTratamento ? <p><strong>Tratamento:</strong> {item.motivoTratamento}</p> : null}
+        </div>
+      ) : null}
+      {canWrite ? (
+        <details className="gkit-jur-inline-form">
+          <summary>{done ? 'Revisar tratamento' : 'Tratar publicacao'}</summary>
+          <form action={tratamentoAction}>
+            <input name="publicacao_id" type="hidden" value={item.id} />
+            <input name="return_to" type="hidden" value={returnTo} />
+            <div className="form-grid compact">
+              <Field label="Status">
+                <select name="status" defaultValue={item.status === 'pendente' ? 'em_tratamento' : item.status}>
+                  <option value="pendente">Pendente</option>
+                  <option value="triada_ia">Triada por IA</option>
+                  <option value="em_tratamento">Em tratamento</option>
+                  <option value="tratada">Tratada</option>
+                  <option value="dispensada">Dispensada</option>
+                  <option value="duplicada">Duplicada</option>
+                  <option value="erro">Erro</option>
+                </select>
+              </Field>
+              <Field label="Decisao">
+                <select name="decisao_tratamento" defaultValue={item.decisaoTratamento ?? ''}>
+                  <option value="">Sem decisao</option>
+                  {gkitJurPublicacaoDecisaoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </Field>
+              <Field label="Prazo sugerido">
+                <input name="prazo_at" type="datetime-local" />
+              </Field>
+              <label className="suite-checkbox">
+                <input name="criar_tarefa" type="checkbox" value="on" />
+                <span>Criar tarefa vinculada</span>
+              </label>
+            </div>
+            <label>
+              <span>Motivo ou orientacao</span>
+              <textarea name="motivo_tratamento" placeholder="Registre a decisao humana, dispensa ou providencia tomada." rows={3} defaultValue={item.motivoTratamento ?? ''} />
+            </label>
+            <button className="button" type="submit">Salvar tratamento</button>
+          </form>
+        </details>
+      ) : null}
+      {item.processoId ? <Link className="button secondary" href={`/modulos/gkit-jur/processos/${item.processoId}`}>Abrir processo</Link> : null}
+    </article>
+  )
+}
+
+export function GkitJurPublicacoesPage({
+  canWrite,
+  data,
+  returnTo,
+  tratamentoAction,
+}: {
+  canWrite: boolean
+  data: GkitJurPublicacoesData
+  returnTo: string
+  tratamentoAction: (formData: FormData) => Promise<void>
+}) {
+  return (
+    <>
+      <section className="suite-kpi-grid compact">
+        <article className="metric-card">
+          <span className="metric-label">Pendentes</span>
+          <strong className="metric-value">{data.metrics.pendentes}</strong>
+          <span className="metric-hint">aguardando triagem</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Em tratamento</span>
+          <strong className="metric-value">{data.metrics.emTratamento + data.metrics.triadasIa}</strong>
+          <span className="metric-hint">IA ou humano em curso</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Tratadas</span>
+          <strong className="metric-value">{data.metrics.tratadas}</strong>
+          <span className="metric-hint">com decisao registrada</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Sem processo</span>
+          <strong className="metric-value">{data.metrics.semProcesso}</strong>
+          <span className="metric-hint">exigem vinculacao</span>
+        </article>
+      </section>
+      <GkitJurSection title="Publicacoes e intimacoes" description="Caixa de entrada para triagem, confirmacao humana e registro de tratamento.">
+        <GkitJurPublicacaoFilterBar data={data} />
+        {data.publicacoes.length ? (
+          <div className="suite-card-list compact">
+            {data.publicacoes.map((item) => (
+              <GkitJurPublicacaoCard
+                canWrite={canWrite}
+                item={item}
+                key={item.id}
+                returnTo={returnTo}
+                tratamentoAction={tratamentoAction}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="suite-empty-block success">
+            Nenhuma publicacao encontrada para os filtros atuais.
+          </div>
+        )}
+        <GkitJurPublicacaoPager data={data} />
+      </GkitJurSection>
     </>
   )
 }

@@ -35,6 +35,11 @@ import type {
   GkitJurMovimentacoesData,
   GkitJurNivelProntidao,
   GkitJurPendenciasData,
+  GkitJurPublicacao,
+  GkitJurPublicacaoDecisao,
+  GkitJurPublicacaoFilters,
+  GkitJurPublicacaoStatus,
+  GkitJurPublicacoesData,
   GkitJurProcessDetail,
   GkitJurProcessDetailData,
   GkitJurProcessFilterOptions,
@@ -360,6 +365,23 @@ export function buildGkitJurMovimentacaoFilters(params?: ModuleSearchParams | nu
     relevancia: singleParam(params?.relevancia),
     responsavelId: singleParam(params?.responsavel_id),
     sort,
+    tribunal: singleParam(params?.tribunal),
+  }
+}
+
+export function buildGkitJurPublicacaoFilters(params?: ModuleSearchParams | null): GkitJurPublicacaoFilters {
+  const dir = singleParam(params?.dir) === 'asc' ? 'asc' : 'desc'
+  const sort = singleParam(params?.sort) || 'data_disponibilizacao'
+
+  return {
+    carteiraId: singleParam(params?.carteira_id),
+    dir,
+    fonte: singleParam(params?.fonte),
+    page: positiveInt(singleParam(params?.page), 1),
+    q: singleParam(params?.q).trim(),
+    responsavelId: singleParam(params?.responsavel_id),
+    sort,
+    status: singleParam(params?.status),
     tribunal: singleParam(params?.tribunal),
   }
 }
@@ -1601,6 +1623,270 @@ export async function listGkitJurMovimentacoes(filters: GkitJurMovimentacaoFilte
   }
 }
 
+function publicacaoStatus(value: unknown): GkitJurPublicacaoStatus {
+  const current = text(value, 'pendente')
+  if (['pendente', 'triada_ia', 'em_tratamento', 'tratada', 'dispensada', 'duplicada', 'erro'].includes(current)) {
+    return current as GkitJurPublicacaoStatus
+  }
+  return 'pendente'
+}
+
+function publicacaoDecisao(value: unknown): GkitJurPublicacaoDecisao | null {
+  const current = text(value)
+  if ([
+    'gerar_prazo',
+    'gerar_tarefa',
+    'registrar_ciencia',
+    'vincular_documento',
+    'atualizar_resumo',
+    'dispensar_sem_acao',
+    'marcar_duplicada',
+    'revisar_cadastro_processo',
+  ].includes(current)) {
+    return current as GkitJurPublicacaoDecisao
+  }
+  return null
+}
+
+async function resolvePublicationProcessScope(filters: GkitJurPublicacaoFilters) {
+  if (!filters.carteiraId && !filters.responsavelId && !filters.tribunal) return null
+
+  let query = admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select(PROCESS_LIST_SELECT)
+
+  if (filters.carteiraId) query = query.eq('carteira_id', filters.carteiraId)
+  if (filters.responsavelId) query = query.eq('responsavel_id', filters.responsavelId)
+  if (filters.tribunal) query = query.eq('tribunal_sigla', filters.tribunal)
+
+  const result = await query.limit(MOVEMENT_PROCESS_SCOPE_LIMIT)
+  if (result.error) throw new Error(result.error.message)
+  return (result.data ?? []) as Array<Record<string, unknown>>
+}
+
+function mapPublicacao(
+  row: Record<string, unknown>,
+  processoMap: Map<string, GkitJurProcessListItem>,
+  maps: Awaited<ReturnType<typeof lookupMaps>>,
+): GkitJurPublicacao {
+  const processoId = text(row.processo_id)
+  const processo = processoId ? processoMap.get(processoId) ?? null : null
+  const tratadoPor = text(row.tratado_por)
+  return {
+    id: String(row.id),
+    processoId: processoId || null,
+    numeroCnj: formatCnj(text(row.numero_cnj_limpo)),
+    fonte: text(row.fonte, 'fonte'),
+    fonteEventoId: text(row.fonte_evento_id) || null,
+    dataDisponibilizacao: text(row.data_disponibilizacao) || null,
+    dataPublicacao: text(row.data_publicacao) || null,
+    jornal: text(row.jornal) || null,
+    termo: text(row.termo) || null,
+    origemOrgao: text(row.origem_orgao) || null,
+    arq: text(row.arq) || null,
+    pub: text(row.pub) || null,
+    textoPreview: text(row.texto_preview) || null,
+    textoHash: text(row.texto_hash),
+    status: publicacaoStatus(row.status),
+    decisaoTratamento: publicacaoDecisao(row.decisao_tratamento),
+    classificacaoIa: recordValue(row.classificacao_ia),
+    confiancaIa: row.confianca_ia === null || row.confianca_ia === undefined ? null : Number(row.confianca_ia),
+    sugestaoIa: text(row.sugestao_ia) || null,
+    tarefaId: text(row.tarefa_id) || null,
+    tratadoPor: tratadoPor ? maps.responsaveis.get(tratadoPor) ?? tratadoPor : null,
+    tratadoEm: text(row.tratado_em) || null,
+    motivoTratamento: text(row.motivo_tratamento) || null,
+    conteudoRemovidoEm: text(row.conteudo_removido_em) || null,
+    clienteNome: processo?.clienteNome ?? null,
+    carteiraNome: processo?.carteiraNome ?? null,
+    responsavelNome: processo?.responsavelNome ?? null,
+    processoTitulo: processo?.titulo ?? null,
+    createdAt: text(row.created_at),
+    updatedAt: text(row.updated_at),
+  }
+}
+
+function publicacaoSortValue(row: GkitJurPublicacao, sort: string) {
+  if (sort === 'processo') return row.numeroCnj
+  if (sort === 'fonte') return row.fonte
+  if (sort === 'status') return row.status
+  if (sort === 'tratado_em') return row.tratadoEm || ''
+  if (sort === 'created_at') return row.createdAt
+  return row.dataDisponibilizacao || row.dataPublicacao || row.createdAt
+}
+
+function matchesPublicacaoFilters(row: GkitJurPublicacao, filters: GkitJurPublicacaoFilters) {
+  if (filters.status && row.status !== filters.status) return false
+  if (filters.fonte && row.fonte !== filters.fonte) return false
+  if (filters.q) {
+    const haystack = normalizeSearch([
+      row.numeroCnj,
+      row.fonte,
+      row.jornal,
+      row.termo,
+      row.origemOrgao,
+      row.textoPreview,
+      row.clienteNome,
+      row.carteiraNome,
+      row.responsavelNome,
+      row.processoTitulo,
+      row.motivoTratamento,
+    ].filter(Boolean).join(' '))
+    if (!haystack.includes(normalizeSearch(filters.q))) return false
+  }
+  return true
+}
+
+function emptyPublicacoesData(filters: GkitJurPublicacaoFilters, filterOptions: Awaited<ReturnType<typeof getFilterOptions>>): GkitJurPublicacoesData {
+  return {
+    filterOptions: {
+      ...filterOptions,
+      fontes: [],
+      statuses: gkitJurPublicacaoStatusOptions,
+    },
+    filters,
+    metrics: {
+      total: 0,
+      pendentes: 0,
+      triadasIa: 0,
+      emTratamento: 0,
+      tratadas: 0,
+      dispensadas: 0,
+      erros: 0,
+      semProcesso: 0,
+    },
+    pagination: {
+      currentPage: filters.page,
+      from: 0,
+      pageSize: PAGE_SIZE,
+      to: 0,
+      total: 0,
+      totalPages: 1,
+    },
+    publicacoes: [],
+  }
+}
+
+export async function listGkitJurPublicacoes(filters: GkitJurPublicacaoFilters = buildGkitJurPublicacaoFilters()): Promise<GkitJurPublicacoesData> {
+  const from = (filters.page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE
+  const filterOptions = await getFilterOptions()
+  const scopedProcessRows = await resolvePublicationProcessScope(filters)
+  const scopedProcessIds = scopedProcessRows
+    ? scopedProcessRows.map((row) => text(row.id)).filter(Boolean)
+    : null
+
+  let publicacoesQuery = admin()
+    .schema('gkit_jur')
+    .from('publicacoes_monitoradas')
+    .select('id,processo_id,numero_cnj_limpo,fonte,fonte_evento_id,data_disponibilizacao,data_publicacao,jornal,termo,origem_orgao,arq,pub,texto_preview,texto_hash,status,decisao_tratamento,classificacao_ia,confianca_ia,sugestao_ia,tarefa_id,tratado_por,tratado_em,motivo_tratamento,conteudo_removido_em,created_at,updated_at')
+
+  if (scopedProcessIds) publicacoesQuery = scopedProcessIds.length ? publicacoesQuery.in('processo_id', scopedProcessIds) : null
+  if (filters.status && publicacoesQuery) publicacoesQuery = publicacoesQuery.eq('status', filters.status)
+  if (filters.fonte && publicacoesQuery) publicacoesQuery = publicacoesQuery.eq('fonte', filters.fonte)
+
+  const [publicacoesResult, fontesResult] = await Promise.all([
+    publicacoesQuery
+      ? publicacoesQuery
+        .order('data_disponibilizacao', { ascending: filters.dir === 'asc', nullsFirst: false })
+        .order('created_at', { ascending: filters.dir === 'asc' })
+        .limit(1000)
+      : Promise.resolve({ data: [], error: null }),
+    admin()
+      .schema('gkit_jur')
+      .from('publicacoes_monitoradas')
+      .select('fonte')
+      .limit(5000),
+  ])
+
+  const missingTable = [publicacoesResult.error, fontesResult.error]
+    .some((error) => error && ['42P01', 'PGRST205'].includes(text(error.code)))
+  if (missingTable) return emptyPublicacoesData(filters, filterOptions)
+  if (publicacoesResult.error) throw new Error(publicacoesResult.error.message)
+  if (fontesResult.error) throw new Error(fontesResult.error.message)
+
+  const rows = (publicacoesResult.data ?? []) as Array<Record<string, unknown>>
+  const processoIds = [...new Set(rows.map((row) => text(row.processo_id)).filter(Boolean))]
+  const treatedUserIds = [...new Set(rows.map((row) => text(row.tratado_por)).filter(Boolean))]
+  const scopedRowsById = new Map((scopedProcessRows ?? []).map((row) => [String(row.id), row]))
+  const missingProcessIds = scopedProcessRows ? processoIds.filter((id) => !scopedRowsById.has(id)) : processoIds
+  const loadedRows = scopedProcessRows
+    ? processoIds.map((id) => scopedRowsById.get(id)).filter(Boolean) as Array<Record<string, unknown>>
+    : []
+  const processosResult = missingProcessIds.length
+    ? await admin()
+      .schema('gkit_jur')
+      .from('processos')
+      .select(PROCESS_LIST_SELECT)
+      .in('id', missingProcessIds)
+    : { data: [], error: null }
+  if (processosResult.error) throw new Error(processosResult.error.message)
+
+  const processRows = [...loadedRows, ...((processosResult.data ?? []) as Array<Record<string, unknown>>)]
+  const lookupRows = [
+    ...processRows,
+    ...treatedUserIds.map((id) => ({ id: `treated-${id}`, responsavel_id: id })),
+  ]
+  const maps = await lookupMaps(lookupRows)
+  const processoMap = new Map<string, GkitJurProcessListItem>()
+  const rawProcessRows = new Map<string, Record<string, unknown>>()
+  processRows.forEach((row) => {
+    rawProcessRows.set(String(row.id), row)
+    processoMap.set(String(row.id), mapProcesso(row, maps))
+  })
+
+  const mapped = rows
+    .map((row) => mapPublicacao(row, processoMap, maps))
+    .filter((row) => {
+      const raw = row.processoId ? rawProcessRows.get(row.processoId) : null
+      if (filters.carteiraId && (!raw || text(raw.carteira_id) !== filters.carteiraId)) return false
+      if (filters.responsavelId && (!raw || text(raw.responsavel_id) !== filters.responsavelId)) return false
+      if (filters.tribunal && (!raw || text(raw.tribunal_sigla) !== filters.tribunal)) return false
+      return matchesPublicacaoFilters(row, filters)
+    })
+    .sort((a, b) => {
+      const left = publicacaoSortValue(a, filters.sort)
+      const right = publicacaoSortValue(b, filters.sort)
+      const result = String(left).localeCompare(String(right), 'pt-BR', { numeric: true })
+      return filters.dir === 'asc' ? result : -result
+    })
+
+  const total = mapped.length
+  const fontes = [...new Set(((fontesResult.data ?? []) as Array<Record<string, unknown>>)
+    .map((row) => text(row.fonte))
+    .filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+
+  return {
+    filterOptions: {
+      ...filterOptions,
+      fontes: fontes.map((fonte) => ({ label: fonte, value: fonte })),
+      statuses: gkitJurPublicacaoStatusOptions,
+    },
+    filters,
+    metrics: {
+      total,
+      pendentes: mapped.filter((item) => item.status === 'pendente').length,
+      triadasIa: mapped.filter((item) => item.status === 'triada_ia').length,
+      emTratamento: mapped.filter((item) => item.status === 'em_tratamento').length,
+      tratadas: mapped.filter((item) => item.status === 'tratada').length,
+      dispensadas: mapped.filter((item) => item.status === 'dispensada').length,
+      erros: mapped.filter((item) => item.status === 'erro').length,
+      semProcesso: mapped.filter((item) => !item.processoId).length,
+    },
+    pagination: {
+      currentPage: filters.page,
+      from: total ? from + 1 : 0,
+      pageSize: PAGE_SIZE,
+      to: Math.min(to, total),
+      total,
+      totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+    },
+    publicacoes: mapped.slice(from, to),
+  }
+}
+
 export async function getGkitJurAuditoria(): Promise<GkitJurAuditoriaData> {
   const [importadosResult, sincronizacoesResult] = await Promise.all([
     admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).not('importado_de', 'is', null),
@@ -2558,6 +2844,27 @@ export const gkitJurTarefaStatusOptions: GkitJurSelectOption[] = [
   { label: 'Aguardando terceiro', value: 'aguardando_terceiro' },
   { label: 'Concluída', value: 'concluida' },
   { label: 'Cancelada', value: 'cancelada' },
+]
+
+export const gkitJurPublicacaoStatusOptions: GkitJurSelectOption[] = [
+  { label: 'Pendente', value: 'pendente' },
+  { label: 'Triada por IA', value: 'triada_ia' },
+  { label: 'Em tratamento', value: 'em_tratamento' },
+  { label: 'Tratada', value: 'tratada' },
+  { label: 'Dispensada', value: 'dispensada' },
+  { label: 'Duplicada', value: 'duplicada' },
+  { label: 'Erro', value: 'erro' },
+]
+
+export const gkitJurPublicacaoDecisaoOptions: GkitJurSelectOption[] = [
+  { label: 'Gerar prazo', value: 'gerar_prazo' },
+  { label: 'Gerar tarefa', value: 'gerar_tarefa' },
+  { label: 'Registrar ciencia', value: 'registrar_ciencia' },
+  { label: 'Vincular documento', value: 'vincular_documento' },
+  { label: 'Atualizar resumo', value: 'atualizar_resumo' },
+  { label: 'Dispensar sem acao', value: 'dispensar_sem_acao' },
+  { label: 'Marcar duplicada', value: 'marcar_duplicada' },
+  { label: 'Revisar cadastro do processo', value: 'revisar_cadastro_processo' },
 ]
 
 function termsFromJson(value: unknown) {

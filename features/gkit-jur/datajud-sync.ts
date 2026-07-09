@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { insertPublicationInboxItemsBestEffort } from './publication-inbox'
 import { refreshGkitJurProcessSummary } from './summary-service'
 
 export type GkitJurSyncProcessRow = {
@@ -483,6 +484,29 @@ export async function generateTasksFromMovements(
   }
 
   if (!taskGroups.size) return 0
+
+  if (provider === 'datajud') {
+    await insertPublicationInboxItemsBestEffort([...taskGroups.values()]
+      .filter((group) => group.publicationBucket)
+      .flatMap((group) => group.movimentos.map((movimento) => ({
+        classificacaoIa: {
+          regra_id: group.rule.id,
+          regra_nome: group.rule.nome,
+          tipo_tarefa_sugerida: group.rule.tipo_tarefa,
+          prioridade_sugerida: group.rule.prioridade,
+        },
+        dataDisponibilizacao: text(movimento.data_hora),
+        dataPublicacao: text(movimento.data_hora),
+        fonte: 'datajud',
+        fonteEventoId: text(movimento.hash_movimento) || null,
+        numeroCnjLimpo: row.numero_cnj_limpo,
+        origemOrgao: text(movimento.orgao_nome) || null,
+        processoId: row.id,
+        rawPayload: movimento.raw_movimento && typeof movimento.raw_movimento === 'object' ? movimento.raw_movimento as Record<string, unknown> : movimento,
+        sugestaoIa: `Regra "${group.rule.nome}" sugere tratamento como publicacao/intimacao.`,
+        texto: text(movimento.nome, 'Movimentacao DataJud'),
+      }))))
+  }
 
   const hashes = [...new Set([...taskGroups.values()].flatMap((group) => [group.origemHash, ...group.legacyHashes]))]
   const publicationRuleIds = [...new Set([...taskGroups.values()]

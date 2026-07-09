@@ -6,6 +6,7 @@ import {
   generateTasksFromMovements,
   type GkitJurSyncProcessRow,
 } from './datajud-sync'
+import { insertPublicationInboxItemsBestEffort } from './publication-inbox'
 import { refreshGkitJurProcessSummary } from './summary-service'
 
 type AaspSyncResult = {
@@ -184,6 +185,14 @@ async function fetchActiveProcesses(cnjs: string[]) {
   }))
 }
 
+function rawText(row: Record<string, any>, keys: string[]) {
+  for (const key of keys) {
+    const value = text(row[key])
+    if (value) return value
+  }
+  return null
+}
+
 function movementFromPublication(processo: GkitJurSyncProcessRow, publication: AaspPublication) {
   const label = publication.text.length > 260 ? `${publication.text.slice(0, 257)}...` : publication.text
   return {
@@ -254,6 +263,24 @@ export async function syncGkitJurAaspBatch(options: {
     const publications = normalizeAaspPublications(responseBody)
     const cnjs = [...new Set(publications.flatMap((item) => item.cnjs))]
     const processMap = await fetchActiveProcesses(cnjs)
+    await insertPublicationInboxItemsBestEffort(publications.flatMap((publication) => publication.cnjs.map((cnj) => {
+      const processo = processMap.get(cnj)
+      return {
+        arq: rawText(publication.raw, ['Arq', 'arq', 'arquivo', 'Arquivo']),
+        dataDisponibilizacao: text(requestPayload.data),
+        dataPublicacao: publication.dataHora,
+        fonte: 'aasp',
+        fonteEventoId: `${publication.hash}:${cnj}`,
+        jornal: rawText(publication.raw, ['Jornal', 'jornal', 'diario', 'Diario']),
+        numeroCnjLimpo: cnj,
+        origemOrgao: rawText(publication.raw, ['Origem', 'origem', 'orgao', 'Orgao']),
+        processoId: processo?.id ?? null,
+        pub: rawText(publication.raw, ['Pub', 'pub', 'publicacaoId', 'PublicacaoId']),
+        rawPayload: publication.raw,
+        termo: rawText(publication.raw, ['Termo', 'termo', 'tipo', 'Tipo']),
+        texto: publication.text,
+      }
+    })))
     const movimentosByProcess = new Map<string, { processo: GkitJurSyncProcessRow; movimentos: Array<Record<string, any>> }>()
 
     for (const publication of publications) {

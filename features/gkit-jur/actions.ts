@@ -21,9 +21,21 @@ async function requireGkitJurWrite(permission = 'gkit_jur.processos.write') {
   return context
 }
 
+async function requireGkitJurPublicationWrite() {
+  const context = await requireModuleAccess('gkit-jur')
+  if (!canAccess(context.permissions, 'gkit_jur.publicacoes.write') && !canAccess(context.permissions, 'gkit_jur.processos.write')) {
+    throw new Error('Usuario sem permissao para tratar publicacoes no GKIT Jur.')
+  }
+  return context
+}
+
 function text(formData: FormData, key: string) {
   const value = formData.get(key)
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function valueText(value: unknown, fallback = '') {
+  return typeof value === 'string' && value.trim() ? value.trim() : fallback
 }
 
 function optionalUuid(formData: FormData, key: string) {
@@ -51,6 +63,12 @@ function optionalInt(value: string) {
   if (!value) return null
   const parsed = Number.parseInt(value, 10)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function formatCnjForAction(value: string) {
+  const digits = value.replace(/\D/g, '')
+  if (digits.length !== 20) return value
+  return `${digits.slice(0, 7)}-${digits.slice(7, 9)}.${digits.slice(9, 13)}.${digits.slice(13, 14)}.${digits.slice(14, 16)}.${digits.slice(16)}`
 }
 
 function termsList(value: string) {
@@ -81,6 +99,7 @@ function withParams(path: string, params: URLSearchParams, hash = '') {
 function revalidateGkitJur() {
   revalidatePath('/modulos/gkit-jur')
   revalidatePath('/modulos/gkit-jur/inbox')
+  revalidatePath('/modulos/gkit-jur/publicacoes')
   revalidatePath('/modulos/gkit-jur/agente')
   revalidatePath('/modulos/gkit-jur/processos')
   revalidatePath('/modulos/gkit-jur/pendencias')
@@ -295,6 +314,100 @@ export async function toggleGkitJurMovimentacaoTarefaRegraAction(formData: FormD
 
   revalidatePath('/modulos/gkit-jur/configuracoes/movimentacao-tarefa')
   redirect('/modulos/gkit-jur/configuracoes/movimentacao-tarefa?saved=ok')
+}
+
+export async function updateGkitJurPublicacaoTratamentoAction(formData: FormData) {
+  const context = await requireGkitJurPublicationWrite()
+  const publicacaoId = requiredText(formData, 'publicacao_id', 'Publicacao')
+  const nextStatus = allowed(text(formData, 'status'), ['pendente', 'triada_ia', 'em_tratamento', 'tratada', 'dispensada', 'duplicada', 'erro'], 'em_tratamento')
+  const decisao = allowed(text(formData, 'decisao_tratamento'), ['gerar_prazo', 'gerar_tarefa', 'registrar_ciencia', 'vincular_documento', 'atualizar_resumo', 'dispensar_sem_acao', 'marcar_duplicada', 'revisar_cadastro_processo', ''], '')
+  const motivo = text(formData, 'motivo_tratamento')
+  const createTask = text(formData, 'criar_tarefa') === 'on' || ['gerar_prazo', 'gerar_tarefa'].includes(decisao)
+  const prazo = text(formData, 'prazo_at')
+
+  const currentResult = await admin()
+    .schema('gkit_jur')
+    .from('publicacoes_monitoradas')
+    .select('id,processo_id,numero_cnj_limpo,fonte,texto_preview,tarefa_id')
+    .eq('id', publicacaoId)
+    .single()
+
+  if (currentResult.error || !currentResult.data) throw new Error(currentResult.error?.message ?? 'Publicacao nao encontrada.')
+  const current = currentResult.data as Record<string, unknown>
+  const processoId = valueText(current.processo_id)
+  let tarefaId = valueText(current.tarefa_id) || null
+
+  if (createTask && !tarefaId) {
+    if (!processoId) throw new Error('Vincule a publicacao a um processo antes de gerar tarefa.')
+    const processo = await getActiveJurProcess(processoId)
+    const tarefaPayload = {
+      processo_id: processoId,
+      carteira_id: (processo.carteira_id as string | null) || await defaultCarteiraId(),
+      responsavel_id: (processo.responsavel_id as string | null) || null,
+      tipo: decisao === 'gerar_prazo' ? 'prazo' : 'publicacao',
+      titulo: decisao === 'gerar_prazo' ? 'Analisar prazo de publicacao' : 'Tratar publicacao/intimacao',
+      descricao: [
+        `Publicacao capturada por ${valueText(current.fonte, 'fonte externa')}.`,
+        `Processo ${formatCnjForAction(valueText(current.numero_cnj_limpo))}.`,
+        valueText(current.texto_preview),
+        motivo ? `Observacao: ${motivo}` : '',
+      ].filter(Boolean).join('\n\n'),
+      prioridade: decisao === 'gerar_prazo' ? 'alta' : 'media',
+      prazo_at: prazo ? new Date(prazo).toISOString() : null,
+      origem: 'publicacao_monitorada',
+      origem_id: publicacaoId,
+      origem_hash: `publicacao_monitorada:${publicacaoId}`,
+      payload: { publicacao_id: publicacaoId, decisao_tratamento: decisao || null },
+      criado_por: context.usuario.id,
+      atualizado_por: context.usuario.id,
+      updated_at: new Date().toISOString(),
+    }
+
+    const tarefaResult = await admin()
+      .schema('gkit_jur')
+      .from('tarefas')
+      .insert(tarefaPayload)
+      .select('id')
+      .single()
+
+    if (tarefaResult.error || !tarefaResult.data) throw new Error(tarefaResult.error?.message ?? 'Nao foi possivel criar tarefa para a publicacao.')
+    tarefaId = String(tarefaResult.data.id)
+  }
+
+  const treated = ['tratada', 'dispensada', 'duplicada'].includes(nextStatus)
+  const updatePayload: Record<string, unknown> = {
+    atualizado_por: context.usuario.id,
+    decisao_tratamento: decisao || null,
+    motivo_tratamento: motivo || null,
+    status: nextStatus,
+    tarefa_id: tarefaId,
+    updated_at: new Date().toISOString(),
+  }
+  if (treated) {
+    updatePayload.tratado_por = context.usuario.id
+    updatePayload.tratado_em = new Date().toISOString()
+  }
+
+  const updateResult = await admin()
+    .schema('gkit_jur')
+    .from('publicacoes_monitoradas')
+    .update(updatePayload)
+    .eq('id', publicacaoId)
+
+  if (updateResult.error) throw new Error(updateResult.error.message)
+
+  await admin().schema('gkit_jur').from('eventos_operacionais').insert({
+    user_id: context.usuario.id,
+    entidade_tipo: 'publicacao_monitorada',
+    entidade_id: publicacaoId,
+    acao: 'publicacao_tratamento_atualizado',
+    descricao: `Publicacao marcada como ${nextStatus}.`,
+    payload: { decisao_tratamento: decisao || null, processo_id: processoId || null, tarefa_id: tarefaId },
+  })
+
+  revalidateGkitJur()
+  if (processoId) revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  redirect(safeReturnTo(formData, '/modulos/gkit-jur/publicacoes?saved=ok'))
 }
 
 export async function createGkitJurTarefaAction(formData: FormData) {
