@@ -5421,14 +5421,14 @@ tbody tr:hover {
 .gkit-jur-publication-lane span {
   color: rgba(255, 255, 255, 0.68);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 400;
   text-transform: uppercase;
 }
 
 .gkit-jur-publication-command-main > strong {
   color: #fff;
   font-size: 54px;
-  font-weight: 650;
+  font-weight: 400;
   letter-spacing: 0;
   line-height: 0.95;
 }
@@ -5477,7 +5477,7 @@ tbody tr:hover {
 .gkit-jur-publication-lane strong {
   color: #fff;
   font-size: 24px;
-  font-weight: 560;
+  font-weight: 400;
   line-height: 1;
 }
 
@@ -5535,7 +5535,12 @@ tbody tr:hover {
 
 .gkit-jur-publication-card :where(h3, h4, p, small, span, button, summary, textarea, select, input, a) {
   font-family: inherit;
+  font-weight: 400;
   letter-spacing: 0;
+}
+
+.gkit-jur-publication-card :where(.button, .suite-pill, strong, b) {
+  font-weight: 400;
 }
 
 .gkit-jur-publication-card.danger {
@@ -5578,7 +5583,7 @@ tbody tr:hover {
 .gkit-jur-publication-treated {
   color: var(--new-muted);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 400;
   white-space: nowrap;
 }
 
@@ -5592,7 +5597,7 @@ tbody tr:hover {
 .gkit-jur-publication-decision h4 {
   color: var(--new-ink);
   font-size: 15px;
-  font-weight: 560;
+  font-weight: 400;
   line-height: 1.25;
   margin: 0;
   overflow-wrap: anywhere;
@@ -5625,7 +5630,7 @@ tbody tr:hover {
   cursor: pointer;
   display: flex;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 400;
   justify-content: space-between;
   min-height: 34px;
   padding: 8px 10px;
@@ -5635,7 +5640,7 @@ tbody tr:hover {
   color: var(--new-muted);
   content: "Abrir";
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .gkit-jur-publication-full[open] summary::after {
@@ -5695,6 +5700,7 @@ tbody tr:hover {
 .gkit-jur-publication-human-note strong {
   color: var(--new-ink);
   font-size: 12px;
+  font-weight: 400;
 }
 
 .gkit-jur-publication-human-note span {
@@ -5704,34 +5710,63 @@ tbody tr:hover {
 }
 
 .gkit-jur-publication-actions {
+  align-items: stretch;
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  grid-auto-rows: minmax(42px, auto);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   justify-content: stretch;
 }
 
 .gkit-jur-publication-actions .button,
 .gkit-jur-publication-quick-form .button {
+  align-items: center;
+  display: inline-flex;
   justify-content: center;
-  min-height: 34px;
-  padding: 8px 11px;
+  min-height: 42px;
+  padding: 9px 12px;
   width: 100%;
 }
 
 .gkit-jur-publication-quick-form {
-  display: block;
+  display: flex;
   min-width: 0;
 }
 
 .gkit-jur-publication-decision .gkit-jur-inline-form {
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .gkit-jur-publication-decision .gkit-jur-inline-form summary {
-  color: var(--new-accent);
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: var(--suite-module-card-radius, 8px);
+  color: var(--new-ink);
   cursor: pointer;
+  display: flex;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 400;
+  justify-content: center;
+  min-height: 42px;
+  padding: 9px 12px;
+  text-align: center;
+}
+
+.gkit-jur-publication-decision .gkit-jur-inline-form summary::-webkit-details-marker,
+.gkit-jur-publication-decision .gkit-jur-inline-form summary::marker {
+  display: none;
+  content: "";
+}
+
+.gkit-jur-publication-treatment {
+  display: grid;
+  gap: 10px;
+}
+
+.gkit-jur-publication-treatment > form {
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  padding-top: 10px;
 }
 
 .gkit-jur-pagination {

@@ -2205,7 +2205,7 @@ function GkitJurPublicacaoCard({
         </div>
 
         {canWrite ? (
-        <details className="gkit-jur-inline-form">
+        <details className="gkit-jur-inline-form gkit-jur-publication-treatment">
           <summary>{done ? 'Revisar tratamento completo' : 'Tratamento completo'}</summary>
           <form action={tratamentoAction}>
             <input name="publicacao_id" type="hidden" value={item.id} />
