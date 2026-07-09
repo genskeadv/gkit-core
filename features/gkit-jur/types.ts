@@ -526,6 +526,7 @@ export type GkitJurInboxData = {
     prazos: number;
     automacoes: number;
     pendencias: number;
+    publicacoes: number;
   };
   items: GkitJurInboxItem[];
   proximasAcoes: Array<{

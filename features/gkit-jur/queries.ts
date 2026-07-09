@@ -2321,6 +2321,18 @@ async function listInboxAgenteItems(): Promise<GkitJurInboxItem[]> {
   })
 }
 
+async function countInboxPublicacoes() {
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('publicacoes_monitoradas')
+    .select('id', { count: 'exact', head: true })
+    .in('status', ['pendente', 'triada_ia', 'em_tratamento'])
+
+  if (result.error && ['42P01', 'PGRST205'].includes(text(result.error.code))) return 0
+  if (result.error) throw new Error(result.error.message)
+  return result.count ?? 0
+}
+
 function filterInboxItems(items: GkitJurInboxItem[], selected: GkitJurInboxFilaId) {
   if (selected === 'tarefas') return items.filter((item) => item.tipo === 'tarefa')
   if (selected === 'criticos') return items.filter((item) => item.prioridade === 'critica' || item.score >= 85)
@@ -2353,11 +2365,12 @@ export async function getGkitJurInbox(params?: ModuleSearchParams | null): Promi
     : 'hoje') as GkitJurInboxFilaId
   const filters = buildGkitJurInboxFilters(params)
 
-  const [processItems, tarefaItems, pendenciaItems, agenteItems, formData] = await Promise.all([
+  const [processItems, tarefaItems, pendenciaItems, agenteItems, publicacoesPendentes, formData] = await Promise.all([
     listInboxProcessItems(),
     listInboxTarefaItems(),
     listInboxPendenciaItems(),
     listInboxAgenteItems(),
+    countInboxPublicacoes(),
     getGkitJurFormData(),
   ])
 
@@ -2367,6 +2380,53 @@ export async function getGkitJurInbox(params?: ModuleSearchParams | null): Promi
   const pendencias = filterInboxItems(allItems, 'pendencias')
   const automacao = filterInboxItems(allItems, 'automacao')
   const semRetorno = filterInboxItems(allItems, 'sem-retorno')
+  const actionPriorityWeight: Record<GkitJurInboxPrioridade, number> = { critica: 4, alta: 3, media: 2, baixa: 1 }
+  const proximasAcoes = [
+    {
+      title: 'Tratar publicacoes',
+      description: 'Publicacoes e intimacoes ficam em uma caixa propria: IA sugere, humano confirma e registra a decisao.',
+      href: '/modulos/gkit-jur/publicacoes',
+      label: 'Abrir publicacoes',
+      priority: (publicacoesPendentes >= 100 ? 'critica' : publicacoesPendentes ? 'alta' : 'baixa') as GkitJurInboxPrioridade,
+      count: publicacoesPendentes,
+    },
+    {
+      title: 'Executar tarefas abertas',
+      description: 'Prazos e providencias ja viraram tarefa operacional. Comece pelas vencidas ou criticas.',
+      href: '/modulos/gkit-jur/inbox?fila=tarefas',
+      label: 'Abrir tarefas',
+      priority: (tarefas.some((item) => item.prioridade === 'critica') ? 'critica' : tarefas.length ? 'alta' : 'baixa') as GkitJurInboxPrioridade,
+      count: tarefas.length,
+    },
+    {
+      title: 'Sanear processos sem dono',
+      description: 'Corrija cliente, carteira e responsavel antes de ligar prazo, publicacao ou automacao ao processo.',
+      href: '/modulos/gkit-jur/pendencias',
+      label: 'Abrir saneamento',
+      priority: (pendencias.some((item) => item.prioridade === 'critica' || item.prioridade === 'alta') ? 'alta' : pendencias.length ? 'media' : 'baixa') as GkitJurInboxPrioridade,
+      count: pendencias.length,
+    },
+    {
+      title: 'Revisar automacoes pendentes',
+      description: 'Falhas, validacoes e execucoes paradas entram aqui para intervencao humana.',
+      href: '/modulos/gkit-jur/agente',
+      label: 'Abrir agente',
+      priority: (automacao.some((item) => item.prioridade === 'critica') ? 'critica' : automacao.length ? 'alta' : 'baixa') as GkitJurInboxPrioridade,
+      count: automacao.length,
+    },
+    {
+      title: 'Acompanhar processos sem movimentacao',
+      description: 'Use quando nao houver tarefa ou publicacao mais urgente; e um recorte de monitoramento.',
+      href: '/modulos/gkit-jur/processos?sort=ultima_movimentacao_em&dir=asc',
+      label: 'Ver processos',
+      priority: (semRetorno.some((item) => item.score >= 75) ? 'media' : semRetorno.length ? 'baixa' : 'baixa') as GkitJurInboxPrioridade,
+      count: semRetorno.length,
+    },
+  ].sort((a, b) => {
+    const priorityDiff = actionPriorityWeight[b.priority] - actionPriorityWeight[a.priority]
+    if (priorityDiff !== 0) return priorityDiff
+    return b.count - a.count
+  })
 
   return {
     selected,
@@ -2389,9 +2449,10 @@ export async function getGkitJurInbox(params?: ModuleSearchParams | null): Promi
       prazos: tarefas.length,
       automacoes: automacao.length,
       pendencias: pendencias.length,
+      publicacoes: publicacoesPendentes,
     },
     items: filterInboxItems(allItems, selected).slice(0, INBOX_ITEMS_LIMIT),
-    proximasAcoes: [
+    proximasAcoes: proximasAcoes.length ? proximasAcoes : [
       {
         title: 'Executar tarefas abertas',
         description: 'Providências manuais e futuras tarefas da integração entram nesta fila.',

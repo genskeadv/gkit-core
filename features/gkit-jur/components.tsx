@@ -298,99 +298,6 @@ function priorityTone(priority: GkitJurInboxPrioridade) {
   return 'muted'
 }
 
-function InboxItemCard({
-  canWrite,
-  formData,
-  item,
-  index,
-  planejamentoAction,
-  returnTo,
-  statusAction,
-}: {
-  canWrite: boolean
-  formData: GkitJurFormData
-  item: GkitJurInboxItem
-  index: number
-  planejamentoAction: (formData: FormData) => Promise<void>
-  returnTo: string
-  statusAction: (formData: FormData) => Promise<void>
-}) {
-  const isTask = item.tipo === 'tarefa' && item.entidadeId && item.processoId
-
-  return (
-    <article className={isTask ? 'gkit-jur-inbox-item actionable' : 'gkit-jur-inbox-item'}>
-      <span className="gkit-jur-inbox-rank">{index + 1}</span>
-      <Link className="gkit-jur-inbox-content" href={item.acaoUrl}>
-        <div className="gkit-jur-inbox-item-head">
-          <span className={`suite-pill ${priorityTone(item.prioridade)}`}>{item.prioridade}</span>
-          <span>{item.origem}</span>
-          <small>{statusLabel(item.status)}</small>
-        </div>
-        <h3>{item.titulo}</h3>
-        <p>{item.subtitulo}</p>
-        <small>{item.motivo}</small>
-      </Link>
-      <Link className="gkit-jur-inbox-meta" href={item.acaoUrl}>
-        <strong>{item.acaoLabel}</strong>
-        <span>{item.responsavelNome || item.carteiraNome || 'Sem dono definido'}</span>
-        <small>{formatDate(item.dataReferencia)}</small>
-        <div className="gkit-jur-score" aria-label={`Score ${item.score}`}>
-          <span style={{ width: `${Math.min(100, Math.max(0, item.score))}%` }} />
-        </div>
-      </Link>
-      {isTask && canWrite ? (
-        <div className="gkit-jur-inbox-actions">
-          <div className="gkit-jur-inbox-action-buttons">
-            {item.status === 'aberta' ? (
-              <form action={statusAction}>
-                <input name="tarefa_id" type="hidden" value={item.entidadeId ?? ''} />
-                <input name="processo_id" type="hidden" value={item.processoId ?? ''} />
-                <input name="status" type="hidden" value="em_andamento" />
-                <input name="return_to" type="hidden" value={returnTo} />
-                <button className="button secondary" type="submit">Iniciar</button>
-              </form>
-            ) : null}
-            <form action={statusAction}>
-              <input name="tarefa_id" type="hidden" value={item.entidadeId ?? ''} />
-              <input name="processo_id" type="hidden" value={item.processoId ?? ''} />
-              <input name="status" type="hidden" value="concluida" />
-              <input name="return_to" type="hidden" value={returnTo} />
-              <button className="button primary-button" type="submit">Concluir</button>
-            </form>
-          </div>
-          <details>
-            <summary>Remarcar / delegar</summary>
-            <form action={planejamentoAction} className="gkit-jur-inbox-plan-form">
-              <input name="tarefa_id" type="hidden" value={item.entidadeId ?? ''} />
-              <input name="processo_id" type="hidden" value={item.processoId ?? ''} />
-              <input name="return_to" type="hidden" value={returnTo} />
-              <label>
-                <span>Prazo</span>
-                <input name="prazo_at" type="datetime-local" defaultValue={formatDateTimeLocal(item.prazoAt)} />
-              </label>
-              <label>
-                <span>Responsável</span>
-                <select name="responsavel_id" defaultValue={item.responsavelId ?? ''}>
-                  {optionList(formData.responsaveis, item.responsavelNome || 'Herdar do processo')}
-                </select>
-              </label>
-              <label>
-                <span>Prioridade</span>
-                <select name="prioridade" defaultValue={item.prioridade}>
-                  {gkitJurTarefaPrioridadeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </label>
-              <button className="button secondary" type="submit">Salvar</button>
-            </form>
-          </details>
-        </div>
-      ) : null}
-    </article>
-  )
-}
-
 function inboxHref(data: GkitJurInboxData, fila: GkitJurInboxFilaId) {
   const params = new URLSearchParams()
   if (fila !== 'hoje') params.set('fila', fila)
@@ -399,6 +306,18 @@ function inboxHref(data: GkitJurInboxData, fila: GkitJurInboxFilaId) {
   if (data.filters.responsavelId) params.set('responsavel_id', data.filters.responsavelId)
   const query = params.toString()
   return query ? `/modulos/gkit-jur/inbox?${query}` : '/modulos/gkit-jur/inbox'
+}
+
+function priorityLabel(priority: GkitJurInboxPrioridade) {
+  if (priority === 'critica') return 'Critica'
+  if (priority === 'alta') return 'Alta'
+  if (priority === 'media') return 'Media'
+  return 'Baixa'
+}
+
+function inboxOwnerLabel(item: GkitJurInboxItem | null | undefined) {
+  if (!item) return 'Sem item operacional'
+  return item.responsavelNome || item.carteiraNome || 'Sem dono definido'
 }
 
 export function GkitJurInboxPage({
@@ -414,137 +333,151 @@ export function GkitJurInboxPage({
   returnTo: string
   statusAction: (formData: FormData) => Promise<void>
 }) {
+  const activeCalls = data.proximasAcoes.filter((action) => action.count > 0)
+  const primaryCall = activeCalls[0] ?? data.proximasAcoes[0]
+  const topItem = data.items[0] ?? null
+  const topTask = topItem?.tipo === 'tarefa' && topItem.entidadeId && topItem.processoId ? topItem : null
+  const totalFocus = data.metrics.publicacoes + data.metrics.criticos + data.metrics.prazos + data.metrics.pendencias + data.metrics.automacoes
+  const pulse = [
+    { label: 'Publicacoes', value: data.metrics.publicacoes, href: '/modulos/gkit-jur/publicacoes' },
+    { label: 'Criticos', value: data.metrics.criticos, href: '/modulos/gkit-jur/inbox?fila=criticos' },
+    { label: 'Tarefas', value: data.metrics.prazos, href: '/modulos/gkit-jur/inbox?fila=tarefas' },
+    { label: 'Pendencias', value: data.metrics.pendencias, href: '/modulos/gkit-jur/pendencias' },
+    { label: 'Automacao', value: data.metrics.automacoes, href: '/modulos/gkit-jur/agente' },
+  ]
+
   return (
     <>
-      <section className="gkit-jur-inbox-layout">
-        <aside className="suite-panel gkit-jur-inbox-queues">
-          <div className="suite-panel-heading">
-            <div>
-              <h2>Filas inteligentes</h2>
-              <p>Escolha o recorte operacional.</p>
-            </div>
+      <section className="gkit-jur-inbox-command-center">
+        <article className={`gkit-jur-inbox-primary-call ${primaryCall ? priorityTone(primaryCall.priority) : 'success'}`}>
+          <span>Proxima melhor acao</span>
+          <strong>{primaryCall ? primaryCall.title : 'Operacao sem chamada urgente'}</strong>
+          <p>{primaryCall ? primaryCall.description : 'Nao ha tarefas, publicacoes ou pendencias abertas para priorizar agora.'}</p>
+          <div>
+            <small>{totalFocus.toLocaleString('pt-BR')} sinais operacionais no radar</small>
+            {primaryCall ? <small>Prioridade {priorityLabel(primaryCall.priority)}</small> : null}
           </div>
-          <nav>
-            {data.filas.map((fila) => (
-              <Link className={fila.id === data.selected ? 'active' : ''} href={inboxHref(data, fila.id)} key={fila.id}>
-                <span>
-                  <strong>{fila.title}</strong>
-                  <small>{fila.description}</small>
-                </span>
-                <em>{fila.count}</em>
-              </Link>
-            ))}
-          </nav>
-        </aside>
+          {primaryCall ? <Link className="button primary-button" href={primaryCall.href}>{primaryCall.label}</Link> : null}
+        </article>
 
-        <GkitJurSection
-          className="gkit-jur-inbox-main"
-          title="Caixa de entrada"
-          description="Itens priorizados por risco, pendência, ausência de dono e automação."
-        >
-          <form className="gkit-jur-inbox-filter" method="get">
-            {data.selected !== 'hoje' ? <input name="fila" type="hidden" value={data.selected} /> : null}
-            <Field label="Carteira">
-              <select name="carteira_id" defaultValue={data.filters.carteiraId}>
-                {optionList(data.filterOptions.carteiras, 'Todas as carteiras')}
-              </select>
-            </Field>
-            <Field label="Responsável">
-              <select name="responsavel_id" defaultValue={data.filters.responsavelId}>
-                {optionList(data.filterOptions.responsaveis, 'Todos os responsáveis')}
-              </select>
-            </Field>
-            <Field label="Ordenar por">
-              <select name="ordenacao" defaultValue={data.filters.ordenacao}>
-                <option value="prioridade">Prioridade</option>
-                <option value="tipo">Tipo operacional</option>
-                <option value="responsavel">Responsavel</option>
-                <option value="carteira">Carteira</option>
-              </select>
-            </Field>
-            <div className="gkit-jur-inbox-filter-actions">
-              <button className="button secondary" type="submit">Filtrar</button>
-              <Link className="button secondary" href={inboxHref({ ...data, filters: { carteiraId: '', ordenacao: data.filters.ordenacao, responsavelId: '' } }, data.selected)}>Limpar</Link>
-            </div>
-          </form>
-          {data.items.length ? (
-            <div className="gkit-jur-inbox-list" role="list">
-              {data.items.map((item, index) => (
-                <InboxItemCard
-                  canWrite={canWrite}
-                  formData={{
-                    carteiras: data.filterOptions.carteiras,
-                    clientes: [],
-                    responsaveis: data.filterOptions.responsaveis,
-                  }}
-                  index={index}
-                  item={item}
-                  key={item.id}
-                  planejamentoAction={planejamentoAction}
-                  returnTo={returnTo}
-                  statusAction={statusAction}
-                />
-              ))}
-            </div>
+        <aside className="gkit-jur-inbox-sensitive-call">
+          <span>Item mais sensivel</span>
+          {topItem ? (
+            <>
+              <strong>{topItem.titulo}</strong>
+              <p>{topItem.motivo}</p>
+              <div className="gkit-jur-inbox-sensitive-meta">
+                <small>{topItem.origem}</small>
+                <small>{inboxOwnerLabel(topItem)}</small>
+                <small>{formatDate(topItem.dataReferencia)}</small>
+              </div>
+              <div className="gkit-jur-score" aria-label={`Score ${topItem.score}`}>
+                <span style={{ width: `${Math.min(100, Math.max(0, topItem.score))}%` }} />
+              </div>
+              <Link className="button secondary" href={topItem.acaoUrl}>{topItem.acaoLabel}</Link>
+            </>
           ) : (
-            <div className="suite-empty-block success">Nenhum item nesta fila agora.</div>
+            <>
+              <strong>Nada exige decisao imediata</strong>
+              <p>O radar nao encontrou item aberto com prioridade operacional.</p>
+            </>
           )}
-        </GkitJurSection>
+        </aside>
       </section>
 
-      <input className="gkit-jur-agent-dismiss" id="gkit-jur-agent-dismiss" type="checkbox" />
-      <aside className="suite-panel gkit-jur-inbox-copilot-popup">
+      <section className="gkit-jur-inbox-pulse" aria-label="Pulso operacional">
+        {pulse.map((item) => (
+          <Link href={item.href} key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value.toLocaleString('pt-BR')}</strong>
+          </Link>
+        ))}
+      </section>
+
+      <section className="gkit-jur-inbox-call-grid" aria-label="Chamadas inteligentes">
+        {data.proximasAcoes.map((action) => (
+          <Link className={`gkit-jur-inbox-call-card ${priorityTone(action.priority)}`} href={action.href} key={action.title}>
+            <span>{priorityLabel(action.priority)}</span>
+            <strong>{action.title}</strong>
+            <p>{action.description}</p>
+            <div>
+              <small>{action.count.toLocaleString('pt-BR')} item(ns)</small>
+              <em>{action.label}</em>
+            </div>
+          </Link>
+        ))}
+      </section>
+
+      {topTask && canWrite ? (
+        <section className="suite-panel gkit-jur-inbox-direct-actions">
+          <div className="suite-panel-heading">
+            <div>
+              <h2>Atalho de tratamento</h2>
+              <p>A tarefa mais sensivel pode ser movimentada daqui.</p>
+            </div>
+          </div>
+          <div className="gkit-jur-inbox-action-buttons">
+            {topTask.status === 'aberta' ? (
+              <form action={statusAction}>
+                <input name="tarefa_id" type="hidden" value={topTask.entidadeId ?? ''} />
+                <input name="processo_id" type="hidden" value={topTask.processoId ?? ''} />
+                <input name="status" type="hidden" value="em_andamento" />
+                <input name="return_to" type="hidden" value={returnTo} />
+                <button className="button secondary" type="submit">Iniciar</button>
+              </form>
+            ) : null}
+            <form action={statusAction}>
+              <input name="tarefa_id" type="hidden" value={topTask.entidadeId ?? ''} />
+              <input name="processo_id" type="hidden" value={topTask.processoId ?? ''} />
+              <input name="status" type="hidden" value="concluida" />
+              <input name="return_to" type="hidden" value={returnTo} />
+              <button className="button primary-button" type="submit">Concluir</button>
+            </form>
+            <details className="gkit-jur-inbox-plan-inline">
+              <summary>Remarcar / delegar</summary>
+              <form action={planejamentoAction} className="gkit-jur-inbox-plan-form">
+                <input name="tarefa_id" type="hidden" value={topTask.entidadeId ?? ''} />
+                <input name="processo_id" type="hidden" value={topTask.processoId ?? ''} />
+                <input name="return_to" type="hidden" value={returnTo} />
+                <label>
+                  <span>Prazo</span>
+                  <input name="prazo_at" type="datetime-local" defaultValue={formatDateTimeLocal(topTask.prazoAt)} />
+                </label>
+                <label>
+                  <span>Responsavel</span>
+                  <select name="responsavel_id" defaultValue={topTask.responsavelId ?? ''}>
+                    {optionList(data.filterOptions.responsaveis, topTask.responsavelNome || 'Herdar do processo')}
+                  </select>
+                </label>
+                <label>
+                  <span>Prioridade</span>
+                  <select name="prioridade" defaultValue={topTask.prioridade}>
+                    {gkitJurTarefaPrioridadeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <button className="button secondary" type="submit">Salvar</button>
+              </form>
+            </details>
+          </div>
+        </section>
+      ) : null}
+
+      <aside className="suite-panel gkit-jur-inbox-agent-panel">
         <div className="suite-panel-heading">
           <div>
             <h2>Agente auxiliar</h2>
-            <p>Melhores próximas ações.</p>
+            <p>As chamadas acima ja estao ordenadas pela prioridade operacional.</p>
           </div>
-          <label
-            aria-label="Fechar agente auxiliar"
-            className="gkit-jur-agent-close"
-            htmlFor="gkit-jur-agent-dismiss"
-            title="Fechar agente auxiliar"
-          >
-            x
-          </label>
         </div>
-        <div className="gkit-jur-agent-carousel">
-          {data.proximasAcoes.map((action, index) => (
-            <input
-              defaultChecked={index === 0}
-              id={`gkit-jur-agent-action-${index}`}
-              key={`control-${action.title}`}
-              name="gkit-jur-agent-action"
-              type="radio"
-            />
-          ))}
-          <div className="gkit-jur-next-actions">
-            {data.proximasAcoes.map((action, index) => {
-              const total = data.proximasAcoes.length
-              const previous = index === 0 ? total - 1 : index - 1
-              const next = index === total - 1 ? 0 : index + 1
-
-              return (
-                <article className={`gkit-jur-agent-slide slide-${index}`} key={action.title}>
-                  <Link className="gkit-jur-agent-action-card" href={action.href}>
-                    <div className="gkit-jur-agent-action-head">
-                      <span className={`suite-pill ${priorityTone(action.priority)}`}>{action.count}</span>
-                      <small>{index + 1}/{total}</small>
-                    </div>
-                    <strong>{action.title}</strong>
-                    <p>{action.description}</p>
-                    <small>{action.label}</small>
-                  </Link>
-                  {total > 1 ? (
-                    <div className="gkit-jur-agent-carousel-controls">
-                      <label htmlFor={`gkit-jur-agent-action-${previous}`}>Anterior</label>
-                      <span>{index + 1}/{total}</span>
-                      <label htmlFor={`gkit-jur-agent-action-${next}`}>Próximo</label>
-                    </div>
-                  ) : null}
-                </article>
-              )
-            })}
+        <div className="gkit-jur-inbox-agent-copy">
+          <strong>{activeCalls.length ? `${activeCalls.length} chamada(s) acionaveis` : 'Sem chamadas acionaveis'}</strong>
+          <p>O Inbox aponta o melhor lugar de tratamento e deixa a execucao nas telas certas.</p>
+          <div>
+            <Link className="button secondary" href="/modulos/gkit-jur/publicacoes">Publicacoes</Link>
+            <Link className="button secondary" href="/modulos/gkit-jur/pendencias">Pendencias</Link>
+            <Link className="button secondary" href="/modulos/gkit-jur/agente">Agente</Link>
           </div>
         </div>
       </aside>
