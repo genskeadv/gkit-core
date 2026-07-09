@@ -2001,43 +2001,48 @@ function PublicacaoQuickAction({
 }
 
 function GkitJurPublicacaoCommandStrip({ data }: { data: GkitJurPublicacoesData }) {
+  const openWork = data.metrics.pendentes + data.metrics.emTratamento + data.metrics.triadasIa
   const lanes = [
     {
-      count: data.metrics.pendentes,
+      count: data.metrics.vinculadasAtivas,
       href: '/modulos/gkit-jur/publicacoes?status=pendente',
-      label: 'Triar agora',
-      note: 'novas publicacoes',
+      label: 'Processos ativos',
+      note: 'prontas para tarefa ou ciencia',
       tone: 'primary',
     },
     {
-      count: data.metrics.semProcesso,
-      href: '/modulos/gkit-jur/publicacoes?q=Processo%20sem%20vinculo',
-      label: 'Saneamento',
-      note: 'sem processo ativo',
+      count: data.metrics.foraOperacao,
+      href: '/modulos/gkit-jur/publicacoes?q=encerrado',
+      label: 'Fora da operacao',
+      note: `${data.metrics.encerradasOuArquivadas.toLocaleString('pt-BR')} encerr./arq.`,
       tone: 'warning',
     },
     {
-      count: data.metrics.emTratamento + data.metrics.triadasIa,
-      href: '/modulos/gkit-jur/publicacoes?status=em_tratamento',
-      label: 'Em curso',
-      note: 'aguardando conclusao',
+      count: data.metrics.naoLocalizadas,
+      href: '/modulos/gkit-jur/publicacoes?q=Nao%20localizado',
+      label: 'Nao localizados',
+      note: 'exigem cadastro',
       tone: 'danger',
     },
     {
       count: data.metrics.tratadas + data.metrics.dispensadas,
       href: '/modulos/gkit-jur/publicacoes?status=tratada',
       label: 'Resolvidas',
-      note: 'com decisao',
+      note: 'decisao registrada',
       tone: 'success',
     },
   ]
 
   return (
     <section className="gkit-jur-publication-command">
-      <div>
-        <span>Fila de publicacoes</span>
-        <strong>{data.metrics.total.toLocaleString('pt-BR')} itens no recorte atual</strong>
-        <p>Acoes sugeridas servem como triagem inicial; a decisao final continua humana e auditada.</p>
+      <div className="gkit-jur-publication-command-main">
+        <span>Cockpit de publicacoes</span>
+        <strong>{openWork.toLocaleString('pt-BR')}</strong>
+        <p>pendentes para decisao humana</p>
+        <div>
+          <small>{data.metrics.total.toLocaleString('pt-BR')} no recorte</small>
+          <small>{data.metrics.foraOperacao.toLocaleString('pt-BR')} fora do fluxo ativo</small>
+        </div>
       </div>
       <nav aria-label="Atalhos da caixa de publicacoes">
         {lanes.map((lane) => (
@@ -2289,30 +2294,8 @@ export function GkitJurPublicacoesPage({
 }) {
   return (
     <>
-      <section className="suite-kpi-grid compact">
-        <article className="metric-card">
-          <span className="metric-label">Pendentes</span>
-          <strong className="metric-value">{data.metrics.pendentes}</strong>
-          <span className="metric-hint">aguardando triagem</span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Em tratamento</span>
-          <strong className="metric-value">{data.metrics.emTratamento + data.metrics.triadasIa}</strong>
-          <span className="metric-hint">IA ou humano em curso</span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Tratadas</span>
-          <strong className="metric-value">{data.metrics.tratadas}</strong>
-          <span className="metric-hint">com decisao registrada</span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Sem processo</span>
-          <strong className="metric-value">{data.metrics.semProcesso}</strong>
-          <span className="metric-hint">exigem vinculacao</span>
-        </article>
-      </section>
       <GkitJurPublicacaoCommandStrip data={data} />
-      <GkitJurSection title="Publicacoes e intimacoes" description="Caixa de entrada para triagem, confirmacao humana e registro de tratamento.">
+      <GkitJurSection className="gkit-jur-publication-workbench" title="Triagem">
         <GkitJurPublicacaoFilterBar data={data} />
         {data.publicacoes.length ? (
           <div className="suite-card-list compact">

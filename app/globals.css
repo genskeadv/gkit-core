@@ -5396,42 +5396,64 @@ tbody tr:hover {
 
 .gkit-jur-publication-command {
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92)),
-    linear-gradient(90deg, rgba(20, 184, 166, 0.1), rgba(245, 158, 11, 0.1));
-  border: 1px solid rgba(148, 163, 184, 0.22);
+    radial-gradient(circle at 8% 18%, rgba(20, 184, 166, 0.18), transparent 30%),
+    radial-gradient(circle at 96% 0%, rgba(245, 158, 11, 0.18), transparent 32%),
+    linear-gradient(135deg, #111827, #1f2937 54%, #26323f);
+  border: 1px solid rgba(15, 23, 42, 0.24);
   border-radius: var(--suite-module-card-radius, 8px);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
+  color: #fff;
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(240px, 0.38fr) minmax(0, 1fr);
-  margin-bottom: 14px;
-  padding: 14px;
+  gap: 18px;
+  grid-template-columns: minmax(220px, 0.28fr) minmax(0, 1fr);
+  margin-bottom: 16px;
+  overflow: hidden;
+  padding: 18px;
 }
 
-.gkit-jur-publication-command > div {
+.gkit-jur-publication-command-main {
   display: grid;
-  gap: 5px;
+  gap: 6px;
+  min-width: 0;
 }
 
-.gkit-jur-publication-command > div > span,
+.gkit-jur-publication-command-main > span,
 .gkit-jur-publication-lane span {
-  color: var(--new-muted);
+  color: rgba(255, 255, 255, 0.68);
   font-size: 12px;
   font-weight: 700;
+  text-transform: uppercase;
 }
 
-.gkit-jur-publication-command > div > strong {
-  color: var(--new-ink);
-  font-size: 17px;
-  font-weight: 520;
-  line-height: 1.2;
+.gkit-jur-publication-command-main > strong {
+  color: #fff;
+  font-size: 54px;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 0.95;
 }
 
-.gkit-jur-publication-command p,
+.gkit-jur-publication-command-main p,
+.gkit-jur-publication-command-main small,
 .gkit-jur-publication-lane small {
-  color: var(--new-muted);
+  color: rgba(255, 255, 255, 0.68);
   font-size: 12px;
   line-height: 1.35;
   margin: 0;
+}
+
+.gkit-jur-publication-command-main > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.gkit-jur-publication-command-main small {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 5px 8px;
 }
 
 .gkit-jur-publication-command nav {
@@ -5441,10 +5463,10 @@ tbody tr:hover {
 }
 
 .gkit-jur-publication-lane {
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--suite-module-card-radius, 8px);
-  color: var(--new-ink);
+  color: #fff;
   display: grid;
   gap: 4px;
   min-height: 86px;
@@ -5453,26 +5475,50 @@ tbody tr:hover {
 }
 
 .gkit-jur-publication-lane strong {
-  color: var(--new-ink);
+  color: #fff;
   font-size: 24px;
   font-weight: 560;
   line-height: 1;
 }
 
+.gkit-jur-publication-lane small {
+  color: rgba(255, 255, 255, 0.7);
+}
+
 .gkit-jur-publication-lane.primary {
-  border-color: rgba(99, 102, 241, 0.28);
+  border-color: rgba(129, 140, 248, 0.55);
 }
 
 .gkit-jur-publication-lane.warning {
-  border-color: rgba(245, 158, 11, 0.36);
+  border-color: rgba(245, 158, 11, 0.62);
 }
 
 .gkit-jur-publication-lane.danger {
-  border-color: rgba(239, 68, 68, 0.28);
+  border-color: rgba(248, 113, 113, 0.58);
 }
 
 .gkit-jur-publication-lane.success {
-  border-color: rgba(20, 184, 166, 0.32);
+  border-color: rgba(45, 212, 191, 0.58);
+}
+
+.gkit-jur-publication-workbench > .suite-panel-heading {
+  margin-bottom: 10px;
+}
+
+.gkit-jur-publication-workbench .gkit-jur-filter-bar {
+  background: transparent;
+  border: 0;
+  margin-bottom: 16px;
+  padding: 0;
+}
+
+.gkit-jur-publication-workbench .gkit-jur-filter-fields {
+  grid-template-columns: minmax(220px, 1.25fr) repeat(5, minmax(130px, 0.72fr));
+}
+
+.gkit-jur-publication-workbench .gkit-jur-filter-actions {
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  padding-top: 10px;
 }
 
 .gkit-jur-publication-card {

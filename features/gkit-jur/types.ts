@@ -309,6 +309,10 @@ export type GkitJurPublicacoesData = {
     dispensadas: number;
     erros: number;
     semProcesso: number;
+    foraOperacao: number;
+    naoLocalizadas: number;
+    encerradasOuArquivadas: number;
+    vinculadasAtivas: number;
   };
   pagination: GkitJurPagination;
   publicacoes: GkitJurPublicacao[];

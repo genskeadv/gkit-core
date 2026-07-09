@@ -1764,6 +1764,10 @@ function emptyPublicacoesData(filters: GkitJurPublicacaoFilters, filterOptions: 
       dispensadas: 0,
       erros: 0,
       semProcesso: 0,
+      foraOperacao: 0,
+      naoLocalizadas: 0,
+      encerradasOuArquivadas: 0,
+      vinculadasAtivas: 0,
     },
     pagination: {
       currentPage: filters.page,
@@ -1888,6 +1892,20 @@ export async function listGkitJurPublicacoes(filters: GkitJurPublicacaoFilters =
     .map((row) => text(row.fonte))
     .filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  const metrics = {
+    total,
+    pendentes: mapped.filter((item) => item.status === 'pendente').length,
+    triadasIa: mapped.filter((item) => item.status === 'triada_ia').length,
+    emTratamento: mapped.filter((item) => item.status === 'em_tratamento').length,
+    tratadas: mapped.filter((item) => item.status === 'tratada').length,
+    dispensadas: mapped.filter((item) => item.status === 'dispensada').length,
+    erros: mapped.filter((item) => item.status === 'erro').length,
+    semProcesso: mapped.filter((item) => !item.processoId).length,
+    foraOperacao: mapped.filter((item) => !item.processoId && Boolean(item.processoBaseId)).length,
+    naoLocalizadas: mapped.filter((item) => !item.processoId && !item.processoBaseId).length,
+    encerradasOuArquivadas: mapped.filter((item) => !item.processoId && ['arquivado', 'encerrado'].includes(item.processoBaseStatus ?? '')).length,
+    vinculadasAtivas: mapped.filter((item) => Boolean(item.processoId)).length,
+  }
 
   return {
     filterOptions: {
@@ -1896,16 +1914,7 @@ export async function listGkitJurPublicacoes(filters: GkitJurPublicacaoFilters =
       statuses: gkitJurPublicacaoStatusOptions,
     },
     filters,
-    metrics: {
-      total,
-      pendentes: mapped.filter((item) => item.status === 'pendente').length,
-      triadasIa: mapped.filter((item) => item.status === 'triada_ia').length,
-      emTratamento: mapped.filter((item) => item.status === 'em_tratamento').length,
-      tratadas: mapped.filter((item) => item.status === 'tratada').length,
-      dispensadas: mapped.filter((item) => item.status === 'dispensada').length,
-      erros: mapped.filter((item) => item.status === 'erro').length,
-      semProcesso: mapped.filter((item) => !item.processoId).length,
-    },
+    metrics,
     pagination: {
       currentPage: filters.page,
       from: total ? from + 1 : 0,
