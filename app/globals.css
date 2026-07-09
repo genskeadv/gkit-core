@@ -5712,8 +5712,8 @@ tbody tr:hover {
 .gkit-jur-publication-actions {
   align-items: stretch;
   display: grid;
-  gap: 10px;
-  grid-auto-rows: minmax(42px, auto);
+  gap: 8px;
+  grid-auto-rows: minmax(52px, auto);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   justify-content: stretch;
 }
@@ -5721,16 +5721,33 @@ tbody tr:hover {
 .gkit-jur-publication-actions .button,
 .gkit-jur-publication-quick-form .button {
   align-items: center;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: var(--suite-module-card-radius, 8px);
+  box-shadow: none;
+  color: var(--new-ink);
   display: inline-flex;
+  font-size: 12px;
+  height: 100%;
   justify-content: center;
-  min-height: 42px;
-  padding: 9px 12px;
+  line-height: 1.25;
+  min-height: 52px;
+  overflow-wrap: anywhere;
+  padding: 10px 12px;
+  text-align: center;
+  white-space: normal;
   width: 100%;
 }
 
 .gkit-jur-publication-quick-form {
   display: flex;
+  height: 100%;
+  margin-top: 0 !important;
   min-width: 0;
+}
+
+.gkit-jur-publication-actions > :is(.button, a.button) {
+  margin-top: 0 !important;
 }
 
 .gkit-jur-publication-decision .gkit-jur-inline-form {
@@ -5739,7 +5756,7 @@ tbody tr:hover {
 
 .gkit-jur-publication-decision .gkit-jur-inline-form summary {
   align-items: center;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: var(--suite-module-card-radius, 8px);
   color: var(--new-ink);
@@ -5748,9 +5765,12 @@ tbody tr:hover {
   font-size: 12px;
   font-weight: 400;
   justify-content: center;
-  min-height: 42px;
-  padding: 9px 12px;
+  line-height: 1.25;
+  min-height: 52px;
+  overflow-wrap: anywhere;
+  padding: 10px 12px;
   text-align: center;
+  white-space: normal;
 }
 
 .gkit-jur-publication-decision .gkit-jur-inline-form summary::-webkit-details-marker,
@@ -5766,7 +5786,7 @@ tbody tr:hover {
 }
 
 .gkit-jur-publication-treatment > summary {
-  width: calc((100% - 10px) / 2);
+  width: calc((100% - 8px) / 2);
 }
 
 .gkit-jur-publication-treatment > form {
@@ -21425,6 +21445,6 @@ body:has(.gkit-flex-operational-shell) {
   align-items: center !important;
   display: inline-flex !important;
   justify-content: center !important;
-  min-height: 42px !important;
+  min-height: 52px !important;
   text-align: center !important;
 }
