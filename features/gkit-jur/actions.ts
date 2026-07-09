@@ -65,6 +65,29 @@ function optionalInt(value: string) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function moneyCents(value: string) {
+  const normalized = value
+    .replace(/[^\d,.-]/g, '')
+    .replace(/\.(?=\d{3}(\D|$))/g, '')
+    .replace(',', '.')
+  const parsed = Number.parseFloat(normalized)
+  if (!Number.isFinite(parsed) || parsed <= 0) throw new Error('Valor invalido.')
+  return Math.round(parsed * 100)
+}
+
+function dateOnly(value: string, label: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`${label} e obrigatorio.`)
+  return value
+}
+
+function monthlyDueDate(firstDueDate: string, monthOffset: number, dueDay: number) {
+  const [year, month] = firstDueDate.split('-').map((part) => Number.parseInt(part, 10))
+  const target = new Date(Date.UTC(year, month - 1 + monthOffset, 1))
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate()
+  const day = Math.min(dueDay, lastDay)
+  return `${target.getUTCFullYear()}-${String(target.getUTCMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
 function formatCnjForAction(value: string) {
   const digits = value.replace(/\D/g, '')
   if (digits.length !== 20) return value
@@ -103,6 +126,7 @@ function withParams(path: string, params: URLSearchParams, hash = '') {
 
 function revalidateGkitJur() {
   revalidatePath('/modulos/gkit-jur')
+  revalidatePath('/modulos/gkit-jur/acordos')
   revalidatePath('/modulos/gkit-jur/inbox')
   revalidatePath('/modulos/gkit-jur/publicacoes')
   revalidatePath('/modulos/gkit-jur/agente')
@@ -242,6 +266,187 @@ export async function bulkUpdateGkitJurProcessoEtiquetasAction(formData: FormDat
 
   revalidateGkitJur()
   redirect(target)
+}
+
+export async function createGkitJurAcordoJudicialAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.write')
+  const processoId = requiredText(formData, 'processo_id', 'Processo')
+  const processo = await getActiveJurProcess(processoId)
+  const totalCents = moneyCents(requiredText(formData, 'valor_total', 'Valor total'))
+  const quantidadeParcelas = positiveInt(text(formData, 'quantidade_parcelas'), 1, 240)
+  const diaVencimento = positiveInt(text(formData, 'dia_vencimento'), 1, 31)
+  const primeiroVencimento = dateOnly(text(formData, 'primeiro_vencimento'), 'Primeiro vencimento')
+  const observacoes = text(formData, 'observacoes') || null
+
+  const acordoResult = await admin()
+    .schema('gkit_jur')
+    .from('acordos_judiciais')
+    .insert({
+      processo_id: processoId,
+      valor_total: (totalCents / 100).toFixed(2),
+      quantidade_parcelas: quantidadeParcelas,
+      dia_vencimento: diaVencimento,
+      primeiro_vencimento: primeiroVencimento,
+      status: 'ativo',
+      observacoes,
+      criado_por: context.usuario.id,
+      atualizado_por: context.usuario.id,
+      updated_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+
+  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Nao foi possivel criar o acordo.')
+
+  const baseCents = Math.floor(totalCents / quantidadeParcelas)
+  const remainder = totalCents - (baseCents * quantidadeParcelas)
+  const parcelas = Array.from({ length: quantidadeParcelas }, (_, index) => {
+    const parcelaCents = baseCents + (index === quantidadeParcelas - 1 ? remainder : 0)
+    return {
+      acordo_id: acordoResult.data.id,
+      numero: index + 1,
+      valor: (parcelaCents / 100).toFixed(2),
+      vencimento: monthlyDueDate(primeiroVencimento, index, diaVencimento),
+      status: 'pendente',
+      atualizado_por: context.usuario.id,
+      updated_at: new Date().toISOString(),
+    }
+  })
+
+  const parcelasResult = await admin().schema('gkit_jur').from('acordo_parcelas').insert(parcelas)
+  if (parcelasResult.error) throw new Error(parcelasResult.error.message)
+
+  await admin().schema('gkit_jur').from('eventos_operacionais').insert({
+    user_id: context.usuario.id,
+    entidade_tipo: 'acordo_judicial',
+    entidade_id: acordoResult.data.id,
+    acao: 'acordo_judicial_criado',
+    descricao: 'Acordo judicial cadastrado no processo.',
+    payload: {
+      processo_id: processoId,
+      processo_numero_cnj: processo.numero_cnj,
+      quantidade_parcelas: quantidadeParcelas,
+      valor_total: (totalCents / 100).toFixed(2),
+    },
+  })
+
+  revalidateGkitJur()
+  revalidatePath('/modulos/gkit-jur/acordos')
+  revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  redirect(safeReturnTo(formData, `/modulos/gkit-jur/processos/${processoId}#acordos`))
+}
+
+export async function updateGkitJurAcordoParcelaAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.write')
+  const parcelaId = requiredText(formData, 'parcela_id', 'Parcela')
+  const nextStatus = allowed(text(formData, 'status'), ['pendente', 'paga', 'cancelada'] as const, 'paga')
+
+  const parcelaResult = await admin()
+    .schema('gkit_jur')
+    .from('acordo_parcelas')
+    .select('id,acordo_id,valor')
+    .eq('id', parcelaId)
+    .single()
+
+  if (parcelaResult.error || !parcelaResult.data) throw new Error(parcelaResult.error?.message ?? 'Parcela nao encontrada.')
+  const parcela = parcelaResult.data as Record<string, unknown>
+  const acordoId = valueText(parcela.acordo_id)
+
+  const acordoResult = await admin()
+    .schema('gkit_jur')
+    .from('acordos_judiciais')
+    .select('id,processo_id')
+    .eq('id', acordoId)
+    .single()
+
+  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Acordo nao encontrado.')
+  const processoId = valueText((acordoResult.data as Record<string, unknown>).processo_id)
+
+  const payload: Record<string, unknown> = {
+    status: nextStatus,
+    atualizado_por: context.usuario.id,
+    updated_at: new Date().toISOString(),
+  }
+  if (nextStatus === 'paga') {
+    payload.pago_em = new Date().toISOString()
+    payload.valor_pago = moneyCents(text(formData, 'valor_pago') || String(parcela.valor)) / 100
+  } else {
+    payload.pago_em = null
+    payload.valor_pago = null
+  }
+
+  const updateResult = await admin().schema('gkit_jur').from('acordo_parcelas').update(payload).eq('id', parcelaId)
+  if (updateResult.error) throw new Error(updateResult.error.message)
+
+  const parcelasResult = await admin()
+    .schema('gkit_jur')
+    .from('acordo_parcelas')
+    .select('status')
+    .eq('acordo_id', acordoId)
+
+  if (parcelasResult.error) throw new Error(parcelasResult.error.message)
+  const statuses = ((parcelasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => valueText(row.status))
+  const allPaid = statuses.length > 0 && statuses.every((status) => status === 'paga')
+  await admin()
+    .schema('gkit_jur')
+    .from('acordos_judiciais')
+    .update({
+      status: allPaid ? 'cumprido' : 'ativo',
+      quitado_em: allPaid ? new Date().toISOString() : null,
+      atualizado_por: context.usuario.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', acordoId)
+
+  revalidateGkitJur()
+  revalidatePath('/modulos/gkit-jur/acordos')
+  if (processoId) revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  redirect(safeReturnTo(formData, processoId ? `/modulos/gkit-jur/processos/${processoId}#acordos` : '/modulos/gkit-jur/acordos'))
+}
+
+export async function updateGkitJurAcordoStatusAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.write')
+  const acordoId = requiredText(formData, 'acordo_id', 'Acordo')
+  const nextStatus = allowed(text(formData, 'status'), ['ativo', 'cumprido', 'quebrado', 'cancelado'] as const, 'ativo')
+
+  const acordoResult = await admin()
+    .schema('gkit_jur')
+    .from('acordos_judiciais')
+    .select('id,processo_id')
+    .eq('id', acordoId)
+    .single()
+
+  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Acordo nao encontrado.')
+  const processoId = valueText((acordoResult.data as Record<string, unknown>).processo_id)
+  const now = new Date().toISOString()
+  const payload: Record<string, unknown> = {
+    status: nextStatus,
+    atualizado_por: context.usuario.id,
+    updated_at: now,
+  }
+  if (nextStatus === 'quebrado') payload.quebrado_em = now
+  if (nextStatus === 'cumprido') payload.quitado_em = now
+  if (nextStatus === 'ativo') {
+    payload.quebrado_em = null
+    payload.quitado_em = null
+  }
+
+  const updateResult = await admin().schema('gkit_jur').from('acordos_judiciais').update(payload).eq('id', acordoId)
+  if (updateResult.error) throw new Error(updateResult.error.message)
+
+  await admin().schema('gkit_jur').from('eventos_operacionais').insert({
+    user_id: context.usuario.id,
+    entidade_tipo: 'acordo_judicial',
+    entidade_id: acordoId,
+    acao: 'acordo_judicial_status_atualizado',
+    descricao: `Acordo judicial marcado como ${nextStatus}.`,
+    payload: { processo_id: processoId, status: nextStatus },
+  })
+
+  revalidateGkitJur()
+  revalidatePath('/modulos/gkit-jur/acordos')
+  if (processoId) revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  redirect(safeReturnTo(formData, processoId ? `/modulos/gkit-jur/processos/${processoId}#acordos` : '/modulos/gkit-jur/acordos'))
 }
 
 export async function applyGkitJurSaneamentoSuggestionsAction(formData: FormData) {

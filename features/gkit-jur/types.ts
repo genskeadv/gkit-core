@@ -24,6 +24,10 @@ export type GkitJurTarefaTipo =
 
 export type GkitJurDocumentoStatus = 'ativo' | 'arquivado' | 'cancelado';
 
+export type GkitJurAcordoStatus = 'ativo' | 'cumprido' | 'quebrado' | 'cancelado';
+
+export type GkitJurAcordoParcelaStatus = 'pendente' | 'paga' | 'cancelada';
+
 export type GkitJurDocumentoTipo =
   | 'peticao'
   | 'publicacao'
@@ -173,6 +177,46 @@ export type GkitJurProcessDetail = GkitJurProcessListItem & {
   importadoDe: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+};
+
+export type GkitJurAcordoParcela = {
+  id: string;
+  acordoId: string;
+  numero: number;
+  valor: number;
+  vencimento: string;
+  status: GkitJurAcordoParcelaStatus;
+  pagoEm: string | null;
+  valorPago: number | null;
+  observacoes: string | null;
+  emAtraso: boolean;
+};
+
+export type GkitJurAcordoJudicial = {
+  id: string;
+  processoId: string;
+  numeroCnj: string;
+  processoTitulo: string | null;
+  clienteNome: string | null;
+  carteiraNome: string | null;
+  responsavelNome: string | null;
+  valorTotal: number;
+  quantidadeParcelas: number;
+  diaVencimento: number;
+  primeiroVencimento: string;
+  status: GkitJurAcordoStatus;
+  observacoes: string | null;
+  quebradoEm: string | null;
+  quitadoEm: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  parcelas: GkitJurAcordoParcela[];
+  parcelasPagas: number;
+  parcelasPendentes: number;
+  parcelasAtrasadas: number;
+  valorPago: number;
+  valorPendente: number;
+  proximoVencimento: string | null;
 };
 
 export type GkitJurProcessSummary = {
@@ -409,6 +453,7 @@ export type GkitJurTimelineItem = {
 };
 
 export type GkitJurProcessDetailData = {
+  acordos: GkitJurAcordoJudicial[];
   documentos: GkitJurDocumento[];
   eventos: GkitJurEventoProcesso[];
   formData: GkitJurFormData;
@@ -418,6 +463,17 @@ export type GkitJurProcessDetailData = {
   statusSuggestion: GkitJurProcessStatusSuggestion | null;
   tarefas: GkitJurTarefa[];
   timeline: GkitJurTimelineItem[];
+};
+
+export type GkitJurAcordosData = {
+  acordos: GkitJurAcordoJudicial[];
+  metrics: {
+    ativos: number;
+    atrasados: number;
+    quebrados: number;
+    total: number;
+    valorAberto: number;
+  };
 };
 
 export type GkitJurPendenciaGroup = {

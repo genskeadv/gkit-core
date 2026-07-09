@@ -1,10 +1,13 @@
 import { redirect } from 'next/navigation'
 import {
+  createGkitJurAcordoJudicialAction,
   createGkitJurDocumentoAction,
   createGkitJurEventoProcessoAction,
   createGkitJurTarefaAction,
   createGkitJurTarefaFromReferenceAction,
   syncGkitJurProcessNowAction,
+  updateGkitJurAcordoParcelaAction,
+  updateGkitJurAcordoStatusAction,
   updateGkitJurProcessoEtiquetaAction,
   updateGkitJurProcessoAction,
   updateGkitJurTarefaPlanejamentoAction,
@@ -64,6 +67,7 @@ export default async function GkitJurProcessoDetailRoute({
         action={updateGkitJurProcessoAction}
         canSync={canSyncGkitJur(context.permissions)}
         canWrite={canWriteGkitJur(context.permissions)}
+        createAcordoAction={createGkitJurAcordoJudicialAction}
         createDocumentoAction={createGkitJurDocumentoAction}
         createEventoAction={createGkitJurEventoProcessoAction}
         createTarefaAction={createGkitJurTarefaAction}
@@ -71,6 +75,8 @@ export default async function GkitJurProcessoDetailRoute({
         data={data}
         syncAction={syncGkitJurProcessNowAction}
         syncFeedback={syncFeedback(query)}
+        updateAcordoParcelaAction={updateGkitJurAcordoParcelaAction}
+        updateAcordoStatusAction={updateGkitJurAcordoStatusAction}
         updateEtiquetaAction={updateGkitJurProcessoEtiquetaAction}
         updateTarefaPlanejamentoAction={updateGkitJurTarefaPlanejamentoAction}
         updateTarefaStatusAction={updateGkitJurTarefaStatusAction}

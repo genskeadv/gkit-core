@@ -6906,6 +6906,172 @@ tbody tr:hover {
   margin: 0;
 }
 
+.gkit-jur-agreement-panel .suite-alert {
+  margin-bottom: 12px;
+}
+
+.gkit-jur-agreement-form {
+  margin: 0 0 12px;
+}
+
+.gkit-jur-agreement-list {
+  display: grid;
+  gap: 12px;
+}
+
+.gkit-jur-agreement-card {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-left: 4px solid #2563eb;
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.gkit-jur-agreement-card.warning {
+  border-left-color: #d97706;
+}
+
+.gkit-jur-agreement-card.danger {
+  border-left-color: #dc2626;
+}
+
+.gkit-jur-agreement-card.success {
+  border-left-color: #16a34a;
+}
+
+.gkit-jur-agreement-card.muted {
+  border-left-color: #64748b;
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.gkit-jur-agreement-head {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.gkit-jur-agreement-head > div:first-child {
+  display: grid;
+  gap: 6px;
+}
+
+.gkit-jur-agreement-head h3,
+.gkit-jur-agreement-head p,
+.gkit-jur-agreement-note {
+  margin: 0;
+}
+
+.gkit-jur-agreement-head h3 {
+  color: var(--new-ink);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.gkit-jur-agreement-head p,
+.gkit-jur-agreement-note {
+  color: var(--new-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.gkit-jur-agreement-values {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+  text-align: right;
+}
+
+.gkit-jur-agreement-values strong {
+  color: var(--new-ink);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.gkit-jur-agreement-values small,
+.gkit-jur-agreement-summary span,
+.gkit-jur-agreement-installments small {
+  color: var(--new-muted);
+  font-size: 12px;
+}
+
+.gkit-jur-agreement-summary {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.gkit-jur-agreement-summary span {
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px;
+}
+
+.gkit-jur-agreement-summary strong {
+  color: var(--new-ink);
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.gkit-jur-agreement-installments {
+  display: grid;
+  gap: 6px;
+}
+
+.gkit-jur-agreement-installments article {
+  align-items: center;
+  background: rgba(248, 250, 252, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(52px, auto) minmax(92px, auto) minmax(92px, auto) minmax(88px, auto) auto;
+  padding: 8px;
+}
+
+.gkit-jur-agreement-installments article.late {
+  background: rgba(254, 243, 199, 0.54);
+  border-color: rgba(217, 119, 6, 0.28);
+}
+
+.gkit-jur-agreement-installments article > span:first-child {
+  color: var(--new-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.gkit-jur-agreement-installments strong {
+  color: var(--new-ink);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.gkit-jur-agreement-installments form,
+.gkit-jur-agreement-actions form {
+  margin: 0;
+}
+
+.gkit-jur-agreement-installments .button {
+  min-height: 32px;
+  padding: 6px 10px;
+}
+
+.gkit-jur-agreement-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .gkit-jur-task-actions details {
   position: relative;
 }
@@ -9322,8 +9488,19 @@ tbody tr:hover {
   }
 
   .gkit-jur-publication-command,
-  .gkit-jur-publication-card {
+  .gkit-jur-publication-card,
+  .gkit-jur-agreement-head,
+  .gkit-jur-agreement-installments article {
     grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-agreement-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gkit-jur-agreement-values {
+    justify-items: start;
+    text-align: left;
   }
 
   .gkit-jur-publication-command nav {
@@ -9446,7 +9623,8 @@ tbody tr:hover {
   .gkit-jur-row-stack,
   .gkit-jur-document-actions,
   .gkit-jur-timeline-actions,
-  .gkit-jur-task-actions {
+  .gkit-jur-task-actions,
+  .gkit-jur-agreement-actions {
     justify-content: flex-start;
     justify-items: start;
   }

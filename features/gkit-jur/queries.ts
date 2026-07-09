@@ -5,6 +5,11 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { DATAJUD_TRIBUNAIS } from './datajud-tribunais'
 import { formatCnj } from './normalizer'
 import type {
+  GkitJurAcordoJudicial,
+  GkitJurAcordoParcela,
+  GkitJurAcordoParcelaStatus,
+  GkitJurAcordosData,
+  GkitJurAcordoStatus,
   GkitJurAgenteData,
   GkitJurAgenteExecucao,
   GkitJurAgenteExecucaoStatus,
@@ -1185,6 +1190,163 @@ function eventoTipo(value: unknown): GkitJurEventoTipo {
   return 'providencia_interna'
 }
 
+function acordoStatus(value: unknown): GkitJurAcordoStatus {
+  const current = text(value, 'ativo')
+  if (['ativo', 'cumprido', 'quebrado', 'cancelado'].includes(current)) return current as GkitJurAcordoStatus
+  return 'ativo'
+}
+
+function acordoParcelaStatus(value: unknown): GkitJurAcordoParcelaStatus {
+  const current = text(value, 'pendente')
+  if (['pendente', 'paga', 'cancelada'].includes(current)) return current as GkitJurAcordoParcelaStatus
+  return 'pendente'
+}
+
+function moneyNumber(value: unknown) {
+  const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value ?? '').replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function isPastDate(value: string | null) {
+  if (!value) return false
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const date = new Date(`${value.slice(0, 10)}T00:00:00`)
+  return date.getTime() < today.getTime()
+}
+
+function mapAcordoParcela(row: Record<string, unknown>): GkitJurAcordoParcela {
+  const status = acordoParcelaStatus(row.status)
+  const vencimento = text(row.vencimento)
+  return {
+    id: String(row.id),
+    acordoId: String(row.acordo_id),
+    numero: numberValue(row.numero),
+    valor: moneyNumber(row.valor),
+    vencimento,
+    status,
+    pagoEm: text(row.pago_em) || null,
+    valorPago: row.valor_pago === null || row.valor_pago === undefined ? null : moneyNumber(row.valor_pago),
+    observacoes: text(row.observacoes) || null,
+    emAtraso: status === 'pendente' && isPastDate(vencimento),
+  }
+}
+
+function emptyProcessForAcordo(processoId: string): GkitJurProcessListItem {
+  return {
+    id: processoId,
+    numeroCnj: '-',
+    titulo: null,
+    pasta: null,
+    clienteNome: null,
+    carteiraNome: null,
+    responsavelNome: null,
+    tribunalSigla: null,
+    classeNome: null,
+    orgaoJulgadorNome: null,
+    ultimaMovimentacaoEm: null,
+    ultimaSincronizacaoEm: null,
+    status: 'ativo',
+    statusMonitoramento: 'monitorando',
+    etiquetas: [],
+  }
+}
+
+function mapAcordoJudicial(
+  row: Record<string, unknown>,
+  processo: GkitJurProcessListItem | null,
+  parcelas: GkitJurAcordoParcela[],
+): GkitJurAcordoJudicial {
+  const processoId = String(row.processo_id)
+  const process = processo ?? emptyProcessForAcordo(processoId)
+  const parcelasPagas = parcelas.filter((parcela) => parcela.status === 'paga').length
+  const parcelasPendentes = parcelas.filter((parcela) => parcela.status === 'pendente').length
+  const parcelasAtrasadas = parcelas.filter((parcela) => parcela.emAtraso).length
+  const valorPago = parcelas.reduce((total, parcela) => total + (parcela.status === 'paga' ? parcela.valorPago ?? parcela.valor : 0), 0)
+  const valorTotal = moneyNumber(row.valor_total)
+  const nextParcela = parcelas
+    .filter((parcela) => parcela.status === 'pendente')
+    .sort((a, b) => a.vencimento.localeCompare(b.vencimento))[0]
+
+  return {
+    id: String(row.id),
+    processoId,
+    numeroCnj: process.numeroCnj,
+    processoTitulo: process.titulo,
+    clienteNome: process.clienteNome,
+    carteiraNome: process.carteiraNome,
+    responsavelNome: process.responsavelNome,
+    valorTotal,
+    quantidadeParcelas: numberValue(row.quantidade_parcelas),
+    diaVencimento: numberValue(row.dia_vencimento),
+    primeiroVencimento: text(row.primeiro_vencimento),
+    status: acordoStatus(row.status),
+    observacoes: text(row.observacoes) || null,
+    quebradoEm: text(row.quebrado_em) || null,
+    quitadoEm: text(row.quitado_em) || null,
+    createdAt: text(row.created_at) || null,
+    updatedAt: text(row.updated_at) || null,
+    parcelas,
+    parcelasPagas,
+    parcelasPendentes,
+    parcelasAtrasadas,
+    valorPago,
+    valorPendente: Math.max(0, valorTotal - valorPago),
+    proximoVencimento: nextParcela?.vencimento ?? null,
+  }
+}
+
+async function hydrateAcordosJudiciais(
+  acordoRows: Array<Record<string, unknown>>,
+  knownProcessos = new Map<string, GkitJurProcessListItem>(),
+) {
+  const acordoIds = acordoRows.map((row) => String(row.id)).filter(Boolean)
+  const processoIds = [...new Set(acordoRows.map((row) => text(row.processo_id)).filter(Boolean))]
+
+  const [parcelasResult, processosResult] = await Promise.all([
+    acordoIds.length
+      ? admin()
+        .schema('gkit_jur')
+        .from('acordo_parcelas')
+        .select('id,acordo_id,numero,valor,vencimento,status,pago_em,valor_pago,observacoes')
+        .in('acordo_id', acordoIds)
+        .order('numero', { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
+    processoIds.filter((id) => !knownProcessos.has(id)).length
+      ? admin()
+        .schema('gkit_jur')
+        .from('processos')
+        .select(PROCESS_LIST_SELECT)
+        .in('id', processoIds.filter((id) => !knownProcessos.has(id)))
+      : Promise.resolve({ data: [], error: null }),
+  ])
+
+  if (parcelasResult.error) throw new Error(parcelasResult.error.message)
+  if (processosResult.error) throw new Error(processosResult.error.message)
+
+  const processRows = (processosResult.data ?? []) as Array<Record<string, unknown>>
+  const maps = await lookupMaps(processRows)
+  const processoMap = new Map(knownProcessos)
+  for (const row of processRows) {
+    const processo = mapProcesso(row, maps)
+    processoMap.set(processo.id, processo)
+  }
+
+  const parcelasByAcordo = new Map<string, GkitJurAcordoParcela[]>()
+  for (const row of (parcelasResult.data ?? []) as Array<Record<string, unknown>>) {
+    const parcela = mapAcordoParcela(row)
+    const current = parcelasByAcordo.get(parcela.acordoId) ?? []
+    current.push(parcela)
+    parcelasByAcordo.set(parcela.acordoId, current)
+  }
+
+  return acordoRows.map((row) => {
+    const acordoId = String(row.id)
+    const processoId = text(row.processo_id)
+    return mapAcordoJudicial(row, processoMap.get(processoId) ?? null, parcelasByAcordo.get(acordoId) ?? [])
+  })
+}
+
 async function lookupTarefaMaps(rows: Array<Record<string, unknown>>) {
   const carteiraIds = [...new Set(rows.map((row) => text(row.carteira_id)).filter(Boolean))]
   const responsavelIds = [...new Set(rows.map((row) => text(row.responsavel_id)).filter(Boolean))]
@@ -1451,7 +1613,7 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
   const maps = await lookupMaps([row])
   const etiquetas = await lookupEtiquetas([id])
   const item = mapProcesso(row, { ...maps, etiquetas })
-  const [movimentacoesResult, tarefasResult, documentosResult, eventosResult, resumo] = await Promise.all([
+  const [movimentacoesResult, tarefasResult, documentosResult, eventosResult, acordosResult, resumo] = await Promise.all([
     admin()
       .schema('gkit_jur')
       .from('movimentacoes')
@@ -1485,6 +1647,13 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
       .order('data_evento', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(50),
+    admin()
+      .schema('gkit_jur')
+      .from('acordos_judiciais')
+      .select('id,processo_id,valor_total,quantidade_parcelas,dia_vencimento,primeiro_vencimento,status,observacoes,quebrado_em,quitado_em,created_at,updated_at')
+      .eq('processo_id', id)
+      .order('created_at', { ascending: false })
+      .limit(20),
     getGkitJurProcessSummary(id),
   ])
 
@@ -1492,6 +1661,7 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
   if (tarefasResult.error) throw new Error(tarefasResult.error.message)
   if (documentosResult.error) throw new Error(documentosResult.error.message)
   if (eventosResult.error) throw new Error(eventosResult.error.message)
+  if (acordosResult.error) throw new Error(acordosResult.error.message)
   const tarefaRows = (tarefasResult.data ?? []) as Array<Record<string, unknown>>
   const documentoRows = (documentosResult.data ?? []) as Array<Record<string, unknown>>
   const eventoRows = (eventosResult.data ?? []) as Array<Record<string, unknown>>
@@ -1526,8 +1696,10 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
     carteiraNome: item.carteiraNome,
     responsavelNome: item.responsavelNome,
   }))
+  const acordos = await hydrateAcordosJudiciais((acordosResult.data ?? []) as Array<Record<string, unknown>>, new Map([[id, item]]))
 
   return {
+    acordos,
     documentos,
     eventos,
     formData,
@@ -1537,6 +1709,33 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
     statusSuggestion: statusSuggestionFromTarefas(tarefas, processo),
     tarefas,
     timeline: buildProcessTimeline({ documentos, eventos, movimentacoes, tarefas }),
+  }
+}
+
+export async function getGkitJurAcordosData(): Promise<GkitJurAcordosData> {
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('acordos_judiciais')
+    .select('id,processo_id,valor_total,quantidade_parcelas,dia_vencimento,primeiro_vencimento,status,observacoes,quebrado_em,quitado_em,created_at,updated_at')
+    .in('status', ['ativo', 'quebrado', 'cumprido'])
+    .order('updated_at', { ascending: false })
+    .limit(500)
+
+  if (result.error) throw new Error(result.error.message)
+
+  const acordos = await hydrateAcordosJudiciais((result.data ?? []) as Array<Record<string, unknown>>)
+  const ativos = acordos.filter((acordo) => acordo.status === 'ativo')
+  const atrasados = acordos.filter((acordo) => acordo.status === 'ativo' && acordo.parcelasAtrasadas > 0)
+
+  return {
+    acordos,
+    metrics: {
+      ativos: ativos.length,
+      atrasados: atrasados.length,
+      quebrados: acordos.filter((acordo) => acordo.status === 'quebrado').length,
+      total: acordos.length,
+      valorAberto: ativos.reduce((total, acordo) => total + acordo.valorPendente, 0),
+    },
   }
 }
 

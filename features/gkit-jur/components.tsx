@@ -14,6 +14,8 @@ import {
 } from './queries'
 import { GkitJurSyncSubmitButton } from './sync-submit-button'
 import type {
+  GkitJurAcordoJudicial,
+  GkitJurAcordosData,
   GkitJurAgenteData,
   GkitJurAuditoriaData,
   GkitJurDashboardMetrics,
@@ -48,7 +50,7 @@ import type {
   GkitJurTimelineItem,
 } from './types'
 
-type GkitJurTab = 'inbox' | 'lab' | 'processos' | 'pendencias' | 'publicacoes' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria' | 'configuracoes'
+type GkitJurTab = 'inbox' | 'lab' | 'processos' | 'pendencias' | 'publicacoes' | 'acordos' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria' | 'configuracoes'
 
 const activeHref: Record<GkitJurTab, string> = {
   inbox: '/modulos/gkit-jur/inbox',
@@ -56,6 +58,7 @@ const activeHref: Record<GkitJurTab, string> = {
   processos: '/modulos/gkit-jur/processos',
   pendencias: '/modulos/gkit-jur/pendencias',
   publicacoes: '/modulos/gkit-jur/publicacoes',
+  acordos: '/modulos/gkit-jur/acordos',
   movimentacoes: '/modulos/gkit-jur/movimentacoes',
   agente: '/modulos/gkit-jur/agente',
   cadastros: '/modulos/gkit-jur/cadastros',
@@ -67,6 +70,7 @@ const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-jur/inbox', title: 'Inbox' },
   { href: '/modulos/gkit-jur/lab', title: 'Lab' },
   { href: '/modulos/gkit-jur/publicacoes', title: 'Publicacoes' },
+  { href: '/modulos/gkit-jur/acordos', title: 'Acordos Judiciais' },
   { href: '/modulos/gkit-jur/processos', title: 'Processos' },
   { href: '/modulos/gkit-jur/movimentacoes', title: 'Movimentações' },
 ]
@@ -249,6 +253,13 @@ function formatDateTimeLocal(value: string | null) {
   const offset = date.getTimezoneOffset()
   const local = new Date(date.getTime() - offset * 60_000)
   return local.toISOString().slice(0, 16)
+}
+
+function formatMoney(value: number) {
+  return value.toLocaleString('pt-BR', {
+    currency: 'BRL',
+    style: 'currency',
+  })
 }
 
 function statusLabel(value: string) {
@@ -2005,10 +2016,272 @@ function GkitJurProcessDetailEtiquetas({
   )
 }
 
+function acordoTone(acordo: GkitJurAcordoJudicial) {
+  if (acordo.status === 'quebrado') return 'danger'
+  if (acordo.status === 'cumprido') return 'success'
+  if (acordo.parcelasAtrasadas > 0) return 'warning'
+  if (acordo.status === 'cancelado') return 'muted'
+  return 'primary'
+}
+
+function GkitJurAcordoForm({
+  action,
+  canWrite,
+  processoId,
+}: {
+  action: (formData: FormData) => Promise<void>
+  canWrite: boolean
+  processoId: string
+}) {
+  if (!canWrite) return null
+  return (
+    <form action={action} className="card module-form module-form-grid gkit-jur-agreement-form">
+      <input name="processo_id" type="hidden" value={processoId} />
+      <input name="return_to" type="hidden" value={`/modulos/gkit-jur/processos/${processoId}#acordos`} />
+      <Field label="Valor total">
+        <input name="valor_total" inputMode="decimal" placeholder="Ex.: 12000,00" required />
+      </Field>
+      <Field label="Quantidade de parcelas">
+        <input name="quantidade_parcelas" min={1} max={240} required type="number" />
+      </Field>
+      <Field label="Dia do vencimento">
+        <input name="dia_vencimento" min={1} max={31} required type="number" />
+      </Field>
+      <Field label="Primeiro vencimento">
+        <input name="primeiro_vencimento" required type="date" />
+      </Field>
+      <div className="module-form-wide">
+        <Field label="Condicoes / observacoes">
+          <textarea name="observacoes" rows={3} placeholder="Resumo do acordo, multa, clausulas sensiveis ou origem da homologacao." />
+        </Field>
+      </div>
+      <div className="form-actions module-form-wide">
+        <button className="button primary-button" type="submit">Cadastrar acordo</button>
+      </div>
+    </form>
+  )
+}
+
+function GkitJurAcordoParcelas({
+  acordo,
+  canWrite,
+  returnTo,
+  updateParcelaAction,
+}: {
+  acordo: GkitJurAcordoJudicial
+  canWrite: boolean
+  returnTo: string
+  updateParcelaAction: (formData: FormData) => Promise<void>
+}) {
+  return (
+    <div className="gkit-jur-agreement-installments" role="list">
+      {acordo.parcelas.map((parcela) => (
+        <article className={parcela.emAtraso ? 'late' : ''} key={parcela.id} role="listitem">
+          <span>{parcela.numero}/{acordo.quantidadeParcelas}</span>
+          <strong>{formatMoney(parcela.valor)}</strong>
+          <small>{formatDate(parcela.vencimento)}</small>
+          <span className={`suite-pill ${parcela.status === 'paga' ? 'success' : parcela.emAtraso ? 'warning' : 'muted'}`}>
+            {parcela.emAtraso ? 'em atraso' : statusLabel(parcela.status)}
+          </span>
+          {canWrite ? (
+            <form action={updateParcelaAction}>
+              <input name="parcela_id" type="hidden" value={parcela.id} />
+              <input name="return_to" type="hidden" value={returnTo} />
+              <input name="status" type="hidden" value={parcela.status === 'paga' ? 'pendente' : 'paga'} />
+              {parcela.status !== 'paga' ? <input name="valor_pago" type="hidden" value={String(parcela.valor)} /> : null}
+              <button className="button secondary" type="submit">{parcela.status === 'paga' ? 'Reabrir' : 'Marcar paga'}</button>
+            </form>
+          ) : null}
+        </article>
+      ))}
+    </div>
+  )
+}
+
+function GkitJurAcordoCard({
+  acordo,
+  canWrite,
+  context = 'processo',
+  updateParcelaAction,
+  updateStatusAction,
+}: {
+  acordo: GkitJurAcordoJudicial
+  canWrite: boolean
+  context?: 'processo' | 'central'
+  updateParcelaAction: (formData: FormData) => Promise<void>
+  updateStatusAction: (formData: FormData) => Promise<void>
+}) {
+  const returnTo = context === 'central' ? '/modulos/gkit-jur/acordos' : `/modulos/gkit-jur/processos/${acordo.processoId}#acordos`
+  return (
+    <article className={`gkit-jur-agreement-card ${acordoTone(acordo)}`} role="listitem">
+      <div className="gkit-jur-agreement-head">
+        <div>
+          <span className={`suite-pill ${acordoTone(acordo)}`}>{acordo.parcelasAtrasadas > 0 && acordo.status === 'ativo' ? 'em atraso' : statusLabel(acordo.status)}</span>
+          <h3>{context === 'central' ? acordo.numeroCnj : 'Acordo judicial'}</h3>
+          <p>{acordo.clienteNome || acordo.processoTitulo || 'Processo sem cliente vinculado'}</p>
+        </div>
+        <div className="gkit-jur-agreement-values">
+          <strong>{formatMoney(acordo.valorTotal)}</strong>
+          <small>{acordo.parcelasPagas}/{acordo.quantidadeParcelas} parcela(s) pagas</small>
+        </div>
+      </div>
+      <div className="gkit-jur-agreement-summary">
+        <span><strong>Aberto</strong>{formatMoney(acordo.valorPendente)}</span>
+        <span><strong>Proximo vencimento</strong>{formatDate(acordo.proximoVencimento)}</span>
+        <span><strong>Dia mensal</strong>{acordo.diaVencimento}</span>
+        <span><strong>Atrasadas</strong>{acordo.parcelasAtrasadas.toLocaleString('pt-BR')}</span>
+      </div>
+      {acordo.observacoes ? <p className="gkit-jur-agreement-note">{acordo.observacoes}</p> : null}
+      <GkitJurAcordoParcelas acordo={acordo} canWrite={canWrite && acordo.status === 'ativo'} returnTo={returnTo} updateParcelaAction={updateParcelaAction} />
+      <div className="gkit-jur-agreement-actions">
+        {context === 'central' ? <Link className="button secondary" href={`/modulos/gkit-jur/processos/${acordo.processoId}#acordos`}>Abrir processo</Link> : null}
+        {canWrite && acordo.status === 'ativo' ? (
+          <form action={updateStatusAction}>
+            <input name="acordo_id" type="hidden" value={acordo.id} />
+            <input name="return_to" type="hidden" value={returnTo} />
+            <input name="status" type="hidden" value="quebrado" />
+            <button className="button secondary" type="submit">Sinalizar quebra</button>
+          </form>
+        ) : null}
+        {canWrite && acordo.status === 'quebrado' ? (
+          <form action={updateStatusAction}>
+            <input name="acordo_id" type="hidden" value={acordo.id} />
+            <input name="return_to" type="hidden" value={returnTo} />
+            <input name="status" type="hidden" value="ativo" />
+            <button className="button secondary" type="submit">Reativar acordo</button>
+          </form>
+        ) : null}
+      </div>
+    </article>
+  )
+}
+
+function GkitJurProcessAcordosSection({
+  acordos,
+  canWrite,
+  createAcordoAction,
+  processoId,
+  updateParcelaAction,
+  updateStatusAction,
+}: {
+  acordos: GkitJurAcordoJudicial[]
+  canWrite: boolean
+  createAcordoAction: (formData: FormData) => Promise<void>
+  processoId: string
+  updateParcelaAction: (formData: FormData) => Promise<void>
+  updateStatusAction: (formData: FormData) => Promise<void>
+}) {
+  const hasActiveAgreement = acordos.some((acordo) => acordo.status === 'ativo')
+  return (
+    <GkitJurCollapsibleSection
+      className="gkit-jur-agreement-panel"
+      id="acordos"
+      title="Acordo judicial"
+      description="Controle as condicoes pactuadas, parcelas, pagamentos e quebras do acordo."
+    >
+      {hasActiveAgreement ? <div className="suite-alert success">Processo marcado como em acordo.</div> : null}
+      <GkitJurAcordoForm action={createAcordoAction} canWrite={canWrite} processoId={processoId} />
+      {acordos.length ? (
+        <div className="gkit-jur-agreement-list" role="list">
+          {acordos.map((acordo) => (
+            <GkitJurAcordoCard
+              acordo={acordo}
+              canWrite={canWrite}
+              key={acordo.id}
+              updateParcelaAction={updateParcelaAction}
+              updateStatusAction={updateStatusAction}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="suite-empty-block">Nenhum acordo judicial cadastrado para este processo.</div>
+      )}
+    </GkitJurCollapsibleSection>
+  )
+}
+
+export function GkitJurAcordosPage({
+  canWrite,
+  data,
+  updateParcelaAction,
+  updateStatusAction,
+}: {
+  canWrite: boolean
+  data: GkitJurAcordosData
+  updateParcelaAction: (formData: FormData) => Promise<void>
+  updateStatusAction: (formData: FormData) => Promise<void>
+}) {
+  const atrasados = data.acordos.filter((acordo) => acordo.status === 'ativo' && acordo.parcelasAtrasadas > 0)
+
+  return (
+    <>
+      <section className="suite-kpi-grid compact">
+        <article className="metric-card">
+          <span className="metric-label">Acordos</span>
+          <strong className="metric-value">{data.metrics.total.toLocaleString('pt-BR')}</strong>
+          <span className="metric-hint">ativos, cumpridos ou quebrados</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Em acordo</span>
+          <strong className="metric-value">{data.metrics.ativos.toLocaleString('pt-BR')}</strong>
+          <span className="metric-hint">processos com acordo ativo</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Atrasados</span>
+          <strong className="metric-value">{data.metrics.atrasados.toLocaleString('pt-BR')}</strong>
+          <span className="metric-hint">acordos ativos com parcela vencida</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Valor aberto</span>
+          <strong className="metric-value">{formatMoney(data.metrics.valorAberto)}</strong>
+          <span className="metric-hint">{data.metrics.quebrados.toLocaleString('pt-BR')} quebrado(s)</span>
+        </article>
+      </section>
+
+      {atrasados.length ? (
+        <GkitJurSection title="Acordos com atraso" description="Prioridade operacional para sinalizar quebra, cobrar parcela ou registrar pagamento.">
+          <div className="gkit-jur-agreement-list" role="list">
+            {atrasados.map((acordo) => (
+              <GkitJurAcordoCard
+                acordo={acordo}
+                canWrite={canWrite}
+                context="central"
+                key={acordo.id}
+                updateParcelaAction={updateParcelaAction}
+                updateStatusAction={updateStatusAction}
+              />
+            ))}
+          </div>
+        </GkitJurSection>
+      ) : null}
+
+      <GkitJurSection title="Controle de acordos" description="Acompanhe parcelas, proximos vencimentos e status dos acordos cadastrados nos processos.">
+        {data.acordos.length ? (
+          <div className="gkit-jur-agreement-list" role="list">
+            {data.acordos.map((acordo) => (
+              <GkitJurAcordoCard
+                acordo={acordo}
+                canWrite={canWrite}
+                context="central"
+                key={acordo.id}
+                updateParcelaAction={updateParcelaAction}
+                updateStatusAction={updateStatusAction}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="suite-empty-block">Nenhum acordo judicial cadastrado ainda.</div>
+        )}
+      </GkitJurSection>
+    </>
+  )
+}
+
 export function GkitJurProcessDetailPage({
   action,
   canSync,
   canWrite,
+  createAcordoAction,
   createDocumentoAction,
   createEventoAction,
   createTarefaAction,
@@ -2017,12 +2290,15 @@ export function GkitJurProcessDetailPage({
   syncAction,
   syncFeedback,
   updateEtiquetaAction,
+  updateAcordoParcelaAction,
+  updateAcordoStatusAction,
   updateTarefaPlanejamentoAction,
   updateTarefaStatusAction,
 }: {
   action: (formData: FormData) => Promise<void>
   canSync: boolean
   canWrite: boolean
+  createAcordoAction: (formData: FormData) => Promise<void>
   createDocumentoAction: (formData: FormData) => Promise<void>
   createEventoAction: (formData: FormData) => Promise<void>
   createTarefaAction: (formData: FormData) => Promise<void>
@@ -2031,10 +2307,12 @@ export function GkitJurProcessDetailPage({
   syncAction: (formData: FormData) => Promise<void>
   syncFeedback: GkitJurProcessSyncFeedback
   updateEtiquetaAction: (formData: FormData) => Promise<void>
+  updateAcordoParcelaAction: (formData: FormData) => Promise<void>
+  updateAcordoStatusAction: (formData: FormData) => Promise<void>
   updateTarefaPlanejamentoAction: (formData: FormData) => Promise<void>
   updateTarefaStatusAction: (formData: FormData) => Promise<void>
 }) {
-  const { documentos, formData, movimentacoes, processo, statusSuggestion, tarefas, timeline } = data
+  const { acordos, documentos, formData, movimentacoes, processo, statusSuggestion, tarefas, timeline } = data
   const encerramentoObservacoes = [
     processo.observacoes,
     statusSuggestion
@@ -2146,6 +2424,15 @@ export function GkitJurProcessDetailPage({
           </div>
         </form>
       </GkitJurCollapsibleSection>
+
+      <GkitJurProcessAcordosSection
+        acordos={acordos}
+        canWrite={canWrite}
+        createAcordoAction={createAcordoAction}
+        processoId={processo.id}
+        updateParcelaAction={updateAcordoParcelaAction}
+        updateStatusAction={updateAcordoStatusAction}
+      />
 
       <GkitJurCollapsibleSection
         className="gkit-jur-task-panel"
