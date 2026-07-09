@@ -5762,6 +5762,11 @@ tbody tr:hover {
 .gkit-jur-publication-treatment {
   display: grid;
   gap: 10px;
+  justify-items: stretch;
+}
+
+.gkit-jur-publication-treatment > summary {
+  width: calc((100% - 10px) / 2);
 }
 
 .gkit-jur-publication-treatment > form {
@@ -20447,6 +20452,10 @@ body:has(.gkit-flex-operational-shell) {
 @media (max-width: 560px) {
   .gkit-jur-inbox-queues nav {
     grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-publication-treatment > summary {
+    width: 100%;
   }
 
   .gkit-jur-process-pulse {
