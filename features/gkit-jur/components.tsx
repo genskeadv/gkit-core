@@ -1813,15 +1813,58 @@ function hasAny(value: string, terms: string[]) {
   return terms.some((term) => value.includes(term))
 }
 
+function publicacaoHasArchiveSignal(item: GkitJurPublicacao) {
+  const text = plainPublicacaoText(item)
+  return hasAny(text, [
+    'transito em julgado',
+    'trânsito em julgado',
+    'arquivado definitivamente',
+    'arquivamento definitivo',
+    'arquivado provisoriamente',
+    'arquivamento provisorio',
+    'arquivamento provisório',
+    'baixa definitiva',
+  ])
+}
+
+function publicacaoProcessStateLabel(item: GkitJurPublicacao) {
+  if (item.processoId) return 'Processo ativo'
+  if (!item.processoBaseId) return 'Nao localizado na base'
+  if (item.processoBaseStatus === 'arquivado') return 'Processo arquivado na base'
+  if (item.processoBaseStatus === 'encerrado') return 'Processo encerrado na base'
+  if (item.processoBaseStatus === 'suspenso') return 'Processo suspenso na base'
+  if (item.processoBaseStatus === 'erro') return 'Processo com erro cadastral'
+  return 'Processo na base, sem vinculo ativo'
+}
+
 function publicacaoDecision(item: GkitJurPublicacao): PublicacaoDecision {
   const text = plainPublicacaoText(item)
+  const archiveSignal = publicacaoHasArchiveSignal(item)
   const evidence = [
-    item.processoId ? 'Processo localizado' : 'Sem processo ativo',
+    publicacaoProcessStateLabel(item),
+    item.processoBaseStatusMonitoramento && item.processoBaseStatusMonitoramento !== 'monitorando' ? `Monitoramento: ${statusLabel(item.processoBaseStatusMonitoramento)}` : null,
+    archiveSignal ? 'Texto menciona transito/arquivamento' : null,
     item.responsavelNome ? `Responsavel: ${item.responsavelNome}` : 'Sem responsavel',
     item.carteiraNome ? `Carteira: ${item.carteiraNome}` : null,
   ].filter(Boolean) as string[]
 
   if (!item.processoId) {
+    if (item.processoBaseId) {
+      const archived = item.processoBaseStatus === 'arquivado' || item.processoBaseStatus === 'encerrado'
+      return {
+        actionLabel: archived || archiveSignal ? 'Revisar baixa' : 'Revisar cadastro',
+        decision: 'revisar_cadastro_processo',
+        evidence,
+        headline: archived || archiveSignal ? 'Processo fora da operacao ativa' : 'Processo existe, mas nao esta ativo',
+        priority: archived || archiveSignal ? 'media' : 'alta',
+        quickStatus: 'em_tratamento',
+        reason: archived || archiveSignal
+          ? 'O CNJ existe na base, mas parece arquivado/encerrado ou a publicacao menciona transito/arquivamento. Validar se exige apenas ciencia, reativacao ou baixa operacional.'
+          : 'O CNJ existe na base, mas a publicacao nao esta vinculada a um processo ativo. Validar status, carteira e monitoramento antes de gerar tarefa.',
+        tone: archived || archiveSignal ? 'warning' : 'danger',
+      }
+    }
+
     return {
       actionLabel: 'Revisar cadastro',
       decision: 'revisar_cadastro_processo',
@@ -1830,6 +1873,19 @@ function publicacaoDecision(item: GkitJurPublicacao): PublicacaoDecision {
       priority: 'alta',
       quickStatus: 'em_tratamento',
       reason: 'A publicacao foi capturada, mas ainda nao encontrou um processo ativo para receber tarefa ou prazo.',
+      tone: 'warning',
+    }
+  }
+
+  if (archiveSignal) {
+    return {
+      actionLabel: 'Revisar baixa',
+      decision: 'gerar_tarefa',
+      evidence,
+      headline: 'Sinal de transito ou arquivamento',
+      priority: 'alta',
+      quickStatus: 'em_tratamento',
+      reason: 'A publicacao menciona transito em julgado ou arquivamento. Validar baixa operacional, encerramento do monitoramento e eventual ciencia.',
       tone: 'warning',
     }
   }
@@ -1896,6 +1952,7 @@ function publicacaoShortText(value: string | null) {
 function publicacaoPeopleLine(item: GkitJurPublicacao) {
   return [
     item.clienteNome || item.processoTitulo,
+    !item.processoId ? publicacaoProcessStateLabel(item) : null,
     item.responsavelNome ? `Resp. ${item.responsavelNome}` : null,
     item.carteiraNome,
   ].filter(Boolean).join(' - ') || 'Sem vinculo operacional completo'
@@ -2167,7 +2224,11 @@ function GkitJurPublicacaoCard({
               />
             </>
           ) : null}
-          {item.processoId ? <Link className="button secondary" href={`/modulos/gkit-jur/processos/${item.processoId}`}>Abrir processo</Link> : null}
+          {item.processoBaseId ? (
+            <Link className="button secondary" href={`/modulos/gkit-jur/processos/${item.processoBaseId}`}>
+              {item.processoId ? 'Abrir processo' : 'Abrir cadastro'}
+            </Link>
+          ) : null}
         </div>
 
         {canWrite ? (

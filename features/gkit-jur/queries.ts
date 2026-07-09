@@ -1738,6 +1738,8 @@ function matchesPublicacaoFilters(row: GkitJurPublicacao, filters: GkitJurPublic
       row.carteiraNome,
       row.responsavelNome,
       row.processoTitulo,
+      row.processoBaseStatus,
+      row.processoBaseStatusMonitoramento,
       row.motivoTratamento,
     ].filter(Boolean).join(' '))
     if (!haystack.includes(normalizeSearch(filters.q))) return false
@@ -1815,6 +1817,7 @@ export async function listGkitJurPublicacoes(filters: GkitJurPublicacaoFilters =
 
   const rows = (publicacoesResult.data ?? []) as Array<Record<string, unknown>>
   const processoIds = [...new Set(rows.map((row) => text(row.processo_id)).filter(Boolean))]
+  const publicationCnjs = [...new Set(rows.map((row) => text(row.numero_cnj_limpo)).filter(Boolean))]
   const treatedUserIds = [...new Set(rows.map((row) => text(row.tratado_por)).filter(Boolean))]
   const scopedRowsById = new Map((scopedProcessRows ?? []).map((row) => [String(row.id), row]))
   const missingProcessIds = scopedProcessRows ? processoIds.filter((id) => !scopedRowsById.has(id)) : processoIds
@@ -1830,21 +1833,42 @@ export async function listGkitJurPublicacoes(filters: GkitJurPublicacaoFilters =
     : { data: [], error: null }
   if (processosResult.error) throw new Error(processosResult.error.message)
 
-  const processRows = [...loadedRows, ...((processosResult.data ?? []) as Array<Record<string, unknown>>)]
+  const processRowsById = [...loadedRows, ...((processosResult.data ?? []) as Array<Record<string, unknown>>)]
+  const loadedCnjs = new Set(processRowsById.map((row) => text(row.numero_cnj_limpo)).filter(Boolean))
+  const missingProcessCnjs = publicationCnjs.filter((cnj) => !loadedCnjs.has(cnj))
+  const processosByCnjResult = missingProcessCnjs.length
+    ? await admin()
+      .schema('gkit_jur')
+      .from('processos')
+      .select(PROCESS_LIST_SELECT)
+      .in('numero_cnj_limpo', missingProcessCnjs)
+    : { data: [], error: null }
+  if (processosByCnjResult.error) throw new Error(processosByCnjResult.error.message)
+
+  const processRows = [
+    ...new Map([
+      ...processRowsById,
+      ...((processosByCnjResult.data ?? []) as Array<Record<string, unknown>>),
+    ].map((row) => [String(row.id), row])).values(),
+  ]
   const lookupRows = [
     ...processRows,
     ...treatedUserIds.map((id) => ({ id: `treated-${id}`, responsavel_id: id })),
   ]
   const maps = await lookupMaps(lookupRows)
   const processoMap = new Map<string, GkitJurProcessListItem>()
+  const processoCnjMap = new Map<string, GkitJurProcessListItem>()
   const rawProcessRows = new Map<string, Record<string, unknown>>()
   processRows.forEach((row) => {
+    const mappedProcess = mapProcesso(row, maps)
     rawProcessRows.set(String(row.id), row)
-    processoMap.set(String(row.id), mapProcesso(row, maps))
+    processoMap.set(String(row.id), mappedProcess)
+    const cnj = text(row.numero_cnj_limpo)
+    if (cnj) processoCnjMap.set(cnj, mappedProcess)
   })
 
   const mapped = rows
-    .map((row) => mapPublicacao(row, processoMap, maps))
+    .map((row) => mapPublicacao(row, processoMap, processoCnjMap, maps))
     .filter((row) => {
       const raw = row.processoId ? rawProcessRows.get(row.processoId) : null
       if (filters.carteiraId && (!raw || text(raw.carteira_id) !== filters.carteiraId)) return false
