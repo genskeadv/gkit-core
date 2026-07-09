@@ -1787,6 +1787,214 @@ function publicacaoStatusTone(status: GkitJurPublicacao['status']) {
   return 'primary'
 }
 
+type PublicacaoDecision = {
+  actionLabel: string
+  decision: string
+  evidence: string[]
+  headline: string
+  priority: 'critica' | 'alta' | 'media' | 'baixa'
+  quickStatus: GkitJurPublicacao['status']
+  reason: string
+  tone: 'danger' | 'warning' | 'success' | 'primary'
+}
+
+function plainPublicacaoText(item: GkitJurPublicacao) {
+  return [
+    item.termo,
+    item.origemOrgao,
+    item.jornal,
+    item.textoPreview,
+    item.processoTitulo,
+    item.clienteNome,
+  ].filter(Boolean).join(' ').toLowerCase()
+}
+
+function hasAny(value: string, terms: string[]) {
+  return terms.some((term) => value.includes(term))
+}
+
+function publicacaoDecision(item: GkitJurPublicacao): PublicacaoDecision {
+  const text = plainPublicacaoText(item)
+  const evidence = [
+    item.processoId ? 'Processo localizado' : 'Sem processo ativo',
+    item.responsavelNome ? `Responsavel: ${item.responsavelNome}` : 'Sem responsavel',
+    item.carteiraNome ? `Carteira: ${item.carteiraNome}` : null,
+  ].filter(Boolean) as string[]
+
+  if (!item.processoId) {
+    return {
+      actionLabel: 'Revisar cadastro',
+      decision: 'revisar_cadastro_processo',
+      evidence,
+      headline: 'Vinculo operacional pendente',
+      priority: 'alta',
+      quickStatus: 'em_tratamento',
+      reason: 'A publicacao foi capturada, mas ainda nao encontrou um processo ativo para receber tarefa ou prazo.',
+      tone: 'warning',
+    }
+  }
+
+  if (hasAny(text, ['prazo', 'intime-se para', 'manifeste-se', 'manifestar', 'contestacao', 'recurso', 'embargos', 'cumprimento', 'cumpra-se', 'deposito', 'pagamento', 'pericia', 'audiencia'])) {
+    return {
+      actionLabel: 'Gerar prazo',
+      decision: 'gerar_prazo',
+      evidence: [...evidence, 'Texto indica providencia com possivel prazo'],
+      headline: 'Possivel prazo ou providencia processual',
+      priority: 'critica',
+      quickStatus: 'em_tratamento',
+      reason: 'Ha termos de intimacao que normalmente exigem leitura juridica e controle de vencimento.',
+      tone: 'danger',
+    }
+  }
+
+  if (hasAny(text, ['designada', 'audiencia', 'pericia', 'leilao', 'hasta', 'sustentacao'])) {
+    return {
+      actionLabel: 'Criar tarefa',
+      decision: 'gerar_tarefa',
+      evidence: [...evidence, 'Evento operacional detectado'],
+      headline: 'Evento precisa de preparacao',
+      priority: 'alta',
+      quickStatus: 'em_tratamento',
+      reason: 'A publicacao sugere agenda, preparo documental ou alinhamento interno.',
+      tone: 'warning',
+    }
+  }
+
+  if (hasAny(text, ['ciencia', 'ciência', 'mero expediente', 'certidao', 'certidão', 'juntada', 'publicado despacho'])) {
+    return {
+      actionLabel: 'Registrar ciencia',
+      decision: 'registrar_ciencia',
+      evidence: [...evidence, 'Baixo risco aparente'],
+      headline: 'Ciencia ou andamento informativo',
+      priority: 'baixa',
+      quickStatus: 'tratada',
+      reason: 'O texto parece indicar ciencia ou movimentacao sem providencia imediata.',
+      tone: 'success',
+    }
+  }
+
+  return {
+    actionLabel: 'Criar tarefa',
+    decision: 'gerar_tarefa',
+    evidence: [...evidence, 'Precisa de leitura humana'],
+    headline: 'Triagem humana recomendada',
+    priority: 'media',
+    quickStatus: 'em_tratamento',
+    reason: 'Nao ha sinal suficiente para dispensar automaticamente; registre a conclusao apos leitura.',
+    tone: 'primary',
+  }
+}
+
+function publicacaoShortText(value: string | null) {
+  if (!value) return 'Publicacao sem preview textual.'
+  const compact = value.replace(/\s+/g, ' ').trim()
+  const stop = compact.search(/\b(?:Data de disponibilizacao|Tipo de comunicacao|Meio:|Parte\\(s\\):|Advogado\\(s\\):)/i)
+  const sliced = stop > 80 ? compact.slice(0, stop).trim() : compact
+  return sliced.length > 280 ? `${sliced.slice(0, 277)}...` : sliced
+}
+
+function publicacaoPeopleLine(item: GkitJurPublicacao) {
+  return [
+    item.clienteNome || item.processoTitulo,
+    item.responsavelNome ? `Resp. ${item.responsavelNome}` : null,
+    item.carteiraNome,
+  ].filter(Boolean).join(' - ') || 'Sem vinculo operacional completo'
+}
+
+function publicacaoMetaLine(item: GkitJurPublicacao) {
+  return [
+    item.origemOrgao,
+    item.jornal,
+    item.termo,
+    item.arq ? `Arq ${item.arq}` : null,
+    item.pub ? `Pub ${item.pub}` : null,
+  ].filter(Boolean).join(' - ') || 'Metadados pendentes'
+}
+
+function PublicacaoQuickAction({
+  action,
+  canCreateTask = false,
+  decision,
+  item,
+  label,
+  motivo,
+  returnTo,
+  status,
+}: {
+  action: (formData: FormData) => Promise<void>
+  canCreateTask?: boolean
+  decision: string
+  item: GkitJurPublicacao
+  label: string
+  motivo: string
+  returnTo: string
+  status: GkitJurPublicacao['status']
+}) {
+  return (
+    <form action={action} className="gkit-jur-publication-quick-form">
+      <input name="publicacao_id" type="hidden" value={item.id} />
+      <input name="return_to" type="hidden" value={returnTo} />
+      <input name="status" type="hidden" value={status} />
+      <input name="decisao_tratamento" type="hidden" value={decision} />
+      <input name="motivo_tratamento" type="hidden" value={motivo} />
+      {canCreateTask ? <input name="criar_tarefa" type="hidden" value="on" /> : null}
+      <button className="button secondary" type="submit">{label}</button>
+    </form>
+  )
+}
+
+function GkitJurPublicacaoCommandStrip({ data }: { data: GkitJurPublicacoesData }) {
+  const lanes = [
+    {
+      count: data.metrics.pendentes,
+      href: '/modulos/gkit-jur/publicacoes?status=pendente',
+      label: 'Triar agora',
+      note: 'novas publicacoes',
+      tone: 'primary',
+    },
+    {
+      count: data.metrics.semProcesso,
+      href: '/modulos/gkit-jur/publicacoes?q=Processo%20sem%20vinculo',
+      label: 'Saneamento',
+      note: 'sem processo ativo',
+      tone: 'warning',
+    },
+    {
+      count: data.metrics.emTratamento + data.metrics.triadasIa,
+      href: '/modulos/gkit-jur/publicacoes?status=em_tratamento',
+      label: 'Em curso',
+      note: 'aguardando conclusao',
+      tone: 'danger',
+    },
+    {
+      count: data.metrics.tratadas + data.metrics.dispensadas,
+      href: '/modulos/gkit-jur/publicacoes?status=tratada',
+      label: 'Resolvidas',
+      note: 'com decisao',
+      tone: 'success',
+    },
+  ]
+
+  return (
+    <section className="gkit-jur-publication-command">
+      <div>
+        <span>Fila de publicacoes</span>
+        <strong>{data.metrics.total.toLocaleString('pt-BR')} itens no recorte atual</strong>
+        <p>Acoes sugeridas servem como triagem inicial; a decisao final continua humana e auditada.</p>
+      </div>
+      <nav aria-label="Atalhos da caixa de publicacoes">
+        {lanes.map((lane) => (
+          <Link className={`gkit-jur-publication-lane ${lane.tone}`} href={lane.href} key={lane.label}>
+            <span>{lane.label}</span>
+            <strong>{lane.count.toLocaleString('pt-BR')}</strong>
+            <small>{lane.note}</small>
+          </Link>
+        ))}
+      </nav>
+    </section>
+  )
+}
+
 function GkitJurPublicacaoFilterBar({ data }: { data: GkitJurPublicacoesData }) {
   const { filterOptions, filters, pagination } = data
   const activeFilters = [
@@ -1882,34 +2090,89 @@ function GkitJurPublicacaoCard({
   tratamentoAction: (formData: FormData) => Promise<void>
 }) {
   const done = ['tratada', 'dispensada', 'duplicada'].includes(item.status)
+  const decision = publicacaoDecision(item)
+  const quickReason = item.sugestaoIa || decision.reason
   return (
-    <article className="suite-row-card gkit-jur-publication-card">
-      <div className="suite-row-card-main">
-        <div>
-          <span className={`suite-pill ${publicacaoStatusTone(item.status)}`}>{publicacaoStatusLabel(item.status)}</span>
-          <span className="suite-pill primary">{item.fonte}</span>
+    <article className={`gkit-jur-publication-card ${decision.tone}`}>
+      <div className="gkit-jur-publication-main">
+        <div className="gkit-jur-publication-head">
+          <div>
+            <span className={`suite-pill ${publicacaoStatusTone(item.status)}`}>{publicacaoStatusLabel(item.status)}</span>
+            <span className="suite-pill primary">{item.fonte}</span>
+            <span className={`suite-pill ${decision.tone}`}>{decision.priority}</span>
+          </div>
+          <strong>{formatDate(item.dataDisponibilizacao || item.dataPublicacao)}</strong>
         </div>
-        <h3>{item.numeroCnj}</h3>
-        <p>{item.textoPreview || 'Publicacao sem preview textual.'}</p>
-        <small>
-          {[item.jornal, item.origemOrgao, item.arq ? `Arq ${item.arq}` : null, item.pub ? `Pub ${item.pub}` : null].filter(Boolean).join(' - ') || 'Metadados pendentes'}
-        </small>
-      </div>
-      <div className="suite-row-card-meta">
-        <strong>{formatDate(item.dataDisponibilizacao || item.dataPublicacao)}</strong>
-        <span>{item.clienteNome || item.processoTitulo || 'Processo sem vinculo operacional'}</span>
-        <small>{item.responsavelNome || item.carteiraNome || 'Sem responsavel definido'}</small>
-        {item.tratadoEm ? <small>Tratada em {formatDateTime(item.tratadoEm)}</small> : null}
-      </div>
-      {item.sugestaoIa || item.motivoTratamento ? (
-        <div className="suite-row-card-note">
-          {item.sugestaoIa ? <p><strong>IA:</strong> {item.sugestaoIa}</p> : null}
-          {item.motivoTratamento ? <p><strong>Tratamento:</strong> {item.motivoTratamento}</p> : null}
+
+        <div className="gkit-jur-publication-title-row">
+          <div>
+            <h3>{item.numeroCnj}</h3>
+            <p>{publicacaoPeopleLine(item)}</p>
+          </div>
+          {item.tratadoEm ? <span className="gkit-jur-publication-treated">Tratada em {formatDateTime(item.tratadoEm)}</span> : null}
         </div>
-      ) : null}
-      {canWrite ? (
+
+        <p className="gkit-jur-publication-text">{publicacaoShortText(item.textoPreview)}</p>
+
+        <div className="gkit-jur-publication-evidence">
+          {decision.evidence.map((signal) => <span key={signal}>{signal}</span>)}
+        </div>
+
+        <small className="gkit-jur-publication-meta">{publicacaoMetaLine(item)}</small>
+      </div>
+
+      <aside className="gkit-jur-publication-decision">
+        <span className={`suite-pill ${decision.tone}`}>Sugestao</span>
+        <h4>{decision.headline}</h4>
+        <p>{quickReason}</p>
+        {item.motivoTratamento ? (
+          <div className="gkit-jur-publication-human-note">
+            <strong>Decisao humana</strong>
+            <span>{item.motivoTratamento}</span>
+          </div>
+        ) : null}
+
+        <div className="gkit-jur-publication-actions">
+          {canWrite && !done ? (
+            <>
+              <PublicacaoQuickAction
+                action={tratamentoAction}
+                canCreateTask={item.processoId ? ['gerar_prazo', 'gerar_tarefa'].includes(decision.decision) : false}
+                decision={decision.decision}
+                item={item}
+                label={decision.actionLabel}
+                motivo={quickReason}
+                returnTo={returnTo}
+                status={decision.quickStatus}
+              />
+              {item.processoId ? (
+                <PublicacaoQuickAction
+                  action={tratamentoAction}
+                  decision="registrar_ciencia"
+                  item={item}
+                  label="Registrar ciencia"
+                  motivo="Publicacao conferida e registrada como ciencia, sem tarefa operacional."
+                  returnTo={returnTo}
+                  status="tratada"
+                />
+              ) : null}
+              <PublicacaoQuickAction
+                action={tratamentoAction}
+                decision="dispensar_sem_acao"
+                item={item}
+                label="Dispensar"
+                motivo="Publicacao dispensada apos triagem humana."
+                returnTo={returnTo}
+                status="dispensada"
+              />
+            </>
+          ) : null}
+          {item.processoId ? <Link className="button secondary" href={`/modulos/gkit-jur/processos/${item.processoId}`}>Abrir processo</Link> : null}
+        </div>
+
+        {canWrite ? (
         <details className="gkit-jur-inline-form">
-          <summary>{done ? 'Revisar tratamento' : 'Tratar publicacao'}</summary>
+          <summary>{done ? 'Revisar tratamento completo' : 'Tratamento completo'}</summary>
           <form action={tratamentoAction}>
             <input name="publicacao_id" type="hidden" value={item.id} />
             <input name="return_to" type="hidden" value={returnTo} />
@@ -1946,8 +2209,8 @@ function GkitJurPublicacaoCard({
             <button className="button" type="submit">Salvar tratamento</button>
           </form>
         </details>
-      ) : null}
-      {item.processoId ? <Link className="button secondary" href={`/modulos/gkit-jur/processos/${item.processoId}`}>Abrir processo</Link> : null}
+        ) : null}
+      </aside>
     </article>
   )
 }
@@ -1987,6 +2250,7 @@ export function GkitJurPublicacoesPage({
           <span className="metric-hint">exigem vinculacao</span>
         </article>
       </section>
+      <GkitJurPublicacaoCommandStrip data={data} />
       <GkitJurSection title="Publicacoes e intimacoes" description="Caixa de entrada para triagem, confirmacao humana e registro de tratamento.">
         <GkitJurPublicacaoFilterBar data={data} />
         {data.publicacoes.length ? (

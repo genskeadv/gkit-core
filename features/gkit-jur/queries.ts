@@ -1668,15 +1668,22 @@ async function resolvePublicationProcessScope(filters: GkitJurPublicacaoFilters)
 function mapPublicacao(
   row: Record<string, unknown>,
   processoMap: Map<string, GkitJurProcessListItem>,
+  processoCnjMap: Map<string, GkitJurProcessListItem>,
   maps: Awaited<ReturnType<typeof lookupMaps>>,
 ): GkitJurPublicacao {
   const processoId = text(row.processo_id)
   const processo = processoId ? processoMap.get(processoId) ?? null : null
+  const numeroCnjLimpo = text(row.numero_cnj_limpo)
+  const processoBase = processo ?? processoCnjMap.get(numeroCnjLimpo) ?? null
   const tratadoPor = text(row.tratado_por)
   return {
     id: String(row.id),
     processoId: processoId || null,
-    numeroCnj: formatCnj(text(row.numero_cnj_limpo)),
+    processoBaseId: processoBase?.id ?? null,
+    processoBaseStatus: processoBase?.status ?? null,
+    processoBaseStatusMonitoramento: processoBase?.statusMonitoramento ?? null,
+    numeroCnj: formatCnj(numeroCnjLimpo),
+    numeroCnjLimpo,
     fonte: text(row.fonte, 'fonte'),
     fonteEventoId: text(row.fonte_evento_id) || null,
     dataDisponibilizacao: text(row.data_disponibilizacao) || null,
@@ -1698,10 +1705,10 @@ function mapPublicacao(
     tratadoEm: text(row.tratado_em) || null,
     motivoTratamento: text(row.motivo_tratamento) || null,
     conteudoRemovidoEm: text(row.conteudo_removido_em) || null,
-    clienteNome: processo?.clienteNome ?? null,
-    carteiraNome: processo?.carteiraNome ?? null,
-    responsavelNome: processo?.responsavelNome ?? null,
-    processoTitulo: processo?.titulo ?? null,
+    clienteNome: processoBase?.clienteNome ?? null,
+    carteiraNome: processoBase?.carteiraNome ?? null,
+    responsavelNome: processoBase?.responsavelNome ?? null,
+    processoTitulo: processoBase?.titulo ?? null,
     createdAt: text(row.created_at),
     updatedAt: text(row.updated_at),
   }

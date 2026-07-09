@@ -68,6 +68,27 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
     tarefasGeradas: 0,
   }
 
+  if (provider === 'aasp' || provider === 'redundante') {
+    if (!hasBudgetFor(startedAt, timeBudgetMs, AASP_START_RESERVE_MS)) {
+      result.finalizado = false
+      return result
+    }
+
+    const aaspResult = await syncGkitJurAaspBatch({
+      data: options.aaspData,
+      diferencial: options.aaspDiferencial ?? true,
+      shouldContinue: () => hasBudgetFor(startedAt, timeBudgetMs, AASP_NEXT_PROCESS_RESERVE_MS),
+    })
+    result.erro += aaspResult.erro
+    result.movimentosNovos += aaspResult.movimentosNovos
+    result.movimentosRecebidos += aaspResult.movimentosRecebidos
+    result.processos += aaspResult.processos
+    result.semResultado += aaspResult.semResultado
+    result.sucesso += aaspResult.sucesso
+    result.tarefasGeradas += aaspResult.tarefasGeradas
+    if (!aaspResult.finalizado) result.finalizado = false
+  }
+
   if (provider === 'datajud' || provider === 'redundante') {
     for (let batch = 0; batch < maxDataJudBatches; batch += 1) {
       if (!hasBudgetFor(startedAt, timeBudgetMs, DATAJUD_NEXT_PROCESS_RESERVE_MS)) {
@@ -100,27 +121,6 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
       if (dataJudResult.selecionados < dataJudBatchLimit) break
       if (batch === maxDataJudBatches - 1) result.finalizado = false
     }
-  }
-
-  if (provider === 'aasp' || provider === 'redundante') {
-    if (!hasBudgetFor(startedAt, timeBudgetMs, AASP_START_RESERVE_MS)) {
-      result.finalizado = false
-      return result
-    }
-
-    const aaspResult = await syncGkitJurAaspBatch({
-      data: options.aaspData,
-      diferencial: options.aaspDiferencial ?? true,
-      shouldContinue: () => hasBudgetFor(startedAt, timeBudgetMs, AASP_NEXT_PROCESS_RESERVE_MS),
-    })
-    result.erro += aaspResult.erro
-    result.movimentosNovos += aaspResult.movimentosNovos
-    result.movimentosRecebidos += aaspResult.movimentosRecebidos
-    result.processos += aaspResult.processos
-    result.semResultado += aaspResult.semResultado
-    result.sucesso += aaspResult.sucesso
-    result.tarefasGeradas += aaspResult.tarefasGeradas
-    if (!aaspResult.finalizado) result.finalizado = false
   }
 
   return result

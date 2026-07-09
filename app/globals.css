@@ -4382,7 +4382,6 @@ tbody tr:hover {
   }
 }
 
-
 /* Official GKIT mark overrides */
 :where(.platform-brand-mark, .suite-brand-mark, .module-page-brand, .module-sidebar-mark, .login-mark, .sidebar-mark, .module-app-mark).brand-logo {
   background: transparent;
@@ -5392,6 +5391,240 @@ tbody tr:hover {
 .gkit-jur-active-filters strong {
   color: var(--new-muted);
   font-size: 11px;
+  font-weight: 700;
+}
+
+.gkit-jur-publication-command {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92)),
+    linear-gradient(90deg, rgba(20, 184, 166, 0.1), rgba(245, 158, 11, 0.1));
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(240px, 0.38fr) minmax(0, 1fr);
+  margin-bottom: 14px;
+  padding: 14px;
+}
+
+.gkit-jur-publication-command > div {
+  display: grid;
+  gap: 5px;
+}
+
+.gkit-jur-publication-command > div > span,
+.gkit-jur-publication-lane span {
+  color: var(--new-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.gkit-jur-publication-command > div > strong {
+  color: var(--new-ink);
+  font-size: 17px;
+  font-weight: 520;
+  line-height: 1.2;
+}
+
+.gkit-jur-publication-command p,
+.gkit-jur-publication-lane small {
+  color: var(--new-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.gkit-jur-publication-command nav {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.gkit-jur-publication-lane {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--suite-module-card-radius, 8px);
+  color: var(--new-ink);
+  display: grid;
+  gap: 4px;
+  min-height: 86px;
+  padding: 11px 12px;
+  text-decoration: none;
+}
+
+.gkit-jur-publication-lane strong {
+  color: var(--new-ink);
+  font-size: 24px;
+  font-weight: 560;
+  line-height: 1;
+}
+
+.gkit-jur-publication-lane.primary {
+  border-color: rgba(99, 102, 241, 0.28);
+}
+
+.gkit-jur-publication-lane.warning {
+  border-color: rgba(245, 158, 11, 0.36);
+}
+
+.gkit-jur-publication-lane.danger {
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+.gkit-jur-publication-lane.success {
+  border-color: rgba(20, 184, 166, 0.32);
+}
+
+.gkit-jur-publication-card {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-left: 4px solid rgba(99, 102, 241, 0.5);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 0.34fr);
+  padding: 16px;
+}
+
+.gkit-jur-publication-card.danger {
+  border-left-color: #ef4444;
+}
+
+.gkit-jur-publication-card.warning {
+  border-left-color: #f59e0b;
+}
+
+.gkit-jur-publication-card.success {
+  border-left-color: #14b8a6;
+}
+
+.gkit-jur-publication-main,
+.gkit-jur-publication-decision {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gkit-jur-publication-head,
+.gkit-jur-publication-title-row,
+.gkit-jur-publication-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.gkit-jur-publication-head > div {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gkit-jur-publication-head > strong,
+.gkit-jur-publication-treated {
+  color: var(--new-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.gkit-jur-publication-title-row h3,
+.gkit-jur-publication-decision h4 {
+  color: var(--new-ink);
+  font-size: 15px;
+  font-weight: 560;
+  line-height: 1.25;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.gkit-jur-publication-title-row p,
+.gkit-jur-publication-decision p,
+.gkit-jur-publication-text {
+  color: var(--new-muted);
+  font-size: 13px;
+  line-height: 1.48;
+  margin: 0;
+}
+
+.gkit-jur-publication-text {
+  color: #334155;
+  font-size: 14px;
+}
+
+.gkit-jur-publication-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gkit-jur-publication-evidence span {
+  background: rgba(248, 250, 252, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 5px 8px;
+}
+
+.gkit-jur-publication-meta {
+  color: var(--new-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.gkit-jur-publication-decision {
+  align-content: start;
+  background: rgba(248, 250, 252, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: var(--suite-module-card-radius, 8px);
+  padding: 12px;
+}
+
+.gkit-jur-publication-human-note {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 4px;
+  padding: 9px;
+}
+
+.gkit-jur-publication-human-note strong {
+  color: var(--new-ink);
+  font-size: 12px;
+}
+
+.gkit-jur-publication-human-note span {
+  color: var(--new-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.gkit-jur-publication-actions {
+  justify-content: flex-start;
+}
+
+.gkit-jur-publication-actions .button,
+.gkit-jur-publication-quick-form .button {
+  min-height: 34px;
+  padding: 8px 11px;
+}
+
+.gkit-jur-publication-quick-form {
+  display: inline-flex;
+}
+
+.gkit-jur-publication-decision .gkit-jur-inline-form {
+  margin-top: 2px;
+}
+
+.gkit-jur-publication-decision .gkit-jur-inline-form summary {
+  color: var(--new-accent);
+  cursor: pointer;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -7408,6 +7641,15 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
+  .gkit-jur-publication-command,
+  .gkit-jur-publication-card {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-publication-command nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .gkit-jur-inbox-filter,
   .gkit-jur-inbox-item.actionable,
   .gkit-jur-agent-monitor-list a,
@@ -7527,6 +7769,9 @@ tbody tr:hover {
 
   .gkit-jur-filter-actions,
   .gkit-jur-pagination,
+  .gkit-jur-publication-head,
+  .gkit-jur-publication-title-row,
+  .gkit-jur-publication-actions,
   .gkit-jur-suggestion-actions {
     align-items: stretch;
     display: grid;
@@ -7543,6 +7788,23 @@ tbody tr:hover {
     position: static;
     right: auto;
     width: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .gkit-jur-publication-command nav {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-publication-card {
+    padding: 13px;
+  }
+
+  .gkit-jur-publication-actions .button,
+  .gkit-jur-publication-quick-form,
+  .gkit-jur-publication-quick-form .button {
+    justify-content: center;
+    width: 100%;
   }
 }
 

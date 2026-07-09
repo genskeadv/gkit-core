@@ -246,7 +246,11 @@ export type GkitJurPublicacaoDecisao =
 export type GkitJurPublicacao = {
   id: string;
   processoId: string | null;
+  processoBaseId: string | null;
+  processoBaseStatus: GkitJurProcessoStatus | null;
+  processoBaseStatusMonitoramento: GkitJurMonitoramentoStatus | null;
   numeroCnj: string;
+  numeroCnjLimpo: string;
   fonte: string;
   fonteEventoId: string | null;
   dataDisponibilizacao: string | null;
