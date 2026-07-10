@@ -1,6 +1,5 @@
-import { updateGkitJurAcordoParcelaAction, updateGkitJurAcordoStatusAction } from '@/features/gkit-jur/actions'
-import { GkitJurAcordosPage, GkitJurShell } from '@/features/gkit-jur/components'
-import { canWriteGkitJur, getGkitJurAcordosData, requireGkitJurContext } from '@/features/gkit-jur/queries'
+import { GkitJurAcordosCockpitPage, GkitJurShell } from '@/features/gkit-jur/components'
+import { getGkitJurAcordosData, requireGkitJurContext } from '@/features/gkit-jur/queries'
 
 export default async function GkitJurAcordosRoute() {
   const [context, data] = await Promise.all([
@@ -15,12 +14,7 @@ export default async function GkitJurAcordosRoute() {
       title="Acordos Judiciais"
       usuario={context.usuario}
     >
-      <GkitJurAcordosPage
-        canWrite={canWriteGkitJur(context.permissions)}
-        data={data}
-        updateParcelaAction={updateGkitJurAcordoParcelaAction}
-        updateStatusAction={updateGkitJurAcordoStatusAction}
-      />
+      <GkitJurAcordosCockpitPage data={data} />
     </GkitJurShell>
   )
 }

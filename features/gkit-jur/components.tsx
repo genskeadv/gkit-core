@@ -2110,7 +2110,7 @@ function GkitJurAcordoCard({
   updateParcelaAction: (formData: FormData) => Promise<void>
   updateStatusAction: (formData: FormData) => Promise<void>
 }) {
-  const returnTo = context === 'central' ? '/modulos/gkit-jur/acordos' : `/modulos/gkit-jur/processos/${acordo.processoId}#acordos`
+  const returnTo = context === 'central' ? '/modulos/gkit-jur/acordos/lista' : `/modulos/gkit-jur/processos/${acordo.processoId}#acordos`
   return (
     <article className={`gkit-jur-agreement-card ${acordoTone(acordo)}`} role="listitem">
       <div className="gkit-jur-agreement-head">
@@ -2196,6 +2196,218 @@ function GkitJurProcessAcordosSection({
         <div className="suite-empty-block">Nenhum acordo judicial cadastrado para este processo.</div>
       )}
     </GkitJurCollapsibleSection>
+  )
+}
+
+function localDate(value: string | null) {
+  if (!value) return null
+  const [year, month, day] = value.slice(0, 10).split('-').map((part) => Number.parseInt(part, 10))
+  if (!year || !month || !day) return null
+  return new Date(year, month - 1, day)
+}
+
+function daysFromToday(value: string | null) {
+  const date = localDate(value)
+  if (!date) return null
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  date.setHours(0, 0, 0, 0)
+  return Math.floor((date.getTime() - today.getTime()) / 86_400_000)
+}
+
+function monthKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
+function monthLabel(key: string) {
+  const [year, month] = key.split('-').map((part) => Number.parseInt(part, 10))
+  return new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')
+}
+
+function pct(value: number, max: number) {
+  if (!max) return 0
+  return Math.max(4, Math.round((value / max) * 100))
+}
+
+export function GkitJurAcordosCockpitPage({ data }: { data: GkitJurAcordosData }) {
+  const acordos = data.acordos
+  const ativos = acordos.filter((acordo) => acordo.status === 'ativo')
+  const cumpridos = acordos.filter((acordo) => acordo.status === 'cumprido')
+  const quebrados = acordos.filter((acordo) => acordo.status === 'quebrado')
+  const atrasados = ativos.filter((acordo) => acordo.parcelasAtrasadas > 0)
+  const vencem30 = ativos.filter((acordo) => {
+    const days = daysFromToday(acordo.proximoVencimento)
+    return days !== null && days >= 0 && days <= 30
+  })
+  const valorTotal = acordos.reduce((total, acordo) => total + acordo.valorTotal, 0)
+  const valorPago = acordos.reduce((total, acordo) => total + acordo.valorPago, 0)
+  const valorAberto = ativos.reduce((total, acordo) => total + acordo.valorPendente, 0)
+  const statusRows = [
+    { label: 'Ativos', tone: 'primary', value: ativos.length },
+    { label: 'Cumpridos', tone: 'success', value: cumpridos.length },
+    { label: 'Quebrados', tone: 'danger', value: quebrados.length },
+  ]
+  const maxStatus = Math.max(1, ...statusRows.map((row) => row.value))
+  const totalStatus = Math.max(1, statusRows.reduce((total, row) => total + row.value, 0))
+  let cursor = 0
+  const colors: Record<string, string> = { danger: '#dc2626', primary: '#2563eb', success: '#16a34a' }
+  const donutParts = statusRows.map((row) => {
+    const start = cursor
+    const end = cursor + (row.value / totalStatus) * 360
+    cursor = end
+    return `${colors[row.tone]} ${start.toFixed(1)}deg ${end.toFixed(1)}deg`
+  })
+  const donutStyle = { '--agreement-donut': `conic-gradient(${donutParts.join(', ')}, #e2e8f0 ${cursor.toFixed(1)}deg 360deg)` } as CSSProperties
+  const today = new Date()
+  today.setDate(1)
+  today.setHours(0, 0, 0, 0)
+  const months = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(today.getFullYear(), today.getMonth() + index, 1)
+    return { key: monthKey(date), label: monthLabel(monthKey(date)), value: 0 }
+  })
+  const monthMap = new Map(months.map((item) => [item.key, item]))
+  for (const acordo of ativos) {
+    for (const parcela of acordo.parcelas) {
+      if (parcela.status !== 'pendente') continue
+      const date = localDate(parcela.vencimento)
+      if (!date) continue
+      const key = monthKey(date)
+      const month = monthMap.get(key)
+      if (month) month.value += parcela.valor
+    }
+  }
+  const maxMonthValue = Math.max(1, ...months.map((month) => month.value))
+  const carteiraMap = new Map<string, { label: string; late: number; quantity: number; value: number }>()
+  for (const acordo of ativos) {
+    const key = acordo.carteiraNome || 'Sem carteira'
+    const current = carteiraMap.get(key) ?? { label: key, late: 0, quantity: 0, value: 0 }
+    current.quantity += 1
+    current.value += acordo.valorPendente
+    current.late += acordo.parcelasAtrasadas
+    carteiraMap.set(key, current)
+  }
+  const carteiras = [...carteiraMap.values()].sort((a, b) => b.value - a.value).slice(0, 5)
+  const maxCarteiraValue = Math.max(1, ...carteiras.map((row) => row.value))
+  const risco = [...atrasados]
+    .sort((a, b) => b.parcelasAtrasadas - a.parcelasAtrasadas || b.valorPendente - a.valorPendente)
+    .slice(0, 6)
+
+  return (
+    <>
+      <section className="gkit-jur-agreement-cockpit-hero">
+        <div>
+          <span>Acompanhamento financeiro</span>
+          <h2>{ativos.length.toLocaleString('pt-BR')} acordo(s) em acompanhamento</h2>
+          <p>{atrasados.length.toLocaleString('pt-BR')} acordo(s) com atraso e {vencem30.length.toLocaleString('pt-BR')} com vencimento nos proximos 30 dias.</p>
+        </div>
+        <div>
+          <strong>{formatMoney(valorAberto)}</strong>
+          <small>valor pendente em acordos ativos</small>
+          <Link className="button primary-button" href="/modulos/gkit-jur/acordos/lista">Abrir lista detalhada</Link>
+        </div>
+      </section>
+
+      <section className="gkit-jur-agreement-cockpit-metrics">
+        <article>
+          <span>Valor total</span>
+          <strong>{formatMoney(valorTotal)}</strong>
+          <small>{acordos.length.toLocaleString('pt-BR')} acordo(s) cadastrados</small>
+        </article>
+        <article>
+          <span>Valor pago</span>
+          <strong>{formatMoney(valorPago)}</strong>
+          <small>{valorTotal ? `${Math.round((valorPago / valorTotal) * 100).toLocaleString('pt-BR')}% do total` : 'sem valores'}</small>
+        </article>
+        <article className={atrasados.length ? 'warning' : 'success'}>
+          <span>Atraso</span>
+          <strong>{atrasados.length.toLocaleString('pt-BR')}</strong>
+          <small>{atrasados.reduce((total, acordo) => total + acordo.parcelasAtrasadas, 0).toLocaleString('pt-BR')} parcela(s) vencida(s)</small>
+        </article>
+        <article>
+          <span>Próximos 30 dias</span>
+          <strong>{vencem30.length.toLocaleString('pt-BR')}</strong>
+          <small>acordo(s) com vencimento próximo</small>
+        </article>
+      </section>
+
+      <section className="gkit-jur-agreement-chart-grid">
+        <article className="gkit-jur-agreement-chart-panel status">
+          <div>
+            <span>Status dos acordos</span>
+            <strong>{acordos.length.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-agreement-donut" style={donutStyle}>
+            <span>{ativos.length.toLocaleString('pt-BR')}</span>
+            <small>ativos</small>
+          </div>
+          <div className="gkit-jur-agreement-status-bars">
+            {statusRows.map((row) => (
+              <div key={row.label}>
+                <span>{row.label}</span>
+                <div><span className={row.tone} style={{ width: `${pct(row.value, maxStatus)}%` }} /></div>
+                <strong>{row.value.toLocaleString('pt-BR')}</strong>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="gkit-jur-agreement-chart-panel cashflow">
+          <div>
+            <span>Parcelas pendentes por mês</span>
+            <strong>{formatMoney(months.reduce((total, month) => total + month.value, 0))}</strong>
+          </div>
+          <div className="gkit-jur-agreement-column-chart">
+            {months.map((month) => (
+              <div key={month.key}>
+                <span style={{ height: `${pct(month.value, maxMonthValue)}%` }} />
+                <small>{month.label}</small>
+                <strong>{formatMoney(month.value)}</strong>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="gkit-jur-agreement-cockpit-grid">
+        <article className="gkit-jur-agreement-chart-panel">
+          <div>
+            <span>Concentração por carteira</span>
+            <strong>{carteiras.length.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-agreement-ranking">
+            {carteiras.length ? carteiras.map((row) => (
+              <div key={row.label}>
+                <div>
+                  <strong>{row.label}</strong>
+                  <small>{row.quantity.toLocaleString('pt-BR')} acordo(s), {row.late.toLocaleString('pt-BR')} parcela(s) vencida(s)</small>
+                </div>
+                <span>{formatMoney(row.value)}</span>
+                <div><span style={{ width: `${pct(row.value, maxCarteiraValue)}%` }} /></div>
+              </div>
+            )) : <div className="suite-empty-block">Sem acordos ativos por carteira.</div>}
+          </div>
+        </article>
+
+        <article className="gkit-jur-agreement-chart-panel">
+          <div>
+            <span>Fila de atenção</span>
+            <strong>{risco.length.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-agreement-risk-list">
+            {risco.length ? risco.map((acordo) => (
+              <Link href={`/modulos/gkit-jur/processos/${acordo.processoId}#acordos`} key={acordo.id}>
+                <div>
+                  <strong>{acordo.numeroCnj}</strong>
+                  <small>{acordo.clienteNome || acordo.processoTitulo || 'Sem cliente vinculado'}</small>
+                </div>
+                <span>{acordo.parcelasAtrasadas.toLocaleString('pt-BR')} atraso(s)</span>
+                <em>{formatMoney(acordo.valorPendente)}</em>
+              </Link>
+            )) : <div className="suite-empty-block success">Nenhum acordo ativo em atraso.</div>}
+          </div>
+        </article>
+      </section>
+    </>
   )
 }
 

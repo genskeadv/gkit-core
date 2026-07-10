@@ -6818,6 +6818,38 @@ tbody tr:hover {
   .gkit-jur-process-facts {
     grid-template-columns: 1fr;
   }
+
+  .gkit-jur-agreement-cockpit-metrics,
+  .gkit-jur-agreement-column-chart {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-agreement-cockpit-hero h2 {
+    font-size: 22px;
+  }
+
+  .gkit-jur-agreement-column-chart {
+    min-height: 0;
+  }
+
+  .gkit-jur-agreement-column-chart > div {
+    grid-template-columns: minmax(54px, 0.2fr) minmax(0, 1fr) minmax(112px, auto);
+    grid-template-rows: auto;
+  }
+
+  .gkit-jur-agreement-column-chart > div > span {
+    height: 10px !important;
+    min-height: 10px;
+  }
+
+  .gkit-jur-agreement-column-chart small,
+  .gkit-jur-agreement-column-chart strong {
+    text-align: left;
+  }
+
+  .gkit-jur-agreement-risk-list a {
+    grid-template-columns: 1fr;
+  }
 }
 
 .gkit-jur-status-suggestion {
@@ -7070,6 +7102,344 @@ tbody tr:hover {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.gkit-jur-agreement-cockpit-hero {
+  align-items: stretch;
+  background: linear-gradient(135deg, #0f172a 0%, #164e63 58%, #166534 100%);
+  border-radius: var(--suite-module-card-radius, 8px);
+  color: #fff;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.34fr);
+  margin-bottom: 16px;
+  overflow: hidden;
+  padding: 22px;
+}
+
+.gkit-jur-agreement-cockpit-hero > div {
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-jur-agreement-cockpit-hero span,
+.gkit-jur-agreement-chart-panel > div:first-child span,
+.gkit-jur-agreement-cockpit-metrics span {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.gkit-jur-agreement-cockpit-hero h2,
+.gkit-jur-agreement-cockpit-hero p {
+  margin: 0;
+}
+
+.gkit-jur-agreement-cockpit-hero h2 {
+  font-size: 28px;
+  line-height: 1.12;
+}
+
+.gkit-jur-agreement-cockpit-hero p,
+.gkit-jur-agreement-cockpit-hero small {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.gkit-jur-agreement-cockpit-hero > div:last-child {
+  align-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--suite-module-card-radius, 8px);
+  padding: 14px;
+}
+
+.gkit-jur-agreement-cockpit-hero strong {
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.gkit-jur-agreement-cockpit-hero .button {
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.gkit-jur-agreement-cockpit-metrics,
+.gkit-jur-agreement-chart-grid,
+.gkit-jur-agreement-cockpit-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.gkit-jur-agreement-cockpit-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.gkit-jur-agreement-cockpit-metrics article,
+.gkit-jur-agreement-chart-panel {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--suite-module-card-radius, 8px);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+}
+
+.gkit-jur-agreement-cockpit-metrics article {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.gkit-jur-agreement-cockpit-metrics article.warning {
+  border-color: rgba(217, 119, 6, 0.3);
+  background: rgba(255, 251, 235, 0.72);
+}
+
+.gkit-jur-agreement-cockpit-metrics article.success {
+  border-color: rgba(22, 163, 74, 0.24);
+  background: rgba(240, 253, 244, 0.72);
+}
+
+.gkit-jur-agreement-cockpit-metrics span,
+.gkit-jur-agreement-chart-panel > div:first-child span {
+  color: var(--new-muted);
+}
+
+.gkit-jur-agreement-cockpit-metrics strong {
+  color: var(--new-ink);
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.gkit-jur-agreement-cockpit-metrics small {
+  color: var(--new-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.gkit-jur-agreement-chart-grid {
+  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+  margin-bottom: 12px;
+}
+
+.gkit-jur-agreement-cockpit-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gkit-jur-agreement-chart-panel {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.gkit-jur-agreement-chart-panel > div:first-child {
+  align-items: end;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gkit-jur-agreement-chart-panel > div:first-child strong {
+  color: var(--new-ink);
+  font-size: 18px;
+}
+
+.gkit-jur-agreement-chart-panel.status {
+  grid-template-columns: minmax(132px, 0.42fr) minmax(136px, 0.58fr);
+}
+
+.gkit-jur-agreement-chart-panel.status > div:first-child {
+  grid-column: 1 / -1;
+}
+
+.gkit-jur-agreement-donut {
+  align-self: center;
+  aspect-ratio: 1;
+  background: var(--agreement-donut);
+  border-radius: 999px;
+  display: grid;
+  min-width: 132px;
+  place-items: center;
+  position: relative;
+}
+
+.gkit-jur-agreement-donut::after {
+  background: #fff;
+  border-radius: 999px;
+  content: '';
+  inset: 24px;
+  position: absolute;
+}
+
+.gkit-jur-agreement-donut span,
+.gkit-jur-agreement-donut small {
+  position: relative;
+  z-index: 1;
+}
+
+.gkit-jur-agreement-donut span {
+  color: var(--new-ink);
+  font-size: 24px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.gkit-jur-agreement-donut small {
+  color: var(--new-muted);
+  font-size: 12px;
+  margin-top: 28px;
+  position: absolute;
+}
+
+.gkit-jur-agreement-status-bars,
+.gkit-jur-agreement-ranking,
+.gkit-jur-agreement-risk-list {
+  display: grid;
+  gap: 10px;
+}
+
+.gkit-jur-agreement-status-bars > div {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(70px, 0.42fr) minmax(0, 1fr) auto;
+}
+
+.gkit-jur-agreement-status-bars span,
+.gkit-jur-agreement-status-bars strong {
+  color: var(--new-ink);
+  font-size: 12px;
+}
+
+.gkit-jur-agreement-status-bars > div > div,
+.gkit-jur-agreement-ranking > div > div:last-child {
+  background: rgba(226, 232, 240, 0.9);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.gkit-jur-agreement-status-bars > div > div span,
+.gkit-jur-agreement-ranking > div > div:last-child span {
+  background: #2563eb;
+  display: block;
+  height: 100%;
+}
+
+.gkit-jur-agreement-status-bars span.success {
+  background: #16a34a;
+}
+
+.gkit-jur-agreement-status-bars span.danger {
+  background: #dc2626;
+}
+
+.gkit-jur-agreement-column-chart {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  min-height: 230px;
+}
+
+.gkit-jur-agreement-column-chart > div {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  grid-template-rows: minmax(120px, 1fr) auto auto;
+  min-width: 0;
+}
+
+.gkit-jur-agreement-column-chart > div > span {
+  align-self: end;
+  background: linear-gradient(180deg, #0891b2, #2563eb);
+  border-radius: 7px 7px 3px 3px;
+  display: block;
+  justify-self: stretch;
+  min-height: 8px;
+}
+
+.gkit-jur-agreement-column-chart small,
+.gkit-jur-agreement-column-chart strong {
+  color: var(--new-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.gkit-jur-agreement-column-chart strong {
+  color: var(--new-ink);
+  font-weight: 650;
+}
+
+.gkit-jur-agreement-ranking > div {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.gkit-jur-agreement-ranking > div > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gkit-jur-agreement-ranking strong,
+.gkit-jur-agreement-risk-list strong {
+  color: var(--new-ink);
+  font-size: 13px;
+}
+
+.gkit-jur-agreement-ranking small,
+.gkit-jur-agreement-risk-list small {
+  color: var(--new-muted);
+  font-size: 12px;
+}
+
+.gkit-jur-agreement-ranking > div > span {
+  color: var(--new-ink);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.gkit-jur-agreement-ranking > div > div:last-child {
+  grid-column: 1 / -1;
+}
+
+.gkit-jur-agreement-risk-list a {
+  align-items: center;
+  background: rgba(248, 250, 252, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  padding: 10px;
+  text-decoration: none;
+}
+
+.gkit-jur-agreement-risk-list a:hover {
+  border-color: rgba(37, 99, 235, 0.32);
+}
+
+.gkit-jur-agreement-risk-list a > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gkit-jur-agreement-risk-list span {
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.gkit-jur-agreement-risk-list em {
+  color: var(--new-ink);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 650;
 }
 
 .gkit-jur-task-actions details {
@@ -9468,6 +9838,9 @@ tbody tr:hover {
   .gkit-jur-pendencia-shortcuts,
   .gkit-jur-settings-grid,
   .gkit-jur-detail-grid,
+  .gkit-jur-agreement-cockpit-hero,
+  .gkit-jur-agreement-chart-grid,
+  .gkit-jur-agreement-cockpit-grid,
   .gkit-jur-inbox-command-center,
   .gkit-jur-inbox-layout,
   .gkit-jur-inbox-call-grid,
@@ -9489,9 +9862,14 @@ tbody tr:hover {
 
   .gkit-jur-publication-command,
   .gkit-jur-publication-card,
+  .gkit-jur-agreement-chart-panel.status,
   .gkit-jur-agreement-head,
   .gkit-jur-agreement-installments article {
     grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-agreement-cockpit-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .gkit-jur-agreement-summary {
