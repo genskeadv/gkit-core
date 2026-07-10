@@ -72,7 +72,6 @@ const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-jur/publicacoes', title: 'Publicacoes' },
   { href: '/modulos/gkit-jur/acordos', title: 'Acordos Judiciais' },
   { href: '/modulos/gkit-jur/processos', title: 'Processos' },
-  { href: '/modulos/gkit-jur/movimentacoes', title: 'Movimentações' },
 ]
 
 export function GkitJurShell({
