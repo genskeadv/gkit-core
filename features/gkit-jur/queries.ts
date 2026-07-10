@@ -1013,7 +1013,6 @@ export async function getGkitJurProcessCockpitData(): Promise<GkitJurProcessList
   if (processosResult.error) throw new Error(processosResult.error.message)
   const rows = (processosResult.data ?? []) as Array<Record<string, unknown>>
   const maps = await lookupMaps(rows)
-  const etiquetas = await lookupEtiquetas(rows.map((row) => String(row.id)))
   const total = processosResult.count ?? rows.length
 
   return {
@@ -1028,7 +1027,7 @@ export async function getGkitJurProcessCockpitData(): Promise<GkitJurProcessList
       total,
       totalPages: 1,
     },
-    processes: rows.map((row) => mapProcesso(row, { ...maps, etiquetas })),
+    processes: rows.map((row) => mapProcesso(row, maps)),
   }
 }
 
