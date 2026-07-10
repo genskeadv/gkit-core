@@ -149,6 +149,7 @@ export function GkitJurLabShell({
 
       <nav className="gkit-jur-lab-modes" aria-label="Modos do laboratorio">
         <a href="#hoje">Hoje</a>
+        <Link href="/modulos/gkit-jur/lab/cockpit-unico">Cockpit unico</Link>
         <a href="#modelos">Modelos</a>
         <a href="#risco">Risco</a>
         <a href="#prontuario">Prontuário</a>
