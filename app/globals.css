@@ -9461,6 +9461,192 @@ tbody tr:hover {
   line-height: 1;
 }
 
+.gkit-jur-inbox-cockpit-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.gkit-jur-inbox-cockpit-panel {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--suite-module-card-radius, 8px);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.gkit-jur-inbox-cockpit-panel > div:first-child {
+  align-items: end;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.gkit-jur-inbox-cockpit-panel > div:first-child span {
+  color: var(--new-muted);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.gkit-jur-inbox-cockpit-panel > div:first-child strong {
+  color: var(--new-ink);
+  font-size: 18px;
+}
+
+.gkit-jur-inbox-cockpit-panel.status {
+  grid-template-columns: minmax(132px, 0.42fr) minmax(136px, 0.58fr);
+}
+
+.gkit-jur-inbox-cockpit-panel.status > div:first-child {
+  grid-column: 1 / -1;
+}
+
+.gkit-jur-inbox-donut {
+  align-self: center;
+  aspect-ratio: 1;
+  background: var(--inbox-donut);
+  border-radius: 999px;
+  display: grid;
+  min-width: 132px;
+  place-items: center;
+  position: relative;
+}
+
+.gkit-jur-inbox-donut::after {
+  background: #fff;
+  border-radius: 999px;
+  content: '';
+  inset: 24px;
+  position: absolute;
+}
+
+.gkit-jur-inbox-donut span,
+.gkit-jur-inbox-donut small {
+  position: relative;
+  z-index: 1;
+}
+
+.gkit-jur-inbox-donut span {
+  color: var(--new-ink);
+  font-size: 24px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.gkit-jur-inbox-donut small {
+  color: var(--new-muted);
+  font-size: 12px;
+  margin-top: 28px;
+  position: absolute;
+}
+
+.gkit-jur-inbox-status-bars,
+.gkit-jur-inbox-action-ranking,
+.gkit-jur-inbox-ranking {
+  display: grid;
+  gap: 10px;
+}
+
+.gkit-jur-inbox-status-bars a {
+  align-items: center;
+  color: inherit;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(92px, 0.42fr) minmax(0, 1fr) auto;
+  text-decoration: none;
+}
+
+.gkit-jur-inbox-status-bars span,
+.gkit-jur-inbox-status-bars strong {
+  color: var(--new-ink);
+  font-size: 12px;
+}
+
+.gkit-jur-inbox-status-bars a > div,
+.gkit-jur-inbox-ranking > div > span {
+  background: rgba(226, 232, 240, 0.9);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.gkit-jur-inbox-status-bars i,
+.gkit-jur-inbox-ranking i {
+  display: block;
+  height: 100%;
+}
+
+.gkit-jur-inbox-ranking i {
+  background: #2563eb;
+}
+
+.gkit-jur-inbox-action-ranking a,
+.gkit-jur-inbox-ranking > div {
+  background: rgba(248, 250, 252, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--suite-module-card-radius, 8px);
+  color: inherit;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  text-decoration: none;
+}
+
+.gkit-jur-inbox-action-ranking a {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.gkit-jur-inbox-action-ranking a:hover {
+  border-color: rgba(37, 99, 235, 0.32);
+}
+
+.gkit-jur-inbox-action-ranking span {
+  border-radius: 999px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
+.gkit-jur-inbox-action-ranking span.danger {
+  background: #dc2626;
+}
+
+.gkit-jur-inbox-action-ranking span.warning {
+  background: #d97706;
+}
+
+.gkit-jur-inbox-action-ranking span.primary {
+  background: #2563eb;
+}
+
+.gkit-jur-inbox-action-ranking span.muted {
+  background: #64748b;
+}
+
+.gkit-jur-inbox-action-ranking strong,
+.gkit-jur-inbox-ranking strong {
+  color: var(--new-ink);
+  font-size: 13px;
+}
+
+.gkit-jur-inbox-action-ranking small,
+.gkit-jur-inbox-ranking small {
+  color: var(--new-muted);
+  font-size: 12px;
+}
+
+.gkit-jur-inbox-ranking > div {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .gkit-jur-inbox-call-grid {
   display: grid;
   gap: 12px;
@@ -9593,6 +9779,126 @@ tbody tr:hover {
   background: rgba(106, 50, 130, 0.08);
   border-color: rgba(106, 50, 130, 0.24);
   color: var(--new-purple);
+}
+
+.gkit-jur-shell :where(strong, h2, h3, h4, .button, .suite-pill, summary, em) {
+  font-weight: 560 !important;
+}
+
+.gkit-jur-shell :where(.suite-panel-heading h2, .metric-value, .page-title) {
+  font-weight: 520 !important;
+}
+
+.gkit-jur-shell :where(.gkit-jur-process-primary-call strong, .gkit-jur-inbox-primary-call strong, .gkit-jur-publication-command-main strong) {
+  font-weight: 520 !important;
+}
+
+.gkit-jur-shell :where(.gkit-jur-process-cockpit-hero, .gkit-jur-publication-cockpit-hero, .gkit-jur-inbox-command-center, .gkit-jur-publication-command) {
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.gkit-jur-shell :where(.gkit-jur-process-cockpit-hero, .gkit-jur-publication-cockpit-hero) {
+  padding: 16px;
+}
+
+.gkit-jur-shell :where(.gkit-jur-process-cockpit-hero h2, .gkit-jur-publication-cockpit-hero h2) {
+  font-size: 24px;
+  font-weight: 520 !important;
+}
+
+.gkit-jur-shell :where(.gkit-jur-process-cockpit-hero p, .gkit-jur-publication-cockpit-hero p, .gkit-jur-inbox-primary-call p) {
+  font-size: 13px;
+  line-height: 1.36;
+}
+
+.gkit-jur-shell :where(.gkit-jur-process-cockpit-metrics, .gkit-jur-publication-cockpit-metrics, .gkit-jur-inbox-pulse, .gkit-jur-inbox-cockpit-grid, .gkit-jur-process-cockpit-grid, .gkit-jur-publication-cockpit-grid) {
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.gkit-jur-shell :where(.gkit-jur-process-cockpit-metrics article, .gkit-jur-publication-cockpit-metrics article, .gkit-jur-inbox-pulse a) {
+  min-height: auto;
+  padding: 10px;
+}
+
+.gkit-jur-shell :where(.gkit-jur-process-cockpit-metrics strong, .gkit-jur-publication-cockpit-metrics strong, .gkit-jur-inbox-pulse strong) {
+  font-size: 20px;
+  font-weight: 520 !important;
+}
+
+.gkit-jur-shell :where(.gkit-jur-process-cockpit-panel, .gkit-jur-publication-cockpit-panel, .gkit-jur-inbox-cockpit-panel) {
+  gap: 10px;
+  padding: 12px;
+}
+
+.gkit-jur-shell :where(.gkit-jur-process-donut, .gkit-jur-publication-donut, .gkit-jur-inbox-donut) {
+  min-width: 108px;
+}
+
+.gkit-jur-shell :where(.gkit-jur-process-donut::after, .gkit-jur-publication-donut::after, .gkit-jur-inbox-donut::after) {
+  inset: 20px;
+}
+
+.gkit-jur-shell :where(.gkit-jur-process-donut span, .gkit-jur-publication-donut span, .gkit-jur-inbox-donut span) {
+  font-size: 21px;
+  font-weight: 560 !important;
+}
+
+.gkit-jur-shell :where(.gkit-jur-process-action-bars a, .gkit-jur-process-ranking a, .gkit-jur-process-risk-list a, .gkit-jur-process-movement-summary a, .gkit-jur-publication-ranking a, .gkit-jur-publication-ranking > div, .gkit-jur-publication-risk-list a, .gkit-jur-inbox-action-ranking a, .gkit-jur-inbox-ranking > div) {
+  gap: 6px;
+  padding: 8px;
+}
+
+.gkit-jur-inbox-call-grid {
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.gkit-jur-inbox-call-card {
+  gap: 7px;
+  min-height: 142px;
+  padding: 10px;
+}
+
+.gkit-jur-inbox-queues nav {
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.gkit-jur-inbox-queues nav a {
+  min-height: 58px;
+  padding: 8px 10px;
+}
+
+.gkit-jur-inbox-filter {
+  gap: 8px;
+  margin-bottom: 6px;
+  padding-bottom: 8px;
+}
+
+.gkit-jur-inbox-item {
+  gap: 10px;
+  min-height: 70px;
+  padding: 10px 12px;
+}
+
+.gkit-jur-inbox-item.actionable {
+  grid-template-columns: 30px minmax(0, 1fr) minmax(180px, 0.32fr) minmax(210px, 0.4fr);
+}
+
+.gkit-jur-inbox-content {
+  column-gap: 12px;
+  grid-template-columns: minmax(220px, 0.72fr) minmax(180px, 0.4fr);
+}
+
+.gkit-jur-inbox-meta {
+  min-height: 52px;
+}
+
+.gkit-jur-inbox-rank {
+  height: 24px;
+  width: 24px;
 }
 
 .gkit-jur-agent-carousel {
@@ -9999,7 +10305,7 @@ tbody tr:hover {
 }
 
 .gkit-jur-inbox-queues nav {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .gkit-jur-inbox-queues nav a,
@@ -10476,6 +10782,7 @@ tbody tr:hover {
   .gkit-jur-publication-cockpit-hero,
   .gkit-jur-publication-cockpit-grid,
   .gkit-jur-inbox-command-center,
+  .gkit-jur-inbox-cockpit-grid,
   .gkit-jur-inbox-layout,
   .gkit-jur-inbox-call-grid,
   .gkit-jur-process-command-center,
@@ -10499,6 +10806,7 @@ tbody tr:hover {
   .gkit-jur-agreement-chart-panel.status,
   .gkit-jur-process-cockpit-panel.status,
   .gkit-jur-publication-cockpit-panel.status,
+  .gkit-jur-inbox-cockpit-panel.status,
   .gkit-jur-agreement-head,
   .gkit-jur-agreement-installments article {
     grid-template-columns: 1fr;

@@ -10,7 +10,7 @@ export default async function GkitJurProcessosRoute() {
   return (
     <GkitJurShell
       active="processos"
-      description="Cockpit de acompanhamento e saneamento dos processos juridicos."
+      description="Cockpit de acompanhamento e saneamento dos processos jurídicos."
       title="Processos"
       usuario={context.usuario}
     >

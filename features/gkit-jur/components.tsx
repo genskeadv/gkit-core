@@ -69,7 +69,7 @@ const activeHref: Record<GkitJurTab, string> = {
 const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-jur/inbox', title: 'Inbox' },
   { href: '/modulos/gkit-jur/lab', title: 'Lab' },
-  { href: '/modulos/gkit-jur/publicacoes', title: 'Publicacoes' },
+  { href: '/modulos/gkit-jur/publicacoes', title: 'Publicações' },
   { href: '/modulos/gkit-jur/acordos', title: 'Acordos Judiciais' },
   { href: '/modulos/gkit-jur/processos', title: 'Processos' },
 ]
@@ -135,8 +135,8 @@ export function GkitJurLabShell({
 
         <form action="/modulos/gkit-jur/busca" className="gkit-jur-lab-command" method="get">
           <label>
-            <span>Comando juridico</span>
-            <input name="q" placeholder="Buscar processo, cliente, publicacao ou comando..." type="search" />
+            <span>Comando jurídico</span>
+            <input name="q" placeholder="Buscar processo, cliente, publicação ou comando..." type="search" />
           </label>
           <button className="button primary-button" type="submit">Executar</button>
         </form>
@@ -151,13 +151,13 @@ export function GkitJurLabShell({
         <a href="#hoje">Hoje</a>
         <a href="#modelos">Modelos</a>
         <a href="#risco">Risco</a>
-        <a href="#prontuario">Prontuario</a>
+        <a href="#prontuario">Prontuário</a>
         <a href="#advogados">Advogados</a>
         <Link href="/modulos/gkit-jur/inbox">GKIT Jur classico</Link>
       </nav>
 
       <section className="gkit-jur-lab-shell-intro">
-        <span>Inteligencia, visao e controle para o juridico</span>
+        <span>Inteligência, visão e controle para o jurídico</span>
         <h1>Legal Command Center</h1>
         <p>
           Visao estrategica e operacional do contencioso, com prioridades reais antes de qualquer cadastro.
@@ -375,15 +375,23 @@ function inboxHref(data: GkitJurInboxData, fila: GkitJurInboxFilaId) {
 }
 
 function priorityLabel(priority: GkitJurInboxPrioridade) {
-  if (priority === 'critica') return 'Critica'
+  if (priority === 'critica') return 'Crítica'
   if (priority === 'alta') return 'Alta'
-  if (priority === 'media') return 'Media'
+  if (priority === 'media') return 'Média'
   return 'Baixa'
 }
 
 function inboxOwnerLabel(item: GkitJurInboxItem | null | undefined) {
   if (!item) return 'Sem item operacional'
   return item.responsavelNome || item.carteiraNome || 'Sem dono definido'
+}
+
+function inboxTypeLabel(type: string) {
+  if (type === 'tarefa') return 'Tarefa'
+  if (type === 'pendencia') return 'Pendência'
+  if (type === 'automacao') return 'Automação'
+  if (type === 'processo') return 'Processo'
+  return type || 'Item'
 }
 
 export function GkitJurInboxPage({
@@ -405,20 +413,44 @@ export function GkitJurInboxPage({
   const topTask = topItem?.tipo === 'tarefa' && topItem.entidadeId && topItem.processoId ? topItem : null
   const totalFocus = data.metrics.publicacoes + data.metrics.criticos + data.metrics.prazos + data.metrics.pendencias + data.metrics.automacoes
   const pulse = [
-    { label: 'Publicacoes', value: data.metrics.publicacoes, href: '/modulos/gkit-jur/publicacoes' },
-    { label: 'Criticos', value: data.metrics.criticos, href: '/modulos/gkit-jur/inbox?fila=criticos' },
+    { label: 'Publicações', value: data.metrics.publicacoes, href: '/modulos/gkit-jur/publicacoes' },
+    { label: 'Críticos', value: data.metrics.criticos, href: '/modulos/gkit-jur/inbox?fila=criticos' },
     { label: 'Tarefas', value: data.metrics.prazos, href: '/modulos/gkit-jur/inbox?fila=tarefas' },
-    { label: 'Pendencias', value: data.metrics.pendencias, href: '/modulos/gkit-jur/pendencias' },
-    { label: 'Automacao', value: data.metrics.automacoes, href: '/modulos/gkit-jur/agente' },
+    { label: 'Pendências', value: data.metrics.pendencias, href: '/modulos/gkit-jur/pendencias' },
+    { label: 'Automação', value: data.metrics.automacoes, href: '/modulos/gkit-jur/agente' },
   ]
+  const queueRows = pulse.map((item, index) => ({
+    ...item,
+    color: ['#2563eb', '#dc2626', '#d97706', '#7c3aed', '#16a34a'][index],
+  }))
+  const totalQueue = Math.max(1, queueRows.reduce((total, row) => total + row.value, 0))
+  let donutCursor = 0
+  const donutParts = queueRows.map((row) => {
+    const start = donutCursor
+    const end = donutCursor + (row.value / totalQueue) * 360
+    donutCursor = end
+    return `${row.color} ${start.toFixed(1)}deg ${end.toFixed(1)}deg`
+  })
+  const donutStyle = { '--inbox-donut': `conic-gradient(${donutParts.join(', ')}, #e2e8f0 ${donutCursor.toFixed(1)}deg 360deg)` } as CSSProperties
+  const maxPulse = Math.max(1, ...queueRows.map((row) => row.value))
+  const ownerMap = new Map<string, number>()
+  const originMap = new Map<string, number>()
+  for (const item of data.items) {
+    ownerMap.set(inboxOwnerLabel(item), (ownerMap.get(inboxOwnerLabel(item)) ?? 0) + 1)
+    originMap.set(item.origem || inboxTypeLabel(item.tipo), (originMap.get(item.origem || inboxTypeLabel(item.tipo)) ?? 0) + 1)
+  }
+  const ownerRows = [...ownerMap.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 5)
+  const originRows = [...originMap.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 5)
+  const maxOwner = Math.max(1, ...ownerRows.map((row) => row.value))
+  const maxOrigin = Math.max(1, ...originRows.map((row) => row.value))
 
   return (
     <>
       <section className="gkit-jur-inbox-command-center">
         <article className={`gkit-jur-inbox-primary-call ${primaryCall ? priorityTone(primaryCall.priority) : 'success'}`}>
-          <span>Proxima melhor acao</span>
-          <strong>{primaryCall ? primaryCall.title : 'Operacao sem chamada urgente'}</strong>
-          <p>{primaryCall ? primaryCall.description : 'Nao ha tarefas, publicacoes ou pendencias abertas para priorizar agora.'}</p>
+          <span>Próxima melhor ação</span>
+          <strong>{primaryCall ? primaryCall.title : 'Operação sem chamada urgente'}</strong>
+          <p>{primaryCall ? primaryCall.description : 'Não há tarefas, publicações ou pendências abertas para priorizar agora.'}</p>
           <div>
             <small>{totalFocus.toLocaleString('pt-BR')} sinais operacionais no radar</small>
             {primaryCall ? <small>Prioridade {priorityLabel(primaryCall.priority)}</small> : null}
@@ -427,7 +459,7 @@ export function GkitJurInboxPage({
         </article>
 
         <aside className="gkit-jur-inbox-sensitive-call">
-          <span>Item mais sensivel</span>
+          <span>Item mais sensível</span>
           {topItem ? (
             <>
               <strong>{topItem.titulo}</strong>
@@ -444,8 +476,8 @@ export function GkitJurInboxPage({
             </>
           ) : (
             <>
-              <strong>Nada exige decisao imediata</strong>
-              <p>O radar nao encontrou item aberto com prioridade operacional.</p>
+              <strong>Nada exige decisão imediata</strong>
+              <p>O radar não encontrou item aberto com prioridade operacional.</p>
             </>
           )}
         </aside>
@@ -460,6 +492,84 @@ export function GkitJurInboxPage({
         ))}
       </section>
 
+      <section className="gkit-jur-inbox-cockpit-grid">
+        <article className="gkit-jur-inbox-cockpit-panel status">
+          <div>
+            <span>Distribuição da fila</span>
+            <strong>{totalFocus.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-inbox-donut" style={donutStyle}>
+            <span>{data.metrics.hoje.toLocaleString('pt-BR')}</span>
+            <small>itens no inbox</small>
+          </div>
+          <div className="gkit-jur-inbox-status-bars">
+            {queueRows.map((row) => (
+              <Link href={row.href} key={row.label}>
+                <span>{row.label}</span>
+                <div><i style={{ background: row.color, width: `${pct(row.value, maxPulse)}%` }} /></div>
+                <strong>{row.value.toLocaleString('pt-BR')}</strong>
+              </Link>
+            ))}
+          </div>
+        </article>
+
+        <article className="gkit-jur-inbox-cockpit-panel">
+          <div>
+            <span>Próximas ações</span>
+            <strong>{activeCalls.length.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-inbox-action-ranking">
+            {data.proximasAcoes.map((action) => (
+              <Link href={action.href} key={action.title}>
+                <div>
+                  <strong>{action.title}</strong>
+                  <small>{action.count.toLocaleString('pt-BR')} itens - {priorityLabel(action.priority)}</small>
+                </div>
+                <span className={priorityTone(action.priority)}>{action.label}</span>
+              </Link>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="gkit-jur-inbox-cockpit-grid">
+        <article className="gkit-jur-inbox-cockpit-panel">
+          <div>
+            <span>Responsáveis no recorte</span>
+            <strong>{ownerRows.length.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-inbox-ranking">
+            {ownerRows.length ? ownerRows.map((row) => (
+              <div key={row.label}>
+                <div>
+                  <strong>{row.label}</strong>
+                  <small>{row.value.toLocaleString('pt-BR')} itens</small>
+                </div>
+                <span><i style={{ width: `${pct(row.value, maxOwner)}%` }} /></span>
+              </div>
+            )) : <div className="suite-empty-block">Sem itens na fila selecionada.</div>}
+          </div>
+        </article>
+
+        <article className="gkit-jur-inbox-cockpit-panel">
+          <div>
+            <span>Origem dos sinais</span>
+            <strong>{originRows.length.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-inbox-ranking">
+            {originRows.length ? originRows.map((row) => (
+              <div key={row.label}>
+                <div>
+                  <strong>{row.label}</strong>
+                  <small>{row.value.toLocaleString('pt-BR')} itens</small>
+                </div>
+                <span><i style={{ width: `${pct(row.value, maxOrigin)}%` }} /></span>
+              </div>
+            )) : <div className="suite-empty-block">Sem origem no recorte.</div>}
+          </div>
+        </article>
+      </section>
+
       <section className="gkit-jur-inbox-call-grid" aria-label="Chamadas inteligentes">
         {data.proximasAcoes.map((action) => (
           <Link className={`gkit-jur-inbox-call-card ${priorityTone(action.priority)}`} href={action.href} key={action.title}>
@@ -467,7 +577,7 @@ export function GkitJurInboxPage({
             <strong>{action.title}</strong>
             <p>{action.description}</p>
             <div>
-              <small>{action.count.toLocaleString('pt-BR')} item(ns)</small>
+              <small>{action.count.toLocaleString('pt-BR')} itens</small>
               <em>{action.label}</em>
             </div>
           </Link>
@@ -479,7 +589,7 @@ export function GkitJurInboxPage({
           <div className="suite-panel-heading">
             <div>
               <h2>Atalho de tratamento</h2>
-              <p>A tarefa mais sensivel pode ser movimentada daqui.</p>
+              <p>A tarefa mais sensível pode ser movimentada daqui.</p>
             </div>
           </div>
           <div className="gkit-jur-inbox-action-buttons">
@@ -510,7 +620,7 @@ export function GkitJurInboxPage({
                   <input name="prazo_at" type="datetime-local" defaultValue={formatDateTimeLocal(topTask.prazoAt)} />
                 </label>
                 <label>
-                  <span>Responsavel</span>
+                  <span>Responsável</span>
                   <select name="responsavel_id" defaultValue={topTask.responsavelId ?? ''}>
                     {optionList(data.filterOptions.responsaveis, topTask.responsavelNome || 'Herdar do processo')}
                   </select>
@@ -530,19 +640,147 @@ export function GkitJurInboxPage({
         </section>
       ) : null}
 
+      <section className="suite-panel gkit-jur-inbox-queues">
+        <div className="suite-panel-heading">
+          <div>
+            <h2>Fila operacional</h2>
+            <p>Itens priorizados para tratar agora, com filtros por dono e carteira.</p>
+          </div>
+          <strong>{data.items.length.toLocaleString('pt-BR')} exibido(s)</strong>
+        </div>
+        <nav aria-label="Filas do inbox">
+          {data.filas.map((fila) => (
+            <Link className={data.selected === fila.id ? 'active' : ''} href={inboxHref(data, fila.id)} key={fila.id}>
+              <span>
+                <strong>{fila.title}</strong>
+                <small>{fila.description}</small>
+              </span>
+              <em>{fila.count.toLocaleString('pt-BR')}</em>
+            </Link>
+          ))}
+        </nav>
+
+        <form action="/modulos/gkit-jur/inbox" className="gkit-jur-inbox-filter">
+          <input name="fila" type="hidden" value={data.selected} />
+          <label>
+            <span>Carteira</span>
+            <select name="carteira_id" defaultValue={data.filters.carteiraId}>
+              {optionList(data.filterOptions.carteiras, 'Todas as carteiras')}
+            </select>
+          </label>
+          <label>
+            <span>Responsável</span>
+            <select name="responsavel_id" defaultValue={data.filters.responsavelId}>
+              {optionList(data.filterOptions.responsaveis, 'Todos os responsáveis')}
+            </select>
+          </label>
+          <label>
+            <span>Ordenação</span>
+            <select name="ordenacao" defaultValue={data.filters.ordenacao}>
+              <option value="prioridade">Prioridade</option>
+              <option value="tipo">Tipo</option>
+              <option value="responsavel">Responsável</option>
+              <option value="carteira">Carteira</option>
+            </select>
+          </label>
+          <div className="gkit-jur-inbox-filter-actions">
+            <button className="button" type="submit">Filtrar</button>
+            <Link className="button secondary" href="/modulos/gkit-jur/inbox">Limpar</Link>
+          </div>
+        </form>
+
+        <div className="gkit-jur-inbox-list">
+          {data.items.length ? data.items.map((item, index) => {
+            const actionableTask = item.tipo === 'tarefa' && item.entidadeId && item.processoId
+            return (
+              <article className={`gkit-jur-inbox-item ${actionableTask && canWrite ? 'actionable' : ''}`} key={item.id}>
+                <span className="gkit-jur-inbox-rank">{index + 1}</span>
+                <Link className="gkit-jur-inbox-content" href={item.acaoUrl}>
+                  <div className="gkit-jur-inbox-item-head">
+                    <span className={`suite-pill ${priorityTone(item.prioridade)}`}>{priorityLabel(item.prioridade)}</span>
+                    <small>{inboxTypeLabel(item.tipo)}</small>
+                    <small>{item.status}</small>
+                  </div>
+                  <h3>{item.titulo}</h3>
+                  <p>{item.subtitulo}</p>
+                  <small>{item.motivo}</small>
+                </Link>
+                <div className="gkit-jur-inbox-meta">
+                  <strong>{inboxOwnerLabel(item)}</strong>
+                  <span>{item.carteiraNome || 'Sem carteira'}</span>
+                  <span>{formatDate(item.dataReferencia)}</span>
+                  <div className="gkit-jur-score" aria-label={`Score ${item.score}`}>
+                    <span style={{ width: `${Math.min(100, Math.max(0, item.score))}%` }} />
+                  </div>
+                </div>
+                {actionableTask && canWrite ? (
+                  <div className="gkit-jur-inbox-actions">
+                    <div className="gkit-jur-inbox-action-buttons">
+                      {item.status === 'aberta' ? (
+                        <form action={statusAction}>
+                          <input name="tarefa_id" type="hidden" value={item.entidadeId ?? ''} />
+                          <input name="processo_id" type="hidden" value={item.processoId ?? ''} />
+                          <input name="status" type="hidden" value="em_andamento" />
+                          <input name="return_to" type="hidden" value={returnTo} />
+                          <button className="button secondary" type="submit">Iniciar</button>
+                        </form>
+                      ) : null}
+                      <form action={statusAction}>
+                        <input name="tarefa_id" type="hidden" value={item.entidadeId ?? ''} />
+                        <input name="processo_id" type="hidden" value={item.processoId ?? ''} />
+                        <input name="status" type="hidden" value="concluida" />
+                        <input name="return_to" type="hidden" value={returnTo} />
+                        <button className="button primary-button" type="submit">Concluir</button>
+                      </form>
+                    </div>
+                    <details>
+                      <summary>Remarcar / delegar</summary>
+                      <form action={planejamentoAction} className="gkit-jur-inbox-plan-form">
+                        <input name="tarefa_id" type="hidden" value={item.entidadeId ?? ''} />
+                        <input name="processo_id" type="hidden" value={item.processoId ?? ''} />
+                        <input name="return_to" type="hidden" value={returnTo} />
+                        <label>
+                          <span>Prazo</span>
+                          <input name="prazo_at" type="datetime-local" defaultValue={formatDateTimeLocal(item.prazoAt)} />
+                        </label>
+                        <label>
+                          <span>Responsável</span>
+                          <select name="responsavel_id" defaultValue={item.responsavelId ?? ''}>
+                            {optionList(data.filterOptions.responsaveis, item.responsavelNome || 'Herdar do processo')}
+                          </select>
+                        </label>
+                        <label>
+                          <span>Prioridade</span>
+                          <select name="prioridade" defaultValue={item.prioridade}>
+                            {gkitJurTarefaPrioridadeOptions.map((option) => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <button className="button secondary" type="submit">Salvar</button>
+                      </form>
+                    </details>
+                  </div>
+                ) : null}
+              </article>
+            )
+          }) : <div className="suite-empty-block success">Nenhum item na fila selecionada.</div>}
+        </div>
+      </section>
+
       <aside className="suite-panel gkit-jur-inbox-agent-panel">
         <div className="suite-panel-heading">
           <div>
             <h2>Agente auxiliar</h2>
-            <p>As chamadas acima ja estao ordenadas pela prioridade operacional.</p>
+            <p>As chamadas acima já estão ordenadas pela prioridade operacional.</p>
           </div>
         </div>
         <div className="gkit-jur-inbox-agent-copy">
-          <strong>{activeCalls.length ? `${activeCalls.length} chamada(s) acionaveis` : 'Sem chamadas acionaveis'}</strong>
-          <p>O Inbox aponta o melhor lugar de tratamento e deixa a execucao nas telas certas.</p>
+          <strong>{activeCalls.length ? `${activeCalls.length} chamada(s) acionável(is)` : 'Sem chamadas acionáveis'}</strong>
+          <p>O Inbox aponta o melhor lugar de tratamento e deixa a execução nas telas certas.</p>
           <div>
-            <Link className="button secondary" href="/modulos/gkit-jur/publicacoes">Publicacoes</Link>
-            <Link className="button secondary" href="/modulos/gkit-jur/pendencias">Pendencias</Link>
+            <Link className="button secondary" href="/modulos/gkit-jur/publicacoes">Publicações</Link>
+            <Link className="button secondary" href="/modulos/gkit-jur/pendencias">Pendências</Link>
             <Link className="button secondary" href="/modulos/gkit-jur/agente">Agente</Link>
           </div>
         </div>
@@ -576,15 +814,15 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
   const riskTotal = data.metrics.processosComErro + data.metrics.semResponsavel + data.metrics.semCliente
   const primaryActions = data.inbox.proximasAcoes.slice(0, 4)
   const copilotPrompts = [
-    'Quais publicacoes podem virar prazo?',
-    'Onde ha risco sem responsavel?',
-    'Resumo da carteira mais sensivel',
+    'Quais publicações podem virar prazo?',
+    'Onde há risco sem responsável?',
+    'Resumo da carteira mais sensível',
   ]
   const experiments = [
     {
       id: 'situacao',
-      title: 'Sala de Situacao',
-      thesis: 'A primeira tela deve responder o que exige decisao humana agora.',
+      title: 'Sala de Situação',
+      thesis: 'A primeira tela deve responder o que exige decisão humana agora.',
       metric: signalTotal,
       label: 'sinais para priorizar',
       href: '/modulos/gkit-jur/inbox',
@@ -592,15 +830,15 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
     {
       id: 'radar',
       title: 'Radar de Risco',
-      thesis: 'Processos nao sao lista: sao sinais vitais de risco, prontidao e confianca.',
+      thesis: 'Processos não são lista: são sinais vitais de risco, prontidão e confiança.',
       metric: data.metrics.processosComErro + data.metrics.semResponsavel + data.metrics.semCliente,
       label: 'pontos de risco',
       href: '/modulos/gkit-jur/processos',
     },
     {
       id: 'prontuario',
-      title: 'Prontuario Vivo',
-      thesis: 'Cada processo deve abrir como briefing juridico, com resumo, risco e proxima acao.',
+      title: 'Prontuário Vivo',
+      thesis: 'Cada processo deve abrir como briefing jurídico, com resumo, risco e próxima ação.',
       metric: data.smartSummary.coberturaPercentual,
       label: 'cobertura de resumo',
       href: data.briefings[0] ? `/modulos/gkit-jur/processos/${data.briefings[0].processoId}` : '/modulos/gkit-jur/processos',
@@ -611,12 +849,12 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
     <div className="gkit-jur-lab">
       <section className="gkit-jur-lab-command-deck" id="hoje">
         <article className="gkit-jur-lab-briefing-card">
-          <span>Hoje no juridico</span>
-          <h2>{topItem ? 'Ha decisao juridica esperando atencao humana.' : 'A operacao juridica esta sem alerta dominante.'}</h2>
+          <span>Hoje no jurídico</span>
+          <h2>{topItem ? 'Há decisão jurídica esperando atenção humana.' : 'A operação jurídica está sem alerta dominante.'}</h2>
           <p>
             {topItem
-              ? `${topItem.motivo} O melhor proximo passo esta ligado a ${topItem.origem.toLowerCase()}.`
-              : 'O radar nao encontrou item critico no recorte atual; use os modos abaixo para investigar risco, publicacoes e prontuarios.'}
+              ? `${topItem.motivo} O melhor próximo passo está ligado a ${topItem.origem.toLowerCase()}.`
+              : 'O radar não encontrou item crítico no recorte atual; use os modos abaixo para investigar risco, publicações e prontuários.'}
           </p>
           <div className="gkit-jur-lab-briefing-metrics" aria-label="Sinais principais">
             <span>
@@ -625,7 +863,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
             </span>
             <span>
               <strong>{data.inbox.metrics.publicacoes.toLocaleString('pt-BR')}</strong>
-              publicacoes
+              publicações
             </span>
             <span>
               <strong>{riskTotal.toLocaleString('pt-BR')}</strong>
@@ -638,20 +876,20 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
           </div>
           <div className="gkit-jur-lab-briefing-actions">
             {topItem ? <Link className="button primary-button" href={topItem.acaoUrl}>{topItem.acaoLabel}</Link> : null}
-            <Link className="button secondary" href="/modulos/gkit-jur/publicacoes">Tratar publicacoes</Link>
+            <Link className="button secondary" href="/modulos/gkit-jur/publicacoes">Tratar publicações</Link>
             <a className="button secondary" href="#risco">Ver radar</a>
           </div>
         </article>
 
         <aside className="gkit-jur-lab-copilot-card">
           <div className="gkit-jur-lab-copilot-head">
-            <span>Inteligencia juridica</span>
+            <span>Inteligência jurídica</span>
             <small>beta</small>
           </div>
           <form action="/modulos/gkit-jur/busca" className="gkit-jur-lab-copilot-input" method="get">
             <label>
               <span>Pergunte ao copiloto</span>
-              <input name="q" placeholder="O que voce quer saber sobre seus processos?" type="search" />
+              <input name="q" placeholder="O que você quer saber sobre seus processos?" type="search" />
             </label>
             <button className="button primary-button" type="submit">Perguntar</button>
           </form>
@@ -664,7 +902,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
             <span>Resposta sugerida</span>
             <p>
               Comece por {primaryActions[0]?.title.toLowerCase() ?? 'revisar a fila de hoje'}:
-              ha {primaryActions[0]?.count.toLocaleString('pt-BR') ?? '0'} item(ns) nesse bloco.
+              há {primaryActions[0]?.count.toLocaleString('pt-BR') ?? '0'} itens nesse bloco.
             </p>
           </div>
         </aside>
@@ -673,7 +911,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
       <section className="gkit-jur-lab-control-grid">
         <article className="gkit-jur-lab-priority-panel">
           <div className="gkit-jur-lab-section-title">
-            <span>Prazos criticos</span>
+            <span>Prazos críticos</span>
             <h3>O sistema escolhe a fila; o humano confirma o tratamento.</h3>
           </div>
           <div className="gkit-jur-lab-action-stack">
@@ -682,7 +920,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
                 <span>{priorityLabel(action.priority)}</span>
                 <strong>{action.title}</strong>
                 <p>{action.description}</p>
-                <small>{action.count.toLocaleString('pt-BR')} item(ns)</small>
+                <small>{action.count.toLocaleString('pt-BR')} itens</small>
               </Link>
             ))}
           </div>
@@ -691,7 +929,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
         <article className="gkit-jur-lab-risk-panel">
           <div className="gkit-jur-lab-section-title">
             <span>Radar de risco</span>
-            <h3>Antecipacao de riscos antes que virem urgencia.</h3>
+            <h3>Antecipação de riscos antes que virem urgência.</h3>
           </div>
           <div className="gkit-jur-lab-risk-orbit" aria-label="Radar de risco operacional">
             <span className="orbit-ring outer" />
@@ -704,7 +942,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
           </div>
           <div className="gkit-jur-lab-risk-legend">
             <span><b /> erros de monitoramento</span>
-            <span><b /> sem responsavel</span>
+            <span><b /> sem responsável</span>
             <span><b /> sem cliente</span>
           </div>
         </article>
@@ -712,7 +950,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
         <aside className="gkit-jur-lab-context-panel">
           <span>Processo em foco</span>
           <strong>{topItem ? topItem.titulo : data.briefings[0]?.numeroCnj ?? 'Sem processo em foco'}</strong>
-          <p>{topItem ? topItem.subtitulo : data.briefings[0]?.resumoOperacional ?? 'Selecione um sinal para abrir o contexto juridico.'}</p>
+          <p>{topItem ? topItem.subtitulo : data.briefings[0]?.resumoOperacional ?? 'Selecione um sinal para abrir o contexto jurídico.'}</p>
           <dl>
             <div>
               <dt>Origem</dt>
@@ -723,7 +961,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
               <dd>{topItem?.responsavelNome || topItem?.carteiraNome || 'Sem dono definido'}</dd>
             </div>
             <div>
-              <dt>Prontidao</dt>
+              <dt>Prontidão</dt>
               <dd>{data.briefings[0] ? readinessLabel(data.briefings[0].nivelProntidao) : 'Sem base'}</dd>
             </div>
           </dl>
@@ -735,9 +973,9 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
 
       <section className="gkit-jur-lab-constellation" aria-label="Sinais do laboratorio">
         <article>
-          <span>Atencao humana</span>
+          <span>Atenção humana</span>
           <strong>{signalTotal.toLocaleString('pt-BR')}</strong>
-          <p>publicacoes, tarefas, criticos, saneamento e automacao.</p>
+          <p>publicações, tarefas, críticos, saneamento e automação.</p>
         </article>
         <article>
           <span>Base ativa</span>
@@ -750,7 +988,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
           <p>{data.smartSummary.resumosInteligentes.toLocaleString('pt-BR')} de {data.smartSummary.totalAtivos.toLocaleString('pt-BR')} ativos.</p>
         </article>
         <article>
-          <span>Revisao humana</span>
+          <span>Revisão humana</span>
           <strong>{data.smartSummary.precisaRevisaoHumana.toLocaleString('pt-BR')}</strong>
           <p>briefings que assumem incerteza em vez de fingir certeza.</p>
         </article>
@@ -766,8 +1004,8 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
               <small>{experiment.label}</small>
             </div>
             <p>
-              Teste com advogados: eles entendem a prioridade sem explicar a tela? Eles confiam na sugestao?
-              Eles sabem qual acao tomar em menos de um minuto?
+              Teste com advogados: eles entendem a prioridade sem explicar a tela? Eles confiam na sugestão?
+              Eles sabem qual ação tomar em menos de um minuto?
             </p>
             <Link className="button secondary" href={experiment.href}>Abrir referencia atual</Link>
           </article>
@@ -776,11 +1014,11 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
 
       <section className="gkit-jur-lab-radar" id="risco">
         <div>
-          <span>Radar de prontidao</span>
-          <h3>O produto deveria mostrar confianca operacional antes de mostrar tabela.</h3>
+          <span>Radar de prontidão</span>
+          <h3>O produto deveria mostrar confiança operacional antes de mostrar tabela.</h3>
           <p>
-            A lista tradicional esconde a pergunta central: este processo esta pronto para receber uma decisao,
-            uma publicacao ou uma automacao?
+            A lista tradicional esconde a pergunta central: este processo está pronto para receber uma decisão,
+            uma publicação ou uma automação?
           </p>
         </div>
         <div className="gkit-jur-lab-readiness">
@@ -796,8 +1034,8 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
       <section className="gkit-jur-lab-workbench" id="prontuario">
         <div>
           <div className="gkit-jur-lab-section-title">
-            <span>Amostra de atencao</span>
-            <h3>Itens que ajudam a testar se a Sala de Situacao funciona.</h3>
+            <span>Amostra de atenção</span>
+            <h3>Itens que ajudam a testar se a Sala de Situação funciona.</h3>
           </div>
           <div className="gkit-jur-lab-focus-list">
             {data.inbox.items.slice(0, 5).map((item) => (
@@ -813,8 +1051,8 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
 
         <div>
           <div className="gkit-jur-lab-section-title">
-            <span>Amostra de prontuario</span>
-            <h3>Processos para testar briefing juridico em vez de cadastro.</h3>
+            <span>Amostra de prontuário</span>
+            <h3>Processos para testar briefing jurídico em vez de cadastro.</h3>
           </div>
           <div className="gkit-jur-lab-briefings">
             {data.briefings.slice(0, 4).map((briefing) => (
@@ -831,14 +1069,14 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
 
       <section className="gkit-jur-lab-feedback" id="advogados">
         <div>
-          <span>Roteiro de avaliacao</span>
-          <h3>Como colher opiniao dos advogados sem transformar isso em gosto pessoal.</h3>
+          <span>Roteiro de avaliação</span>
+          <h3>Como colher opinião dos advogados sem transformar isso em gosto pessoal.</h3>
         </div>
         <ol>
-          <li>Qual modelo te diz mais rapido o que fazer agora?</li>
-          <li>Em qual modelo voce confiaria para nao perder publicacao ou prazo?</li>
-          <li>O que precisa continuar auditavel mesmo que saia da tela principal?</li>
-          <li>Que informacao faria voce abrir menos abas do processo digital?</li>
+          <li>Qual modelo te diz mais rápido o que fazer agora?</li>
+          <li>Em qual modelo você confiaria para não perder publicação ou prazo?</li>
+          <li>O que precisa continuar auditável mesmo que saia da tela principal?</li>
+          <li>Que informação faria você abrir menos abas do processo digital?</li>
         </ol>
       </section>
     </div>
@@ -1073,17 +1311,17 @@ function processRiskScore(row: GkitJurProcessListItem) {
 }
 
 function processRiskReason(row: GkitJurProcessListItem) {
-  if (!row.responsavelNome) return 'Ainda nao existe dono operacional definido para o acompanhamento.'
-  if (!row.clienteNome) return 'O processo esta ativo, mas ainda nao foi ligado a um cliente.'
-  if (!row.carteiraNome) return 'Falta carteira para orientar fila, responsavel e rotina de tratamento.'
-  if (row.statusMonitoramento === 'erro') return 'A sincronizacao precisa de revisao antes de confiar no acompanhamento.'
-  if (!row.ultimaMovimentacaoEm) return 'Nao ha movimentacao recente consolidada na base local.'
+  if (!row.responsavelNome) return 'Ainda não existe dono operacional definido para o acompanhamento.'
+  if (!row.clienteNome) return 'O processo está ativo, mas ainda não foi ligado a um cliente.'
+  if (!row.carteiraNome) return 'Falta carteira para orientar fila, responsável e rotina de tratamento.'
+  if (row.statusMonitoramento === 'erro') return 'A sincronização precisa de revisão antes de confiar no acompanhamento.'
+  if (!row.ultimaMovimentacaoEm) return 'Não há movimentação recente consolidada na base local.'
   return 'Processo ativo com dados suficientes para acompanhamento operacional.'
 }
 
 function processOwnerLabel(row: GkitJurProcessListItem | null) {
   if (!row) return 'Sem processo em foco'
-  return row.responsavelNome || row.carteiraNome || row.clienteNome || 'Sem vinculo operacional'
+  return row.responsavelNome || row.carteiraNome || row.clienteNome || 'Sem vínculo operacional'
 }
 
 function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData }) {
@@ -1094,34 +1332,34 @@ function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData })
   const primary =
     metrics.semResponsavel > 0
       ? {
-        action: 'Atribuir responsaveis',
+        action: 'Atribuir responsáveis',
         description: 'Priorize processos ativos sem dono antes de gerar tarefas, prazos ou leitura automatizada.',
         href: processHref({ saneamento: 'sem_responsavel' }),
-        meta: `${metrics.semResponsavel.toLocaleString('pt-BR')} sem responsavel`,
+        meta: `${metrics.semResponsavel.toLocaleString('pt-BR')} sem responsável`,
         title: 'Definir donos operacionais',
         tone: 'warning',
       }
       : metrics.semCliente > 0
         ? {
           action: 'Vincular clientes',
-          description: 'Complete o elo com o cliente para que publicacoes, tarefas e historico aparecam no contexto certo.',
+          description: 'Complete o elo com o cliente para que publicações, tarefas e histórico apareçam no contexto certo.',
           href: processHref({ saneamento: 'sem_cliente' }),
           meta: `${metrics.semCliente.toLocaleString('pt-BR')} sem cliente`,
-          title: 'Fechar vinculos de cliente',
+          title: 'Fechar vínculos de cliente',
           tone: 'primary',
         }
         : metrics.processosComErro > 0
           ? {
             action: 'Revisar erros',
-            description: 'Ha processos ativos com monitoramento em erro; eles devem sair da fila cega antes da rotina diaria.',
+            description: 'Há processos ativos com monitoramento em erro; eles devem sair da fila cega antes da rotina diária.',
             href: processHref({ monitoramento: 'erro' }),
             meta: `${metrics.processosComErro.toLocaleString('pt-BR')} com erro`,
-            title: 'Recuperar sincronizacoes',
+            title: 'Recuperar sincronizações',
             tone: 'danger',
           }
           : {
             action: 'Revisar base',
-            description: 'Os vinculos essenciais estao sob controle; acompanhe os ativos com menor movimentacao primeiro.',
+            description: 'Os vínculos essenciais estão sob controle; acompanhe os ativos com menor movimentação primeiro.',
             href: processHref({ sort: 'ultima_movimentacao_em', dir: 'asc' }),
             meta: `${metrics.processosAtivos.toLocaleString('pt-BR')} ativos`,
             title: 'Base pronta para acompanhamento',
@@ -1136,7 +1374,7 @@ function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData })
   const calls = [
     {
       count: metrics.semResponsavel,
-      description: 'Sem responsavel, o processo pode receber publicacao e ficar sem tratamento claro.',
+      description: 'Sem responsável, o processo pode receber publicação e ficar sem tratamento claro.',
       href: processHref({ saneamento: 'sem_responsavel' }),
       label: 'Resolver donos',
       tone: metrics.semResponsavel > 0 ? 'warning' : 'muted',
@@ -1144,7 +1382,7 @@ function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData })
     },
     {
       count: metrics.semCliente,
-      description: 'Corrige o elo com Ciclo/cliente e evita publicacao sem contexto de atendimento.',
+      description: 'Corrige o elo com Ciclo/cliente e evita publicação sem contexto de atendimento.',
       href: processHref({ saneamento: 'sem_cliente' }),
       label: 'Vincular cliente',
       tone: metrics.semCliente > 0 ? 'primary' : 'muted',
@@ -1160,9 +1398,9 @@ function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData })
     },
     {
       count: metrics.processosComErro,
-      description: 'Processos com erro de monitoramento precisam de intervencao antes do tratamento automatico.',
+      description: 'Processos com erro de monitoramento precisam de intervenção antes do tratamento automático.',
       href: processHref({ monitoramento: 'erro' }),
-      label: 'Revisar sincronizacao',
+      label: 'Revisar sincronização',
       tone: metrics.processosComErro > 0 ? 'danger' : 'muted',
       title: 'Monitoramento em erro',
     },
@@ -1172,18 +1410,18 @@ function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData })
     <>
       <section className="gkit-jur-process-command-center">
         <article className={`gkit-jur-process-primary-call ${primary.tone}`}>
-          <span>Proxima melhor acao</span>
+          <span>Próxima melhor ação</span>
           <strong>{primary.title}</strong>
           <p>{primary.description}</p>
           <div>
             <small>{primary.meta}</small>
-            <small>{saneamentoTotal.toLocaleString('pt-BR')} pendencias de saneamento</small>
+            <small>{saneamentoTotal.toLocaleString('pt-BR')} pendências de saneamento</small>
           </div>
           <Link className="button primary-button" href={primary.href}>{primary.action}</Link>
         </article>
 
         <aside className="gkit-jur-process-sensitive-call">
-          <span>Processo mais sensivel</span>
+          <span>Processo mais sensível</span>
           {sensitiveProcess ? (
             <>
               <strong>{sensitiveProcess.numeroCnj}</strong>
@@ -1191,7 +1429,7 @@ function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData })
               <div className="gkit-jur-process-sensitive-meta">
                 <small>{processOwnerLabel(sensitiveProcess)}</small>
                 <small>{sensitiveProcess.tribunalSigla || 'Sem tribunal'}</small>
-                <small>{sensitiveProcess.ultimaMovimentacaoEm ? `Mov. ${formatDate(sensitiveProcess.ultimaMovimentacaoEm)}` : 'Sem movimentacao'}</small>
+                <small>{sensitiveProcess.ultimaMovimentacaoEm ? `Mov. ${formatDate(sensitiveProcess.ultimaMovimentacaoEm)}` : 'Sem movimentação'}</small>
               </div>
               <div className="gkit-jur-score" aria-label={`Score ${processRiskScore(sensitiveProcess)}`}>
                 <span style={{ width: `${processRiskScore(sensitiveProcess)}%` }} />
@@ -1201,7 +1439,7 @@ function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData })
           ) : (
             <>
               <strong>Nenhum processo no recorte</strong>
-              <p>Ajuste os filtros ou volte para a visao de ativos.</p>
+              <p>Ajuste os filtros ou volte para a visão de ativos.</p>
             </>
           )}
         </aside>
@@ -1219,7 +1457,7 @@ function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData })
       <section className="gkit-jur-process-call-grid" aria-label="Chamadas de saneamento">
         {calls.map((call) => (
           <Link className={`gkit-jur-process-call-card ${call.tone}`} href={call.href} key={call.title}>
-            <span>{call.count.toLocaleString('pt-BR')} item(ns)</span>
+            <span>{call.count.toLocaleString('pt-BR')} itens</span>
             <strong>{call.title}</strong>
             <p>{call.description}</p>
             <em>{call.label}</em>
@@ -1244,7 +1482,7 @@ export function GkitJurProcessesCockpitPage({ data }: { data: GkitJurProcessList
     { label: 'Outros', tone: 'primary', value: Math.max(0, metrics.processosAtivos - metrics.processosMonitorados - metrics.processosComErro) },
   ]
   const saneamentoRows = [
-    { href: processHref({ saneamento: 'sem_responsavel' }), label: 'Sem responsavel', tone: 'warning', value: metrics.semResponsavel },
+    { href: processHref({ saneamento: 'sem_responsavel' }), label: 'Sem responsável', tone: 'warning', value: metrics.semResponsavel },
     { href: processHref({ saneamento: 'sem_cliente' }), label: 'Sem cliente', tone: 'primary', value: metrics.semCliente },
     { href: processHref({ saneamento: 'sem_carteira' }), label: 'Sem carteira', tone: 'primary', value: metrics.semCarteira },
   ]
@@ -1284,8 +1522,8 @@ export function GkitJurProcessesCockpitPage({ data }: { data: GkitJurProcessList
       <section className="gkit-jur-process-cockpit-hero">
         <div>
           <span>Cockpit processual</span>
-          <h2>{metrics.processosAtivos.toLocaleString('pt-BR')} processo(s) ativos</h2>
-          <p>{saneamentoTotal.toLocaleString('pt-BR')} pendencia(s) cadastrais, {metrics.processosComErro.toLocaleString('pt-BR')} erro(s) de monitoramento e {metrics.movimentacoesUltimos7Dias.toLocaleString('pt-BR')} movimentacao(oes) recebidas nos ultimos 7 dias.</p>
+          <h2>{metrics.processosAtivos.toLocaleString('pt-BR')} processos ativos</h2>
+          <p>{saneamentoTotal.toLocaleString('pt-BR')} pendências cadastrais, {metrics.processosComErro.toLocaleString('pt-BR')} erros de monitoramento e {metrics.movimentacoesUltimos7Dias.toLocaleString('pt-BR')} movimentações recebidas nos últimos 7 dias.</p>
         </div>
         <div>
           <strong>{sensitiveProcess ? sensitiveProcess.numeroCnj : 'Base sem risco'}</strong>
@@ -1303,17 +1541,17 @@ export function GkitJurProcessesCockpitPage({ data }: { data: GkitJurProcessList
         <article className={metrics.processosComErro ? 'danger' : 'success'}>
           <span>Erros</span>
           <strong>{metrics.processosComErro.toLocaleString('pt-BR')}</strong>
-          <small>sincronizacao ou acompanhamento</small>
+          <small>sincronização ou acompanhamento</small>
         </article>
         <article className={saneamentoTotal ? 'warning' : 'success'}>
           <span>Saneamento</span>
           <strong>{saneamentoTotal.toLocaleString('pt-BR')}</strong>
-          <small>cliente, carteira ou responsavel pendente</small>
+          <small>cliente, carteira ou responsável pendente</small>
         </article>
         <article>
           <span>Mov. 7 dias</span>
           <strong>{metrics.movimentacoesUltimos7Dias.toLocaleString('pt-BR')}</strong>
-          <small>{semMovimento.toLocaleString('pt-BR')} sem movimentacao na amostra</small>
+          <small>{semMovimento.toLocaleString('pt-BR')} sem movimentação na amostra</small>
         </article>
       </section>
 
@@ -1416,12 +1654,12 @@ export function GkitJurProcessesCockpitPage({ data }: { data: GkitJurProcessList
 
         <article className="gkit-jur-process-cockpit-panel">
           <div>
-            <span>Movimentacao</span>
+            <span>Movimentação</span>
             <strong>{metrics.movimentacoesUltimos7Dias.toLocaleString('pt-BR')}</strong>
           </div>
           <div className="gkit-jur-process-movement-summary">
             <Link href="/modulos/gkit-jur/movimentacoes">
-              <strong>Movimentacoes recentes</strong>
+              <strong>Movimentações recentes</strong>
               <span>{metrics.movimentacoesUltimos7Dias.toLocaleString('pt-BR')}</span>
             </Link>
             <Link href={processHref({ sort: 'ultima_movimentacao_em', dir: 'asc' })}>
@@ -1468,7 +1706,7 @@ export function GkitJurProcessesPage({
             <input name="return_to" type="hidden" value={returnTo} />
             <div>
               <strong>Etiquetas em lote</strong>
-              <small>Selecione processos nesta pagina filtrada e aplique uma etiqueta.</small>
+              <small>Selecione processos nesta página filtrada e aplique uma etiqueta.</small>
             </div>
             <select name="etiqueta_id" required defaultValue="">
               <option value="">Escolha a etiqueta</option>
@@ -1683,15 +1921,15 @@ function GkitJurProcessTaggableList({
           <Link className="suite-row-link" href={`/modulos/gkit-jur/processos/${row.id}`}>
             <div>
               <h3>{row.numeroCnj} {row.titulo ? `- ${row.titulo}` : ''}</h3>
-              <p>{row.clienteNome || 'Cliente nao vinculado'}{row.pasta ? ` - Pasta ${row.pasta}` : ''}</p>
+              <p>{row.clienteNome || 'Cliente não vinculado'}{row.pasta ? ` - Pasta ${row.pasta}` : ''}</p>
               <GkitJurEtiquetaPills tags={row.etiquetas} />
             </div>
             <span className="suite-pill primary">{row.tribunalSigla || 'Sem tribunal'}</span>
             <strong>{row.carteiraNome || 'Sem carteira'}</strong>
-            <small>{row.responsavelNome || 'Sem responsavel'}</small>
+            <small>{row.responsavelNome || 'Sem responsável'}</small>
             <div className="gkit-jur-row-stack">
               <span className={`suite-pill ${row.status === 'ativo' ? 'primary' : 'muted'}`}>{statusLabel(row.status)}</span>
-              <small>{row.ultimaMovimentacaoEm ? `Mov. ${formatDate(row.ultimaMovimentacaoEm)}` : 'Sem movimentacao'}</small>
+              <small>{row.ultimaMovimentacaoEm ? `Mov. ${formatDate(row.ultimaMovimentacaoEm)}` : 'Sem movimentação'}</small>
             </div>
           </Link>
           {canWrite ? (
@@ -2261,7 +2499,7 @@ function GkitJurAcordoForm({
       </Field>
       <div className="module-form-wide">
         <Field label="Condicoes / observacoes">
-          <textarea name="observacoes" rows={3} placeholder="Resumo do acordo, multa, clausulas sensiveis ou origem da homologacao." />
+          <textarea name="observacoes" rows={3} placeholder="Resumo do acordo, multa, cláusulas sensíveis ou origem da homologação." />
         </Field>
       </div>
       <div className="form-actions module-form-wide">
@@ -3241,12 +3479,12 @@ function publicacaoHasArchiveSignal(item: GkitJurPublicacao) {
 
 function publicacaoProcessStateLabel(item: GkitJurPublicacao) {
   if (item.processoId) return 'Processo ativo'
-  if (!item.processoBaseId) return 'Nao localizado na base'
+  if (!item.processoBaseId) return 'Não localizado na base'
   if (item.processoBaseStatus === 'arquivado') return 'Processo arquivado na base'
   if (item.processoBaseStatus === 'encerrado') return 'Processo encerrado na base'
   if (item.processoBaseStatus === 'suspenso') return 'Processo suspenso na base'
   if (item.processoBaseStatus === 'erro') return 'Processo com erro cadastral'
-  return 'Processo na base, sem vinculo ativo'
+  return 'Processo na base, sem vínculo ativo'
 }
 
 function publicacaoDecision(item: GkitJurPublicacao): PublicacaoDecision {
@@ -3255,8 +3493,8 @@ function publicacaoDecision(item: GkitJurPublicacao): PublicacaoDecision {
   const evidence = [
     publicacaoProcessStateLabel(item),
     item.processoBaseStatusMonitoramento && item.processoBaseStatusMonitoramento !== 'monitorando' ? `Monitoramento: ${statusLabel(item.processoBaseStatusMonitoramento)}` : null,
-    archiveSignal ? 'Texto menciona transito/arquivamento' : null,
-    item.responsavelNome ? `Responsavel: ${item.responsavelNome}` : 'Sem responsavel',
+    archiveSignal ? 'Texto menciona trânsito/arquivamento' : null,
+    item.responsavelNome ? `Responsável: ${item.responsavelNome}` : 'Sem responsável',
     item.carteiraNome ? `Carteira: ${item.carteiraNome}` : null,
   ].filter(Boolean) as string[]
 
@@ -3267,12 +3505,12 @@ function publicacaoDecision(item: GkitJurPublicacao): PublicacaoDecision {
         actionLabel: archived || archiveSignal ? 'Revisar baixa' : 'Revisar cadastro',
         decision: 'revisar_cadastro_processo',
         evidence,
-        headline: archived || archiveSignal ? 'Processo fora da operacao ativa' : 'Processo existe, mas nao esta ativo',
+        headline: archived || archiveSignal ? 'Processo fora da operação ativa' : 'Processo existe, mas não está ativo',
         priority: archived || archiveSignal ? 'media' : 'alta',
         quickStatus: 'em_tratamento',
         reason: archived || archiveSignal
-          ? 'O CNJ existe na base, mas parece arquivado/encerrado ou a publicacao menciona transito/arquivamento. Validar se exige apenas ciencia, reativacao ou baixa operacional.'
-          : 'O CNJ existe na base, mas a publicacao nao esta vinculada a um processo ativo. Validar status, carteira e monitoramento antes de gerar tarefa.',
+          ? 'O CNJ existe na base, mas parece arquivado/encerrado ou a publicação menciona trânsito/arquivamento. Validar se exige apenas ciência, reativação ou baixa operacional.'
+          : 'O CNJ existe na base, mas a publicação não está vinculada a um processo ativo. Validar status, carteira e monitoramento antes de gerar tarefa.',
         tone: archived || archiveSignal ? 'warning' : 'danger',
       }
     }
@@ -3281,10 +3519,10 @@ function publicacaoDecision(item: GkitJurPublicacao): PublicacaoDecision {
       actionLabel: 'Revisar cadastro',
       decision: 'revisar_cadastro_processo',
       evidence,
-      headline: 'Vinculo operacional pendente',
+      headline: 'Vínculo operacional pendente',
       priority: 'alta',
       quickStatus: 'em_tratamento',
-      reason: 'A publicacao foi capturada, mas ainda nao encontrou um processo ativo para receber tarefa ou prazo.',
+      reason: 'A publicação foi capturada, mas ainda não encontrou um processo ativo para receber tarefa ou prazo.',
       tone: 'warning',
     }
   }
@@ -3294,10 +3532,10 @@ function publicacaoDecision(item: GkitJurPublicacao): PublicacaoDecision {
       actionLabel: 'Revisar baixa',
       decision: 'gerar_tarefa',
       evidence,
-      headline: 'Sinal de transito ou arquivamento',
+      headline: 'Sinal de trânsito ou arquivamento',
       priority: 'alta',
       quickStatus: 'em_tratamento',
-      reason: 'A publicacao menciona transito em julgado ou arquivamento. Validar baixa operacional, encerramento do monitoramento e eventual ciencia.',
+      reason: 'A publicação menciona trânsito em julgado ou arquivamento. Validar baixa operacional, encerramento do monitoramento e eventual ciência.',
       tone: 'warning',
     }
   }
@@ -3306,11 +3544,11 @@ function publicacaoDecision(item: GkitJurPublicacao): PublicacaoDecision {
     return {
       actionLabel: 'Gerar prazo',
       decision: 'gerar_prazo',
-      evidence: [...evidence, 'Texto indica providencia com possivel prazo'],
-      headline: 'Possivel prazo ou providencia processual',
+      evidence: [...evidence, 'Texto indica providência com possível prazo'],
+      headline: 'Possível prazo ou providência processual',
       priority: 'critica',
       quickStatus: 'em_tratamento',
-      reason: 'Ha termos de intimacao que normalmente exigem leitura juridica e controle de vencimento.',
+      reason: 'Há termos de intimação que normalmente exigem leitura jurídica e controle de vencimento.',
       tone: 'danger',
     }
   }
@@ -3320,23 +3558,23 @@ function publicacaoDecision(item: GkitJurPublicacao): PublicacaoDecision {
       actionLabel: 'Criar tarefa',
       decision: 'gerar_tarefa',
       evidence: [...evidence, 'Evento operacional detectado'],
-      headline: 'Evento precisa de preparacao',
+      headline: 'Evento precisa de preparação',
       priority: 'alta',
       quickStatus: 'em_tratamento',
-      reason: 'A publicacao sugere agenda, preparo documental ou alinhamento interno.',
+      reason: 'A publicação sugere agenda, preparo documental ou alinhamento interno.',
       tone: 'warning',
     }
   }
 
   if (hasAny(text, ['ciencia', 'ciência', 'mero expediente', 'certidao', 'certidão', 'juntada', 'publicado despacho'])) {
     return {
-      actionLabel: 'Registrar ciencia',
+      actionLabel: 'Registrar ciência',
       decision: 'registrar_ciencia',
       evidence: [...evidence, 'Baixo risco aparente'],
-      headline: 'Ciencia ou andamento informativo',
+      headline: 'Ciência ou andamento informativo',
       priority: 'baixa',
       quickStatus: 'tratada',
-      reason: 'O texto parece indicar ciencia ou movimentacao sem providencia imediata.',
+      reason: 'O texto parece indicar ciência ou movimentação sem providência imediata.',
       tone: 'success',
     }
   }
@@ -3348,7 +3586,7 @@ function publicacaoDecision(item: GkitJurPublicacao): PublicacaoDecision {
     headline: 'Triagem humana recomendada',
     priority: 'media',
     quickStatus: 'em_tratamento',
-    reason: 'Nao ha sinal suficiente para dispensar automaticamente; registre a conclusao apos leitura.',
+    reason: 'Não há sinal suficiente para dispensar automaticamente; registre a conclusão após leitura.',
     tone: 'primary',
   }
 }
@@ -3363,7 +3601,7 @@ function limitPublicacaoText(value: string, max = 310) {
 
 function publicacaoShortText(item: GkitJurPublicacao) {
   const source = compactPublicacaoText(item.textoPreview || item.textoCompleto)
-  if (!source) return 'Publicacao sem preview textual.'
+  if (!source) return 'Publicação sem prévia textual.'
   const withoutProcess = source
     .replace(/^Processo:\s*\S+\s*/i, '')
     .replace(/\s+Data de disponibiliza\S*:\s*/i, ' | ')
@@ -3378,7 +3616,7 @@ function publicacaoShortText(item: GkitJurPublicacao) {
 }
 
 function publicacaoFullText(item: GkitJurPublicacao) {
-  return item.textoCompleto?.trim() || item.textoPreview?.trim() || 'Texto completo indisponivel para esta publicacao.'
+  return item.textoCompleto?.trim() || item.textoPreview?.trim() || 'Texto completo indisponível para esta publicação.'
 }
 
 function publicacaoFonteLabel(value: string) {
@@ -3448,20 +3686,20 @@ function GkitJurPublicacaoCommandStrip({ data }: { data: GkitJurPublicacoesData 
       count: data.metrics.vinculadasAtivas,
       href: '/modulos/gkit-jur/publicacoes/lista?status=pendente',
       label: 'Processos ativos',
-      note: 'prontas para tarefa ou ciencia',
+      note: 'prontas para tarefa ou ciência',
       tone: 'primary',
     },
     {
       count: data.metrics.foraOperacao,
       href: '/modulos/gkit-jur/publicacoes/lista?q=encerrado',
-      label: 'Fora da operacao',
+      label: 'Fora da operação',
       note: `${data.metrics.encerradasOuArquivadas.toLocaleString('pt-BR')} encerr./arq.`,
       tone: 'warning',
     },
     {
       count: data.metrics.naoLocalizadas,
       href: '/modulos/gkit-jur/publicacoes/lista?q=Nao%20localizado',
-      label: 'Nao localizados',
+      label: 'Não localizadas',
       note: 'exigem cadastro',
       tone: 'danger',
     },
@@ -3469,7 +3707,7 @@ function GkitJurPublicacaoCommandStrip({ data }: { data: GkitJurPublicacoesData 
       count: data.metrics.tratadas + data.metrics.dispensadas,
       href: '/modulos/gkit-jur/publicacoes/lista?status=tratada',
       label: 'Resolvidas',
-      note: 'decisao registrada',
+      note: 'decisão registrada',
       tone: 'success',
     },
   ]
@@ -3477,15 +3715,15 @@ function GkitJurPublicacaoCommandStrip({ data }: { data: GkitJurPublicacoesData 
   return (
     <section className="gkit-jur-publication-command">
       <div className="gkit-jur-publication-command-main">
-        <span>Cockpit de publicacoes</span>
+        <span>Cockpit de publicações</span>
         <strong>{openWork.toLocaleString('pt-BR')}</strong>
-        <p>pendentes para decisao humana</p>
+        <p>pendentes para decisão humana</p>
         <div>
           <small>{data.metrics.total.toLocaleString('pt-BR')} no recorte</small>
           <small>{data.metrics.foraOperacao.toLocaleString('pt-BR')} fora do fluxo ativo</small>
         </div>
       </div>
-      <nav aria-label="Atalhos da caixa de publicacoes">
+      <nav aria-label="Atalhos da caixa de publicações">
         {lanes.map((lane) => (
           <Link className={`gkit-jur-publication-lane ${lane.tone}`} href={lane.href} key={lane.label}>
             <span>{lane.label}</span>
@@ -3543,13 +3781,13 @@ export function GkitJurPublicacoesCockpitPage({ data }: { data: GkitJurPublicaco
     <>
       <section className="gkit-jur-publication-cockpit-hero">
         <div>
-          <span>Monitoramento de publicacoes</span>
-          <h2>{abertas.toLocaleString('pt-BR')} publicacao(oes) exigem triagem</h2>
-          <p>{metrics.semProcesso.toLocaleString('pt-BR')} sem processo ativo, {metrics.foraOperacao.toLocaleString('pt-BR')} fora da operacao e {metrics.naoLocalizadas.toLocaleString('pt-BR')} nao localizada(s) na base.</p>
+          <span>Monitoramento de publicações</span>
+          <h2>{abertas.toLocaleString('pt-BR')} publicações exigem triagem</h2>
+          <p>{metrics.semProcesso.toLocaleString('pt-BR')} sem processo ativo, {metrics.foraOperacao.toLocaleString('pt-BR')} fora da operação e {metrics.naoLocalizadas.toLocaleString('pt-BR')} não localizadas na base.</p>
         </div>
         <div>
           <strong>{metrics.total.toLocaleString('pt-BR')}</strong>
-          <small>publicacao(oes) no recorte operacional</small>
+          <small>publicações no recorte operacional</small>
           <Link className="button primary-button" href="/modulos/gkit-jur/publicacoes/lista">Abrir lista detalhada</Link>
         </div>
       </section>
@@ -3563,12 +3801,12 @@ export function GkitJurPublicacoesCockpitPage({ data }: { data: GkitJurPublicaco
         <article>
           <span>Vinculadas</span>
           <strong>{metrics.vinculadasAtivas.toLocaleString('pt-BR')}</strong>
-          <small>prontas para tarefa, prazo ou ciencia</small>
+          <small>prontas para tarefa, prazo ou ciência</small>
         </article>
         <article className={metrics.semProcesso ? 'danger' : 'success'}>
           <span>Sem processo ativo</span>
           <strong>{metrics.semProcesso.toLocaleString('pt-BR')}</strong>
-          <small>{metrics.naoLocalizadas.toLocaleString('pt-BR')} nao localizada(s)</small>
+          <small>{metrics.naoLocalizadas.toLocaleString('pt-BR')} não localizadas</small>
         </article>
         <article>
           <span>Resolvidas</span>
@@ -3608,7 +3846,7 @@ export function GkitJurPublicacoesCockpitPage({ data }: { data: GkitJurPublicaco
               <Link href={`/modulos/gkit-jur/publicacoes/lista?fonte=${encodeURIComponent(row.label.toLowerCase() === 'aasp' ? 'aasp' : row.label)}`} key={row.label}>
                 <div>
                   <strong>{row.label}</strong>
-                  <small>{row.value.toLocaleString('pt-BR')} publicacao(oes) na amostra</small>
+                  <small>{row.value.toLocaleString('pt-BR')} publicações na amostra</small>
                 </div>
                 <span><i style={{ width: `${pct(row.value, maxFonte)}%` }} /></span>
               </Link>
@@ -3620,7 +3858,7 @@ export function GkitJurPublicacoesCockpitPage({ data }: { data: GkitJurPublicaco
       <section className="gkit-jur-publication-cockpit-grid">
         <article className="gkit-jur-publication-cockpit-panel">
           <div>
-            <span>Decisao sugerida</span>
+            <span>Decisão sugerida</span>
             <strong>{decisoes.length.toLocaleString('pt-BR')}</strong>
           </div>
           <div className="gkit-jur-publication-ranking">
@@ -3628,7 +3866,7 @@ export function GkitJurPublicacoesCockpitPage({ data }: { data: GkitJurPublicaco
               <div key={row.label}>
                 <div>
                   <strong>{row.label}</strong>
-                  <small>{row.value.toLocaleString('pt-BR')} item(ns) na fila visivel</small>
+                  <small>{row.value.toLocaleString('pt-BR')} itens na fila visível</small>
                 </div>
                 <span><i style={{ width: `${pct(row.value, maxDecisao)}%` }} /></span>
               </div>
@@ -3638,7 +3876,7 @@ export function GkitJurPublicacoesCockpitPage({ data }: { data: GkitJurPublicaco
 
         <article className="gkit-jur-publication-cockpit-panel">
           <div>
-            <span>Fila de atencao</span>
+            <span>Fila de atenção</span>
             <strong>{fila.length.toLocaleString('pt-BR')}</strong>
           </div>
           <div className="gkit-jur-publication-risk-list">
@@ -3653,7 +3891,7 @@ export function GkitJurPublicacoesCockpitPage({ data }: { data: GkitJurPublicaco
                   <span className={decision.tone}>{decision.priority}</span>
                 </Link>
               )
-            }) : <div className="suite-empty-block success">Nenhuma publicacao aberta na amostra.</div>}
+            }) : <div className="suite-empty-block success">Nenhuma publicação aberta na amostra.</div>}
           </div>
         </article>
       </section>
@@ -3668,7 +3906,7 @@ function GkitJurPublicacaoFilterBar({ data }: { data: GkitJurPublicacoesData }) 
     filters.status ? { label: 'Status', value: activeValueLabel(filterOptions.statuses, filters.status) } : null,
     filters.fonte ? { label: 'Fonte', value: filters.fonte } : null,
     filters.carteiraId ? { label: 'Carteira', value: activeValueLabel(filterOptions.carteiras, filters.carteiraId) } : null,
-    filters.responsavelId ? { label: 'Responsavel', value: activeValueLabel(filterOptions.responsaveis, filters.responsavelId) } : null,
+    filters.responsavelId ? { label: 'Responsável', value: activeValueLabel(filterOptions.responsaveis, filters.responsavelId) } : null,
     filters.tribunal ? { label: 'Tribunal', value: filters.tribunal } : null,
   ].filter(Boolean) as Array<{ label: string; value: string }>
 
@@ -3677,29 +3915,29 @@ function GkitJurPublicacaoFilterBar({ data }: { data: GkitJurPublicacoesData }) 
       <div className="gkit-jur-filter-fields">
         <label>
           <span>Busca</span>
-          <input defaultValue={filters.q} name="q" placeholder="CNJ, cliente, orgao ou texto" type="search" />
+          <input defaultValue={filters.q} name="q" placeholder="CNJ, cliente, órgão ou texto" type="search" />
         </label>
         <SelectField label="Status" name="status" options={filterOptions.statuses} placeholder="Todos" value={filters.status} />
         <SelectField label="Fonte" name="fonte" options={filterOptions.fontes} placeholder="Todas" value={filters.fonte} />
         <SelectField label="Carteira" name="carteira_id" options={filterOptions.carteiras} placeholder="Todas" value={filters.carteiraId} />
-        <SelectField label="Responsavel" name="responsavel_id" options={filterOptions.responsaveis} placeholder="Todos" value={filters.responsavelId} />
+        <SelectField label="Responsável" name="responsavel_id" options={filterOptions.responsaveis} placeholder="Todos" value={filters.responsavelId} />
         <SelectField label="Tribunal" name="tribunal" options={filterOptions.tribunais} placeholder="Todos" value={filters.tribunal} />
         <SelectField
           label="Ordenar"
           name="sort"
           options={[
-            { label: 'Data da publicacao', value: 'data_disponibilizacao' },
-            { label: 'Criacao na caixa', value: 'created_at' },
+            { label: 'Data da publicação', value: 'data_disponibilizacao' },
+            { label: 'Criação na caixa', value: 'created_at' },
             { label: 'Tratamento', value: 'tratado_em' },
             { label: 'Processo', value: 'processo' },
             { label: 'Fonte', value: 'fonte' },
             { label: 'Status', value: 'status' },
           ]}
-          placeholder="Data da publicacao"
+          placeholder="Data da publicação"
           value={filters.sort}
         />
         <SelectField
-          label="Direcao"
+          label="Direção"
           name="dir"
           options={[
             { label: 'Mais recentes', value: 'desc' },
@@ -3723,7 +3961,7 @@ function GkitJurPublicacaoPager({ data }: { data: GkitJurPublicacoesData }) {
   const { filters, pagination } = data
   return (
     <div className="gkit-jur-pagination">
-      <span>Pagina {pagination.currentPage} de {pagination.totalPages}</span>
+      <span>Página {pagination.currentPage} de {pagination.totalPages}</span>
       <div>
         <Link
           aria-disabled={pagination.currentPage <= 1}
@@ -3737,7 +3975,7 @@ function GkitJurPublicacaoPager({ data }: { data: GkitJurPublicacoesData }) {
           className={pagination.currentPage >= pagination.totalPages ? 'button secondary disabled' : 'button secondary'}
           href={publicacaoHref(filters, Math.min(pagination.totalPages, pagination.currentPage + 1))}
         >
-          Proxima
+          Próxima
         </Link>
       </div>
     </div>
@@ -3781,7 +4019,7 @@ function GkitJurPublicacaoCard({
         <p className="gkit-jur-publication-text">{publicacaoShortText(item)}</p>
 
         <details className="gkit-jur-publication-full">
-          <summary>Ler publicacao completa</summary>
+          <summary>Ler publicação completa</summary>
           <div>{publicacaoFullText(item)}</div>
         </details>
 
@@ -3793,12 +4031,12 @@ function GkitJurPublicacaoCard({
       </div>
 
       <aside className="gkit-jur-publication-decision">
-        <span className={`suite-pill ${decision.tone}`}>Sugestao</span>
+        <span className={`suite-pill ${decision.tone}`}>Sugestão</span>
         <h4>{decision.headline}</h4>
         <p>{quickReason}</p>
         {item.motivoTratamento ? (
           <div className="gkit-jur-publication-human-note">
-            <strong>Decisao humana</strong>
+            <strong>Decisão humana</strong>
             <span>{item.motivoTratamento}</span>
           </div>
         ) : null}
@@ -3821,8 +4059,8 @@ function GkitJurPublicacaoCard({
                   action={tratamentoAction}
                   decision="registrar_ciencia"
                   item={item}
-                  label="Registrar ciencia"
-                  motivo="Publicacao conferida e registrada como ciencia, sem tarefa operacional."
+                  label="Registrar ciência"
+                  motivo="Publicação conferida e registrada como ciência, sem tarefa operacional."
                   returnTo={returnTo}
                   status="tratada"
                 />
@@ -3832,7 +4070,7 @@ function GkitJurPublicacaoCard({
                 decision="dispensar_sem_acao"
                 item={item}
                 label="Dispensar"
-                motivo="Publicacao dispensada apos triagem humana."
+                motivo="Publicação dispensada após triagem humana."
                 returnTo={returnTo}
                 status="dispensada"
               />
@@ -3865,7 +4103,7 @@ function GkitJurPublicacaoCard({
               </Field>
               <Field label="Decisao">
                 <select name="decisao_tratamento" defaultValue={item.decisaoTratamento ?? ''}>
-                  <option value="">Sem decisao</option>
+                  <option value="">Sem decisão</option>
                   {gkitJurPublicacaoDecisaoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </Field>
@@ -3878,8 +4116,8 @@ function GkitJurPublicacaoCard({
               </label>
             </div>
             <label>
-              <span>Motivo ou orientacao</span>
-              <textarea name="motivo_tratamento" placeholder="Registre a decisao humana, dispensa ou providencia tomada." rows={3} defaultValue={item.motivoTratamento ?? ''} />
+              <span>Motivo ou orientação</span>
+              <textarea name="motivo_tratamento" placeholder="Registre a decisão humana, dispensa ou providência tomada." rows={3} defaultValue={item.motivoTratamento ?? ''} />
             </label>
             <button className="button" type="submit">Salvar tratamento</button>
           </form>
@@ -3920,7 +4158,7 @@ export function GkitJurPublicacoesPage({
           </div>
         ) : (
           <div className="suite-empty-block success">
-            Nenhuma publicacao encontrada para os filtros atuais.
+            Nenhuma publicação encontrada para os filtros atuais.
           </div>
         )}
         <GkitJurPublicacaoPager data={data} />
@@ -4482,7 +4720,7 @@ export function GkitJurEtiquetasPage({
                   <p>{etiqueta.ativo ? 'Disponivel para novos vinculos.' : 'Inativa para novos vinculos.'}</p>
                 </div>
                 <span className={`suite-pill ${etiqueta.ativo ? 'success' : 'muted'}`}>{etiqueta.ativo ? 'Ativa' : 'Inativa'}</span>
-                <small>{etiqueta.updatedAt ? formatDate(etiqueta.updatedAt) : 'Sem atualizacao'}</small>
+                <small>{etiqueta.updatedAt ? formatDate(etiqueta.updatedAt) : 'Sem atualização'}</small>
                 <details className="gkit-jur-rule-edit">
                   <summary>Editar etiqueta</summary>
                   <GkitJurEtiquetaForm action={saveAction} canWrite={canWrite} etiqueta={etiqueta} />
@@ -4628,7 +4866,7 @@ function GkitJurMovimentacaoTarefaPageOld({
                   </div>
                 </div>
                 <div className="gkit-jur-rule-summary-grid">
-                  <span><strong>Gatilho</strong>{regra.codigoMovimento ? `CNJ ${regra.codigoMovimento}` : termsText(regra.termos) || 'Termos nao definidos'}</span>
+                  <span><strong>Gatilho</strong>{regra.codigoMovimento ? `CNJ ${regra.codigoMovimento}` : termsText(regra.termos) || 'Termos não definidos'}</span>
                   <span><strong>Tarefa</strong>{gkitJurTarefaTipoOptions.find((option) => option.value === regra.tipoTarefa)?.label ?? regra.tipoTarefa}</span>
                   <span><strong>Prioridade</strong>{gkitJurTarefaPrioridadeOptions.find((option) => option.value === regra.prioridade)?.label ?? regra.prioridade}</span>
                   <span><strong>Prazo</strong>{regra.prazoDias ? `${regra.prazoDias} dia(s)` : 'Sem prazo'}</span>

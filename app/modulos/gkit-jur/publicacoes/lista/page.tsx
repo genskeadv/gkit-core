@@ -18,8 +18,8 @@ export default async function GkitJurPublicacoesListaRoute({
   return (
     <GkitJurShell
       active="publicacoes"
-      description="Lista de publicacoes e intimacoes para triagem humana."
-      title="Lista de Publicacoes"
+      description="Lista de publicações e intimações para triagem humana."
+      title="Lista de Publicações"
       usuario={context.usuario}
     >
       <GkitJurPublicacoesPage

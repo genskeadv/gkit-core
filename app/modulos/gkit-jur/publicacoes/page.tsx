@@ -10,8 +10,8 @@ export default async function GkitJurPublicacoesRoute() {
   return (
     <GkitJurShell
       active="publicacoes"
-      description="Cockpit de monitoramento e triagem das publicacoes capturadas."
-      title="Publicacoes"
+      description="Cockpit de monitoramento e triagem das publicações capturadas."
+      title="Publicações"
       usuario={context.usuario}
     >
       <GkitJurPublicacoesCockpitPage data={data} />

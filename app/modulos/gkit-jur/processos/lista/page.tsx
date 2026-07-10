@@ -16,7 +16,12 @@ export default async function GkitJurProcessosListaRoute({
   ])
 
   return (
-    <GkitJurShell active="processos" description="Lista filtrável e manutenção operacional dos processos." title="Lista de Processos" usuario={context.usuario}>
+    <GkitJurShell
+      active="processos"
+      description="Lista filtrável e manutenção operacional dos processos."
+      title="Lista de Processos"
+      usuario={context.usuario}
+    >
       <GkitJurProcessesPage
         bulkEtiquetaAction={bulkUpdateGkitJurProcessoEtiquetasAction}
         canWrite={canWriteGkitJur(context.permissions)}
