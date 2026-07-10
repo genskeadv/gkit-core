@@ -3175,7 +3175,7 @@ function publicacaoHref(filters: GkitJurPublicacaoFilters, page: number) {
     if (value) params.set(key, String(value))
   })
   const query = params.toString()
-  return query ? `/modulos/gkit-jur/publicacoes?${query}` : '/modulos/gkit-jur/publicacoes'
+  return query ? `/modulos/gkit-jur/publicacoes/lista?${query}` : '/modulos/gkit-jur/publicacoes/lista'
 }
 
 function publicacaoStatusLabel(status: GkitJurPublicacao['status']) {
@@ -3446,28 +3446,28 @@ function GkitJurPublicacaoCommandStrip({ data }: { data: GkitJurPublicacoesData 
   const lanes = [
     {
       count: data.metrics.vinculadasAtivas,
-      href: '/modulos/gkit-jur/publicacoes?status=pendente',
+      href: '/modulos/gkit-jur/publicacoes/lista?status=pendente',
       label: 'Processos ativos',
       note: 'prontas para tarefa ou ciencia',
       tone: 'primary',
     },
     {
       count: data.metrics.foraOperacao,
-      href: '/modulos/gkit-jur/publicacoes?q=encerrado',
+      href: '/modulos/gkit-jur/publicacoes/lista?q=encerrado',
       label: 'Fora da operacao',
       note: `${data.metrics.encerradasOuArquivadas.toLocaleString('pt-BR')} encerr./arq.`,
       tone: 'warning',
     },
     {
       count: data.metrics.naoLocalizadas,
-      href: '/modulos/gkit-jur/publicacoes?q=Nao%20localizado',
+      href: '/modulos/gkit-jur/publicacoes/lista?q=Nao%20localizado',
       label: 'Nao localizados',
       note: 'exigem cadastro',
       tone: 'danger',
     },
     {
       count: data.metrics.tratadas + data.metrics.dispensadas,
-      href: '/modulos/gkit-jur/publicacoes?status=tratada',
+      href: '/modulos/gkit-jur/publicacoes/lista?status=tratada',
       label: 'Resolvidas',
       note: 'decisao registrada',
       tone: 'success',
@@ -3495,6 +3495,169 @@ function GkitJurPublicacaoCommandStrip({ data }: { data: GkitJurPublicacoesData 
         ))}
       </nav>
     </section>
+  )
+}
+
+export function GkitJurPublicacoesCockpitPage({ data }: { data: GkitJurPublicacoesData }) {
+  const { metrics, publicacoes } = data
+  const abertas = metrics.pendentes + metrics.triadasIa + metrics.emTratamento
+  const resolvidas = metrics.tratadas + metrics.dispensadas
+  const statusRows = [
+    { label: 'Pendentes', tone: 'primary', value: metrics.pendentes },
+    { label: 'Triadas IA', tone: 'warning', value: metrics.triadasIa },
+    { label: 'Em tratamento', tone: 'warning', value: metrics.emTratamento },
+    { label: 'Resolvidas', tone: 'success', value: resolvidas },
+    { label: 'Erro', tone: 'danger', value: metrics.erros },
+  ]
+  const maxStatus = Math.max(1, ...statusRows.map((row) => row.value))
+  const totalStatus = Math.max(1, statusRows.reduce((total, row) => total + row.value, 0))
+  const colors: Record<string, string> = { danger: '#dc2626', primary: '#2563eb', success: '#16a34a', warning: '#d97706' }
+  let cursor = 0
+  const donutParts = statusRows.map((row) => {
+    const start = cursor
+    const end = cursor + (row.value / totalStatus) * 360
+    cursor = end
+    return `${colors[row.tone]} ${start.toFixed(1)}deg ${end.toFixed(1)}deg`
+  })
+  const donutStyle = { '--publication-donut': `conic-gradient(${donutParts.join(', ')}, #e2e8f0 ${cursor.toFixed(1)}deg 360deg)` } as CSSProperties
+  const fonteMap = new Map<string, number>()
+  const decisaoMap = new Map<string, number>()
+  for (const item of publicacoes) {
+    fonteMap.set(publicacaoFonteLabel(item.fonte), (fonteMap.get(publicacaoFonteLabel(item.fonte)) ?? 0) + 1)
+    const decision = publicacaoDecision(item)
+    decisaoMap.set(decision.actionLabel, (decisaoMap.get(decision.actionLabel) ?? 0) + 1)
+  }
+  const fontes = [...fonteMap.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 5)
+  const decisoes = [...decisaoMap.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 5)
+  const maxFonte = Math.max(1, ...fontes.map((row) => row.value))
+  const maxDecisao = Math.max(1, ...decisoes.map((row) => row.value))
+  const fila = [...publicacoes]
+    .filter((item) => !['tratada', 'dispensada', 'duplicada'].includes(item.status))
+    .sort((a, b) => {
+      const weight: Record<PublicacaoDecision['priority'], number> = { critica: 4, alta: 3, media: 2, baixa: 1 }
+      return weight[publicacaoDecision(b).priority] - weight[publicacaoDecision(a).priority]
+    })
+    .slice(0, 6)
+
+  return (
+    <>
+      <section className="gkit-jur-publication-cockpit-hero">
+        <div>
+          <span>Monitoramento de publicacoes</span>
+          <h2>{abertas.toLocaleString('pt-BR')} publicacao(oes) exigem triagem</h2>
+          <p>{metrics.semProcesso.toLocaleString('pt-BR')} sem processo ativo, {metrics.foraOperacao.toLocaleString('pt-BR')} fora da operacao e {metrics.naoLocalizadas.toLocaleString('pt-BR')} nao localizada(s) na base.</p>
+        </div>
+        <div>
+          <strong>{metrics.total.toLocaleString('pt-BR')}</strong>
+          <small>publicacao(oes) no recorte operacional</small>
+          <Link className="button primary-button" href="/modulos/gkit-jur/publicacoes/lista">Abrir lista detalhada</Link>
+        </div>
+      </section>
+
+      <section className="gkit-jur-publication-cockpit-metrics">
+        <article className={abertas ? 'warning' : 'success'}>
+          <span>Fila aberta</span>
+          <strong>{abertas.toLocaleString('pt-BR')}</strong>
+          <small>pendentes, triadas por IA ou em tratamento</small>
+        </article>
+        <article>
+          <span>Vinculadas</span>
+          <strong>{metrics.vinculadasAtivas.toLocaleString('pt-BR')}</strong>
+          <small>prontas para tarefa, prazo ou ciencia</small>
+        </article>
+        <article className={metrics.semProcesso ? 'danger' : 'success'}>
+          <span>Sem processo ativo</span>
+          <strong>{metrics.semProcesso.toLocaleString('pt-BR')}</strong>
+          <small>{metrics.naoLocalizadas.toLocaleString('pt-BR')} nao localizada(s)</small>
+        </article>
+        <article>
+          <span>Resolvidas</span>
+          <strong>{resolvidas.toLocaleString('pt-BR')}</strong>
+          <small>tratadas ou dispensadas</small>
+        </article>
+      </section>
+
+      <section className="gkit-jur-publication-cockpit-grid">
+        <article className="gkit-jur-publication-cockpit-panel status">
+          <div>
+            <span>Status da triagem</span>
+            <strong>{metrics.total.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-publication-donut" style={donutStyle}>
+            <span>{abertas.toLocaleString('pt-BR')}</span>
+            <small>abertas</small>
+          </div>
+          <div className="gkit-jur-publication-status-bars">
+            {statusRows.map((row) => (
+              <div key={row.label}>
+                <span>{row.label}</span>
+                <div><span className={row.tone} style={{ width: `${pct(row.value, maxStatus)}%` }} /></div>
+                <strong>{row.value.toLocaleString('pt-BR')}</strong>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="gkit-jur-publication-cockpit-panel">
+          <div>
+            <span>Origem e fonte</span>
+            <strong>{fontes.length.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-publication-ranking">
+            {fontes.length ? fontes.map((row) => (
+              <Link href={`/modulos/gkit-jur/publicacoes/lista?fonte=${encodeURIComponent(row.label.toLowerCase() === 'aasp' ? 'aasp' : row.label)}`} key={row.label}>
+                <div>
+                  <strong>{row.label}</strong>
+                  <small>{row.value.toLocaleString('pt-BR')} publicacao(oes) na amostra</small>
+                </div>
+                <span><i style={{ width: `${pct(row.value, maxFonte)}%` }} /></span>
+              </Link>
+            )) : <div className="suite-empty-block">Sem fontes no recorte.</div>}
+          </div>
+        </article>
+      </section>
+
+      <section className="gkit-jur-publication-cockpit-grid">
+        <article className="gkit-jur-publication-cockpit-panel">
+          <div>
+            <span>Decisao sugerida</span>
+            <strong>{decisoes.length.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-publication-ranking">
+            {decisoes.length ? decisoes.map((row) => (
+              <div key={row.label}>
+                <div>
+                  <strong>{row.label}</strong>
+                  <small>{row.value.toLocaleString('pt-BR')} item(ns) na fila visivel</small>
+                </div>
+                <span><i style={{ width: `${pct(row.value, maxDecisao)}%` }} /></span>
+              </div>
+            )) : <div className="suite-empty-block">Sem sugestoes na amostra.</div>}
+          </div>
+        </article>
+
+        <article className="gkit-jur-publication-cockpit-panel">
+          <div>
+            <span>Fila de atencao</span>
+            <strong>{fila.length.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-publication-risk-list">
+            {fila.length ? fila.map((item) => {
+              const decision = publicacaoDecision(item)
+              return (
+                <Link href={item.processoBaseId ? `/modulos/gkit-jur/processos/${item.processoBaseId}` : `/modulos/gkit-jur/publicacoes/lista?q=${encodeURIComponent(item.numeroCnj)}`} key={item.id}>
+                  <div>
+                    <strong>{item.numeroCnj}</strong>
+                    <small>{decision.headline}</small>
+                  </div>
+                  <span className={decision.tone}>{decision.priority}</span>
+                </Link>
+              )
+            }) : <div className="suite-empty-block success">Nenhuma publicacao aberta na amostra.</div>}
+          </div>
+        </article>
+      </section>
+    </>
   )
 }
 
@@ -3549,7 +3712,7 @@ function GkitJurPublicacaoFilterBar({ data }: { data: GkitJurPublicacoesData }) 
       <div className="gkit-jur-filter-actions">
         <span>{pagination.from}-{pagination.to} de {pagination.total}</span>
         <button className="button" type="submit">Filtrar</button>
-        <Link className="button secondary" href="/modulos/gkit-jur/publicacoes">Limpar</Link>
+        <Link className="button secondary" href="/modulos/gkit-jur/publicacoes/lista">Limpar</Link>
       </div>
       <GkitJurActiveFilterChips items={activeFilters} />
     </form>

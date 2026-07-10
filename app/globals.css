@@ -5394,6 +5394,312 @@ tbody tr:hover {
   font-weight: 700;
 }
 
+.gkit-jur-publication-cockpit-hero {
+  align-items: stretch;
+  background: linear-gradient(135deg, #111827 0%, #155e75 56%, #7c2d12 100%);
+  border-radius: var(--suite-module-card-radius, 8px);
+  color: #fff;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.34fr);
+  margin-bottom: 16px;
+  overflow: hidden;
+  padding: 22px;
+}
+
+.gkit-jur-publication-cockpit-hero > div {
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-jur-publication-cockpit-hero span,
+.gkit-jur-publication-cockpit-metrics span,
+.gkit-jur-publication-cockpit-panel > div:first-child span {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.gkit-jur-publication-cockpit-hero h2,
+.gkit-jur-publication-cockpit-hero p {
+  margin: 0;
+}
+
+.gkit-jur-publication-cockpit-hero h2 {
+  font-size: 28px;
+  line-height: 1.12;
+}
+
+.gkit-jur-publication-cockpit-hero p,
+.gkit-jur-publication-cockpit-hero small {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.gkit-jur-publication-cockpit-hero > div:last-child {
+  align-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--suite-module-card-radius, 8px);
+  padding: 14px;
+}
+
+.gkit-jur-publication-cockpit-hero strong {
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.gkit-jur-publication-cockpit-hero .button {
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.gkit-jur-publication-cockpit-metrics,
+.gkit-jur-publication-cockpit-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.gkit-jur-publication-cockpit-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.gkit-jur-publication-cockpit-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.gkit-jur-publication-cockpit-metrics article,
+.gkit-jur-publication-cockpit-panel {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--suite-module-card-radius, 8px);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+}
+
+.gkit-jur-publication-cockpit-metrics article {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.gkit-jur-publication-cockpit-metrics article.warning {
+  background: rgba(255, 251, 235, 0.72);
+  border-color: rgba(217, 119, 6, 0.3);
+}
+
+.gkit-jur-publication-cockpit-metrics article.danger {
+  background: rgba(254, 242, 242, 0.72);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+.gkit-jur-publication-cockpit-metrics article.success {
+  background: rgba(240, 253, 244, 0.72);
+  border-color: rgba(22, 163, 74, 0.24);
+}
+
+.gkit-jur-publication-cockpit-metrics span,
+.gkit-jur-publication-cockpit-panel > div:first-child span {
+  color: var(--new-muted);
+}
+
+.gkit-jur-publication-cockpit-metrics strong {
+  color: var(--new-ink);
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.gkit-jur-publication-cockpit-metrics small {
+  color: var(--new-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.gkit-jur-publication-cockpit-panel {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.gkit-jur-publication-cockpit-panel > div:first-child {
+  align-items: end;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.gkit-jur-publication-cockpit-panel > div:first-child strong {
+  color: var(--new-ink);
+  font-size: 18px;
+}
+
+.gkit-jur-publication-cockpit-panel.status {
+  grid-template-columns: minmax(132px, 0.42fr) minmax(136px, 0.58fr);
+}
+
+.gkit-jur-publication-cockpit-panel.status > div:first-child {
+  grid-column: 1 / -1;
+}
+
+.gkit-jur-publication-donut {
+  align-self: center;
+  aspect-ratio: 1;
+  background: var(--publication-donut);
+  border-radius: 999px;
+  display: grid;
+  min-width: 132px;
+  place-items: center;
+  position: relative;
+}
+
+.gkit-jur-publication-donut::after {
+  background: #fff;
+  border-radius: 999px;
+  content: '';
+  inset: 24px;
+  position: absolute;
+}
+
+.gkit-jur-publication-donut span,
+.gkit-jur-publication-donut small {
+  position: relative;
+  z-index: 1;
+}
+
+.gkit-jur-publication-donut span {
+  color: var(--new-ink);
+  font-size: 24px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.gkit-jur-publication-donut small {
+  color: var(--new-muted);
+  font-size: 12px;
+  margin-top: 28px;
+  position: absolute;
+}
+
+.gkit-jur-publication-status-bars,
+.gkit-jur-publication-ranking,
+.gkit-jur-publication-risk-list {
+  display: grid;
+  gap: 10px;
+}
+
+.gkit-jur-publication-status-bars > div {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(92px, 0.42fr) minmax(0, 1fr) auto;
+}
+
+.gkit-jur-publication-status-bars span,
+.gkit-jur-publication-status-bars strong {
+  color: var(--new-ink);
+  font-size: 12px;
+}
+
+.gkit-jur-publication-status-bars > div > div,
+.gkit-jur-publication-ranking :is(a, div) > span {
+  background: rgba(226, 232, 240, 0.9);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.gkit-jur-publication-status-bars > div > div span,
+.gkit-jur-publication-ranking i {
+  background: #2563eb;
+  display: block;
+  height: 100%;
+}
+
+.gkit-jur-publication-status-bars span.success {
+  background: #16a34a;
+}
+
+.gkit-jur-publication-status-bars span.danger {
+  background: #dc2626;
+}
+
+.gkit-jur-publication-status-bars span.warning {
+  background: #d97706;
+}
+
+.gkit-jur-publication-ranking a,
+.gkit-jur-publication-ranking > div,
+.gkit-jur-publication-risk-list a {
+  background: rgba(248, 250, 252, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--suite-module-card-radius, 8px);
+  color: inherit;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  text-decoration: none;
+}
+
+.gkit-jur-publication-ranking a:hover,
+.gkit-jur-publication-risk-list a:hover {
+  border-color: rgba(37, 99, 235, 0.32);
+}
+
+.gkit-jur-publication-ranking :is(a, div) > div,
+.gkit-jur-publication-risk-list a > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gkit-jur-publication-ranking strong,
+.gkit-jur-publication-risk-list strong {
+  color: var(--new-ink);
+  font-size: 13px;
+}
+
+.gkit-jur-publication-ranking small,
+.gkit-jur-publication-risk-list small {
+  color: var(--new-muted);
+  font-size: 12px;
+}
+
+.gkit-jur-publication-risk-list a {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.gkit-jur-publication-risk-list span {
+  align-items: center;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  justify-content: center;
+  min-width: 54px;
+  padding: 5px 8px;
+}
+
+.gkit-jur-publication-risk-list span.danger {
+  background: #dc2626;
+}
+
+.gkit-jur-publication-risk-list span.warning {
+  background: #d97706;
+}
+
+.gkit-jur-publication-risk-list span.primary {
+  background: #2563eb;
+}
+
+.gkit-jur-publication-risk-list span.success {
+  background: #16a34a;
+}
+
 .gkit-jur-publication-command {
   background:
     radial-gradient(circle at 8% 18%, rgba(20, 184, 166, 0.18), transparent 30%),
@@ -7141,11 +7447,13 @@ tbody tr:hover {
 
   .gkit-jur-agreement-cockpit-metrics,
   .gkit-jur-process-cockpit-metrics,
+  .gkit-jur-publication-cockpit-metrics,
   .gkit-jur-agreement-column-chart {
     grid-template-columns: 1fr;
   }
 
   .gkit-jur-process-cockpit-hero h2,
+  .gkit-jur-publication-cockpit-hero h2,
   .gkit-jur-agreement-cockpit-hero h2 {
     font-size: 22px;
   }
@@ -10165,6 +10473,8 @@ tbody tr:hover {
   .gkit-jur-agreement-cockpit-grid,
   .gkit-jur-process-cockpit-hero,
   .gkit-jur-process-cockpit-grid,
+  .gkit-jur-publication-cockpit-hero,
+  .gkit-jur-publication-cockpit-grid,
   .gkit-jur-inbox-command-center,
   .gkit-jur-inbox-layout,
   .gkit-jur-inbox-call-grid,
@@ -10188,12 +10498,17 @@ tbody tr:hover {
   .gkit-jur-publication-card,
   .gkit-jur-agreement-chart-panel.status,
   .gkit-jur-process-cockpit-panel.status,
+  .gkit-jur-publication-cockpit-panel.status,
   .gkit-jur-agreement-head,
   .gkit-jur-agreement-installments article {
     grid-template-columns: 1fr;
   }
 
   .gkit-jur-process-cockpit-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gkit-jur-publication-cockpit-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
