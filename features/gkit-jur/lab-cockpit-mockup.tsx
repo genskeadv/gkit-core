@@ -6,12 +6,6 @@ import type { PlatformUsuario } from '@/lib/auth/platform'
 
 type CockpitArea = 'processos' | 'tarefas' | 'publicacoes' | 'acordos' | 'agenda'
 
-type DashboardMetric = {
-  label: string
-  value: string
-  hint: string
-}
-
 type DashboardBar = {
   label: string
   value: number
@@ -33,8 +27,8 @@ type AreaConfig = {
   count: string
   description: string
   filters: string[]
-  metrics: DashboardMetric[]
   bars: DashboardBar[]
+  trend: number[]
   rows: ListRow[]
 }
 
@@ -55,18 +49,13 @@ const areas: Record<CockpitArea, AreaConfig> = {
     count: '702',
     description: 'Processos ativos com leitura de prontidao, dono e movimento.',
     filters: ['Sem dono', 'Sem movimento', 'Alta exposicao', 'Prontos'],
-    metrics: [
-      { label: 'Ativos', value: '702', hint: 'na carteira' },
-      { label: 'Sem dono', value: '14', hint: 'exigem saneamento' },
-      { label: 'Sem movimento', value: '71', hint: 'acima de 45 dias' },
-      { label: 'Prontos', value: '469', hint: 'com resumo operacional' },
-    ],
     bars: [
       { label: 'Pronto', value: 67, tone: 'green' },
       { label: 'Parcial', value: 18, tone: 'blue' },
       { label: 'Capa', value: 31, tone: 'yellow' },
       { label: 'Erro', value: 7, tone: 'red' },
     ],
+    trend: [42, 48, 44, 57, 61, 67, 64],
     rows: [
       {
         id: '0001234-19.2023.8.26.0100',
@@ -102,18 +91,13 @@ const areas: Record<CockpitArea, AreaConfig> = {
     count: '150',
     description: 'Tarefas abertas da carteira, com prioridade e prazo.',
     filters: ['Criticas', 'Hoje', 'Sem responsavel', 'Automacao'],
-    metrics: [
-      { label: 'Abertas', value: '150', hint: 'na carteira' },
-      { label: 'Criticas', value: '38', hint: 'pedem acao agora' },
-      { label: 'Hoje', value: '26', hint: 'vencem no dia' },
-      { label: 'Automacoes', value: '9', hint: 'aguardam revisao' },
-    ],
     bars: [
       { label: 'Prazo', value: 42, tone: 'red' },
       { label: 'Publicacao', value: 31, tone: 'yellow' },
       { label: 'Saneamento', value: 18, tone: 'blue' },
       { label: 'Rotina', value: 9, tone: 'green' },
     ],
+    trend: [72, 64, 58, 49, 44, 38, 32],
     rows: [
       {
         id: 'TRF-882',
@@ -149,18 +133,13 @@ const areas: Record<CockpitArea, AreaConfig> = {
     count: '144',
     description: 'Publicacoes dos processos da carteira, agrupadas para tratamento.',
     filters: ['Nao tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
-    metrics: [
-      { label: 'Recebidas', value: '144', hint: 'no recorte atual' },
-      { label: 'Criticas', value: '21', hint: 'com prazo provavel' },
-      { label: 'Agrupadas', value: '455', hint: 'tarefas consolidadas' },
-      { label: 'Tratadas', value: '68%', hint: 'nas ultimas 24h' },
-    ],
     bars: [
       { label: 'Prazo', value: 37, tone: 'red' },
       { label: 'Ciencia', value: 28, tone: 'yellow' },
       { label: 'Juntada', value: 18, tone: 'blue' },
       { label: 'Informativa', value: 17, tone: 'green' },
     ],
+    trend: [36, 41, 33, 52, 47, 58, 44],
     rows: [
       {
         id: 'PUB-4901',
@@ -196,18 +175,13 @@ const areas: Record<CockpitArea, AreaConfig> = {
     count: '47',
     description: 'Acordos judiciais em negociacao, execucao ou risco.',
     filters: ['Em negociacao', 'Vencem em 7 dias', 'Inadimplentes', 'Homologacao'],
-    metrics: [
-      { label: 'Ativos', value: '47', hint: 'em carteira' },
-      { label: 'Negociacao', value: '18', hint: 'com proposta aberta' },
-      { label: 'Vencem', value: '11', hint: 'proximos 7 dias' },
-      { label: 'Risco', value: '6', hint: 'com inadimplencia' },
-    ],
     bars: [
       { label: 'Negociacao', value: 38, tone: 'blue' },
       { label: 'Execucao', value: 27, tone: 'green' },
       { label: 'Homologacao', value: 20, tone: 'yellow' },
       { label: 'Risco', value: 15, tone: 'red' },
     ],
+    trend: [18, 22, 27, 24, 31, 29, 35],
     rows: [
       {
         id: 'ACD-320',
@@ -243,18 +217,13 @@ const areas: Record<CockpitArea, AreaConfig> = {
     count: '32',
     description: 'Audiencias, prazos internos e compromissos dos processos da carteira.',
     filters: ['Hoje', 'Semana', 'Audiencias', 'Prazos internos'],
-    metrics: [
-      { label: 'Eventos', value: '32', hint: 'na semana' },
-      { label: 'Hoje', value: '8', hint: 'compromissos' },
-      { label: 'Audiencias', value: '5', hint: 'com preparacao' },
-      { label: 'Conflitos', value: '2', hint: 'agenda sobreposta' },
-    ],
     bars: [
       { label: 'Audiencia', value: 31, tone: 'red' },
       { label: 'Prazo interno', value: 28, tone: 'yellow' },
       { label: 'Reuniao', value: 19, tone: 'blue' },
       { label: 'Retorno', value: 22, tone: 'green' },
     ],
+    trend: [21, 24, 28, 22, 30, 26, 32],
     rows: [
       {
         id: 'AGE-882',
@@ -357,24 +326,38 @@ export function GkitJurCockpitMockup({
 
         {!dashboardCollapsed ? (
           <div className="gkit-jur-cockpit-dashboard-body">
-            <div className="gkit-jur-cockpit-dashboard-metrics">
-              {data.metrics.map((metric) => (
-                <article key={metric.label}>
-                  <span>{metric.label}</span>
-                  <strong>{metric.value}</strong>
-                  <small>{metric.hint}</small>
-                </article>
-              ))}
-            </div>
-
             <div className="gkit-jur-cockpit-dashboard-chart" aria-label={`Indicadores de ${areaLabels[activeArea]}`}>
+              <span className="gkit-jur-cockpit-chart-title">Distribuicao por tipo</span>
               {data.bars.map((bar) => (
                 <div key={bar.label}>
                   <span>{bar.label}</span>
                   <i className={bar.tone} style={{ '--bar-size': `${bar.value}%` } as CSSProperties} />
-                  <strong>{bar.value}%</strong>
+                  <small>{bar.value}%</small>
                 </div>
               ))}
+            </div>
+
+            <div className="gkit-jur-cockpit-dashboard-trend" aria-label={`Tendencia de ${areaLabels[activeArea]}`}>
+              <span className="gkit-jur-cockpit-chart-title">Tendencia da carteira</span>
+              <div>
+                {data.trend.map((value, index) => (
+                  <i
+                    key={`${activeArea}-${index}`}
+                    style={{ '--trend-size': `${value}%` } as CSSProperties}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="gkit-jur-cockpit-dashboard-rhythm" aria-label={`Ritmo operacional de ${areaLabels[activeArea]}`}>
+              <span className="gkit-jur-cockpit-chart-title">Ritmo operacional</span>
+              <div>
+                {data.bars.slice(0, 3).map((bar) => (
+                  <span className={bar.tone} key={`${bar.label}-rhythm`} style={{ '--ring-size': `${bar.value * 3.2}deg` } as CSSProperties}>
+                    {bar.label}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         ) : null}
