@@ -864,7 +864,7 @@ function filterHref(filters: GkitJurProcessFilters, page: number) {
   })
   if (page > 1) params.set('page', String(page))
   const query = params.toString()
-  return query ? `/modulos/gkit-jur/processos?${query}` : '/modulos/gkit-jur/processos'
+  return query ? `/modulos/gkit-jur/processos/lista?${query}` : '/modulos/gkit-jur/processos/lista'
 }
 
 function movimentacaoHref(filters: GkitJurMovimentacaoFilters, page: number) {
@@ -1049,7 +1049,7 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
       <div className="gkit-jur-filter-actions">
         <span>{pagination.from}-{pagination.to} de {pagination.total}</span>
         <button className="button" type="submit">Filtrar</button>
-        <Link className="button secondary" href="/modulos/gkit-jur/processos">Limpar</Link>
+        <Link className="button secondary" href="/modulos/gkit-jur/processos/lista">Limpar</Link>
       </div>
       <GkitJurActiveFilterChips items={activeFilters} />
     </form>
@@ -1058,7 +1058,8 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
 
 function processHref(params: Record<string, string>) {
   const search = new URLSearchParams(params)
-  return `/modulos/gkit-jur/processos?${search.toString()}`
+  const query = search.toString()
+  return query ? `/modulos/gkit-jur/processos/lista?${query}` : '/modulos/gkit-jur/processos/lista'
 }
 
 function processRiskScore(row: GkitJurProcessListItem) {
@@ -1127,7 +1128,7 @@ function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData })
             tone: 'success',
           }
   const pulse = [
-    { href: '/modulos/gkit-jur/processos', label: 'Ativos', value: metrics.processosAtivos },
+    { href: '/modulos/gkit-jur/processos/lista', label: 'Ativos', value: metrics.processosAtivos },
     { href: processHref({ monitoramento: 'monitorando' }), label: 'Monitorados', value: metrics.processosMonitorados },
     { href: '/modulos/gkit-jur/movimentacoes', label: 'Mov. 7 dias', value: metrics.movimentacoesUltimos7Dias },
     { href: processHref({ monitoramento: 'erro' }), label: 'Erros', value: metrics.processosComErro },
@@ -1224,6 +1225,215 @@ function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData })
             <em>{call.label}</em>
           </Link>
         ))}
+      </section>
+    </>
+  )
+}
+
+function daysSinceLocal(value: string | null) {
+  const days = daysFromToday(value)
+  return days === null ? null : Math.max(0, -days)
+}
+
+export function GkitJurProcessesCockpitPage({ data }: { data: GkitJurProcessListData }) {
+  const { metrics, processes } = data
+  const saneamentoTotal = metrics.semCliente + metrics.semCarteira + metrics.semResponsavel
+  const monitoramentoRows = [
+    { label: 'Monitorando', tone: 'success', value: metrics.processosMonitorados },
+    { label: 'Com erro', tone: 'danger', value: metrics.processosComErro },
+    { label: 'Outros', tone: 'primary', value: Math.max(0, metrics.processosAtivos - metrics.processosMonitorados - metrics.processosComErro) },
+  ]
+  const saneamentoRows = [
+    { href: processHref({ saneamento: 'sem_responsavel' }), label: 'Sem responsavel', tone: 'warning', value: metrics.semResponsavel },
+    { href: processHref({ saneamento: 'sem_cliente' }), label: 'Sem cliente', tone: 'primary', value: metrics.semCliente },
+    { href: processHref({ saneamento: 'sem_carteira' }), label: 'Sem carteira', tone: 'primary', value: metrics.semCarteira },
+  ]
+  const maxSaneamento = Math.max(1, ...saneamentoRows.map((row) => row.value))
+  const monitoramentoTotal = Math.max(1, monitoramentoRows.reduce((total, row) => total + row.value, 0))
+  const colors: Record<string, string> = { danger: '#dc2626', primary: '#2563eb', success: '#16a34a', warning: '#d97706' }
+  let cursor = 0
+  const donutParts = monitoramentoRows.map((row) => {
+    const start = cursor
+    const end = cursor + (row.value / monitoramentoTotal) * 360
+    cursor = end
+    return `${colors[row.tone]} ${start.toFixed(1)}deg ${end.toFixed(1)}deg`
+  })
+  const donutStyle = { '--process-donut': `conic-gradient(${donutParts.join(', ')}, #e2e8f0 ${cursor.toFixed(1)}deg 360deg)` } as CSSProperties
+  const carteiraMap = new Map<string, number>()
+  const tribunalMap = new Map<string, number>()
+  for (const processo of processes) {
+    carteiraMap.set(processo.carteiraNome || 'Sem carteira', (carteiraMap.get(processo.carteiraNome || 'Sem carteira') ?? 0) + 1)
+    tribunalMap.set(processo.tribunalSigla || 'Sem tribunal', (tribunalMap.get(processo.tribunalSigla || 'Sem tribunal') ?? 0) + 1)
+  }
+  const carteiras = [...carteiraMap.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 6)
+  const tribunais = [...tribunalMap.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 6)
+  const maxCarteira = Math.max(1, ...carteiras.map((row) => row.value))
+  const maxTribunal = Math.max(1, ...tribunais.map((row) => row.value))
+  const semMovimento = processes.filter((processo) => !processo.ultimaMovimentacaoEm).length
+  const antigos = processes.filter((processo) => {
+    const days = daysSinceLocal(processo.ultimaMovimentacaoEm)
+    return days !== null && days >= 180
+  }).length
+  const risco = [...processes]
+    .sort((a, b) => processRiskScore(b) - processRiskScore(a))
+    .slice(0, 6)
+  const sensitiveProcess = risco[0] ?? null
+
+  return (
+    <>
+      <section className="gkit-jur-process-cockpit-hero">
+        <div>
+          <span>Cockpit processual</span>
+          <h2>{metrics.processosAtivos.toLocaleString('pt-BR')} processo(s) ativos</h2>
+          <p>{saneamentoTotal.toLocaleString('pt-BR')} pendencia(s) cadastrais, {metrics.processosComErro.toLocaleString('pt-BR')} erro(s) de monitoramento e {metrics.movimentacoesUltimos7Dias.toLocaleString('pt-BR')} movimentacao(oes) recebidas nos ultimos 7 dias.</p>
+        </div>
+        <div>
+          <strong>{sensitiveProcess ? sensitiveProcess.numeroCnj : 'Base sem risco'}</strong>
+          <small>{sensitiveProcess ? processRiskReason(sensitiveProcess) : 'Nenhum processo ativo na amostra do cockpit.'}</small>
+          <Link className="button primary-button" href="/modulos/gkit-jur/processos/lista">Abrir lista detalhada</Link>
+        </div>
+      </section>
+
+      <section className="gkit-jur-process-cockpit-metrics">
+        <article>
+          <span>Monitorados</span>
+          <strong>{metrics.processosMonitorados.toLocaleString('pt-BR')}</strong>
+          <small>{metrics.processosAtivos ? `${Math.round((metrics.processosMonitorados / metrics.processosAtivos) * 100).toLocaleString('pt-BR')}% da base ativa` : 'sem processos ativos'}</small>
+        </article>
+        <article className={metrics.processosComErro ? 'danger' : 'success'}>
+          <span>Erros</span>
+          <strong>{metrics.processosComErro.toLocaleString('pt-BR')}</strong>
+          <small>sincronizacao ou acompanhamento</small>
+        </article>
+        <article className={saneamentoTotal ? 'warning' : 'success'}>
+          <span>Saneamento</span>
+          <strong>{saneamentoTotal.toLocaleString('pt-BR')}</strong>
+          <small>cliente, carteira ou responsavel pendente</small>
+        </article>
+        <article>
+          <span>Mov. 7 dias</span>
+          <strong>{metrics.movimentacoesUltimos7Dias.toLocaleString('pt-BR')}</strong>
+          <small>{semMovimento.toLocaleString('pt-BR')} sem movimentacao na amostra</small>
+        </article>
+      </section>
+
+      <section className="gkit-jur-process-cockpit-grid">
+        <article className="gkit-jur-process-cockpit-panel status">
+          <div>
+            <span>Status de monitoramento</span>
+            <strong>{metrics.processosAtivos.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-process-donut" style={donutStyle}>
+            <span>{metrics.processosMonitorados.toLocaleString('pt-BR')}</span>
+            <small>monitorados</small>
+          </div>
+          <div className="gkit-jur-process-status-bars">
+            {monitoramentoRows.map((row) => (
+              <div key={row.label}>
+                <span>{row.label}</span>
+                <div><span className={row.tone} style={{ width: `${pct(row.value, Math.max(1, ...monitoramentoRows.map((item) => item.value)))}%` }} /></div>
+                <strong>{row.value.toLocaleString('pt-BR')}</strong>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="gkit-jur-process-cockpit-panel">
+          <div>
+            <span>Saneamento cadastral</span>
+            <strong>{saneamentoTotal.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-process-action-bars">
+            {saneamentoRows.map((row) => (
+              <Link href={row.href} key={row.label}>
+                <div>
+                  <strong>{row.label}</strong>
+                  <small>{row.value.toLocaleString('pt-BR')} processo(s)</small>
+                </div>
+                <span><i className={row.tone} style={{ width: `${pct(row.value, maxSaneamento)}%` }} /></span>
+              </Link>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="gkit-jur-process-cockpit-grid">
+        <article className="gkit-jur-process-cockpit-panel">
+          <div>
+            <span>Carteiras na amostra</span>
+            <strong>{carteiras.length.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-process-ranking">
+            {carteiras.map((row) => (
+              <Link href={row.label === 'Sem carteira' ? processHref({ saneamento: 'sem_carteira' }) : processHref({ carteira_id: data.filterOptions.carteiras.find((item) => item.label === row.label)?.value ?? '' })} key={row.label}>
+                <div>
+                  <strong>{row.label}</strong>
+                  <small>{row.value.toLocaleString('pt-BR')} processo(s)</small>
+                </div>
+                <span><i style={{ width: `${pct(row.value, maxCarteira)}%` }} /></span>
+              </Link>
+            ))}
+          </div>
+        </article>
+
+        <article className="gkit-jur-process-cockpit-panel">
+          <div>
+            <span>Tribunais na amostra</span>
+            <strong>{tribunais.length.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-process-ranking">
+            {tribunais.map((row) => (
+              <Link href={row.label === 'Sem tribunal' ? processHref({ saneamento: 'sem_tribunal' }) : processHref({ tribunal: row.label })} key={row.label}>
+                <div>
+                  <strong>{row.label}</strong>
+                  <small>{row.value.toLocaleString('pt-BR')} processo(s)</small>
+                </div>
+                <span><i style={{ width: `${pct(row.value, maxTribunal)}%` }} /></span>
+              </Link>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="gkit-jur-process-cockpit-grid">
+        <article className="gkit-jur-process-cockpit-panel">
+          <div>
+            <span>Fila de risco</span>
+            <strong>{risco.length.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-process-risk-list">
+            {risco.map((processo) => (
+              <Link href={`/modulos/gkit-jur/processos/${processo.id}`} key={processo.id}>
+                <div>
+                  <strong>{processo.numeroCnj}</strong>
+                  <small>{processOwnerLabel(processo)}</small>
+                </div>
+                <span>{processRiskScore(processo)}</span>
+              </Link>
+            ))}
+          </div>
+        </article>
+
+        <article className="gkit-jur-process-cockpit-panel">
+          <div>
+            <span>Movimentacao</span>
+            <strong>{metrics.movimentacoesUltimos7Dias.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div className="gkit-jur-process-movement-summary">
+            <Link href="/modulos/gkit-jur/movimentacoes">
+              <strong>Movimentacoes recentes</strong>
+              <span>{metrics.movimentacoesUltimos7Dias.toLocaleString('pt-BR')}</span>
+            </Link>
+            <Link href={processHref({ sort: 'ultima_movimentacao_em', dir: 'asc' })}>
+              <strong>Mais antigos primeiro</strong>
+              <span>{antigos.toLocaleString('pt-BR')}</span>
+            </Link>
+            <Link href={processHref({ monitoramento: 'erro' })}>
+              <strong>Revisar erros</strong>
+              <span>{metrics.processosComErro.toLocaleString('pt-BR')}</span>
+            </Link>
+          </div>
+        </article>
       </section>
     </>
   )

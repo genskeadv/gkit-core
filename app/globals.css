@@ -5995,6 +5995,326 @@ tbody tr:hover {
   font-weight: 400;
 }
 
+.gkit-jur-process-cockpit-hero {
+  align-items: stretch;
+  background: linear-gradient(135deg, #111827 0%, #155e75 54%, #365314 100%);
+  border-radius: var(--suite-module-card-radius, 8px);
+  color: #fff;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.36fr);
+  margin-bottom: 16px;
+  overflow: hidden;
+  padding: 22px;
+}
+
+.gkit-jur-process-cockpit-hero > div {
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-jur-process-cockpit-hero span,
+.gkit-jur-process-cockpit-metrics span,
+.gkit-jur-process-cockpit-panel > div:first-child span {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.gkit-jur-process-cockpit-hero h2,
+.gkit-jur-process-cockpit-hero p {
+  margin: 0;
+}
+
+.gkit-jur-process-cockpit-hero h2 {
+  font-size: 28px;
+  line-height: 1.12;
+}
+
+.gkit-jur-process-cockpit-hero p,
+.gkit-jur-process-cockpit-hero small {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.gkit-jur-process-cockpit-hero > div:last-child {
+  align-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--suite-module-card-radius, 8px);
+  padding: 14px;
+}
+
+.gkit-jur-process-cockpit-hero strong {
+  font-size: 21px;
+  line-height: 1.15;
+}
+
+.gkit-jur-process-cockpit-hero .button {
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.gkit-jur-process-cockpit-metrics,
+.gkit-jur-process-cockpit-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.gkit-jur-process-cockpit-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.gkit-jur-process-cockpit-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.gkit-jur-process-cockpit-metrics article,
+.gkit-jur-process-cockpit-panel {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--suite-module-card-radius, 8px);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+}
+
+.gkit-jur-process-cockpit-metrics article {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.gkit-jur-process-cockpit-metrics article.warning {
+  background: rgba(255, 251, 235, 0.72);
+  border-color: rgba(217, 119, 6, 0.3);
+}
+
+.gkit-jur-process-cockpit-metrics article.danger {
+  background: rgba(254, 242, 242, 0.72);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+.gkit-jur-process-cockpit-metrics article.success {
+  background: rgba(240, 253, 244, 0.72);
+  border-color: rgba(22, 163, 74, 0.24);
+}
+
+.gkit-jur-process-cockpit-metrics span,
+.gkit-jur-process-cockpit-panel > div:first-child span {
+  color: var(--new-muted);
+}
+
+.gkit-jur-process-cockpit-metrics strong {
+  color: var(--new-ink);
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.gkit-jur-process-cockpit-metrics small {
+  color: var(--new-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.gkit-jur-process-cockpit-panel {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.gkit-jur-process-cockpit-panel > div:first-child {
+  align-items: end;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.gkit-jur-process-cockpit-panel > div:first-child strong {
+  color: var(--new-ink);
+  font-size: 18px;
+}
+
+.gkit-jur-process-cockpit-panel.status {
+  grid-template-columns: minmax(132px, 0.42fr) minmax(136px, 0.58fr);
+}
+
+.gkit-jur-process-cockpit-panel.status > div:first-child {
+  grid-column: 1 / -1;
+}
+
+.gkit-jur-process-donut {
+  align-self: center;
+  aspect-ratio: 1;
+  background: var(--process-donut);
+  border-radius: 999px;
+  display: grid;
+  min-width: 132px;
+  place-items: center;
+  position: relative;
+}
+
+.gkit-jur-process-donut::after {
+  background: #fff;
+  border-radius: 999px;
+  content: '';
+  inset: 24px;
+  position: absolute;
+}
+
+.gkit-jur-process-donut span,
+.gkit-jur-process-donut small {
+  position: relative;
+  z-index: 1;
+}
+
+.gkit-jur-process-donut span {
+  color: var(--new-ink);
+  font-size: 24px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.gkit-jur-process-donut small {
+  color: var(--new-muted);
+  font-size: 12px;
+  margin-top: 28px;
+  position: absolute;
+}
+
+.gkit-jur-process-status-bars,
+.gkit-jur-process-action-bars,
+.gkit-jur-process-ranking,
+.gkit-jur-process-risk-list,
+.gkit-jur-process-movement-summary {
+  display: grid;
+  gap: 10px;
+}
+
+.gkit-jur-process-status-bars > div {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(86px, 0.42fr) minmax(0, 1fr) auto;
+}
+
+.gkit-jur-process-status-bars span,
+.gkit-jur-process-status-bars strong {
+  color: var(--new-ink);
+  font-size: 12px;
+}
+
+.gkit-jur-process-status-bars > div > div,
+.gkit-jur-process-action-bars a > span,
+.gkit-jur-process-ranking a > span {
+  background: rgba(226, 232, 240, 0.9);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.gkit-jur-process-status-bars > div > div span,
+.gkit-jur-process-action-bars i,
+.gkit-jur-process-ranking i {
+  background: #2563eb;
+  display: block;
+  height: 100%;
+}
+
+.gkit-jur-process-status-bars span.success,
+.gkit-jur-process-action-bars i.success {
+  background: #16a34a;
+}
+
+.gkit-jur-process-status-bars span.danger,
+.gkit-jur-process-action-bars i.danger {
+  background: #dc2626;
+}
+
+.gkit-jur-process-action-bars i.warning {
+  background: #d97706;
+}
+
+.gkit-jur-process-action-bars a,
+.gkit-jur-process-ranking a,
+.gkit-jur-process-risk-list a,
+.gkit-jur-process-movement-summary a {
+  background: rgba(248, 250, 252, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--suite-module-card-radius, 8px);
+  color: inherit;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  text-decoration: none;
+}
+
+.gkit-jur-process-action-bars a:hover,
+.gkit-jur-process-ranking a:hover,
+.gkit-jur-process-risk-list a:hover,
+.gkit-jur-process-movement-summary a:hover {
+  border-color: rgba(37, 99, 235, 0.32);
+}
+
+.gkit-jur-process-action-bars a,
+.gkit-jur-process-ranking a {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.gkit-jur-process-action-bars a > div,
+.gkit-jur-process-ranking a > div,
+.gkit-jur-process-risk-list a > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gkit-jur-process-action-bars strong,
+.gkit-jur-process-ranking strong,
+.gkit-jur-process-risk-list strong,
+.gkit-jur-process-movement-summary strong {
+  color: var(--new-ink);
+  font-size: 13px;
+}
+
+.gkit-jur-process-action-bars small,
+.gkit-jur-process-ranking small,
+.gkit-jur-process-risk-list small {
+  color: var(--new-muted);
+  font-size: 12px;
+}
+
+.gkit-jur-process-risk-list a {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.gkit-jur-process-risk-list span {
+  align-items: center;
+  background: rgba(254, 243, 199, 0.78);
+  border-radius: 999px;
+  color: #92400e;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  justify-content: center;
+  min-width: 42px;
+  padding: 5px 8px;
+}
+
+.gkit-jur-process-movement-summary a {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.gkit-jur-process-movement-summary span {
+  color: var(--new-ink);
+  font-size: 16px;
+  font-weight: 750;
+}
+
 .gkit-jur-pagination {
   align-items: center;
   border-top: 1px solid rgba(148, 163, 184, 0.18);
@@ -6820,10 +7140,12 @@ tbody tr:hover {
   }
 
   .gkit-jur-agreement-cockpit-metrics,
+  .gkit-jur-process-cockpit-metrics,
   .gkit-jur-agreement-column-chart {
     grid-template-columns: 1fr;
   }
 
+  .gkit-jur-process-cockpit-hero h2,
   .gkit-jur-agreement-cockpit-hero h2 {
     font-size: 22px;
   }
@@ -9841,6 +10163,8 @@ tbody tr:hover {
   .gkit-jur-agreement-cockpit-hero,
   .gkit-jur-agreement-chart-grid,
   .gkit-jur-agreement-cockpit-grid,
+  .gkit-jur-process-cockpit-hero,
+  .gkit-jur-process-cockpit-grid,
   .gkit-jur-inbox-command-center,
   .gkit-jur-inbox-layout,
   .gkit-jur-inbox-call-grid,
@@ -9863,9 +10187,14 @@ tbody tr:hover {
   .gkit-jur-publication-command,
   .gkit-jur-publication-card,
   .gkit-jur-agreement-chart-panel.status,
+  .gkit-jur-process-cockpit-panel.status,
   .gkit-jur-agreement-head,
   .gkit-jur-agreement-installments article {
     grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-process-cockpit-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .gkit-jur-agreement-cockpit-metrics {

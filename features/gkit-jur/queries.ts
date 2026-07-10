@@ -996,6 +996,42 @@ export async function listGkitJurProcesses(filters: GkitJurProcessFilters = buil
   }
 }
 
+export async function getGkitJurProcessCockpitData(): Promise<GkitJurProcessListData> {
+  const filters = buildGkitJurProcessFilters()
+  const [metrics, filterOptions, processosResult] = await Promise.all([
+    getGkitJurDashboardMetrics(),
+    getFilterOptions(),
+    admin()
+      .schema('gkit_jur')
+      .from('processos')
+      .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,updated_at,data_ajuizamento', { count: 'exact' })
+      .eq('status', DEFAULT_PROCESS_STATUS)
+      .order('updated_at', { ascending: false })
+      .limit(1200),
+  ])
+
+  if (processosResult.error) throw new Error(processosResult.error.message)
+  const rows = (processosResult.data ?? []) as Array<Record<string, unknown>>
+  const maps = await lookupMaps(rows)
+  const etiquetas = await lookupEtiquetas(rows.map((row) => String(row.id)))
+  const total = processosResult.count ?? rows.length
+
+  return {
+    filters,
+    filterOptions,
+    metrics,
+    pagination: {
+      currentPage: 1,
+      from: total ? 1 : 0,
+      pageSize: rows.length,
+      to: rows.length,
+      total,
+      totalPages: 1,
+    },
+    processes: rows.map((row) => mapProcesso(row, { ...maps, etiquetas })),
+  }
+}
+
 function buildSearchPattern(value: string) {
   const clean = value.replace(/[%(),]/g, ' ').replace(/\s+/g, ' ').trim()
   return clean ? `%${clean}%` : ''

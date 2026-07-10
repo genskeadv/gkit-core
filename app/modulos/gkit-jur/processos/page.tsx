@@ -1,28 +1,20 @@
-import { bulkUpdateGkitJurProcessoEtiquetasAction, updateGkitJurProcessoEtiquetaAction } from '@/features/gkit-jur/actions'
-import { GkitJurProcessesPage, GkitJurShell } from '@/features/gkit-jur/components'
-import { buildGkitJurProcessFilters, canWriteGkitJur, listGkitJurProcesses, requireGkitJurContext } from '@/features/gkit-jur/queries'
-import { moduleTarget, type ModuleSearchParams } from '@/lib/auth/platform'
+import { GkitJurProcessesCockpitPage, GkitJurShell } from '@/features/gkit-jur/components'
+import { getGkitJurProcessCockpitData, requireGkitJurContext } from '@/features/gkit-jur/queries'
 
-export default async function GkitJurProcessosRoute({
-  searchParams,
-}: {
-  searchParams?: Promise<ModuleSearchParams>
-}) {
-  const params = await searchParams
-  const filters = buildGkitJurProcessFilters(params)
+export default async function GkitJurProcessosRoute() {
   const [context, data] = await Promise.all([
-    requireGkitJurContext(moduleTarget('/modulos/gkit-jur/processos', params)),
-    listGkitJurProcesses(filters),
+    requireGkitJurContext('/modulos/gkit-jur/processos'),
+    getGkitJurProcessCockpitData(),
   ])
 
   return (
-    <GkitJurShell active="processos" description="Lista e acompanhamento dos processos jurídicos." title="Processos" usuario={context.usuario}>
-      <GkitJurProcessesPage
-        bulkEtiquetaAction={bulkUpdateGkitJurProcessoEtiquetasAction}
-        canWrite={canWriteGkitJur(context.permissions)}
-        data={data}
-        updateEtiquetaAction={updateGkitJurProcessoEtiquetaAction}
-      />
+    <GkitJurShell
+      active="processos"
+      description="Cockpit de acompanhamento e saneamento dos processos juridicos."
+      title="Processos"
+      usuario={context.usuario}
+    >
+      <GkitJurProcessesCockpitPage data={data} />
     </GkitJurShell>
   )
 }
