@@ -14,6 +14,10 @@ import type {
   GkitJurAgenteExecucao,
   GkitJurAgenteExecucaoStatus,
   GkitJurAuditoriaData,
+  GkitJurCockpitAreaData,
+  GkitJurCockpitBar,
+  GkitJurCockpitRow,
+  GkitJurCockpitUnicoData,
   GkitJurDashboardMetrics,
   GkitJurDocumento,
   GkitJurDocumentoStatus,
@@ -1772,6 +1776,374 @@ export async function getGkitJurAcordosData(): Promise<GkitJurAcordosData> {
       valorAberto: ativos.reduce((total, acordo) => total + acordo.valorPendente, 0),
     },
   }
+}
+
+function cockpitBars(entries: Array<{ label: string; count: number; tone: GkitJurCockpitBar['tone'] }>): GkitJurCockpitBar[] {
+  const total = entries.reduce((sum, entry) => sum + entry.count, 0)
+  return entries.map((entry) => ({
+    label: entry.label,
+    value: total ? Math.max(4, Math.round((entry.count / total) * 100)) : 0,
+    tone: entry.tone,
+  }))
+}
+
+function cockpitTrend(values: number[]) {
+  const clean = values.map((value) => Math.max(0, Number.isFinite(value) ? value : 0))
+  const max = Math.max(...clean, 1)
+  const normalized = clean.map((value) => value ? Math.max(18, Math.round((value / max) * 100)) : 8)
+  while (normalized.length < 7) normalized.push(normalized[normalized.length % clean.length] ?? 8)
+  return normalized.slice(0, 7)
+}
+
+function cockpitTone(priority: string, statusValue = ''): GkitJurCockpitRow['tone'] {
+  const key = normalizeSearch(`${priority} ${statusValue}`)
+  if (key.includes('critica') || key.includes('vencida') || key.includes('erro') || key.includes('quebrado')) return 'critical'
+  if (key.includes('alta') || key.includes('atras') || key.includes('pendente') || key.includes('triada')) return 'medium'
+  return 'ok'
+}
+
+function cockpitOwner(...values: Array<string | null | undefined>) {
+  return values.find((value) => value && value.trim()) ?? 'Sem dono definido'
+}
+
+function cockpitDate(value: string | null | undefined) {
+  return value ? formatDate(value) : 'Sem data'
+}
+
+async function countRows(query: any, missingAsZero = false) {
+  const result = await query
+  if (result.error) {
+    if (missingAsZero && ['42P01', 'PGRST205'].includes(text(result.error.code))) return 0
+    throw new Error(result.error.message)
+  }
+  return result.count ?? 0
+}
+
+async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData> {
+  const [rowsResult, readiness] = await Promise.all([
+    admin()
+      .schema('gkit_jur')
+      .from('processos')
+      .select(`${PROCESS_LIST_SELECT},updated_at`, { count: 'exact' })
+      .eq('status', DEFAULT_PROCESS_STATUS)
+      .order('updated_at', { ascending: false })
+      .limit(5),
+    getGkitJurLabReadiness(),
+  ])
+
+  if (rowsResult.error) throw new Error(rowsResult.error.message)
+
+  const rows = (rowsResult.data ?? []) as Array<Record<string, unknown>>
+  const maps = await lookupMaps(rows)
+  const processos = rows.map((row) => mapProcesso(row, maps))
+  const count = rowsResult.count ?? processos.length
+  const readinessValues = {
+    pronto: readiness.pronto ?? 0,
+    parcial: readiness.parcial ?? 0,
+    capa: readiness.capa ?? 0,
+    erro: (readiness.erro ?? 0) + (readiness.sem_base ?? 0),
+  }
+
+  return {
+    action: 'Carteira processual',
+    count,
+    description: 'Processos ativos da carteira, com dono, prontidao e movimento.',
+    filters: ['Sem dono', 'Sem movimento', 'Alta exposicao', 'Prontos'],
+    bars: cockpitBars([
+      { label: 'Pronto', count: readinessValues.pronto, tone: 'green' },
+      { label: 'Parcial', count: readinessValues.parcial, tone: 'blue' },
+      { label: 'Capa', count: readinessValues.capa, tone: 'yellow' },
+      { label: 'Risco', count: readinessValues.erro, tone: 'red' },
+    ]),
+    trend: cockpitTrend([readinessValues.capa, readinessValues.parcial, readinessValues.pronto, count]),
+    rows: processos.map((processo, index) => {
+      const raw = rows[index] ?? {}
+      return {
+        id: processo.numeroCnj,
+        title: processo.clienteNome || processo.titulo || processo.pasta || 'Processo sem cliente identificado',
+        subtitle: [processo.classeNome, processo.tribunalSigla, processo.orgaoJulgadorNome].filter(Boolean).join(' | ') || 'Sem classificacao completa',
+        owner: cockpitOwner(processo.responsavelNome, processo.carteiraNome),
+        status: processo.statusMonitoramento,
+        due: cockpitDate(text(raw.updated_at) || processo.ultimaMovimentacaoEm || processo.ultimaSincronizacaoEm),
+        tone: cockpitTone('', processo.statusMonitoramento),
+        href: `/modulos/gkit-jur/processos/${processo.id}`,
+      }
+    }),
+  }
+}
+
+async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
+  const [rowsResult, criticaCount, altaCount, mediaCount, baixaCount] = await Promise.all([
+    admin()
+      .schema('gkit_jur')
+      .from('tarefas')
+      .select('id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,status,prioridade,prazo_at,origem,payload,created_at', { count: 'exact' })
+      .in('status', OPEN_TASK_STATUSES)
+      .order('prazo_at', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(5),
+    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'critica')),
+    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'alta')),
+    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'media')),
+    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'baixa')),
+  ])
+
+  if (rowsResult.error) throw new Error(rowsResult.error.message)
+
+  const rows = (rowsResult.data ?? []) as Array<Record<string, unknown>>
+  const processoIds = [...new Set(rows.map((row) => text(row.processo_id)).filter(Boolean))]
+  const processosResult = processoIds.length
+    ? await admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('id', processoIds)
+    : { data: [], error: null }
+  if (processosResult.error) throw new Error(processosResult.error.message)
+
+  const processoRows = (processosResult.data ?? []) as Array<Record<string, unknown>>
+  const processoMaps = await lookupMaps(processoRows)
+  const processoMap = new Map(processoRows.map((row) => [String(row.id), mapProcesso(row, processoMaps)]))
+  const tarefaMaps = await lookupTarefaMaps(rows)
+  const total = rowsResult.count ?? rows.length
+
+  return {
+    action: 'Fila operacional',
+    count: total,
+    description: 'Tarefas abertas da carteira, priorizadas por prazo e severidade.',
+    filters: ['Criticas', 'Hoje', 'Sem responsavel', 'Automacao'],
+    bars: cockpitBars([
+      { label: 'Critica', count: criticaCount, tone: 'red' },
+      { label: 'Alta', count: altaCount, tone: 'yellow' },
+      { label: 'Media', count: mediaCount, tone: 'blue' },
+      { label: 'Baixa', count: baixaCount, tone: 'green' },
+    ]),
+    trend: cockpitTrend([baixaCount, mediaCount, altaCount, criticaCount, total]),
+    rows: rows.map((row) => {
+      const tarefa = mapTarefa(row, tarefaMaps)
+      const processo = processoMap.get(tarefa.processoId)
+      return {
+        id: tarefa.id,
+        title: tarefa.titulo,
+        subtitle: processo ? `${processo.numeroCnj} - ${processo.clienteNome || processo.titulo || 'Processo ativo'}` : text(row.descricao, 'Tarefa aberta sem processo localizado'),
+        owner: cockpitOwner(tarefa.responsavelNome, tarefa.carteiraNome, processo?.responsavelNome, processo?.carteiraNome),
+        status: tarefa.prioridade,
+        due: tarefa.prazoAt ? cockpitDate(tarefa.prazoAt) : cockpitDate(tarefa.createdAt),
+        tone: cockpitTone(tarefa.prioridade, tarefa.status),
+        href: `/modulos/gkit-jur/processos/${tarefa.processoId}#tarefas`,
+      }
+    }),
+  }
+}
+
+async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaData> {
+  const actionableStatuses = ['pendente', 'triada_ia', 'em_tratamento']
+  const [rowsResult, pendentesCount, triadasCount, emTratamentoCount, tratadasCount] = await Promise.all([
+    admin()
+      .schema('gkit_jur')
+      .from('publicacoes_monitoradas')
+      .select('id,processo_id,numero_cnj_limpo,fonte,fonte_evento_id,data_disponibilizacao,data_publicacao,jornal,termo,origem_orgao,arq,pub,texto_preview,texto_completo,texto_hash,status,decisao_tratamento,classificacao_ia,confianca_ia,sugestao_ia,tarefa_id,tratado_por,tratado_em,motivo_tratamento,conteudo_removido_em,created_at,updated_at', { count: 'exact' })
+      .in('status', actionableStatuses)
+      .order('data_disponibilizacao', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(5),
+    countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'pendente'), true),
+    countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'triada_ia'), true),
+    countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'em_tratamento'), true),
+    countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'tratada'), true),
+  ])
+
+  if (rowsResult.error) {
+    if (['42P01', 'PGRST205'].includes(text(rowsResult.error.code))) {
+      return {
+        action: 'Inbox de publicacoes',
+        count: 0,
+        description: 'Publicacoes dos processos da carteira.',
+        filters: ['Nao tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
+        bars: cockpitBars([]),
+        trend: cockpitTrend([0]),
+        rows: [],
+      }
+    }
+    throw new Error(rowsResult.error.message)
+  }
+
+  const rows = (rowsResult.data ?? []) as Array<Record<string, unknown>>
+  const processoIds = [...new Set(rows.map((row) => text(row.processo_id)).filter(Boolean))]
+  const cnjs = [...new Set(rows.map((row) => text(row.numero_cnj_limpo)).filter(Boolean))]
+  const processosByIdResult = processoIds.length
+    ? await admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('id', processoIds)
+    : { data: [], error: null }
+  if (processosByIdResult.error) throw new Error(processosByIdResult.error.message)
+  const loadedById = (processosByIdResult.data ?? []) as Array<Record<string, unknown>>
+  const loadedCnjs = new Set(loadedById.map((row) => text(row.numero_cnj_limpo)).filter(Boolean))
+  const missingCnjs = cnjs.filter((cnj) => !loadedCnjs.has(cnj))
+  const processosByCnjResult = missingCnjs.length
+    ? await admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('numero_cnj_limpo', missingCnjs)
+    : { data: [], error: null }
+  if (processosByCnjResult.error) throw new Error(processosByCnjResult.error.message)
+
+  const processRows = [
+    ...loadedById,
+    ...((processosByCnjResult.data ?? []) as Array<Record<string, unknown>>),
+  ]
+  const maps = await lookupMaps(processRows)
+  const processoMap = new Map<string, GkitJurProcessListItem>()
+  const processoCnjMap = new Map<string, GkitJurProcessListItem>()
+  processRows.forEach((row) => {
+    const processo = mapProcesso(row, maps)
+    processoMap.set(processo.id, processo)
+    const cnj = text(row.numero_cnj_limpo)
+    if (cnj) processoCnjMap.set(cnj, processo)
+  })
+
+  const publicacoes = rows.map((row) => mapPublicacao(row, processoMap, processoCnjMap, maps))
+  const total = rowsResult.count ?? rows.length
+
+  return {
+    action: 'Inbox de publicacoes',
+    count: total,
+    description: 'Publicacoes dos processos da carteira, agrupadas para tratamento.',
+    filters: ['Nao tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
+    bars: cockpitBars([
+      { label: 'Pendente', count: pendentesCount, tone: 'red' },
+      { label: 'Triada', count: triadasCount, tone: 'yellow' },
+      { label: 'Tratando', count: emTratamentoCount, tone: 'blue' },
+      { label: 'Tratada', count: tratadasCount, tone: 'green' },
+    ]),
+    trend: cockpitTrend([pendentesCount, triadasCount, emTratamentoCount, tratadasCount, total]),
+    rows: publicacoes.map((item) => ({
+      id: item.numeroCnj || item.id,
+      title: item.termo || item.sugestaoIa || item.textoPreview || 'Publicacao recebida',
+      subtitle: item.textoPreview || [item.fonte, item.jornal, item.origemOrgao].filter(Boolean).join(' | ') || 'Sem resumo de publicacao',
+      owner: cockpitOwner(item.responsavelNome, item.carteiraNome, item.clienteNome),
+      status: item.status,
+      due: cockpitDate(item.dataDisponibilizacao || item.dataPublicacao || item.createdAt),
+      tone: cockpitTone('', item.status),
+      href: item.processoBaseId ? `/modulos/gkit-jur/processos/${item.processoBaseId}` : `/modulos/gkit-jur/publicacoes/lista?q=${encodeURIComponent(item.numeroCnj || item.id)}`,
+    })),
+  }
+}
+
+async function getGkitJurCockpitAcordosArea(): Promise<GkitJurCockpitAreaData> {
+  const data = await getGkitJurAcordosData()
+  const ativos = data.acordos.filter((acordo) => acordo.status === 'ativo')
+  const cumpridos = data.acordos.filter((acordo) => acordo.status === 'cumprido')
+  const quebrados = data.acordos.filter((acordo) => acordo.status === 'quebrado')
+
+  return {
+    action: 'Carteira de acordos',
+    count: data.metrics.total,
+    description: 'Acordos judiciais em negociacao, execucao ou risco.',
+    filters: ['Ativos', 'Atrasados', 'Quebrados', 'Cumpridos'],
+    bars: cockpitBars([
+      { label: 'Ativo', count: ativos.length, tone: 'blue' },
+      { label: 'Atrasado', count: data.metrics.atrasados, tone: 'red' },
+      { label: 'Quebrado', count: quebrados.length, tone: 'yellow' },
+      { label: 'Cumprido', count: cumpridos.length, tone: 'green' },
+    ]),
+    trend: cockpitTrend([cumpridos.length, ativos.length, data.metrics.atrasados, quebrados.length, data.metrics.total]),
+    rows: data.acordos.slice(0, 5).map((acordo) => ({
+      id: acordo.id,
+      title: acordo.numeroCnj || 'Acordo judicial',
+      subtitle: acordo.clienteNome || acordo.observacoes || 'Acordo vinculado ao processo',
+      owner: cockpitOwner(acordo.carteiraNome, acordo.responsavelNome),
+      status: acordo.parcelasAtrasadas > 0 ? 'atrasado' : acordo.status,
+      due: acordo.proximoVencimento ? cockpitDate(acordo.proximoVencimento) : cockpitDate(acordo.updatedAt),
+      tone: cockpitTone('', acordo.parcelasAtrasadas > 0 ? 'atrasado' : acordo.status),
+      href: `/modulos/gkit-jur/processos/${acordo.processoId}#acordos`,
+    })),
+  }
+}
+
+async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayIso = today.toISOString()
+
+  const rowsResult = await admin()
+    .schema('gkit_jur')
+    .from('eventos_processo')
+    .select('id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,data_evento,origem,created_at', { count: 'exact' })
+    .gte('data_evento', todayIso)
+    .order('data_evento', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  if (rowsResult.error) {
+    if (['42P01', 'PGRST205'].includes(text(rowsResult.error.code))) {
+      return {
+        action: 'Eventos da carteira',
+        count: 0,
+        description: 'Eventos futuros dos processos da carteira.',
+        filters: ['Hoje', 'Semana', 'Audiencias', 'Prazos internos'],
+        bars: cockpitBars([]),
+        trend: cockpitTrend([0]),
+        rows: [],
+      }
+    }
+    throw new Error(rowsResult.error.message)
+  }
+
+  const rows = (rowsResult.data ?? []) as Array<Record<string, unknown>>
+  const [audienciasCount, prazosCount, providenciasCount] = await Promise.all([
+    countRows(admin().schema('gkit_jur').from('eventos_processo').select('id', { count: 'exact', head: true }).gte('data_evento', todayIso).eq('tipo', 'audiencia'), true),
+    countRows(admin().schema('gkit_jur').from('eventos_processo').select('id', { count: 'exact', head: true }).gte('data_evento', todayIso).eq('tipo', 'prazo'), true),
+    countRows(admin().schema('gkit_jur').from('eventos_processo').select('id', { count: 'exact', head: true }).gte('data_evento', todayIso).eq('tipo', 'providencia_interna'), true),
+  ])
+  const processoIds = [...new Set(rows.map((row) => text(row.processo_id)).filter(Boolean))]
+  const processosResult = processoIds.length
+    ? await admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('id', processoIds)
+    : { data: [], error: null }
+  if (processosResult.error) throw new Error(processosResult.error.message)
+
+  const processoRows = (processosResult.data ?? []) as Array<Record<string, unknown>>
+  const processoMaps = await lookupMaps(processoRows)
+  const processoMap = new Map(processoRows.map((row) => [String(row.id), mapProcesso(row, processoMaps)]))
+  const eventoMaps = await lookupTarefaMaps(rows)
+  const eventos = rows.map((row) => {
+    const processo = processoMap.get(text(row.processo_id))
+    return mapEventoProcesso(row, eventoMaps, {
+      carteiraNome: processo?.carteiraNome ?? null,
+      responsavelNome: processo?.responsavelNome ?? null,
+    })
+  })
+  const total = rowsResult.count ?? rows.length
+
+  return {
+    action: 'Eventos da carteira',
+    count: total,
+    description: 'Audiencias, prazos internos e compromissos futuros dos processos.',
+    filters: ['Hoje', 'Semana', 'Audiencias', 'Prazos internos'],
+    bars: cockpitBars([
+      { label: 'Audiencia', count: audienciasCount, tone: 'red' },
+      { label: 'Prazo', count: prazosCount, tone: 'yellow' },
+      { label: 'Providencia', count: providenciasCount, tone: 'blue' },
+      { label: 'Outros', count: Math.max(0, total - audienciasCount - prazosCount - providenciasCount), tone: 'green' },
+    ]),
+    trend: cockpitTrend([audienciasCount, prazosCount, providenciasCount, total]),
+    rows: eventos.map((evento) => {
+      const processo = processoMap.get(evento.processoId)
+      return {
+        id: evento.id,
+        title: evento.titulo,
+        subtitle: processo ? `${processo.numeroCnj} - ${processo.clienteNome || processo.titulo || 'Processo ativo'}` : evento.descricao || 'Evento vinculado ao juridico',
+        owner: cockpitOwner(evento.responsavelNome, evento.carteiraNome),
+        status: evento.tipo,
+        due: cockpitDate(evento.dataEvento),
+        tone: cockpitTone('', evento.tipo),
+        href: `/modulos/gkit-jur/processos/${evento.processoId}#timeline`,
+      }
+    }),
+  }
+}
+
+export async function getGkitJurCockpitUnicoData(): Promise<GkitJurCockpitUnicoData> {
+  const [processos, tarefas, publicacoes, acordos, agenda] = await Promise.all([
+    getGkitJurCockpitProcessosArea(),
+    getGkitJurCockpitTarefasArea(),
+    getGkitJurCockpitPublicacoesArea(),
+    getGkitJurCockpitAcordosArea(),
+    getGkitJurCockpitAgendaArea(),
+  ])
+
+  return { processos, tarefas, publicacoes, acordos, agenda }
 }
 
 async function pendingGroup(title: string, description: string, href: string, column: string) {

@@ -3,39 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { PlatformUsuario } from '@/lib/auth/platform'
-
-type CockpitArea = 'processos' | 'tarefas' | 'publicacoes' | 'acordos' | 'agenda'
-
-type DashboardBar = {
-  label: string
-  value: number
-  tone: 'blue' | 'green' | 'red' | 'yellow'
-}
-
-type ListRow = {
-  id: string
-  title: string
-  subtitle: string
-  owner: string
-  status: string
-  due: string
-  tone: 'critical' | 'medium' | 'ok'
-}
-
-type AreaConfig = {
-  action: string
-  count: string
-  description: string
-  filters: string[]
-  bars: DashboardBar[]
-  trend: number[]
-  rows: ListRow[]
-}
+import type { GkitJurCockpitArea, GkitJurCockpitUnicoData } from './types'
 
 const STORAGE_VIEW_KEY = 'gkit-jur-cockpit-lab-view'
 const STORAGE_DASHBOARD_KEY = 'gkit-jur-cockpit-lab-dashboard-collapsed'
 
-const areaLabels: Record<CockpitArea, string> = {
+const areaLabels: Record<GkitJurCockpitArea, string> = {
   processos: 'Processos',
   tarefas: 'Tarefas',
   publicacoes: 'Publicacoes',
@@ -43,233 +16,22 @@ const areaLabels: Record<CockpitArea, string> = {
   agenda: 'Agenda',
 }
 
-const areas: Record<CockpitArea, AreaConfig> = {
-  processos: {
-    action: 'Carteira processual',
-    count: '702',
-    description: 'Processos ativos com leitura de prontidao, dono e movimento.',
-    filters: ['Sem dono', 'Sem movimento', 'Alta exposicao', 'Prontos'],
-    bars: [
-      { label: 'Pronto', value: 67, tone: 'green' },
-      { label: 'Parcial', value: 18, tone: 'blue' },
-      { label: 'Capa', value: 31, tone: 'yellow' },
-      { label: 'Erro', value: 7, tone: 'red' },
-    ],
-    trend: [42, 48, 44, 57, 61, 67, 64],
-    rows: [
-      {
-        id: '0001234-19.2023.8.26.0100',
-        title: 'Revisional de contrato com movimentacao recente',
-        subtitle: 'Ultimo movimento: conclusos para despacho',
-        owner: 'Carteira Contencioso',
-        status: 'Pronto',
-        due: 'Hoje',
-        tone: 'critical',
-      },
-      {
-        id: '0008821-44.2021.8.26.0002',
-        title: 'Execucao com bloqueio pendente de revisao',
-        subtitle: 'Resumo operacional incompleto',
-        owner: 'Fernanda Lima',
-        status: 'Parcial',
-        due: 'Amanha',
-        tone: 'medium',
-      },
-      {
-        id: '1020304-55.2022.8.26.0053',
-        title: 'Acao de cobranca aguardando publicacao',
-        subtitle: 'Sem movimentacao ha 52 dias',
-        owner: 'Carteira Massificado',
-        status: 'Monitorar',
-        due: 'Sex',
-        tone: 'ok',
-      },
-    ],
-  },
-  tarefas: {
-    action: 'Fila operacional',
-    count: '150',
-    description: 'Tarefas abertas da carteira, com prioridade e prazo.',
-    filters: ['Criticas', 'Hoje', 'Sem responsavel', 'Automacao'],
-    bars: [
-      { label: 'Prazo', value: 42, tone: 'red' },
-      { label: 'Publicacao', value: 31, tone: 'yellow' },
-      { label: 'Saneamento', value: 18, tone: 'blue' },
-      { label: 'Rotina', value: 9, tone: 'green' },
-    ],
-    trend: [72, 64, 58, 49, 44, 38, 32],
-    rows: [
-      {
-        id: 'TRF-882',
-        title: 'Executar tarefa aberta com prazo critico',
-        subtitle: 'Conferir prazo e registrar providencia',
-        owner: 'Marcos Paiva',
-        status: 'Critica',
-        due: '14:30',
-        tone: 'critical',
-      },
-      {
-        id: 'TRF-731',
-        title: 'Revisar automacao pendente',
-        subtitle: 'Regra sugeriu prazo sem confianca suficiente',
-        owner: 'Operador Jur',
-        status: 'Media',
-        due: 'Hoje',
-        tone: 'medium',
-      },
-      {
-        id: 'TRF-615',
-        title: 'Vincular responsavel ao processo',
-        subtitle: 'Processo pronto sem dono operacional',
-        owner: 'Sem dono',
-        status: 'Baixa',
-        due: 'Amanha',
-        tone: 'ok',
-      },
-    ],
-  },
-  publicacoes: {
-    action: 'Inbox de publicacoes',
-    count: '144',
-    description: 'Publicacoes dos processos da carteira, agrupadas para tratamento.',
-    filters: ['Nao tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
-    bars: [
-      { label: 'Prazo', value: 37, tone: 'red' },
-      { label: 'Ciencia', value: 28, tone: 'yellow' },
-      { label: 'Juntada', value: 18, tone: 'blue' },
-      { label: 'Informativa', value: 17, tone: 'green' },
-    ],
-    trend: [36, 41, 33, 52, 47, 58, 44],
-    rows: [
-      {
-        id: 'PUB-4901',
-        title: 'Disponibilizacao com indicio de prazo',
-        subtitle: 'Intimacao publicada no DJE para processo da carteira',
-        owner: 'Carteira Contencioso',
-        status: 'Critica',
-        due: 'Hoje',
-        tone: 'critical',
-      },
-      {
-        id: 'PUB-4898',
-        title: 'Publicacao agrupada ao processo existente',
-        subtitle: 'Mesmo processo e mesma regra operacional',
-        owner: 'Fernanda Lima',
-        status: 'Analise',
-        due: 'Hoje',
-        tone: 'medium',
-      },
-      {
-        id: 'PUB-4880',
-        title: 'Movimento informativo sem prazo aparente',
-        subtitle: 'Apenas ciencia; manter no historico do processo',
-        owner: 'Carteira Massificado',
-        status: 'Baixo risco',
-        due: 'Amanha',
-        tone: 'ok',
-      },
-    ],
-  },
-  acordos: {
-    action: 'Carteira de acordos',
-    count: '47',
-    description: 'Acordos judiciais em negociacao, execucao ou risco.',
-    filters: ['Em negociacao', 'Vencem em 7 dias', 'Inadimplentes', 'Homologacao'],
-    bars: [
-      { label: 'Negociacao', value: 38, tone: 'blue' },
-      { label: 'Execucao', value: 27, tone: 'green' },
-      { label: 'Homologacao', value: 20, tone: 'yellow' },
-      { label: 'Risco', value: 15, tone: 'red' },
-    ],
-    trend: [18, 22, 27, 24, 31, 29, 35],
-    rows: [
-      {
-        id: 'ACD-320',
-        title: 'Proposta aguardando contraparte',
-        subtitle: 'Valor negociado acima da faixa de referencia',
-        owner: 'Nucleo Acordos',
-        status: 'Negociacao',
-        due: 'Hoje',
-        tone: 'medium',
-      },
-      {
-        id: 'ACD-318',
-        title: 'Parcela vencida exige contato',
-        subtitle: 'Acordo homologado com atraso de 6 dias',
-        owner: 'Carteira Contencioso',
-        status: 'Risco',
-        due: 'Agora',
-        tone: 'critical',
-      },
-      {
-        id: 'ACD-301',
-        title: 'Minuta enviada para homologacao',
-        subtitle: 'Aguardando juntada da peticao',
-        owner: 'Fernanda Lima',
-        status: 'Andamento',
-        due: 'Sex',
-        tone: 'ok',
-      },
-    ],
-  },
-  agenda: {
-    action: 'Eventos da carteira',
-    count: '32',
-    description: 'Audiencias, prazos internos e compromissos dos processos da carteira.',
-    filters: ['Hoje', 'Semana', 'Audiencias', 'Prazos internos'],
-    bars: [
-      { label: 'Audiencia', value: 31, tone: 'red' },
-      { label: 'Prazo interno', value: 28, tone: 'yellow' },
-      { label: 'Reuniao', value: 19, tone: 'blue' },
-      { label: 'Retorno', value: 22, tone: 'green' },
-    ],
-    trend: [21, 24, 28, 22, 30, 26, 32],
-    rows: [
-      {
-        id: 'AGE-882',
-        title: 'Audiencia de instrucao',
-        subtitle: 'Preparar documentos e roteiro de perguntas',
-        owner: 'Marcos Paiva',
-        status: 'Confirmada',
-        due: '10:00',
-        tone: 'critical',
-      },
-      {
-        id: 'AGE-770',
-        title: 'Prazo interno para minuta',
-        subtitle: 'Contestacao em revisao final',
-        owner: 'Fernanda Lima',
-        status: 'Hoje',
-        due: '16:00',
-        tone: 'medium',
-      },
-      {
-        id: 'AGE-701',
-        title: 'Retorno ao cliente',
-        subtitle: 'Atualizacao sobre acordo em homologacao',
-        owner: 'Relacionamento',
-        status: 'Agendado',
-        due: 'Amanha',
-        tone: 'ok',
-      },
-    ],
-  },
-}
+const areaOrder: GkitJurCockpitArea[] = ['processos', 'tarefas', 'publicacoes', 'acordos', 'agenda']
 
-const areaOrder: CockpitArea[] = ['processos', 'tarefas', 'publicacoes', 'acordos', 'agenda']
-
-function isArea(value: string | null): value is CockpitArea {
-  return Boolean(value && areaOrder.includes(value as CockpitArea))
+function isArea(value: string | null): value is GkitJurCockpitArea {
+  return Boolean(value && areaOrder.includes(value as GkitJurCockpitArea))
 }
 
 export function GkitJurCockpitMockup({
+  data: cockpitData,
   initialArea,
   usuario,
 }: {
+  data: GkitJurCockpitUnicoData
   initialArea?: string
   usuario: PlatformUsuario
 }) {
-  const [activeArea, setActiveArea] = useState<CockpitArea>(() => isArea(initialArea ?? null) ? initialArea as CockpitArea : 'publicacoes')
+  const [activeArea, setActiveArea] = useState<GkitJurCockpitArea>(() => isArea(initialArea ?? null) ? initialArea as GkitJurCockpitArea : 'publicacoes')
   const [dashboardCollapsed, setDashboardCollapsed] = useState(false)
 
   useEffect(() => {
@@ -287,7 +49,7 @@ export function GkitJurCockpitMockup({
     window.localStorage.setItem(STORAGE_DASHBOARD_KEY, String(dashboardCollapsed))
   }, [dashboardCollapsed])
 
-  const data = areas[activeArea]
+  const data = cockpitData[activeArea]
   const listCaption = useMemo(() => `${areaLabels[activeArea]} da carteira`, [activeArea])
 
   return (
@@ -365,7 +127,7 @@ export function GkitJurCockpitMockup({
 
       <section className="gkit-jur-cockpit-actions" aria-label="Cards de acionamento">
         {areaOrder.map((area) => {
-          const config = areas[area]
+          const config = cockpitData[area]
           const active = area === activeArea
           return (
             <a
@@ -376,7 +138,7 @@ export function GkitJurCockpitMockup({
               onClick={() => setActiveArea(area)}
             >
               <span>{areaLabels[area]}</span>
-              <strong>{config.count}</strong>
+              <strong>{config.count.toLocaleString('pt-BR')}</strong>
               <small>{config.action}</small>
             </a>
           )
@@ -398,7 +160,7 @@ export function GkitJurCockpitMockup({
 
         <div className="gkit-jur-cockpit-list">
           {data.rows.map((row) => (
-            <a className={`gkit-jur-cockpit-row ${row.tone}`} href={`/modulos/gkit-jur/processos/${encodeURIComponent(row.id)}`} key={row.id}>
+            <a className={`gkit-jur-cockpit-row ${row.tone}`} href={row.href} key={`${row.href}-${row.id}`}>
               <div>
                 <span>{row.id}</span>
                 <strong>{row.title}</strong>

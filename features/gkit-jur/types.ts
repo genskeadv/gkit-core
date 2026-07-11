@@ -634,6 +634,37 @@ export type GkitJurLabData = {
   briefings: GkitJurLabBriefing[];
 };
 
+export type GkitJurCockpitArea = 'processos' | 'tarefas' | 'publicacoes' | 'acordos' | 'agenda';
+
+export type GkitJurCockpitBar = {
+  label: string;
+  value: number;
+  tone: 'blue' | 'green' | 'red' | 'yellow';
+};
+
+export type GkitJurCockpitRow = {
+  id: string;
+  title: string;
+  subtitle: string;
+  owner: string;
+  status: string;
+  due: string;
+  tone: 'critical' | 'medium' | 'ok';
+  href: string;
+};
+
+export type GkitJurCockpitAreaData = {
+  action: string;
+  count: number;
+  description: string;
+  filters: string[];
+  bars: GkitJurCockpitBar[];
+  trend: number[];
+  rows: GkitJurCockpitRow[];
+};
+
+export type GkitJurCockpitUnicoData = Record<GkitJurCockpitArea, GkitJurCockpitAreaData>;
+
 export type GkitJurAgenteFonte = {
   id: string;
   nome: string;
