@@ -69,6 +69,12 @@ function tipoClienteLabel(value: string) {
   if (value === 'cobranca') return 'Cobrança'
   return 'Mensal'
 }
+
+function tipoPessoaLabel(value: string) {
+  if (value === 'pessoa_fisica') return 'Pessoa fisica'
+  if (value === 'pessoa_juridica') return 'Pessoa juridica'
+  return 'Condominio'
+}
 import type { PlatformUsuario } from '@/lib/auth/platform'
 
 type CicloTab =
@@ -437,6 +443,7 @@ export function CicloClienteList({
               </div>
               <div className="ciclo-clientes-type">
                 <span className="ciclo-pill primary">{tipoClienteLabel(cliente.tipoCliente)}</span>
+                <span className="ciclo-pill">{tipoPessoaLabel(cliente.tipoPessoa)}</span>
               </div>
               <div className="ciclo-clientes-meta">
                 <strong>{cliente.carteira}</strong>
@@ -818,6 +825,15 @@ export function CicloClienteForm({
           <option value="mensal">Mensal</option>
           <option value="pontual">Pontual</option>
           <option value="cobranca">Cobrança</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="label" htmlFor="tipo_pessoa">Natureza</label>
+        <select className="select" id="tipo_pessoa" name="tipo_pessoa" defaultValue={cliente?.tipo_pessoa ?? 'condominio'}>
+          <option value="condominio">Condominio</option>
+          <option value="pessoa_juridica">Pessoa juridica</option>
+          <option value="pessoa_fisica">Pessoa fisica</option>
         </select>
       </div>
 

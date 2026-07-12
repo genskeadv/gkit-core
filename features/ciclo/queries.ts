@@ -33,6 +33,7 @@ import type {
   CicloStatusCliente,
   CicloTemperatura,
   CicloTipoCliente,
+  CicloTipoPessoa,
   CicloTimelineItem,
 } from '@/features/ciclo/types'
 
@@ -158,6 +159,11 @@ function normalizeTipoCliente(value: unknown): CicloTipoCliente {
   return 'mensal'
 }
 
+function normalizeTipoPessoa(value: unknown): CicloTipoPessoa {
+  if (value === 'pessoa_fisica' || value === 'pessoa_juridica') return value
+  return 'condominio'
+}
+
 function normalizeDocumentoStatus(value: unknown): CicloDocumento['status'] {
   if (value === 'recebido' || value === 'validado' || value === 'vencido' || value === 'dispensado') return value
   return 'pendente'
@@ -200,7 +206,7 @@ export async function getCicloData(context: CicloContext): Promise<CicloData> {
     supabase
       .schema('ciclo')
       .from('clientes')
-      .select('id,carteira_id,administradora_id,nome,nome_fantasia,razao_social,documento,cnpj_normalizado,email,telefone,cidade,estado,tipo_cliente,status_operacional,score_atual,risco_atual,temperatura,ativo,created_at,updated_at')
+      .select('id,carteira_id,administradora_id,nome,nome_fantasia,razao_social,documento,cnpj_normalizado,email,telefone,cidade,estado,tipo_cliente,tipo_pessoa,status_operacional,score_atual,risco_atual,temperatura,ativo,created_at,updated_at')
       .order('created_at', { ascending: false })
       .limit(300),
     supabase
@@ -287,6 +293,7 @@ export async function getCicloData(context: CicloContext): Promise<CicloData> {
       carteira: String(carteiraMap.get(String(row.carteira_id)) ?? 'Sem carteira'),
       administradora: String(administradoraMap.get(String(row.administradora_id)) ?? 'Sem administradora'),
       tipoCliente: normalizeTipoCliente(row.tipo_cliente),
+      tipoPessoa: normalizeTipoPessoa(row.tipo_pessoa),
       status: normalizeStatus(row.status_operacional),
       risco: normalizeRisco(row.risco_atual),
       temperatura: normalizeTemperatura(row.temperatura),
@@ -800,7 +807,7 @@ export async function getCicloCliente(id: string, context: CicloContext): Promis
   const { data, error } = await admin()
     .schema('ciclo')
     .from('clientes')
-    .select('id,carteira_id,administradora_id,nome,nome_fantasia,razao_social,documento,email,telefone,cidade,estado,tipo_cliente,status_operacional,score_atual,risco_atual,temperatura,pasta_url,observacoes,ativo')
+    .select('id,carteira_id,administradora_id,nome,nome_fantasia,razao_social,documento,email,telefone,cidade,estado,tipo_cliente,tipo_pessoa,status_operacional,score_atual,risco_atual,temperatura,pasta_url,observacoes,ativo')
     .eq('id', id)
     .single()
 
@@ -828,6 +835,7 @@ export async function getCicloCliente(id: string, context: CicloContext): Promis
     cidade: text(row.cidade) || null,
     estado: text(row.estado) || null,
     tipo_cliente: normalizeTipoCliente(row.tipo_cliente),
+    tipo_pessoa: normalizeTipoPessoa(row.tipo_pessoa),
     status_operacional: normalizeStatus(row.status_operacional),
     score_atual: numberValue(row.score_atual),
     risco_atual: normalizeRisco(row.risco_atual),

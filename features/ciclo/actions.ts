@@ -129,6 +129,10 @@ function tipoClienteValue(value: string) {
   return value === 'pontual' || value === 'cobranca' ? value : 'mensal'
 }
 
+function tipoPessoaValue(value: string) {
+  return value === 'pessoa_fisica' || value === 'pessoa_juridica' ? value : 'condominio'
+}
+
 function uuidOrNull(value: string) {
   return value || null
 }
@@ -371,6 +375,7 @@ function clientePayload(formData: FormData) {
       cidade: nullableText(formData, 'cidade'),
       estado: nullableText(formData, 'estado'),
       tipo_cliente: tipoClienteValue(text(formData, 'tipo_cliente')),
+      tipo_pessoa: tipoPessoaValue(text(formData, 'tipo_pessoa')),
       status_operacional: text(formData, 'status_operacional') || 'novo',
       score_atual: numberBetween(formData, 'score_atual', 0, 100),
       risco_atual: text(formData, 'risco_atual') || 'medio',

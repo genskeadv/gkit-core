@@ -32,6 +32,10 @@ export default async function ModuloPage({
     redirect('/modulos/gkit-dir')
   }
 
+  if (codigo === 'gkit_fat') {
+    redirect('/modulos/gkit-fat')
+  }
+
   if (codigo === 'gkit_flex') {
     redirect('/modulos/gkit-flex')
   }

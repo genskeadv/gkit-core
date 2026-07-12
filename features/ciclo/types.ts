@@ -2,6 +2,7 @@ export type CicloStatusCliente = 'novo' | 'implantacao' | 'ativo' | 'pausado' | 
 export type CicloRisco = 'baixo' | 'medio' | 'alto' | 'critico'
 export type CicloTemperatura = 'quente' | 'neutro' | 'frio'
 export type CicloTipoCliente = 'mensal' | 'pontual' | 'cobranca'
+export type CicloTipoPessoa = 'pessoa_fisica' | 'pessoa_juridica' | 'condominio'
 export type CicloAtendimentoStatus = 'aberto' | 'encerrado'
 export type CicloAtendimentoTab = 'cliente' | 'responsavel' | 'carteira' | 'tipo'
 
@@ -13,6 +14,7 @@ export type CicloCliente = {
   carteira: string
   administradora: string
   tipoCliente: CicloTipoCliente
+  tipoPessoa: CicloTipoPessoa
   status: CicloStatusCliente
   risco: CicloRisco
   temperatura: CicloTemperatura
@@ -178,6 +180,7 @@ export type CicloClienteRecord = {
   estado: string | null
   status_operacional: CicloStatusCliente
   tipo_cliente: CicloTipoCliente
+  tipo_pessoa: CicloTipoPessoa
   score_atual: number
   risco_atual: CicloRisco
   temperatura: CicloTemperatura

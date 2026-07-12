@@ -28,6 +28,7 @@ const moduleMeta: Record<string, Pick<ModuleCard, 'area' | 'icon'>> = {
   ciclo: { area: 'Governança', icon: 'ciclo' },
   'gkit-ate': { area: 'Atendimento', icon: 'clock' },
   'gkit-dir': { area: 'Diretório', icon: 'grid' },
+  'gkit-fat': { area: 'Faturamento', icon: 'flex' },
   'gkit-flex': { area: 'Financial Xperience', icon: 'flex' },
   'gkit-jur': { area: 'Juridico', icon: 'shield' },
   'gkit-new': { area: 'Novos negocios', icon: 'crm' },
@@ -64,6 +65,13 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
     area: 'Diretório',
     icon: 'grid',
     href: '/modulos/gkit-dir',
+  },
+  'gkit-fat': {
+    nome: 'GKIT FAT',
+    descricao: 'Faturamento de servicos advocaticios 03220 com contratos e OS.',
+    area: 'Faturamento',
+    icon: 'flex',
+    href: '/modulos/gkit-fat',
   },
   'gkit-flex': {
     nome: 'GKIT Flex',
