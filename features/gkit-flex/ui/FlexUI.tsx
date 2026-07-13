@@ -114,11 +114,15 @@ export function MonthContextHeader({
 
   return (
     <>
-      <section className="month-context-header">
-        <div className="month-context-main">
-          <p className="eyebrow">GKIT Flex</p>
-          <h1>{title}</h1>
-          <p className="muted">{description}</p>
+      <section className="module-page-hero month-context-header">
+        <div className="module-page-hero-main">
+          <div className="module-page-hero-title">
+            <div className="month-context-main">
+              <p className="platform-kicker eyebrow">GKIT Flex</p>
+              <h1>{title}</h1>
+              <p className="muted">{description}</p>
+            </div>
+          </div>
         </div>
       </section>
       <section className="month-context-toolbar">

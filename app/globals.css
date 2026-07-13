@@ -24550,3 +24550,42 @@ body:has(.gkit-flex-operational-shell) {
 .gkit-flex-operational-shell .page-shell {
   margin-top: 0 !important;
 }
+
+.gkit-flex-operational-shell .month-context-header.module-page-hero {
+  align-items: stretch !important;
+  display: block !important;
+  margin: 0 0 10px !important;
+  min-height: 0 !important;
+  padding: 14px !important;
+}
+
+.gkit-flex-operational-shell .month-context-header.module-page-hero .module-page-hero-main,
+.gkit-flex-operational-shell .month-context-header.module-page-hero .module-page-hero-title,
+.gkit-flex-operational-shell .month-context-header.module-page-hero .month-context-main {
+  display: block !important;
+}
+
+.gkit-flex-operational-shell .month-context-header.module-page-hero .platform-kicker {
+  color: var(--unified-muted) !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  line-height: 1.3 !important;
+  margin: 0 0 6px !important;
+  text-transform: none !important;
+}
+
+.gkit-flex-operational-shell .month-context-header.module-page-hero h1 {
+  color: var(--unified-ink) !important;
+  font-size: 28px !important;
+  font-weight: 450 !important;
+  line-height: 1.08 !important;
+  margin: 0 !important;
+}
+
+.gkit-flex-operational-shell .month-context-header.module-page-hero .muted {
+  color: var(--unified-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  margin: 6px 0 0 !important;
+  max-width: none !important;
+}
