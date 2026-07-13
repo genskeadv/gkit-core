@@ -42,6 +42,34 @@ type SanitizationPayload = {
   };
 };
 
+type CadastroTipo = 'categoria' | 'centro' | 'carteira';
+
+type CadastroItem = {
+  id: string;
+  tipo: CadastroTipo;
+  nome: string;
+  status: 'ativo' | 'inativo';
+  aliases: string[];
+};
+
+type CadastroResumo = {
+  configured: boolean;
+  categorias: CadastroItem[];
+  centros: CadastroItem[];
+  carteiras: CadastroItem[];
+};
+
+type ReclassPreview = {
+  tipo: CadastroTipo;
+  origem: { id: string; nome: string; aliases: string[] };
+  destino: { id: string; nome: string; aliases: string[] };
+  nomesAfetados: string[];
+  impacto: Record<string, number> & { total: number };
+  bloqueios: string[];
+  avisos: string[];
+  totalAtualizado?: number;
+};
+
 function currentMonthValue() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -56,10 +84,183 @@ function formatDay(row: SanitizationRow) {
   return row.vencimento_texto || '-';
 }
 
+function activeCadastroItems(data: CadastroResumo | null, tipo: CadastroTipo) {
+  const list = tipo === 'categoria' ? data?.categorias : tipo === 'centro' ? data?.centros : data?.carteiras;
+  return (list || []).filter((item) => item.status === 'ativo');
+}
+
+function cadastroTipoLabel(tipo: CadastroTipo) {
+  if (tipo === 'categoria') return 'Categoria';
+  if (tipo === 'centro') return 'Centro';
+  return 'Carteira';
+}
+
+function reclassificationImpactRows(preview: ReclassPreview | null) {
+  if (!preview) return [];
+  return [
+    ['Pagamentos - categoria', preview.impacto.contasPagarCategoria || 0],
+    ['Pagamentos - centro', preview.impacto.contasPagarCentro || 0],
+    ['Comissoes resumo - categoria', preview.impacto.comissaoResumoCategoria || 0],
+    ['Comissoes resumo - carteira', preview.impacto.comissaoResumoCarteira || 0],
+    ['Comissoes lancamentos - categoria', preview.impacto.comissaoLancamentoCategoria || 0],
+    ['Comissoes lancamentos - carteira', preview.impacto.comissaoLancamentoCarteira || 0],
+    ['Comissoes auditoria - categoria', preview.impacto.comissaoAuditoriaCategoria || 0],
+    ['Comissoes auditoria - carteira', preview.impacto.comissaoAuditoriaCarteira || 0],
+  ].filter(([, value]) => Number(value) > 0);
+}
+
+function ReclassificationPanel({ data, onDone }: { data: CadastroResumo | null; onDone: () => Promise<void> }) {
+  const [tipo, setTipo] = useState<CadastroTipo>('categoria');
+  const [origemId, setOrigemId] = useState('');
+  const [destinoId, setDestinoId] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const [preview, setPreview] = useState<ReclassPreview | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const options = activeCadastroItems(data, tipo);
+
+  useEffect(() => {
+    setOrigemId('');
+    setDestinoId('');
+    setPreview(null);
+    setMessage('');
+    setError('');
+  }, [tipo]);
+
+  async function runPreview() {
+    setLoading(true);
+    setError('');
+    setMessage('');
+    setPreview(null);
+    try {
+      const response = await fetch('/api/gkit-flex/cadastros/reclassificar/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo, origemCadastroId: origemId, destinoCadastroId: destinoId, motivo }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Erro ao gerar previa.');
+      setPreview(payload);
+      setMessage('Previa gerada. Confira o impacto antes de confirmar.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao gerar previa.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function confirm() {
+    if (!preview) return;
+    const ok = window.confirm(`Confirmar reclassificacao de "${preview.origem.nome}" para "${preview.destino.nome}"? Essa acao atualiza ${preview.impacto.total} registro(s), inativa a origem e grava log.`);
+    if (!ok) return;
+    setLoading(true);
+    setError('');
+    setMessage('');
+    try {
+      const response = await fetch('/api/gkit-flex/cadastros/reclassificar/confirmar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo, origemCadastroId: origemId, destinoCadastroId: destinoId, motivo }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Erro ao confirmar reclassificacao.');
+      setPreview(payload);
+      setMessage(`Reclassificacao confirmada: ${payload.totalAtualizado ?? payload.impacto?.total ?? 0} registro(s) atualizado(s).`);
+      await onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao confirmar reclassificacao.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="card master-data-section">
+      <div className="header-row compact-header">
+        <div>
+          <p className="eyebrow">v14</p>
+          <h2>Fusao e reclassificacao segura</h2>
+          <p className="muted small-text">Una nomes duplicados e reclassifique dados historicos com previa, confirmacao, aliases e log. Use quando houver categorias, centros ou carteiras repetidas por grafia.</p>
+        </div>
+        <StatusBadge status="aviso" label="Acao critica" />
+      </div>
+
+      {error ? <div className="error">{error}</div> : null}
+      {message ? <div className="success">{message}</div> : null}
+
+      <div className="form-grid">
+        <label className="field-label">
+          Tipo
+          <select className="text-input" value={tipo} onChange={(event) => setTipo(event.target.value as CadastroTipo)}>
+            <option value="categoria">Categoria</option>
+            <option value="centro">Centro</option>
+            <option value="carteira">Carteira</option>
+          </select>
+        </label>
+        <label className="field-label">
+          Origem - nome que sera fundido
+          <select className="text-input" value={origemId} onChange={(event) => { setOrigemId(event.target.value); setPreview(null); }}>
+            <option value="">Selecione a origem</option>
+            {options.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
+          </select>
+        </label>
+        <label className="field-label">
+          Destino - nome canonico final
+          <select className="text-input" value={destinoId} onChange={(event) => { setDestinoId(event.target.value); setPreview(null); }}>
+            <option value="">Selecione o destino</option>
+            {options.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
+          </select>
+        </label>
+        <label className="field-label">
+          Motivo da reclassificacao
+          <input className="text-input" value={motivo} onChange={(event) => setMotivo(event.target.value)} placeholder="Ex.: padronizar categoria duplicada" />
+        </label>
+      </div>
+
+      <div className="action-row">
+        <button className="secondary-button" onClick={runPreview} disabled={loading || !origemId || !destinoId || origemId === destinoId}>{loading ? 'Processando...' : 'Gerar previa'}</button>
+        <button className="primary-button" onClick={confirm} disabled={loading || !preview || preview.bloqueios.length > 0}>Confirmar reclassificacao</button>
+      </div>
+
+      {preview ? (
+        <div className="preview-panel">
+          <div className="grid-4 dashboard-metrics">
+            <MetricCard label="Tipo" value={cadastroTipoLabel(preview.tipo)} help="Cadastro afetado" />
+            <MetricCard label="Origem" value={preview.origem.nome} help={`${preview.origem.aliases.length} alias(es)`} tone="warning" />
+            <MetricCard label="Destino" value={preview.destino.nome} help="Nome canonico final" tone="good" />
+            <MetricCard label="Impacto" value={preview.impacto.total} help="Registros que serao atualizados" tone={preview.impacto.total ? 'warning' : 'default'} />
+          </div>
+
+          {preview.bloqueios.length ? <div className="error">Bloqueios: {preview.bloqueios.join(' ')}</div> : null}
+          {preview.avisos.length ? <div className="warning">Avisos: {preview.avisos.join(' ')}</div> : null}
+
+          <div className="table-wrap">
+            <table className="periods-table">
+              <thead>
+                <tr><th>Area impactada</th><th className="text-right">Registros</th></tr>
+              </thead>
+              <tbody>
+                {reclassificationImpactRows(preview).length ? reclassificationImpactRows(preview).map(([label, value]) => (
+                  <tr key={label}><td>{label}</td><td className="text-right"><strong>{value}</strong></td></tr>
+                )) : <tr><td colSpan={2}>Nenhum registro historico sera alterado. A fusao ainda pode ser util para alias/cadastro.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="muted small-text">Nomes reconhecidos na origem: {preview.nomesAfetados.join(', ') || '-'}.</p>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export function SaneamentoPage() {
   const [competencia, setCompetencia] = useState(currentMonthValue());
   const [field, setField] = useState<'categoria' | 'centro'>('categoria');
   const [data, setData] = useState<SanitizationPayload | null>(null);
+  const [cadastros, setCadastros] = useState<CadastroResumo | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedValue, setSelectedValue] = useState('');
   const [newValue, setNewValue] = useState('');
@@ -105,12 +306,23 @@ export function SaneamentoPage() {
     }
   }
 
+  async function loadCadastros() {
+    const response = await fetch('/api/gkit-flex/cadastros/resumo', { cache: 'no-store' });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'Erro ao carregar cadastros.');
+    setCadastros(payload);
+  }
+
   useEffect(() => {
     load();
     setMessage('');
     setSelectedIds([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [competenciaParam]);
+
+  useEffect(() => {
+    loadCadastros().catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar cadastros.'));
+  }, []);
 
   function toggleRow(id: string) {
     setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
@@ -191,6 +403,8 @@ export function SaneamentoPage() {
         <MetricCard label="Status" value={data?.canEdit ? 'Editavel' : 'Bloqueado'} help="competencia" tone={data?.canEdit ? 'good' : 'danger'} />
         <MetricCard label="Sugestoes" value={suggestionCount} help="categoria pela previsao" tone={suggestionCount ? 'good' : 'default'} />
       </section>
+
+      <ReclassificationPanel data={cadastros} onDone={loadCadastros} />
 
       <section className="card flex-saneamento-actions">
         <div className="header-row compact-header">
