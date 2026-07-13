@@ -21947,6 +21947,28 @@ a.button {
   max-height: min(60vh, 560px);
 }
 
+.gkit-flex-shell .master-data-actions {
+  align-items: end;
+  display: flex;
+  gap: 8px;
+}
+
+.gkit-flex-shell .master-data-actions .compact-filter {
+  min-width: 220px;
+}
+
+.gkit-flex-shell .collapsed-list-summary {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid var(--gkit-flex-line);
+  border-radius: 8px;
+  color: #52627a;
+  display: flex;
+  font-size: 12px;
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
 .gkit-flex-shell table {
   font-size: 12px;
 }

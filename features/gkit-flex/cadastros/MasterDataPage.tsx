@@ -98,6 +98,7 @@ function CadastroTable({
   onToggleForecastRule?: (item: CadastroItem, checked: boolean) => Promise<void>;
 }) {
   const [filter, setFilter] = useState('');
+  const [collapsed, setCollapsed] = useState(false);
   const filtered = useMemo(() => {
     const term = filter.trim().toLowerCase();
     if (!term) return items;
@@ -116,13 +117,22 @@ function CadastroTable({
           <h2>{title}</h2>
           <p className="muted small-text">{description}</p>
         </div>
-        <label className="field-label compact-filter">
-          Filtrar
-          <input className="text-input" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Buscar nome ou alias" />
-        </label>
+        <div className="master-data-actions">
+          <label className="field-label compact-filter">
+            Filtrar
+            <input className="text-input" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Buscar nome ou alias" />
+          </label>
+          <button type="button" className="secondary-button" onClick={() => setCollapsed((value) => !value)}>
+            {collapsed ? 'Expandir' : 'Recolher'}
+          </button>
+        </div>
       </div>
 
-      {filtered.length ? (
+      {collapsed ? (
+        <div className="collapsed-list-summary">
+          {plural(filtered.length, 'item oculto', 'itens ocultos')}
+        </div>
+      ) : filtered.length ? (
         <div className="table-wrap">
           <table className="periods-table">
             <thead>
