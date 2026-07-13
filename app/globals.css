@@ -635,7 +635,7 @@ textarea {
 
 .platform-wrap {
   height: 100vh;
-  max-width: 1180px;
+  max-width: 1460px;
   margin: 0 auto;
   min-height: 100vh;
   overflow-y: auto;
@@ -713,7 +713,7 @@ textarea {
 
 .platform-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 22px;
   padding-top: 22px;
@@ -861,7 +861,7 @@ textarea {
 }
 
 .platform-modules-section {
-  margin-top: 20px;
+  margin-top: 22px;
 }
 
 .platform-section-heading {
@@ -885,18 +885,18 @@ textarea {
 
 .platform-modules-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-top: 14px;
 }
 
 .platform-module-card {
-  min-height: 160px;
+  min-height: 228px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 16px;
-  padding: 14px;
+  border-radius: 14px;
+  padding: 12px;
   position: relative;
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
@@ -933,6 +933,12 @@ textarea {
   top: 0;
 }
 
+.module-card-head {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 18px;
+}
+
 .platform-module-card.external .module-top-line {
   background: var(--gold);
 }
@@ -951,9 +957,9 @@ textarea {
 
 .platform-module-card h3 {
   color: var(--gkli-primary);
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.18;
-  margin: 10px 0 0;
+  margin: 9px 0 0;
 }
 
 .platform-module-card p {
@@ -1019,7 +1025,7 @@ textarea {
 .module-action {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   border: 1px solid var(--gkli-border);
   border-radius: 12px;
   background: #fff;
@@ -1028,11 +1034,110 @@ textarea {
   font-weight: 800;
   padding: 8px 10px;
   white-space: nowrap;
+  flex: 1 1 0;
+  text-align: center;
 }
 
-.module-action::after {
+.module-action.primary::after {
   content: "->";
   color: var(--gkli-primary);
+  margin-left: 6px;
+}
+
+.module-action.secondary {
+  background: rgba(248, 250, 252, 0.9);
+  color: var(--gkli-primary);
+}
+
+.manual-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(53, 27, 64, 0.08), transparent 28rem),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  color: var(--gkli-text);
+}
+
+.manual-wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 72px;
+}
+
+.manual-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.manual-header h1 {
+  color: var(--gkli-primary);
+  font-size: 34px;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.manual-actions {
+  display: flex;
+  gap: 8px;
+  min-width: 230px;
+}
+
+.manual-article {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 14px;
+  box-shadow: var(--shadow-soft);
+  padding: 28px;
+}
+
+.manual-article h1,
+.manual-article h2,
+.manual-article h3 {
+  color: var(--gkli-primary);
+  letter-spacing: 0;
+}
+
+.manual-article h1 {
+  font-size: 28px;
+  margin: 0 0 18px;
+}
+
+.manual-article h2 {
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  font-size: 20px;
+  margin: 24px 0 10px;
+  padding-top: 18px;
+}
+
+.manual-article h3 {
+  font-size: 16px;
+  margin: 18px 0 8px;
+}
+
+.manual-article p,
+.manual-article li {
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.manual-article p {
+  margin: 0 0 12px;
+}
+
+.manual-article ul,
+.manual-article ol {
+  margin: 0 0 14px;
+  padding-left: 22px;
+}
+
+.manual-article code {
+  background: rgba(53, 27, 64, 0.08);
+  border-radius: 6px;
+  color: var(--gkli-primary);
+  padding: 2px 5px;
 }
 
 .module-wrap {
@@ -4006,7 +4111,7 @@ tr:last-child td {
 
 @media (max-width: 1100px) {
   .platform-modules-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .grid.cols-4 {
@@ -4105,6 +4210,16 @@ tr:last-child td {
   .platform-section-heading {
     align-items: flex-start;
     display: grid;
+  }
+
+  .manual-header,
+  .manual-actions {
+    display: grid;
+  }
+
+  .manual-actions {
+    min-width: 0;
+    width: 100%;
   }
 
   .platform-user-panel {
@@ -24408,4 +24523,30 @@ body:has(.gkit-flex-operational-shell) {
   justify-content: center !important;
   min-height: 52px !important;
   text-align: center !important;
+}
+
+/* Final alignment pass: operational modules share the same top anchor. */
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) {
+  --operational-shell-top: 24px;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar {
+  gap: 18px !important;
+  padding: var(--operational-shell-top) 24px 24px !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-main {
+  padding: var(--operational-shell-top) 18px 22px !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-header,
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-footer,
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-page-hero,
+.gkit-flex-operational-shell .month-context-header {
+  margin-top: 0 !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-page-content,
+.gkit-flex-operational-shell .page-shell {
+  margin-top: 0 !important;
 }
