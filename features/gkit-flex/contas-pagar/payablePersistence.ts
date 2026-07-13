@@ -187,6 +187,10 @@ function isUncategorized(value: unknown) {
   return !String(value || '').trim() || String(value || '').trim().toLowerCase() === 'sem categoria';
 }
 
+function isWithoutCenter(value: unknown) {
+  return !String(value || '').trim() || String(value || '').trim().toLowerCase() === 'sem centro';
+}
+
 function normalizeGroupKey(value: string) {
   return String(value || '')
     .normalize('NFD')
@@ -202,6 +206,8 @@ function normalizeGroupKey(value: string) {
 function summarizeSanitization(rows: PayableSanitizationRow[]): PayableSanitizationSummary {
   return {
     pendentes: rows.length,
+    semCategoria: rows.filter((row) => row.pendencias.includes('categoria')).length,
+    semCentro: rows.filter((row) => row.pendencias.includes('centro')).length,
     totalPendente: roundMoney(rows.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0)),
     grupos: new Set(rows.map((row) => normalizeGroupKey(row.descricao))).size,
   };
@@ -337,51 +343,63 @@ async function listForecastSuggestionSources(supabase: SupabaseClient, competenc
   })).filter((row) => row.descricao && !isUncategorized(row.categoria));
 }
 
-async function listPayableCategories(supabase: SupabaseClient) {
-  const categories = new Set(['Pessoal', 'Impostos', 'Operacional', 'Despesas do negocio', 'Comissoes']);
+async function listPayableCadastroValues(supabase: SupabaseClient, tipo: 'categoria' | 'centro', defaults: string[]) {
+  const values = new Set(defaults);
 
   const { data: cadastroRows, error: cadastroError } = await supabase
     .from('gkit_cadastros')
     .select('nome')
-    .eq('tipo', 'categoria')
+    .eq('tipo', tipo)
     .eq('status', 'ativo')
     .order('nome', { ascending: true });
 
-  if (cadastroError) console.warn('[gkit_cadastros] falha ao ler categorias:', cadastroError.message);
+  if (cadastroError) console.warn(`[gkit_cadastros] falha ao ler ${tipo}s:`, cadastroError.message);
   for (const row of cadastroRows || []) {
-    if (!isUncategorized(row.nome)) categories.add(String(row.nome || '').trim());
+    const nome = String(row.nome || '').trim();
+    if (tipo === 'categoria' ? !isUncategorized(nome) : !isWithoutCenter(nome)) values.add(nome);
   }
 
   const { data: payableRows, error: payableError } = await supabase
     .from('contas_pagar_itens')
-    .select('categoria')
-    .not('categoria', 'is', null)
-    .neq('categoria', 'Sem categoria')
+    .select(tipo)
+    .not(tipo, 'is', null)
+    .neq(tipo, tipo === 'categoria' ? 'Sem categoria' : 'Sem centro')
     .limit(1000);
 
-  if (payableError) console.warn('[contas_pagar_itens] falha ao ler categorias:', payableError.message);
-  for (const row of payableRows || []) {
-    if (!isUncategorized(row.categoria)) categories.add(String(row.categoria || '').trim());
+  if (payableError) console.warn(`[contas_pagar_itens] falha ao ler ${tipo}s:`, payableError.message);
+  for (const row of (payableRows || []) as Array<Record<string, unknown>>) {
+    const value = String(row[tipo] || '').trim();
+    if (tipo === 'categoria' ? !isUncategorized(value) : !isWithoutCenter(value)) values.add(value);
   }
 
-  return Array.from(categories).filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  return Array.from(values).filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 }
 
-async function ensureCategoryCadastro(supabase: SupabaseClient, categoria: string) {
-  const normalized = String(categoria || '').trim();
-  if (!normalized || isUncategorized(normalized)) return;
+async function listPayableCategories(supabase: SupabaseClient) {
+  return listPayableCadastroValues(supabase, 'categoria', ['Pessoal', 'Impostos', 'Operacional', 'Despesas do negocio', 'Comissoes']);
+}
+
+async function listPayableCenters(supabase: SupabaseClient) {
+  return listPayableCadastroValues(supabase, 'centro', ['Pessoal', 'Equipe', 'Operacional', 'Estrutura']);
+}
+
+async function ensurePayableCadastro(supabase: SupabaseClient, tipo: 'categoria' | 'centro', value: string) {
+  const normalized = String(value || '').trim();
+  if (!normalized) return;
+  if (tipo === 'categoria' && isUncategorized(normalized)) return;
+  if (tipo === 'centro' && isWithoutCenter(normalized)) return;
 
   const slug = buildSlug(normalized);
-  const nome = suggestCanonicalName('categoria', normalized);
+  const nome = suggestCanonicalName(tipo, normalized);
   const { data: existing, error: existingError } = await supabase
     .from('gkit_cadastros')
     .select('id, usos')
-    .eq('tipo', 'categoria')
+    .eq('tipo', tipo)
     .eq('slug', slug)
     .maybeSingle();
 
   if (existingError) {
-    console.warn('[gkit_cadastros] falha ao consultar categoria:', existingError.message);
+    console.warn(`[gkit_cadastros] falha ao consultar ${tipo}:`, existingError.message);
     return;
   }
 
@@ -395,18 +413,18 @@ async function ensureCategoryCadastro(supabase: SupabaseClient, categoria: strin
 
   const { data, error } = await supabase
     .from('gkit_cadastros')
-    .insert({ tipo: 'categoria', nome, slug, status: 'ativo', origem: 'saneamento', usos: 0 })
+    .insert({ tipo, nome, slug, status: 'ativo', origem: 'saneamento', usos: 0 })
     .select('id')
     .single();
 
   if (error) {
-    console.warn('[gkit_cadastros] falha ao criar categoria:', error.message);
+    console.warn(`[gkit_cadastros] falha ao criar ${tipo}:`, error.message);
     return;
   }
 
   await supabase.from('gkit_cadastro_aliases').upsert({
     cadastro_id: data.id,
-    tipo: 'categoria',
+    tipo,
     alias: normalized,
     alias_slug: slug,
     origem: 'saneamento',
@@ -702,17 +720,20 @@ export async function listPayableSanitization(competenciaInput: string) {
       rows: [] as PayableSanitizationRow[],
       groups: [] as PayableSanitizationGroup[],
       categories: [] as string[],
+      centers: [] as string[],
       summary: summarizeSanitization([]),
     };
   }
 
   const status = await getPayableMonthStatus(competencia);
   const categories = await listPayableCategories(supabase);
+  const centers = await listPayableCenters(supabase);
   const forecastSources = await listForecastSuggestionSources(supabase, competencia);
   for (const forecast of forecastSources) {
     if (!isUncategorized(forecast.categoria)) categories.push(forecast.categoria);
   }
   const uniqueCategories = Array.from(new Set(categories)).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const uniqueCenters = Array.from(new Set(centers)).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   if (!status.row) {
     return {
       configured: true,
@@ -722,6 +743,7 @@ export async function listPayableSanitization(competenciaInput: string) {
       rows: [] as PayableSanitizationRow[],
       groups: [] as PayableSanitizationGroup[],
       categories: uniqueCategories,
+      centers: uniqueCenters,
       summary: summarizeSanitization([]),
     };
   }
@@ -730,15 +752,23 @@ export async function listPayableSanitization(competenciaInput: string) {
     .from('contas_pagar_itens')
     .select('id, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, origem_tipo, origem_arquivo, raw, created_at')
     .eq('competencia_id', status.row.id)
-    .or('categoria.is.null,categoria.eq.Sem categoria,categoria.eq.')
+    .or('categoria.is.null,categoria.eq.Sem categoria,categoria.eq.,centro.is.null,centro.eq.Sem centro,centro.eq.')
     .order('vencimento_dia', { ascending: true, nullsFirst: false })
     .order('descricao', { ascending: true });
 
   if (error) throw new Error(`Erro ao listar saneamento de pagamentos: ${error.message}`);
-  const rows = ((data || []) as PayableSanitizationRow[]).map((row) => ({
-    ...row,
-    sugestao: bestForecastSuggestion(row, forecastSources),
-  }));
+  const rows = ((data || []) as PayableSanitizationRow[])
+    .map((row) => {
+      const pendencias: PayableSanitizationRow['pendencias'] = [];
+      if (isUncategorized(row.categoria)) pendencias.push('categoria');
+      if (isWithoutCenter(row.centro)) pendencias.push('centro');
+      return {
+        ...row,
+        pendencias,
+        sugestao: bestForecastSuggestion(row, forecastSources),
+      };
+    })
+    .filter((row) => row.pendencias.length);
 
   return {
     configured: true,
@@ -748,43 +778,48 @@ export async function listPayableSanitization(competenciaInput: string) {
     rows,
     groups: buildSanitizationGroups(rows),
     categories: uniqueCategories,
+    centers: uniqueCenters,
     summary: summarizeSanitization(rows),
   };
 }
 
-export async function classifyPayableSanitization(competenciaInput: string, ids: string[], categoriaInput: string) {
+export async function classifyPayableSanitization(competenciaInput: string, ids: string[], fieldInput: 'categoria' | 'centro', valueInput: string) {
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error('Supabase nao configurado.');
 
   const competencia = sanitizeCompetencia(competenciaInput);
   const competenciaId = await requireOpenPayableMonth(supabase, competencia);
-  const categoria = String(categoriaInput || '').trim();
-  if (!categoria || isUncategorized(categoria)) throw new Error('Escolha uma categoria de destino diferente de Sem categoria.');
+  const field = fieldInput === 'centro' ? 'centro' : 'categoria';
+  const value = String(valueInput || '').trim();
+  if (!value) throw new Error(`Escolha um ${field === 'categoria' ? 'categoria' : 'centro'} de destino.`);
+  if (field === 'categoria' && isUncategorized(value)) throw new Error('Escolha uma categoria de destino diferente de Sem categoria.');
+  if (field === 'centro' && isWithoutCenter(value)) throw new Error('Escolha um centro de destino diferente de Sem centro.');
 
   const uniqueIds = Array.from(new Set(ids.map((id) => String(id || '').trim()).filter(Boolean)));
   if (!uniqueIds.length) throw new Error('Selecione ao menos um pagamento para classificar.');
 
   const { data: currentRows, error: readError } = await supabase
     .from('contas_pagar_itens')
-    .select('id, descricao, valor_previsto, categoria')
+    .select('id, descricao, valor_previsto, categoria, centro')
     .eq('competencia_id', competenciaId)
     .in('id', uniqueIds);
 
   if (readError) throw new Error(`Erro ao consultar pagamentos selecionados: ${readError.message}`);
 
-  const rowsToUpdate = ((currentRows || []) as Array<{ id: string; categoria: string | null; valor_previsto: number }>).filter((row) => isUncategorized(row.categoria));
-  if (!rowsToUpdate.length) throw new Error('Nenhum pagamento selecionado ainda esta sem categoria.');
+  const rowsToUpdate = ((currentRows || []) as Array<{ id: string; categoria: string | null; centro: string | null; valor_previsto: number }>)
+    .filter((row) => field === 'categoria' ? isUncategorized(row.categoria) : isWithoutCenter(row.centro));
+  if (!rowsToUpdate.length) throw new Error(`Nenhum pagamento selecionado ainda esta sem ${field === 'categoria' ? 'categoria' : 'centro'}.`);
 
   const updateIds = rowsToUpdate.map((row) => row.id);
   const { error } = await supabase
     .from('contas_pagar_itens')
-    .update({ categoria, updated_at: new Date().toISOString() })
+    .update({ [field]: value, updated_at: new Date().toISOString() })
     .eq('competencia_id', competenciaId)
     .in('id', updateIds);
 
   if (error) throw new Error(`Erro ao classificar pagamentos: ${error.message}`);
 
-  await ensureCategoryCadastro(supabase, categoria);
+  await ensurePayableCadastro(supabase, field, value);
 
   await logEvent({
     supabase,
@@ -792,14 +827,15 @@ export async function classifyPayableSanitization(competenciaInput: string, ids:
     competencia,
     action: 'saneamento_classificar_pagamentos',
     detalhe: {
-      categoria,
+      campo: field,
+      valor: value,
       selecionados: uniqueIds.length,
       atualizados: updateIds.length,
-      valor: roundMoney(rowsToUpdate.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0)),
+      valor_total: roundMoney(rowsToUpdate.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0)),
     },
   });
 
-  return { ok: true, updated: updateIds.length, categoria, ...(await listPayableSanitization(competencia)) };
+  return { ok: true, updated: updateIds.length, field, value, ...(await listPayableSanitization(competencia)) };
 }
 
 export async function updatePayableItem(id: string, patch: Partial<Pick<PayableItem, 'descricao' | 'valor_previsto' | 'categoria' | 'pago'>>) {

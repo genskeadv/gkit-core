@@ -34,6 +34,7 @@ const RECEIVABLE_ALIASES = {
   categoria: ['categoria', 'tipo', 'tipo de receita'],
   situacao: ['situacao', 'situacao', 'status'],
   valorRecebido: ['valor liquido', 'valor líquido', 'valor líquido recebido', 'valor liquido recebido'],
+  vendedor: ['vendedor', 'carteira', 'vendedor padrao', 'vendedor (padrao)'],
 };
 
 const CLIENT_ALIASES = {
@@ -203,12 +204,17 @@ function makeClientMaps(clientRows: ClientInputRow[]) {
   return { byDocument, byName, columns: { docColumn, clientColumn, sellerColumn } };
 }
 
-function matchRule(categoria: string): CommissionRule | null {
+function matchRule(categoria: string, rules: CommissionRule[] = COMMISSION_RULES): CommissionRule | null {
   const normalizedCategory = normalizeText(categoria);
-  return COMMISSION_RULES.find((rule) => rule.categoryMatchers.some((matcher) => normalizedCategory.includes(normalizeText(matcher)))) ?? null;
+  return rules.find((rule) => rule.categoryMatchers.some((matcher) => normalizedCategory.includes(normalizeText(matcher)))) ?? null;
 }
 
-export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, clientRows: ClientInputRow[]): CommissionProcessResult {
+function isMissingSeller(value: unknown): boolean {
+  const normalized = normalizeKey(value);
+  return !normalized || normalized === 'sem vendedor' || normalized === 'sem carteira';
+}
+
+export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, clientRows: ClientInputRow[], rules: CommissionRule[] = COMMISSION_RULES): CommissionProcessResult {
   const receivableRows = readFirstSheetRows(receivablesBuffer, Object.values(RECEIVABLE_ALIASES)) as ReceivableInputRow[];
 
   if (!receivableRows.length) {
@@ -224,6 +230,7 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
   const categoriaColumn = findColumn(receivableHeaders, RECEIVABLE_ALIASES.categoria);
   const situacaoColumn = findColumn(receivableHeaders, RECEIVABLE_ALIASES.situacao);
   const valorRecebidoColumn = findColumn(receivableHeaders, RECEIVABLE_ALIASES.valorRecebido);
+  const vendedorReceitaColumn = findColumn(receivableHeaders, RECEIVABLE_ALIASES.vendedor);
 
   const missing = [
     ['Cliente', clienteColumn],
@@ -243,12 +250,23 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
     const categoria = String(row[categoriaColumn ?? ''] ?? '').trim();
     const situacao = String(row[situacaoColumn ?? ''] ?? '').trim();
     const valorRecebido = moneyToNumber(row[valorRecebidoColumn ?? '']);
+    const vendedorReceita = String(row[vendedorReceitaColumn ?? ''] ?? '').trim();
 
     let vendedor = 'Sem vendedor';
     let criterioMatch: EnrichedReceivableRow['criterioMatch'] = 'nao_encontrado';
     let observacao = '';
 
-    if (documento && clientMaps.byDocument.has(documento)) {
+    if (!isMissingSeller(vendedorReceita)) {
+      vendedor = vendedorReceita;
+      criterioMatch = documento && clientMaps.byDocument.has(documento)
+        ? 'cnpj_cpf'
+        : normalizeName(cliente) && clientMaps.byName.has(normalizeName(cliente))
+          ? 'nome_cliente'
+          : 'nao_encontrado';
+      observacao = criterioMatch === 'nao_encontrado'
+        ? 'Carteira preenchida pela coluna Vendedor da planilha de receitas; cliente nao encontrado na base de clientes ativos.'
+        : '';
+    } else if (documento && clientMaps.byDocument.has(documento)) {
       vendedor = clientMaps.byDocument.get(documento) || 'Sem vendedor';
       criterioMatch = 'cnpj_cpf';
     } else {
@@ -262,7 +280,7 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
       }
     }
 
-    if (!vendedor || vendedor === 'Sem vendedor') {
+    if (isMissingSeller(vendedor)) {
       vendedor = 'Sem vendedor';
       observacao = observacao || 'Cliente encontrado, mas sem vendedor/carteira cadastrada.';
     }
@@ -285,12 +303,12 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
   const auditRows: CommissionAuditRow[] = [];
 
   for (const row of enrichedRows) {
-    const rule = matchRule(row.categoria);
+    const rule = matchRule(row.categoria, rules);
 
     if (row.valorRecebido <= 0) continue;
     if (!rule) continue;
 
-    if (row.vendedor === 'Sem vendedor' || row.criterioMatch === 'nao_encontrado') {
+    if (isMissingSeller(row.vendedor) || row.criterioMatch === 'nao_encontrado') {
       auditRows.push({
         linha: row.linha,
         cliente: row.cliente,
@@ -347,9 +365,9 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
   return { enrichedRows, summaries, auditRows };
 }
 
-export function processCommissionFiles(receivablesBuffer: ArrayBuffer, clientsBuffer: ArrayBuffer): CommissionProcessResult {
+export function processCommissionFiles(receivablesBuffer: ArrayBuffer, clientsBuffer: ArrayBuffer, rules: CommissionRule[] = COMMISSION_RULES): CommissionProcessResult {
   const clientRows = readFirstSheetRows(clientsBuffer, Object.values(CLIENT_ALIASES)) as ClientInputRow[];
-  return processCommissionWithClients(receivablesBuffer, clientRows);
+  return processCommissionWithClients(receivablesBuffer, clientRows, rules);
 }
 
 function makeSheet(workbook: XLSX.WorkBook, name: string, rows: Record<string, unknown>[]) {

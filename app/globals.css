@@ -21969,6 +21969,26 @@ a.button {
   padding: 10px 12px;
 }
 
+.gkit-flex-shell .inline-edit-panel {
+  background: #f8fafc;
+  border: 1px solid var(--gkit-flex-line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.gkit-flex-shell .wide-field {
+  grid-column: span 2;
+}
+
+.gkit-flex-shell .row-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 .gkit-flex-shell table {
   font-size: 12px;
 }

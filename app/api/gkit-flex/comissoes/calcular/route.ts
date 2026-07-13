@@ -1,5 +1,6 @@
 import { requireGkitFlexApiAccess } from '@/features/gkit-flex/api-auth';
 import { NextRequest } from 'next/server';
+import { getCommissionRulesForProcessing } from '@/features/gkit-flex/cadastros/masterDataPersistence';
 import { getCicloClientesForComissoes } from '@/features/gkit-flex/ciclo-clientes';
 import { buildCommissionWorkbook, processCommissionWithClients } from '@/features/gkit-flex/comissoes/commissionProcessor';
 import { saveCommissionExecution } from '@/features/gkit-flex/comissoes/supabasePersistence';
@@ -104,8 +105,9 @@ export async function POST(request: NextRequest) {
 
     const contasBuffer = await contasFile.arrayBuffer();
     const clientesCiclo = await getCicloClientesForComissoes();
+    const commissionRules = await getCommissionRulesForProcessing();
 
-    const result = processCommissionWithClients(contasBuffer, clientesCiclo);
+    const result = processCommissionWithClients(contasBuffer, clientesCiclo, commissionRules);
     const resumo = buildResumo(result);
     const totals = buildTotals(resumo);
 

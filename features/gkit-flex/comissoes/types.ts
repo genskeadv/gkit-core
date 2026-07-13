@@ -1,4 +1,4 @@
-export type CommissionCategoryKey = 'acordos_judiciais' | 'mensalidade_assessoria';
+export type CommissionCategoryKey = string;
 
 export type CommissionRule = {
   key: CommissionCategoryKey;

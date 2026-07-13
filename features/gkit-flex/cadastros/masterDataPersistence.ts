@@ -1,6 +1,17 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseAdmin, logEvent } from '../audit';
+import { COMMISSION_RULES } from '../comissoes/commissionProcessor';
+import type { CommissionRule } from '../comissoes/types';
 import { buildSlug, normalizeText, suggestCanonicalName, type CadastroTipo } from './normalization';
+
+export type CommissionRuleConfig = {
+  ativa: boolean;
+  label: string;
+  matchers: string[];
+  reductionRate: number;
+  commissionRate: number;
+  splitBy: number;
+};
 
 export type CadastroItem = {
   id: string;
@@ -12,8 +23,26 @@ export type CadastroItem = {
   usos: number;
   aliases: string[];
   naoGerarAutomaticamenteNaPrevia: boolean;
+  comissao?: CommissionRuleConfig | null;
   created_at?: string;
   updated_at?: string;
+};
+
+export type CadastroSaveInput = {
+  id?: string;
+  tipo: CadastroTipo;
+  nome: string;
+  status?: 'ativo' | 'inativo';
+  aliases?: string[];
+};
+
+export type CommissionRuleSaveInput = {
+  cadastroId: string;
+  ativa: boolean;
+  matchers: string[];
+  reductionPercent: number;
+  commissionPercent: number;
+  splitBy: number;
 };
 
 type DiscoveredValue = {
@@ -88,6 +117,91 @@ async function ensureAlias(supabase: SupabaseClient, cadastroId: string, tipo: C
     origem,
   }, { onConflict: 'tipo,alias_slug' });
   if (error) throw new Error(`Erro ao salvar alias ${alias}: ${error.message}`);
+}
+
+function uniqText(values: string[]) {
+  return Array.from(new Set(values.map((value) => String(value || '').trim()).filter(Boolean)));
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function asPositiveNumber(value: unknown, fallback: number) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function parseCommissionRule(metadata: Record<string, unknown>, fallbackLabel: string): CommissionRuleConfig | null {
+  const raw = asRecord(metadata.gkit_flex_comissao);
+  if (!Object.keys(raw).length) return null;
+  const matchers = Array.isArray(raw.matchers) ? uniqText(raw.matchers.map(String)) : [];
+  return {
+    ativa: raw.ativa !== false,
+    label: String(raw.label || fallbackLabel),
+    matchers: matchers.length ? matchers : [fallbackLabel],
+    reductionRate: asPositiveNumber(raw.reductionRate, 0),
+    commissionRate: asPositiveNumber(raw.commissionRate, 0),
+    splitBy: Math.max(1, Math.trunc(asPositiveNumber(raw.splitBy, 1))),
+  };
+}
+
+function commissionRuleToMetadata(rule: CommissionRule, ativa = true): CommissionRuleConfig {
+  return {
+    ativa,
+    label: rule.label,
+    matchers: uniqText(rule.categoryMatchers),
+    reductionRate: rule.reductionRate,
+    commissionRate: rule.commissionRate,
+    splitBy: rule.splitBy,
+  };
+}
+
+async function ensureDefaultCommissionRules(supabase: SupabaseClient) {
+  for (const rule of COMMISSION_RULES) {
+    const slug = buildSlug(rule.label);
+    const { data: existing, error: existingError } = await supabase
+      .from('gkit_cadastros')
+      .select('id, metadata, origem')
+      .eq('tipo', 'categoria')
+      .eq('slug', slug)
+      .maybeSingle();
+    if (existingError) throw new Error(`Erro ao consultar regra de comissao ${rule.label}: ${existingError.message}`);
+
+    const nextRule = commissionRuleToMetadata(rule, true);
+    if (existing?.id) {
+      const metadata = asRecord(existing.metadata);
+      const current = parseCommissionRule(metadata, rule.label);
+      if (current) continue;
+      const { error } = await supabase
+        .from('gkit_cadastros')
+        .update({
+          metadata: { ...metadata, gkit_flex_comissao: nextRule },
+          origem: existing.origem || 'comissoes',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id);
+      if (error) throw new Error(`Erro ao atualizar regra de comissao ${rule.label}: ${error.message}`);
+      continue;
+    }
+
+    const { data: created, error: insertError } = await supabase
+      .from('gkit_cadastros')
+      .insert({
+        tipo: 'categoria',
+        nome: rule.label,
+        slug,
+        status: 'ativo',
+        origem: 'comissoes',
+        usos: 0,
+        metadata: { gkit_flex_comissao: nextRule },
+      })
+      .select('id')
+      .single();
+    if (insertError) throw new Error(`Erro ao criar regra de comissao ${rule.label}: ${insertError.message}`);
+    await ensureAlias(supabase, created.id as string, 'categoria', rule.label, 'comissoes');
+    for (const matcher of rule.categoryMatchers) await ensureAlias(supabase, created.id as string, 'categoria', matcher, 'comissoes');
+  }
 }
 
 async function syncCoreCarteirasToCadastros(supabase: SupabaseClient) {
@@ -183,9 +297,10 @@ function countValues(rows: Array<Record<string, unknown>>, key: string, tipo: Ca
 
 export async function getCadastrosResumo() {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return { configured: false, categorias: [], centros: [], carteiras: [], totais: { categorias: 0, centros: 0, carteiras: 0, aliases: 0 } };
+  if (!supabase) return { configured: false, categorias: [], centros: [], carteiras: [], totais: { categorias: 0, centros: 0, carteiras: 0, aliases: 0, regrasComissao: 0 } };
 
   await syncCoreCarteirasToCadastros(supabase);
+  await ensureDefaultCommissionRules(supabase);
 
   const { data: cadastros, error } = await supabase
     .from('gkit_cadastros')
@@ -210,6 +325,7 @@ export async function getCadastrosResumo() {
   const items: CadastroItem[] = (cadastros || []).map((item) => {
     const metadata = (item.metadata || {}) as Record<string, unknown>;
     const previsoes = (metadata.gkit_flex_previsoes || {}) as Record<string, unknown>;
+    const comissao = parseCommissionRule(metadata, item.nome as string);
     return {
       id: item.id as string,
       tipo: item.tipo as CadastroTipo,
@@ -220,6 +336,7 @@ export async function getCadastrosResumo() {
       usos: Number(item.usos || 0),
       aliases: aliasMap.get(item.id as string) || [],
       naoGerarAutomaticamenteNaPrevia: Boolean(previsoes.nao_gerar_automaticamente),
+      comissao,
       created_at: item.created_at as string,
       updated_at: item.updated_at as string,
     };
@@ -235,8 +352,155 @@ export async function getCadastrosResumo() {
       centros: items.filter((item) => item.tipo === 'centro').length,
       carteiras: items.filter((item) => item.tipo === 'carteira').length,
       aliases: aliases?.length || 0,
+      regrasComissao: items.filter((item) => item.tipo === 'categoria' && item.comissao?.ativa).length,
     },
   };
+}
+
+export async function saveCadastroItem(input: CadastroSaveInput) {
+  const supabase = getSupabaseAdmin();
+  assertConfigured(supabase);
+
+  const tipo = input.tipo;
+  if (!['categoria', 'centro', 'carteira'].includes(tipo)) throw new Error('Tipo de cadastro invalido.');
+  const nome = String(input.nome || '').trim();
+  if (!nome) throw new Error('Informe o nome do cadastro.');
+  const status = input.status === 'inativo' ? 'inativo' : 'ativo';
+  const slug = buildSlug(nome);
+  const aliases = uniqText(input.aliases || []);
+
+  if (input.id) {
+    const { data: existing, error: existingError } = await supabase
+      .from('gkit_cadastros')
+      .select('id, tipo, nome, metadata, origem')
+      .eq('id', input.id)
+      .maybeSingle();
+    if (existingError) throw new Error(`Erro ao consultar cadastro: ${existingError.message}`);
+    if (!existing?.id) throw new Error('Cadastro nao encontrado.');
+    if (existing.tipo !== tipo) throw new Error('Tipo do cadastro nao pode ser alterado.');
+
+    const metadata = asRecord(existing.metadata);
+    const { error } = await supabase
+      .from('gkit_cadastros')
+      .update({
+        nome,
+        slug,
+        status,
+        origem: existing.origem || 'manual',
+        metadata,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', input.id);
+    if (error) throw new Error(`Erro ao atualizar cadastro ${nome}: ${error.message}`);
+
+    const coreCarteiraId = String(asRecord(metadata.core).carteira_id || '');
+    if (tipo === 'carteira' && coreCarteiraId) {
+      const { error: coreError } = await supabase
+        .schema('core')
+        .from('carteiras')
+        .update({ nome, status, updated_at: new Date().toISOString() })
+        .eq('id', coreCarteiraId);
+      if (coreError) throw new Error(`Erro ao atualizar carteira no Core: ${coreError.message}`);
+    }
+
+    const { error: deleteAliasError } = await supabase.from('gkit_cadastro_aliases').delete().eq('cadastro_id', input.id);
+    if (deleteAliasError) throw new Error(`Erro ao limpar aliases: ${deleteAliasError.message}`);
+    await ensureAlias(supabase, input.id, tipo, nome, 'manual');
+    for (const alias of aliases) await ensureAlias(supabase, input.id, tipo, alias, 'manual');
+
+    await logEvent({ supabase, modulo: 'cadastros', action: 'editar_cadastro', entidadeTipo: 'gkit_cadastros', entidadeId: input.id, detalhe: { tipo, nome, status, aliases } });
+    return { ok: true, resumo: await getCadastrosResumo() };
+  }
+
+  const { data, error } = await supabase
+    .from('gkit_cadastros')
+    .insert({ tipo, nome, slug, status, origem: 'manual', usos: 0, metadata: {} })
+    .select('id')
+    .single();
+  if (error) throw new Error(`Erro ao criar cadastro ${nome}: ${error.message}`);
+  await ensureAlias(supabase, data.id as string, tipo, nome, 'manual');
+  for (const alias of aliases) await ensureAlias(supabase, data.id as string, tipo, alias, 'manual');
+
+  await logEvent({ supabase, modulo: 'cadastros', action: 'criar_cadastro', entidadeTipo: 'gkit_cadastros', entidadeId: data.id as string, detalhe: { tipo, nome, status, aliases } });
+  return { ok: true, resumo: await getCadastrosResumo() };
+}
+
+export async function updateCategoriaCommissionRule(input: CommissionRuleSaveInput) {
+  const supabase = getSupabaseAdmin();
+  assertConfigured(supabase);
+
+  const { data: cadastro, error: cadastroError } = await supabase
+    .from('gkit_cadastros')
+    .select('id, tipo, nome, slug, metadata')
+    .eq('id', input.cadastroId)
+    .maybeSingle();
+  if (cadastroError) throw new Error(`Erro ao consultar categoria: ${cadastroError.message}`);
+  if (!cadastro?.id) throw new Error('Categoria nao encontrada.');
+  if (cadastro.tipo !== 'categoria') throw new Error('Regra de comissao so pode ser vinculada a categoria.');
+
+  const matchers = uniqText(input.matchers);
+  if (input.ativa && !matchers.length) throw new Error('Informe pelo menos um termo de correspondencia.');
+  const splitBy = Math.max(1, Math.trunc(Number(input.splitBy || 1)));
+  const rule: CommissionRuleConfig = {
+    ativa: Boolean(input.ativa),
+    label: cadastro.nome as string,
+    matchers: matchers.length ? matchers : [cadastro.nome as string],
+    reductionRate: asPositiveNumber(input.reductionPercent, 0) / 100,
+    commissionRate: asPositiveNumber(input.commissionPercent, 0) / 100,
+    splitBy,
+  };
+
+  const metadata = asRecord(cadastro.metadata);
+  const { error: updateError } = await supabase
+    .from('gkit_cadastros')
+    .update({
+      metadata: { ...metadata, gkit_flex_comissao: rule },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', cadastro.id);
+  if (updateError) throw new Error(`Erro ao atualizar regra de comissao: ${updateError.message}`);
+
+  await logEvent({
+    supabase,
+    modulo: 'cadastros',
+    action: 'atualizar_regra_comissao_categoria',
+    entidadeTipo: 'gkit_cadastros',
+    entidadeId: String(cadastro.id),
+    detalhe: { categoria: cadastro.nome, regra: rule },
+  });
+
+  return { ok: true, resumo: await getCadastrosResumo() };
+}
+
+export async function getCommissionRulesForProcessing(): Promise<CommissionRule[]> {
+  const supabase = getSupabaseAdmin();
+  assertConfigured(supabase);
+  await ensureDefaultCommissionRules(supabase);
+
+  const { data, error } = await supabase
+    .from('gkit_cadastros')
+    .select('nome, slug, status, metadata')
+    .eq('tipo', 'categoria')
+    .eq('status', 'ativo')
+    .order('nome', { ascending: true });
+  if (error) throw new Error(`Erro ao carregar regras de comissao: ${error.message}`);
+
+  const rules = (data || [])
+    .map((row) => {
+      const parsed = parseCommissionRule(asRecord(row.metadata), row.nome as string);
+      if (!parsed?.ativa) return null;
+      return {
+        key: String(row.slug || buildSlug(row.nome as string)),
+        label: parsed.label || String(row.nome || ''),
+        categoryMatchers: parsed.matchers.length ? parsed.matchers : [String(row.nome || '')],
+        reductionRate: parsed.reductionRate,
+        commissionRate: parsed.commissionRate,
+        splitBy: parsed.splitBy,
+      } satisfies CommissionRule;
+    })
+    .filter((rule): rule is CommissionRule => Boolean(rule));
+
+  return rules.length ? rules : COMMISSION_RULES;
 }
 
 export async function extractCadastrosFromOperationalData() {

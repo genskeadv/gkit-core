@@ -22,10 +22,12 @@ export async function PATCH(request: NextRequest) {
     const accessError = await requireGkitFlexApiAccess();
     if (accessError) return accessError;
     const payload = await request.json();
+    const field = String(payload.field || payload.campo || 'categoria') === 'centro' ? 'centro' : 'categoria';
     const result = await classifyPayableSanitization(
       String(payload.competencia || ''),
       Array.isArray(payload.ids) ? payload.ids : [],
-      String(payload.categoria || ''),
+      field,
+      String(payload.value || payload.valor || payload.categoria || ''),
     );
     return Response.json(result);
   } catch (error) {

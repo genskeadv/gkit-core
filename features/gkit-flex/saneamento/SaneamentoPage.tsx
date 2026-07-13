@@ -13,6 +13,7 @@ type SanitizationRow = {
   valor_previsto: number;
   categoria: string;
   centro: string | null;
+  pendencias: Array<'categoria' | 'centro'>;
   created_at?: string;
   sugestao?: SanitizationSuggestion | null;
 };
@@ -32,8 +33,11 @@ type SanitizationPayload = {
   canEdit: boolean;
   rows: SanitizationRow[];
   categories: string[];
+  centers: string[];
   summary: {
     pendentes: number;
+    semCategoria: number;
+    semCentro: number;
     totalPendente: number;
   };
 };
@@ -54,11 +58,12 @@ function formatDay(row: SanitizationRow) {
 
 export function SaneamentoPage() {
   const [competencia, setCompetencia] = useState(currentMonthValue());
+  const [field, setField] = useState<'categoria' | 'centro'>('categoria');
   const [data, setData] = useState<SanitizationPayload | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [categoria, setCategoria] = useState('');
-  const [novaCategoria, setNovaCategoria] = useState('');
-  const [rowCategories, setRowCategories] = useState<Record<string, string>>({});
+  const [selectedValue, setSelectedValue] = useState('');
+  const [newValue, setNewValue] = useState('');
+  const [rowValues, setRowValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -66,10 +71,14 @@ export function SaneamentoPage() {
 
   const competenciaParam = useMemo(() => `${competencia}-01`, [competencia]);
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-  const selectedRows = useMemo(() => (data?.rows || []).filter((row) => selectedSet.has(row.id)), [data?.rows, selectedSet]);
+  const rows = data?.rows || [];
+  const visibleRows = useMemo(() => rows.filter((row) => row.pendencias.includes(field)), [rows, field]);
+  const selectedRows = useMemo(() => visibleRows.filter((row) => selectedSet.has(row.id)), [visibleRows, selectedSet]);
   const selectedTotal = useMemo(() => Math.round(selectedRows.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0) * 100) / 100, [selectedRows]);
   const suggestionCount = useMemo(() => rowsWithSuggestions(data?.rows || []).length, [data?.rows]);
-  const canApply = Boolean(data?.canEdit && selectedIds.length && (categoria || novaCategoria.trim()) && !saving);
+  const options = field === 'categoria' ? data?.categories || [] : data?.centers || [];
+  const fieldLabel = field === 'categoria' ? 'categoria' : 'centro';
+  const canApply = Boolean(data?.canEdit && selectedIds.length && (selectedValue || newValue.trim()) && !saving);
 
   async function load() {
     setLoading(true);
@@ -79,11 +88,11 @@ export function SaneamentoPage() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'Erro ao carregar saneamento.');
       setData(payload);
-      setSelectedIds((current) => current.filter((id) => (payload.rows || []).some((row: SanitizationRow) => row.id === id)));
-      setRowCategories((current) => {
+      setSelectedIds((current) => current.filter((id) => (payload.rows || []).some((row: SanitizationRow) => row.id === id && row.pendencias.includes(field))));
+      setRowValues((current) => {
         const next: Record<string, string> = {};
         for (const row of payload.rows || []) {
-          next[row.id] = current[row.id] || row.sugestao?.categoria || '';
+          next[row.id] = current[row.id] || (field === 'categoria' ? row.sugestao?.categoria : '') || '';
         }
         return next;
       });
@@ -108,13 +117,13 @@ export function SaneamentoPage() {
   }
 
   function selectAll() {
-    setSelectedIds(data?.rows.map((row) => row.id) || []);
+    setSelectedIds(visibleRows.map((row) => row.id));
   }
 
-  async function applyCategory(idsOverride?: string[], categoryOverride?: string) {
+  async function applyValue(idsOverride?: string[], valueOverride?: string) {
     const idsToApply = idsOverride || selectedIds;
-    const targetCategory = categoryOverride || novaCategoria.trim() || categoria;
-    if (!data?.canEdit || !idsToApply.length || !targetCategory || saving) return;
+    const targetValue = valueOverride || newValue.trim() || selectedValue;
+    if (!data?.canEdit || !idsToApply.length || !targetValue || saving) return;
     setSaving(true);
     setError('');
     setMessage('');
@@ -122,16 +131,16 @@ export function SaneamentoPage() {
       const response = await fetch('/api/gkit-flex/contas-pagar/saneamento', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ competencia: competenciaParam, ids: idsToApply, categoria: targetCategory }),
+        body: JSON.stringify({ competencia: competenciaParam, ids: idsToApply, field, value: targetValue }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'Erro ao classificar pagamentos.');
       setData(payload);
       setSelectedIds([]);
-      setRowCategories({});
-      setCategoria('');
-      setNovaCategoria('');
-      setMessage(`${payload.updated || 0} pagamento(s) classificados em ${targetCategory}.`);
+      setRowValues({});
+      setSelectedValue('');
+      setNewValue('');
+      setMessage(`${payload.updated || 0} pagamento(s) classificados em ${targetValue}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao classificar pagamentos.');
     } finally {
@@ -139,29 +148,26 @@ export function SaneamentoPage() {
     }
   }
 
-  const rows = data?.rows || [];
-  const categories = data?.categories || [];
-
-  function rowCategory(row: SanitizationRow) {
-    if (Object.prototype.hasOwnProperty.call(rowCategories, row.id)) {
-      return rowCategories[row.id];
+  function rowValue(row: SanitizationRow) {
+    if (Object.prototype.hasOwnProperty.call(rowValues, row.id)) {
+      return rowValues[row.id];
     }
-    return row.sugestao?.categoria || '';
+    return field === 'categoria' ? row.sugestao?.categoria || '' : '';
   }
 
-  function updateRowCategory(id: string, value: string) {
-    setRowCategories((current) => ({ ...current, [id]: value }));
+  function updateRowValue(id: string, value: string) {
+    setRowValues((current) => ({ ...current, [id]: value }));
   }
 
   return (
     <main className="page-shell wide-shell flex-saneamento-page">
       <MonthContextHeader
         title="Saneamento de extrato"
-        description="Classifique pagamentos importados que ainda estao sem categoria."
+        description="Classifique pagamentos importados que ainda estao sem categoria ou sem centro."
         competencia={competencia}
         onCompetenciaChange={setCompetencia}
         primaryStatus={{ label: 'Pagamentos', status: data?.status || 'nao_aberto' }}
-        secondaryStatus={{ label: 'Saneamento', status: rows.length ? 'aviso' : 'ok' }}
+        secondaryStatus={{ label: 'Saneamento', status: visibleRows.length ? 'aviso' : 'ok' }}
       >
         <button className="secondary-button" onClick={load} disabled={loading}>{loading ? 'Atualizando...' : 'Atualizar'}</button>
       </MonthContextHeader>
@@ -172,23 +178,25 @@ export function SaneamentoPage() {
       {data && !data.canEdit ? <div className="warning">A competencia precisa estar aberta para classificar pagamentos.</div> : null}
 
       <section className="grid-4 dashboard-metrics">
-        <MetricCard label="Pendentes" value={data?.summary.pendentes || 0} help="Sem categoria" tone={rows.length ? 'warning' : 'good'} />
+        <MetricCard label="Pendentes" value={data?.summary.pendentes || 0} help="Total com pendencia" tone={rows.length ? 'warning' : 'good'} />
+        <MetricCard label="Sem categoria" value={data?.summary.semCategoria || 0} tone={(data?.summary.semCategoria || 0) ? 'warning' : 'good'} />
+        <MetricCard label="Sem centro" value={data?.summary.semCentro || 0} tone={(data?.summary.semCentro || 0) ? 'warning' : 'good'} />
         <MetricCard label="Valor pendente" value={formatMoney(data?.summary.totalPendente || 0)} />
-        <MetricCard label="Sugestoes" value={suggestionCount} help="pela previsao do mes" tone={suggestionCount ? 'good' : 'default'} />
       </section>
 
       <section className="grid-4 dashboard-metrics">
         <MetricCard label="Selecionados" value={selectedIds.length} help={formatMoney(selectedTotal)} tone={selectedIds.length ? 'warning' : 'default'} />
-        <MetricCard label="Categoria escolhida" value={novaCategoria.trim() || categoria || '-'} help="destino do lote" />
+        <MetricCard label="Modo" value={field === 'categoria' ? 'Categoria' : 'Centro'} help={`${visibleRows.length} pendente(s)`} />
+        <MetricCard label="Destino" value={newValue.trim() || selectedValue || '-'} help="destino do lote" />
         <MetricCard label="Status" value={data?.canEdit ? 'Editavel' : 'Bloqueado'} help="competencia" tone={data?.canEdit ? 'good' : 'danger'} />
-        <MetricCard label="Sugestoes" value="Previsao" help="base das sugestoes" />
+        <MetricCard label="Sugestoes" value={suggestionCount} help="categoria pela previsao" tone={suggestionCount ? 'good' : 'default'} />
       </section>
 
       <section className="card flex-saneamento-actions">
         <div className="header-row compact-header">
           <div>
             <p className="eyebrow">Classificacao</p>
-            <h2>Aplicar categoria</h2>
+            <h2>Aplicar {fieldLabel}</h2>
             <p className="muted small-text">{selectedIds.length ? `${selectedIds.length} pagamento(s) selecionado(s).` : 'Nenhum pagamento selecionado.'}</p>
           </div>
           <StatusBadge status={data?.canEdit ? 'ok' : 'bloqueio'} label={data?.canEdit ? 'Aberto' : 'Bloqueado'} />
@@ -196,24 +204,31 @@ export function SaneamentoPage() {
 
         <div className="form-grid">
           <label className="field-label">
-            Categoria
-            <select className="text-input" value={categoria} onChange={(event) => { setCategoria(event.target.value); setNovaCategoria(''); }}>
-              <option value="">Selecione</option>
-              {categories.map((option) => <option key={option} value={option}>{option}</option>)}
+            Pendencia
+            <select className="text-input" value={field} onChange={(event) => { setField(event.target.value as 'categoria' | 'centro'); setSelectedIds([]); setSelectedValue(''); setNewValue(''); setRowValues({}); }}>
+              <option value="categoria">Categoria</option>
+              <option value="centro">Centro</option>
             </select>
           </label>
           <label className="field-label">
-            Nova categoria
-            <input className="text-input" value={novaCategoria} onChange={(event) => { setNovaCategoria(event.target.value); setCategoria(''); }} placeholder="Ex.: Infraestrutura" />
+            {field === 'categoria' ? 'Categoria' : 'Centro'}
+            <select className="text-input" value={selectedValue} onChange={(event) => { setSelectedValue(event.target.value); setNewValue(''); }}>
+              <option value="">Selecione</option>
+              {options.map((option) => <option key={option} value={option}>{option}</option>)}
+            </select>
+          </label>
+          <label className="field-label">
+            Novo {fieldLabel}
+            <input className="text-input" value={newValue} onChange={(event) => { setNewValue(event.target.value); setSelectedValue(''); }} placeholder={field === 'categoria' ? 'Ex.: Infraestrutura' : 'Ex.: Operacional'} />
           </label>
           <div className="module-inline-actions">
-            <button className="secondary-button" onClick={selectAll} disabled={!rows.length || !data?.canEdit}>Selecionar todos</button>
+            <button className="secondary-button" onClick={selectAll} disabled={!visibleRows.length || !data?.canEdit}>Selecionar todos</button>
             <button className="secondary-button" onClick={() => setSelectedIds([])} disabled={!selectedIds.length}>Limpar selecao</button>
-            <button className="primary-button" onClick={() => applyCategory()} disabled={!canApply}>{saving ? 'Classificando...' : 'Aplicar categoria'}</button>
+            <button className="primary-button" onClick={() => applyValue()} disabled={!canApply}>{saving ? 'Classificando...' : `Aplicar ${fieldLabel}`}</button>
           </div>
         </div>
-        <datalist id="saneamento-categorias">
-          {categories.map((option) => <option key={option} value={option} />)}
+        <datalist id="saneamento-opcoes">
+          {options.map((option) => <option key={option} value={option} />)}
         </datalist>
       </section>
 
@@ -221,11 +236,11 @@ export function SaneamentoPage() {
         <div className="header-row compact-header">
           <div>
             <p className="eyebrow">Pendencias</p>
-            <h2>Pagamentos sem categoria</h2>
+            <h2>Pagamentos sem {fieldLabel}</h2>
           </div>
         </div>
 
-        {rows.length ? (
+        {visibleRows.length ? (
           <div className="table-wrap">
             <table className="editable-table flex-saneamento-table">
               <thead>
@@ -237,7 +252,7 @@ export function SaneamentoPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
+                {visibleRows.map((row) => (
                   <tr key={row.id} className={selectedSet.has(row.id) ? 'paid-row' : ''}>
                     <td>
                       <input type="checkbox" checked={selectedSet.has(row.id)} disabled={!data?.canEdit} onChange={() => toggleRow(row.id)} />
@@ -247,19 +262,21 @@ export function SaneamentoPage() {
                       <div className="flex-saneamento-payment-cell">
                         <div className="flex-saneamento-payment-copy">
                           <strong>{row.descricao}</strong>
-                          <p className="muted small-text">{row.centro || 'Sem centro'}</p>
+                          <p className="muted small-text">
+                            Categoria: {row.categoria || 'Sem categoria'} | Centro: {row.centro || 'Sem centro'}
+                          </p>
                         </div>
                         <div className="module-inline-actions flex-saneamento-row-actions">
-                          {row.sugestao ? <SuggestionPill suggestion={row.sugestao} /> : <span className="muted small-text">Sem sugestao da previsao</span>}
+                          {field === 'categoria' && row.sugestao ? <SuggestionPill suggestion={row.sugestao} /> : <span className="muted small-text">{field === 'categoria' ? 'Sem sugestao da previsao' : 'Defina o centro'}</span>}
                           <input
                             className="inline-input"
-                            list="saneamento-categorias"
-                            value={rowCategory(row)}
-                            onChange={(event) => updateRowCategory(row.id, event.target.value)}
-                            placeholder="Categoria"
+                            list="saneamento-opcoes"
+                            value={rowValue(row)}
+                            onChange={(event) => updateRowValue(row.id, event.target.value)}
+                            placeholder={field === 'categoria' ? 'Categoria' : 'Centro'}
                             disabled={!data?.canEdit || saving}
                           />
-                          <button className="secondary-button" onClick={() => applyCategory([row.id], rowCategory(row))} disabled={!data?.canEdit || saving || !rowCategory(row)}>Aplicar</button>
+                          <button className="secondary-button" onClick={() => applyValue([row.id], rowValue(row))} disabled={!data?.canEdit || saving || !rowValue(row)}>Aplicar</button>
                         </div>
                       </div>
                     </td>
@@ -270,7 +287,7 @@ export function SaneamentoPage() {
             </table>
           </div>
         ) : (
-          <EmptyState title="Nenhuma pendencia de categoria" description="Os pagamentos desta competencia ja estao classificados." />
+          <EmptyState title={`Nenhuma pendencia de ${fieldLabel}`} description="Os pagamentos desta competencia ja estao classificados neste criterio." />
         )}
       </section>
     </main>

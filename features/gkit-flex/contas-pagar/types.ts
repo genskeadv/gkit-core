@@ -46,6 +46,7 @@ export type PayableSanitizationRow = {
   valor_previsto: number;
   categoria: string;
   centro: string | null;
+  pendencias: Array<'categoria' | 'centro'>;
   origem_tipo?: string | null;
   origem_arquivo?: string | null;
   raw?: Record<string, unknown> | null;
@@ -72,6 +73,8 @@ export type PayableSanitizationSuggestion = {
 
 export type PayableSanitizationSummary = {
   pendentes: number;
+  semCategoria: number;
+  semCentro: number;
   totalPendente: number;
   grupos: number;
 };
