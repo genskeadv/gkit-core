@@ -26,6 +26,8 @@ type CadastroItem = {
   aliases: string[];
   naoGerarAutomaticamenteNaPrevia: boolean;
   natureza: CadastroNatureza | null;
+  centroId: string | null;
+  centroNome: string | null;
   comissao?: CommissionRuleConfig | null;
 };
 
@@ -50,6 +52,7 @@ type CadastroSavePayload = {
   status: 'ativo' | 'inativo';
   aliases: string[];
   natureza?: CadastroNatureza | null;
+  centroId?: string | null;
 };
 
 type CommissionRuleSavePayload = {
@@ -132,6 +135,7 @@ function impactRows(preview: ReclassPreview | null) {
 }
 
 function CadastroTable({
+  centros = [],
   tipo,
   title,
   description,
@@ -141,6 +145,7 @@ function CadastroTable({
   onToggleForecastRule,
   onSave,
 }: {
+  centros?: CadastroItem[];
   tipo: CadastroTipo;
   title: string;
   description: string;
@@ -158,13 +163,22 @@ function CadastroTable({
   const [formStatus, setFormStatus] = useState<'ativo' | 'inativo'>('ativo');
   const [formAliases, setFormAliases] = useState('');
   const [formNatureza, setFormNatureza] = useState<CadastroNatureza>('ambos');
+  const [formCentroId, setFormCentroId] = useState('');
   const [naturezaFilter, setNaturezaFilter] = useState<'todas' | CadastroNatureza>('todas');
+  const [centroFilter, setCentroFilter] = useState('todos');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const filtered = useMemo(() => {
     const term = filter.trim().toLowerCase();
     return items.filter((item) => {
       if (tipo === 'categoria' && naturezaFilter !== 'todas' && item.natureza !== naturezaFilter) return false;
+      if (tipo === 'categoria' && centroFilter !== 'todos') {
+        if (centroFilter === 'sem_centro') {
+          if (item.centroId) return false;
+        } else if (item.centroId !== centroFilter) {
+          return false;
+        }
+      }
       if (!term) return true;
       return (
         item.nome.toLowerCase().includes(term) ||
@@ -172,7 +186,7 @@ function CadastroTable({
         item.aliases.some((alias) => alias.toLowerCase().includes(term))
       );
     });
-  }, [filter, items, naturezaFilter, tipo]);
+  }, [centroFilter, filter, items, naturezaFilter, tipo]);
 
   function startNew() {
     setEditing(null);
@@ -180,6 +194,7 @@ function CadastroTable({
     setFormStatus('ativo');
     setFormAliases('');
     setFormNatureza('ambos');
+    setFormCentroId('');
     setFormError('');
     setFormOpen(true);
   }
@@ -190,6 +205,7 @@ function CadastroTable({
     setFormStatus(item.status);
     setFormAliases(item.aliases.join(', '));
     setFormNatureza(item.natureza || 'ambos');
+    setFormCentroId(item.centroId || '');
     setFormError('');
     setFormOpen(true);
   }
@@ -210,6 +226,7 @@ function CadastroTable({
         status: formStatus,
         aliases: splitList(formAliases),
         natureza: tipo === 'categoria' ? formNatureza : null,
+        centroId: tipo === 'categoria' ? formCentroId || null : null,
       });
       setFormOpen(false);
       setEditing(null);
@@ -233,6 +250,7 @@ function CadastroTable({
         status: item.status === 'ativo' ? 'inativo' : 'ativo',
         aliases: item.aliases,
         natureza: item.natureza,
+        centroId: item.centroId,
       });
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Erro ao alterar status.');
@@ -268,6 +286,18 @@ function CadastroTable({
               </select>
             </label>
           ) : null}
+          {tipo === 'categoria' ? (
+            <label className="field-label compact-filter">
+              Centro
+              <select className="text-input" value={centroFilter} onChange={(event) => setCentroFilter(event.target.value)}>
+                <option value="todos">Todos</option>
+                <option value="sem_centro">Sem centro</option>
+                {centros.filter((centro) => centro.status === 'ativo').map((centro) => (
+                  <option key={centro.id} value={centro.id}>{centro.nome}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <button type="button" className="secondary-button" onClick={() => setCollapsed((value) => !value)}>
             {collapsed ? 'Expandir' : 'Recolher'}
           </button>
@@ -299,6 +329,17 @@ function CadastroTable({
                 </select>
               </label>
             ) : null}
+            {tipo === 'categoria' ? (
+              <label className="field-label">
+                Centro associado
+                <select className="text-input" value={formCentroId} onChange={(event) => setFormCentroId(event.target.value)}>
+                  <option value="">Sem centro associado</option>
+                  {centros.filter((centro) => centro.status === 'ativo' || centro.id === formCentroId).map((centro) => (
+                    <option key={centro.id} value={centro.id}>{centro.nome}</option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <label className="field-label wide-field">
               Aliases
               <input className="text-input" value={formAliases} onChange={(event) => setFormAliases(event.target.value)} placeholder="Separe por virgula" />
@@ -323,6 +364,7 @@ function CadastroTable({
                 <th>Nome canonico</th>
                 <th>Origem</th>
                 {tipo === 'categoria' ? <th>Natureza</th> : null}
+                {tipo === 'categoria' ? <th>Centro</th> : null}
                 <th>Status</th>
                 <th className="text-right">Usos</th>
                 {showForecastRule ? <th>Previa</th> : null}
@@ -340,6 +382,9 @@ function CadastroTable({
                   <td>{origemLabel(item.origem)}</td>
                   {tipo === 'categoria' ? (
                     <td><StatusBadge status={naturezaBadgeStatus(item.natureza)} label={naturezaLabel(item.natureza)} compact /></td>
+                  ) : null}
+                  {tipo === 'categoria' ? (
+                    <td>{item.centroNome || <span className="muted small-text">Sem centro</span>}</td>
                   ) : null}
                   <td><StatusBadge status={item.status === 'ativo' ? 'ok' : 'indisponivel'} label={item.status === 'ativo' ? 'Ativo' : 'Inativo'} compact /></td>
                   <td className="text-right">{item.usos}</td>
@@ -838,6 +883,7 @@ export function MasterDataPage() {
       <CommissionRulesTable categorias={data?.categorias || []} savingId={savingCommissionRuleId} onSave={saveCommissionRule} />
 
       <CadastroTable
+        centros={data?.centros || []}
         tipo="categoria"
         title="Categorias"
         description="Categorias usadas em pagamentos e comissoes."

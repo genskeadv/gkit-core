@@ -75,6 +75,11 @@ function moneyCents(value: string) {
   return Math.round(parsed * 100)
 }
 
+function optionalMoney(value: string) {
+  if (!value.trim()) return null
+  return moneyCents(value) / 100
+}
+
 function dateOnly(value: string, label: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`${label} e obrigatorio.`)
   return value
@@ -260,6 +265,7 @@ function revalidateGkitJur() {
   revalidatePath('/modulos/gkit-jur/publicacoes')
   revalidatePath('/modulos/gkit-jur/agente')
   revalidatePath('/modulos/gkit-jur/processos')
+  revalidatePath('/modulos/gkit-jur/pre-juridico')
   revalidatePath('/modulos/gkit-jur/pendencias')
 }
 
@@ -316,6 +322,86 @@ export async function updateGkitJurProcessoAction(formData: FormData) {
   revalidateGkitJur()
   revalidatePath(`/modulos/gkit-jur/processos/${id}`)
   redirect(`/modulos/gkit-jur/processos/${id}`)
+}
+
+function preJuridicoPayload(formData: FormData, usuarioId: string) {
+  const dataEntrada = text(formData, 'data_entrada')
+  const prazoAnalise = text(formData, 'prazo_analise')
+
+  return {
+    titulo: requiredText(formData, 'titulo', 'Titulo'),
+    cliente_id: optionalUuid(formData, 'cliente_id'),
+    cliente_nome: text(formData, 'cliente_nome') || null,
+    descricao: requiredText(formData, 'descricao', 'Descricao'),
+    carteira_id: optionalUuid(formData, 'carteira_id'),
+    responsavel_id: optionalUuid(formData, 'responsavel_id'),
+    origem: text(formData, 'origem') || null,
+    area: text(formData, 'area') || null,
+    valor_estimado: optionalMoney(text(formData, 'valor_estimado')),
+    probabilidade: allowed(text(formData, 'probabilidade'), ['baixa', 'media', 'alta'], 'media'),
+    prioridade: allowed(text(formData, 'prioridade'), ['baixa', 'media', 'alta', 'critica'], 'media'),
+    status: allowed(text(formData, 'status'), ['em_analise', 'aguardando_documentos', 'aprovado', 'descartado'], 'em_analise'),
+    motivo_status: text(formData, 'motivo_status') || null,
+    data_entrada: dataEntrada ? dateOnly(dataEntrada, 'Data de entrada') : new Date().toISOString().slice(0, 10),
+    prazo_analise: prazoAnalise ? dateOnly(prazoAnalise, 'Prazo de analise') : null,
+    atualizado_por: usuarioId,
+    updated_at: new Date().toISOString(),
+  }
+}
+
+export async function createGkitJurPreJuridicoAction(formData: FormData) {
+  const context = await requireGkitJurWrite()
+  const payload = {
+    ...preJuridicoPayload(formData, context.usuario.id),
+    criado_por: context.usuario.id,
+  }
+
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('pre_juridicos')
+    .insert(payload)
+    .select('id')
+    .single()
+
+  if (result.error) throw new Error(result.error.message)
+
+  await admin().schema('gkit_jur').from('eventos_operacionais').insert({
+    entidade_id: result.data.id,
+    entidade_tipo: 'pre_juridico',
+    tipo_evento: 'pre_juridico_criado',
+    descricao: `Pre-juridico criado: ${payload.titulo}`,
+    payload,
+    usuario_id: context.usuario.id,
+  })
+
+  revalidateGkitJur()
+  redirect(safeReturnTo(formData, '/modulos/gkit-jur/pre-juridico'))
+}
+
+export async function updateGkitJurPreJuridicoAction(formData: FormData) {
+  const context = await requireGkitJurWrite()
+  const id = requiredText(formData, 'id', 'Pre-juridico')
+  const payload = preJuridicoPayload(formData, context.usuario.id)
+
+  const { error } = await admin()
+    .schema('gkit_jur')
+    .from('pre_juridicos')
+    .update(payload)
+    .eq('id', id)
+
+  if (error) throw new Error(error.message)
+
+  await admin().schema('gkit_jur').from('eventos_operacionais').insert({
+    entidade_id: id,
+    entidade_tipo: 'pre_juridico',
+    tipo_evento: 'pre_juridico_atualizado',
+    descricao: `Pre-juridico atualizado: ${payload.titulo}`,
+    payload,
+    usuario_id: context.usuario.id,
+  })
+
+  revalidateGkitJur()
+  redirect(safeReturnTo(formData, '/modulos/gkit-jur/pre-juridico'))
 }
 
 export async function saveGkitJurEtiquetaAction(formData: FormData) {

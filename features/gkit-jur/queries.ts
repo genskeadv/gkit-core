@@ -1083,6 +1083,53 @@ function sortColumn(sort: string) {
   return 'updated_at'
 }
 
+export async function listGkitJurPreJuridicos(filters: GkitJurPreJuridicoFilters = buildGkitJurPreJuridicoFilters()): Promise<GkitJurPreJuridicoData> {
+  const from = (filters.page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
+  let query = admin()
+    .schema('gkit_jur')
+    .from('pre_juridicos')
+    .select('id,titulo,cliente_id,cliente_nome,descricao,carteira_id,responsavel_id,origem,area,valor_estimado,probabilidade,prioridade,status,motivo_status,data_entrada,prazo_analise,convertido_processo_id,convertido_em,created_at,updated_at', { count: 'exact' })
+
+  query = applyPreJuridicoFilters(query, filters)
+    .order(preJuridicoSortColumn(filters.sort), { ascending: filters.dir === 'asc', nullsFirst: false })
+    .range(from, to)
+
+  const [metrics, formData, result] = await Promise.all([
+    getGkitJurPreJuridicoMetrics(),
+    getGkitJurFormData(),
+    query,
+  ])
+
+  if (result.error) throw new Error(result.error.message)
+
+  const rows = (result.data ?? []) as Array<Record<string, unknown>>
+  const maps = await lookupMaps(rows)
+  const total = result.count ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  return {
+    filters,
+    filterOptions: {
+      carteiras: formData.carteiras,
+      clientes: formData.clientes,
+      responsaveis: formData.responsaveis,
+    },
+    formData,
+    items: rows.map((row) => mapPreJuridico(row, maps)),
+    metrics,
+    pagination: {
+      currentPage: filters.page,
+      from: total ? from + 1 : 0,
+      pageSize: PAGE_SIZE,
+      to: Math.min(to + 1, total),
+      total,
+      totalPages,
+    },
+  }
+}
+
 export async function listGkitJurProcesses(filters: GkitJurProcessFilters = buildGkitJurProcessFilters()): Promise<GkitJurProcessListData> {
   const from = (filters.page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1

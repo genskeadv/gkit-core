@@ -431,6 +431,45 @@ async function ensurePayableCadastro(supabase: SupabaseClient, tipo: 'categoria'
   }, { onConflict: 'tipo,alias_slug' });
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+async function getAssociatedCenterForCategory(supabase: SupabaseClient, categoryName: string) {
+  const slug = buildSlug(categoryName);
+  if (!slug) return null;
+
+  const { data: categoria, error: categoriaError } = await supabase
+    .from('gkit_cadastros')
+    .select('metadata')
+    .eq('tipo', 'categoria')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  if (categoriaError) {
+    console.warn('[gkit_cadastros] falha ao consultar centro associado da categoria:', categoriaError.message);
+    return null;
+  }
+
+  const centroId = String(asRecord(asRecord(categoria?.metadata).gkit_flex).centro_id || '').trim();
+  if (!centroId) return null;
+
+  const { data: centro, error: centroError } = await supabase
+    .from('gkit_cadastros')
+    .select('nome,status')
+    .eq('id', centroId)
+    .eq('tipo', 'centro')
+    .maybeSingle();
+
+  if (centroError) {
+    console.warn('[gkit_cadastros] falha ao resolver centro associado da categoria:', centroError.message);
+    return null;
+  }
+
+  const nome = String(centro?.nome || '').trim();
+  return nome && centro?.status !== 'inativo' ? nome : null;
+}
+
 async function getMonthRow(supabase: SupabaseClient, competencia: string) {
   const { data, error } = await supabase
     .from('contas_pagar_competencias')
@@ -811,6 +850,11 @@ export async function classifyPayableSanitization(competenciaInput: string, ids:
   if (!rowsToUpdate.length) throw new Error(`Nenhum pagamento selecionado ainda esta sem ${field === 'categoria' ? 'categoria' : 'centro'}.`);
 
   const updateIds = rowsToUpdate.map((row) => row.id);
+  const associatedCenter = field === 'categoria' ? await getAssociatedCenterForCategory(supabase, value) : null;
+  const associatedCenterIds = associatedCenter
+    ? rowsToUpdate.filter((row) => isWithoutCenter(row.centro)).map((row) => row.id)
+    : [];
+
   const { error } = await supabase
     .from('contas_pagar_itens')
     .update({ [field]: value, updated_at: new Date().toISOString() })
@@ -820,6 +864,16 @@ export async function classifyPayableSanitization(competenciaInput: string, ids:
   if (error) throw new Error(`Erro ao classificar pagamentos: ${error.message}`);
 
   await ensurePayableCadastro(supabase, field, value);
+  if (associatedCenter && associatedCenterIds.length) {
+    const { error: centerError } = await supabase
+      .from('contas_pagar_itens')
+      .update({ centro: associatedCenter, updated_at: new Date().toISOString() })
+      .eq('competencia_id', competenciaId)
+      .in('id', associatedCenterIds);
+
+    if (centerError) throw new Error(`Erro ao aplicar centro associado: ${centerError.message}`);
+    await ensurePayableCadastro(supabase, 'centro', associatedCenter);
+  }
 
   await logEvent({
     supabase,
@@ -829,6 +883,8 @@ export async function classifyPayableSanitization(competenciaInput: string, ids:
     detalhe: {
       campo: field,
       valor: value,
+      centro_associado: associatedCenter,
+      centro_associado_atualizados: associatedCenterIds.length,
       selecionados: uniqueIds.length,
       atualizados: updateIds.length,
       valor_total: roundMoney(rowsToUpdate.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0)),

@@ -26,6 +26,8 @@ export type CadastroItem = {
   aliases: string[];
   naoGerarAutomaticamenteNaPrevia: boolean;
   natureza: CadastroNatureza | null;
+  centroId: string | null;
+  centroNome: string | null;
   comissao?: CommissionRuleConfig | null;
   created_at?: string;
   updated_at?: string;
@@ -38,6 +40,7 @@ export type CadastroSaveInput = {
   status?: 'ativo' | 'inativo';
   aliases?: string[];
   natureza?: CadastroNatureza | null;
+  centroId?: string | null;
 };
 
 export type CommissionRuleSaveInput = {
@@ -159,6 +162,28 @@ function withNatureza(metadata: Record<string, unknown>, natureza: CadastroNatur
 
 function getStoredNatureza(metadata: Record<string, unknown>): CadastroNatureza | null {
   return normalizeNatureza(asRecord(metadata.gkit_flex).natureza);
+}
+
+function normalizeCentroId(value: unknown) {
+  const current = String(value || '').trim();
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(current) ? current : null;
+}
+
+function withCentroAssociado(metadata: Record<string, unknown>, centroId: string | null | undefined) {
+  if (centroId === undefined) return metadata;
+  const flex = asRecord(metadata.gkit_flex);
+  const nextFlex = { ...flex };
+  const normalized = normalizeCentroId(centroId);
+  if (normalized) {
+    nextFlex.centro_id = normalized;
+  } else {
+    delete nextFlex.centro_id;
+  }
+  return { ...metadata, gkit_flex: nextFlex };
+}
+
+function getStoredCentroId(metadata: Record<string, unknown>) {
+  return normalizeCentroId(asRecord(metadata.gkit_flex).centro_id);
 }
 
 function asPositiveNumber(value: unknown, fallback: number) {
@@ -370,11 +395,17 @@ export async function getCadastrosResumo() {
     aliasMap.set(alias.cadastro_id as string, arr);
   }
 
+  const centroNomeById = new Map<string, string>();
+  for (const item of cadastros || []) {
+    if (item.tipo === 'centro') centroNomeById.set(item.id as string, item.nome as string);
+  }
+
   const items: CadastroItem[] = (cadastros || []).map((item) => {
     const metadata = (item.metadata || {}) as Record<string, unknown>;
     const previsoes = (metadata.gkit_flex_previsoes || {}) as Record<string, unknown>;
     const comissao = parseCommissionRule(metadata, item.nome as string);
     const natureza = getCadastroNatureza(item.tipo as CadastroTipo, String(item.origem || 'manual'), metadata, comissao);
+    const centroId = item.tipo === 'categoria' ? getStoredCentroId(metadata) : null;
     return {
       id: item.id as string,
       tipo: item.tipo as CadastroTipo,
@@ -386,6 +417,8 @@ export async function getCadastrosResumo() {
       aliases: aliasMap.get(item.id as string) || [],
       naoGerarAutomaticamenteNaPrevia: Boolean(previsoes.nao_gerar_automaticamente),
       natureza,
+      centroId,
+      centroNome: centroId ? centroNomeById.get(centroId) || null : null,
       comissao,
       created_at: item.created_at as string,
       updated_at: item.updated_at as string,
@@ -419,6 +452,18 @@ export async function saveCadastroItem(input: CadastroSaveInput) {
   const slug = buildSlug(nome);
   const aliases = uniqText(input.aliases || []);
   const natureza = tipo === 'categoria' ? normalizeNatureza(input.natureza) || 'ambos' : null;
+  const centroId = tipo === 'categoria' ? normalizeCentroId(input.centroId) : null;
+
+  if (tipo === 'categoria' && centroId) {
+    const { data: centro, error: centroError } = await supabase
+      .from('gkit_cadastros')
+      .select('id')
+      .eq('id', centroId)
+      .eq('tipo', 'centro')
+      .maybeSingle();
+    if (centroError) throw new Error(`Erro ao validar centro associado: ${centroError.message}`);
+    if (!centro?.id) throw new Error('Centro associado nao encontrado.');
+  }
 
   if (input.id) {
     const { data: existing, error: existingError } = await supabase
@@ -430,7 +475,7 @@ export async function saveCadastroItem(input: CadastroSaveInput) {
     if (!existing?.id) throw new Error('Cadastro nao encontrado.');
     if (existing.tipo !== tipo) throw new Error('Tipo do cadastro nao pode ser alterado.');
 
-    const metadata = withNatureza(asRecord(existing.metadata), natureza);
+    const metadata = withCentroAssociado(withNatureza(asRecord(existing.metadata), natureza), tipo === 'categoria' ? centroId : null);
     const { error } = await supabase
       .from('gkit_cadastros')
       .update({
@@ -459,20 +504,20 @@ export async function saveCadastroItem(input: CadastroSaveInput) {
     await ensureAlias(supabase, input.id, tipo, nome, 'manual');
     for (const alias of aliases) await ensureAlias(supabase, input.id, tipo, alias, 'manual');
 
-    await logEvent({ supabase, modulo: 'cadastros', action: 'editar_cadastro', entidadeTipo: 'gkit_cadastros', entidadeId: input.id, detalhe: { tipo, nome, status, aliases, natureza } });
+    await logEvent({ supabase, modulo: 'cadastros', action: 'editar_cadastro', entidadeTipo: 'gkit_cadastros', entidadeId: input.id, detalhe: { tipo, nome, status, aliases, natureza, centroId } });
     return { ok: true, resumo: await getCadastrosResumo() };
   }
 
   const { data, error } = await supabase
     .from('gkit_cadastros')
-    .insert({ tipo, nome, slug, status, origem: 'manual', usos: 0, metadata: withNatureza({}, natureza) })
+    .insert({ tipo, nome, slug, status, origem: 'manual', usos: 0, metadata: withCentroAssociado(withNatureza({}, natureza), tipo === 'categoria' ? centroId : null) })
     .select('id')
     .single();
   if (error) throw new Error(`Erro ao criar cadastro ${nome}: ${error.message}`);
   await ensureAlias(supabase, data.id as string, tipo, nome, 'manual');
   for (const alias of aliases) await ensureAlias(supabase, data.id as string, tipo, alias, 'manual');
 
-  await logEvent({ supabase, modulo: 'cadastros', action: 'criar_cadastro', entidadeTipo: 'gkit_cadastros', entidadeId: data.id as string, detalhe: { tipo, nome, status, aliases, natureza } });
+  await logEvent({ supabase, modulo: 'cadastros', action: 'criar_cadastro', entidadeTipo: 'gkit_cadastros', entidadeId: data.id as string, detalhe: { tipo, nome, status, aliases, natureza, centroId } });
   return { ok: true, resumo: await getCadastrosResumo() };
 }
 

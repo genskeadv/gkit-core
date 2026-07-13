@@ -36,6 +36,9 @@ import type {
   GkitJurMovimentacaoFilters,
   GkitJurMovimentacoesData,
   GkitJurPendenciasData,
+  GkitJurPreJuridico,
+  GkitJurPreJuridicoData,
+  GkitJurPreJuridicoFilters,
   GkitJurProcessDetailData,
   GkitJurProcessFilters,
   GkitJurProcessListData,
@@ -50,11 +53,12 @@ import type {
   GkitJurTimelineItem,
 } from './types'
 
-type GkitJurTab = 'inbox' | 'lab' | 'processos' | 'pendencias' | 'publicacoes' | 'acordos' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria' | 'configuracoes'
+type GkitJurTab = 'inbox' | 'lab' | 'pre_juridico' | 'processos' | 'pendencias' | 'publicacoes' | 'acordos' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria' | 'configuracoes'
 
 const activeHref: Record<GkitJurTab, string> = {
   inbox: '/modulos/gkit-jur/inbox',
   lab: '/modulos/gkit-jur/lab',
+  pre_juridico: '/modulos/gkit-jur/pre-juridico',
   processos: '/modulos/gkit-jur/processos',
   pendencias: '/modulos/gkit-jur/pendencias',
   publicacoes: '/modulos/gkit-jur/publicacoes',
@@ -71,7 +75,28 @@ const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-jur/lab', title: 'Lab' },
   { href: '/modulos/gkit-jur/publicacoes', title: 'Publicações' },
   { href: '/modulos/gkit-jur/acordos', title: 'Acordos Judiciais' },
+  { href: '/modulos/gkit-jur/pre-juridico', title: 'Pre-juridico' },
   { href: '/modulos/gkit-jur/processos', title: 'Processos' },
+]
+
+const gkitJurPreJuridicoStatusOptions: GkitJurSelectOption[] = [
+  { label: 'Em analise', value: 'em_analise' },
+  { label: 'Aguardando documentos', value: 'aguardando_documentos' },
+  { label: 'Aprovado', value: 'aprovado' },
+  { label: 'Descartado', value: 'descartado' },
+]
+
+const gkitJurPreJuridicoPrioridadeOptions: GkitJurSelectOption[] = [
+  { label: 'Baixa', value: 'baixa' },
+  { label: 'Media', value: 'media' },
+  { label: 'Alta', value: 'alta' },
+  { label: 'Critica', value: 'critica' },
+]
+
+const gkitJurPreJuridicoProbabilidadeOptions: GkitJurSelectOption[] = [
+  { label: 'Baixa', value: 'baixa' },
+  { label: 'Media', value: 'media' },
+  { label: 'Alta', value: 'alta' },
 ]
 
 export function GkitJurShell({
@@ -1737,6 +1762,288 @@ export function GkitJurProcessesPage({
           </div>
         )}
         <GkitJurPager data={data} />
+      </GkitJurSection>
+    </>
+  )
+}
+
+function preJuridicoHref(filters: GkitJurPreJuridicoFilters, page: number) {
+  const params = new URLSearchParams()
+  Object.entries({
+    carteira_id: filters.carteiraId,
+    dir: filters.dir,
+    q: filters.q,
+    responsavel_id: filters.responsavelId,
+    sort: filters.sort,
+    status: filters.status,
+  }).forEach(([key, value]) => {
+    if (value) params.set(key, String(value))
+  })
+  if (page > 1) params.set('page', String(page))
+  const query = params.toString()
+  return query ? `/modulos/gkit-jur/pre-juridico?${query}` : '/modulos/gkit-jur/pre-juridico'
+}
+
+function preJuridicoTone(status: string) {
+  if (status === 'aprovado') return 'primary'
+  if (status === 'aguardando_documentos') return 'warning'
+  if (status === 'descartado') return 'danger'
+  if (status === 'convertido') return 'success'
+  return 'muted'
+}
+
+function GkitJurPreJuridicoMetrics({ data }: { data: GkitJurPreJuridicoData }) {
+  const { metrics } = data
+  return (
+    <section className="suite-kpi-grid compact">
+      <article className="metric-card">
+        <span className="metric-label">Pre-juridicos</span>
+        <strong className="metric-value">{metrics.total.toLocaleString('pt-BR')}</strong>
+        <span className="metric-hint">casos separados dos processos</span>
+      </article>
+      <article className="metric-card">
+        <span className="metric-label">Em analise</span>
+        <strong className="metric-value">{metrics.emAnalise.toLocaleString('pt-BR')}</strong>
+        <span className="metric-hint">triagem ativa</span>
+      </article>
+      <article className="metric-card">
+        <span className="metric-label">Documentos</span>
+        <strong className="metric-value">{metrics.aguardandoDocumentos.toLocaleString('pt-BR')}</strong>
+        <span className="metric-hint">pendencia do cliente</span>
+      </article>
+      <article className="metric-card">
+        <span className="metric-label">Aprovados</span>
+        <strong className="metric-value">{metrics.aprovados.toLocaleString('pt-BR')}</strong>
+        <span className="metric-hint">{metrics.convertidos.toLocaleString('pt-BR')} convertido(s)</span>
+      </article>
+    </section>
+  )
+}
+
+function GkitJurPreJuridicoFilters({ data }: { data: GkitJurPreJuridicoData }) {
+  const { filterOptions, filters } = data
+  const activeFilters = [
+    filters.q ? { label: 'Busca', value: filters.q } : null,
+    filters.status ? { label: 'Status', value: optionLabel(gkitJurPreJuridicoStatusOptions, filters.status) } : null,
+    filters.carteiraId ? { label: 'Carteira', value: activeValueLabel(filterOptions.carteiras, filters.carteiraId) } : null,
+    filters.responsavelId ? { label: 'Responsavel', value: activeValueLabel(filterOptions.responsaveis, filters.responsavelId) } : null,
+  ].filter(Boolean) as Array<{ label: string; value: string }>
+
+  return (
+    <form className="gkit-jur-filter-bar" method="get">
+      <div className="gkit-jur-filter-fields">
+        <label>
+          <span>Busca</span>
+          <input defaultValue={filters.q} name="q" placeholder="Titulo, cliente, origem, area ou descricao" type="search" />
+        </label>
+        <SelectField label="Status" name="status" options={gkitJurPreJuridicoStatusOptions} placeholder="Todos" value={filters.status} />
+        <SelectField label="Carteira" name="carteira_id" options={filterOptions.carteiras} placeholder="Todas" value={filters.carteiraId} />
+        <SelectField label="Responsavel" name="responsavel_id" options={filterOptions.responsaveis} placeholder="Todos" value={filters.responsavelId} />
+        <SelectField
+          label="Ordenar por"
+          name="sort"
+          options={[
+            { label: 'Atualizacao', value: 'updated_at' },
+            { label: 'Entrada', value: 'data_entrada' },
+            { label: 'Prazo', value: 'prazo_analise' },
+            { label: 'Cliente', value: 'cliente_nome' },
+            { label: 'Prioridade', value: 'prioridade' },
+          ]}
+          placeholder="Atualizacao"
+          value={filters.sort}
+        />
+        <SelectField
+          label="Direcao"
+          name="dir"
+          options={[{ label: 'Mais recentes', value: 'desc' }, { label: 'Mais antigos', value: 'asc' }]}
+          placeholder="Mais recentes"
+          value={filters.dir}
+        />
+      </div>
+      <div className="gkit-jur-filter-actions">
+        <button className="button primary-button" type="submit">Filtrar</button>
+        <Link className="button secondary" href="/modulos/gkit-jur/pre-juridico">Limpar</Link>
+      </div>
+      <GkitJurActiveFilterChips items={activeFilters} />
+    </form>
+  )
+}
+
+function GkitJurPreJuridicoForm({
+  action,
+  canWrite,
+  data,
+  item,
+  returnTo,
+}: {
+  action: (formData: FormData) => Promise<void>
+  canWrite: boolean
+  data: GkitJurPreJuridicoData
+  item?: GkitJurPreJuridico
+  returnTo: string
+}) {
+  return (
+    <form action={action} className="gkit-jur-inline-plan-form">
+      {item ? <input name="id" type="hidden" value={item.id} /> : null}
+      <input name="return_to" type="hidden" value={returnTo} />
+      <Field label="Titulo">
+        <input name="titulo" required defaultValue={item?.titulo ?? ''} placeholder="Resumo do caso em analise" />
+      </Field>
+      <Field label="Cliente cadastrado">
+        <select name="cliente_id" defaultValue={item?.clienteId ?? ''}>
+          {optionList(data.formData.clientes, 'Sem vinculo')}
+        </select>
+      </Field>
+      <Field label="Nome do cliente">
+        <input name="cliente_nome" defaultValue={item?.clienteSnapshotNome ?? item?.clienteNome ?? ''} placeholder="Use quando o cliente ainda nao estiver completo" />
+      </Field>
+      <Field label="Carteira">
+        <select name="carteira_id" defaultValue={item?.carteiraId ?? ''}>
+          {optionList(data.formData.carteiras, 'Sem carteira')}
+        </select>
+      </Field>
+      <Field label="Responsavel">
+        <select name="responsavel_id" defaultValue={item?.responsavelId ?? ''}>
+          {optionList(data.formData.responsaveis, 'Sem responsavel')}
+        </select>
+      </Field>
+      <Field label="Origem">
+        <input name="origem" defaultValue={item?.origem ?? ''} placeholder="Indicacao, cliente, consulta..." />
+      </Field>
+      <Field label="Area">
+        <input name="area" defaultValue={item?.area ?? ''} placeholder="Civel, trabalhista, condominial..." />
+      </Field>
+      <Field label="Valor estimado">
+        <input name="valor_estimado" defaultValue={item?.valorEstimado ?? ''} inputMode="decimal" placeholder="0,00" />
+      </Field>
+      <Field label="Probabilidade">
+        <select name="probabilidade" defaultValue={item?.probabilidade ?? 'media'}>
+          {gkitJurPreJuridicoProbabilidadeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </Field>
+      <Field label="Prioridade">
+        <select name="prioridade" defaultValue={item?.prioridade ?? 'media'}>
+          {gkitJurPreJuridicoPrioridadeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </Field>
+      <Field label="Status">
+        <select name="status" defaultValue={item?.status === 'convertido' ? 'aprovado' : item?.status ?? 'em_analise'}>
+          {gkitJurPreJuridicoStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </Field>
+      <Field label="Data de entrada">
+        <input name="data_entrada" type="date" defaultValue={item?.dataEntrada ?? new Date().toISOString().slice(0, 10)} />
+      </Field>
+      <Field label="Prazo de analise">
+        <input name="prazo_analise" type="date" defaultValue={item?.prazoAnalise ?? ''} />
+      </Field>
+      <Field label="Descricao">
+        <textarea name="descricao" required defaultValue={item?.descricao ?? ''} rows={4} />
+      </Field>
+      <Field label="Motivo / observacao do status">
+        <textarea name="motivo_status" defaultValue={item?.motivoStatus ?? ''} rows={3} />
+      </Field>
+      <div className="gkit-jur-form-actions">
+        <button className="button primary-button" disabled={!canWrite} type="submit">{item ? 'Salvar caso' : 'Cadastrar caso'}</button>
+      </div>
+    </form>
+  )
+}
+
+function GkitJurPreJuridicoPager({ data }: { data: GkitJurPreJuridicoData }) {
+  const { filters, pagination } = data
+  return (
+    <div className="gkit-jur-pagination">
+      <span>Pagina {pagination.currentPage} de {pagination.totalPages}</span>
+      <div>
+        <Link
+          aria-disabled={pagination.currentPage <= 1}
+          className={pagination.currentPage <= 1 ? 'button secondary disabled' : 'button secondary'}
+          href={preJuridicoHref(filters, Math.max(1, pagination.currentPage - 1))}
+        >
+          Anterior
+        </Link>
+        <Link
+          aria-disabled={pagination.currentPage >= pagination.totalPages}
+          className={pagination.currentPage >= pagination.totalPages ? 'button secondary disabled' : 'button secondary'}
+          href={preJuridicoHref(filters, Math.min(pagination.totalPages, pagination.currentPage + 1))}
+        >
+          Proxima
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+function GkitJurPreJuridicoList({
+  canWrite,
+  data,
+  returnTo,
+  updateAction,
+}: {
+  canWrite: boolean
+  data: GkitJurPreJuridicoData
+  returnTo: string
+  updateAction: (formData: FormData) => Promise<void>
+}) {
+  if (!data.items.length) return <div className="suite-empty-block">Nenhum pre-juridico encontrado com os filtros atuais.</div>
+
+  return (
+    <div className="suite-table-list compact" role="list">
+      {data.items.map((item) => (
+        <article className="gkit-jur-process-row" key={item.id} role="listitem">
+          <div className="suite-row-link">
+            <div>
+              <h3>{item.titulo}</h3>
+              <p>{item.clienteNome || 'Cliente nao vinculado'}{item.area ? ` - ${item.area}` : ''}</p>
+            </div>
+            <span className={`suite-pill ${preJuridicoTone(item.status)}`}>{optionLabel(gkitJurPreJuridicoStatusOptions, item.status)}</span>
+            <strong>{item.carteiraNome || 'Sem carteira'}</strong>
+            <small>{item.responsavelNome || 'Sem responsavel'}</small>
+            <div className="gkit-jur-row-stack">
+              <span>{optionLabel(gkitJurPreJuridicoPrioridadeOptions, item.prioridade)}</span>
+              <small>{item.prazoAnalise ? `Prazo ${formatDate(item.prazoAnalise)}` : `Entrada ${formatDate(item.dataEntrada)}`}</small>
+            </div>
+          </div>
+          <details className="gkit-jur-process-tag-editor">
+            <summary>{canWrite ? 'Editar' : 'Detalhes'}</summary>
+            {canWrite ? (
+              <GkitJurPreJuridicoForm action={updateAction} canWrite={canWrite} data={data} item={item} returnTo={returnTo} />
+            ) : (
+              <p>{item.descricao}</p>
+            )}
+          </details>
+        </article>
+      ))}
+    </div>
+  )
+}
+
+export function GkitJurPreJuridicoPage({
+  canWrite,
+  createAction,
+  data,
+  updateAction,
+}: {
+  canWrite: boolean
+  createAction: (formData: FormData) => Promise<void>
+  data: GkitJurPreJuridicoData
+  updateAction: (formData: FormData) => Promise<void>
+}) {
+  const returnTo = preJuridicoHref(data.filters, data.pagination.currentPage)
+
+  return (
+    <>
+      <GkitJurPreJuridicoMetrics data={data} />
+
+      <GkitJurCollapsibleSection title="Novo caso em analise" description="Cadastre a triagem antes de existir CNJ, pasta ou dados processuais.">
+        <GkitJurPreJuridicoForm action={createAction} canWrite={canWrite} data={data} returnTo={returnTo} />
+      </GkitJurCollapsibleSection>
+
+      <GkitJurSection title="Carteira pre-juridica" description="Casos em avaliacao, separados do cadastro de processos.">
+        <GkitJurPreJuridicoFilters data={data} />
+        <GkitJurPreJuridicoList canWrite={canWrite} data={data} returnTo={returnTo} updateAction={updateAction} />
+        <GkitJurPreJuridicoPager data={data} />
       </GkitJurSection>
     </>
   )
