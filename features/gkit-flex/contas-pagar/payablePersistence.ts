@@ -42,6 +42,69 @@ function itemBusinessKey(row: Pick<PayableImportRow, 'descricao' | 'vencimentoDi
   return [String(descricao || '').trim().toLowerCase(), String(vencimento || '').padStart(2, '0'), String(categoria || '').trim().toLowerCase()].join('|');
 }
 
+function reconciliationKey(row: Pick<PayableImportRow, 'descricao' | 'vencimentoDia' | 'valorPrevisto'> | Pick<PayableItem, 'descricao' | 'vencimento_dia' | 'valor_previsto'>): string {
+  const descricao = String(row.descricao || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+  const vencimento = 'vencimentoDia' in row ? row.vencimentoDia : row.vencimento_dia;
+  const valor = 'valorPrevisto' in row ? row.valorPrevisto : row.valor_previsto;
+  return [descricao, String(vencimento || '').padStart(2, '0'), roundMoney(Number(valor || 0)).toFixed(2)].join('|');
+}
+
+function bucketCurrentRows(rows: PayableItem[]) {
+  const buckets = new Map<string, PayableItem[]>();
+  for (const row of rows) {
+    const key = reconciliationKey(row);
+    const list = buckets.get(key) ?? [];
+    list.push(row);
+    buckets.set(key, list);
+  }
+  for (const list of buckets.values()) {
+    list.sort((a, b) => Number(b.pago) - Number(a.pago));
+  }
+  return buckets;
+}
+
+export function planPayablesImportReconciliation(currentRows: PayableItem[], importedRows: PayableImportRow[]) {
+  const currentBuckets = bucketCurrentRows(currentRows);
+  const matchedCurrentIds = new Set<string>();
+  const rowsToInsert: PayableImportRow[] = [];
+  const rowsToUpdate: Array<{ current: PayableItem; imported: PayableImportRow }> = [];
+
+  for (const imported of importedRows) {
+    const bucket = currentBuckets.get(reconciliationKey(imported)) ?? [];
+    const current = bucket.find((row) => !matchedCurrentIds.has(row.id));
+
+    if (!current) {
+      rowsToInsert.push(imported);
+      continue;
+    }
+
+    matchedCurrentIds.add(current.id);
+    const changed =
+      Boolean(current.pago) !== Boolean(imported.pago) ||
+      String(current.categoria || '') !== String(imported.categoria || 'Sem categoria') ||
+      String(current.centro || '') !== String(imported.centro || '') ||
+      String(current.vencimento_texto || '') !== String(imported.vencimentoTexto || '');
+
+    if (changed && !current.pago) rowsToUpdate.push({ current, imported });
+  }
+
+  const rowsToDelete = currentRows.filter((row) => !row.pago && !matchedCurrentIds.has(row.id));
+  const preservedConfirmed = currentRows.filter((row) => row.pago);
+
+  return {
+    rowsToDelete,
+    rowsToInsert,
+    rowsToUpdate,
+    preservedConfirmed,
+    matchedCurrentIds,
+  };
+}
+
 function validatePayableRows(rows: PayableImportRow[]): PayableImportIssue[] {
   const issues: PayableImportIssue[] = [];
   const seen = new Set<string>();
@@ -439,29 +502,7 @@ export async function previewPayablesImport(competenciaInput: string, rows: Paya
   if (error) throw new Error(`Erro ao montar previa da importacao: ${error.message}`);
 
   const current = (currentRows || []) as PayableItem[];
-  const currentByKey = new Map(current.map((row) => [itemBusinessKey(row), row]));
-  const importedByKey = new Map(validRows.map((row) => [itemBusinessKey(row), row]));
-
-  let itensNovos = 0;
-  let itensAlterados = 0;
-  for (const row of validRows) {
-    const current = currentByKey.get(itemBusinessKey(row));
-    if (!current) {
-      itensNovos += 1;
-      continue;
-    }
-    const changed =
-      roundMoney(Number(current.valor_previsto || 0)) !== roundMoney(Number(row.valorPrevisto || 0)) ||
-      Boolean(current.pago) !== Boolean(row.pago) ||
-      String(current.centro || '') !== String(row.centro || '') ||
-      String(current.vencimento_texto || '') !== String(row.vencimentoTexto || '');
-    if (changed) itensAlterados += 1;
-  }
-
-  let itensRemovidos = 0;
-  for (const currentRow of current) {
-    if (!importedByKey.has(itemBusinessKey(currentRow))) itensRemovidos += 1;
-  }
+  const reconciliation = planPayablesImportReconciliation(current, validRows);
 
   const valorAtualManual = roundMoney(current.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0));
   const valorImportadoManual = roundMoney(validRows.reduce((acc, row) => acc + Number(row.valorPrevisto || 0), 0));
@@ -475,9 +516,9 @@ export async function previewPayablesImport(competenciaInput: string, rows: Paya
     itensAtuais: currentRows?.length || 0,
     itensAtuaisManuais: current.length,
     itensAtuaisComissao: 0,
-    itensNovos,
-    itensAlterados,
-    itensRemovidos,
+    itensNovos: reconciliation.rowsToInsert.length,
+    itensAlterados: reconciliation.rowsToUpdate.length,
+    itensRemovidos: reconciliation.rowsToDelete.length,
     valorAtualManual,
     valorImportadoManual,
     diferencaValorManual: roundMoney(valorImportadoManual - valorAtualManual),
@@ -533,16 +574,46 @@ export async function importPayables(competenciaInput: string, rows: PayableImpo
   });
 
   const preview = await previewPayablesImport(competencia, rows, fileName);
-
-  const { error: deleteError } = await supabase
+  const { data: currentRows, error: currentError } = await supabase
     .from('contas_pagar_itens')
-    .delete()
+    .select('id, competencia_id, competencia, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, pago, origem_tipo')
     .eq('competencia_id', competenciaId);
 
-  if (deleteError) throw new Error(`Erro ao atualizar pagamentos importados: ${deleteError.message}`);
+  if (currentError) throw new Error(`Erro ao consultar pagamentos atuais: ${currentError.message}`);
 
-  if (rows.length) {
-    const { error: insertError } = await supabase.from('contas_pagar_itens').insert(rows.map((row) => ({
+  const reconciliation = planPayablesImportReconciliation((currentRows || []) as PayableItem[], rows);
+
+  if (reconciliation.rowsToDelete.length) {
+    const { error: deleteError } = await supabase
+      .from('contas_pagar_itens')
+      .delete()
+      .in('id', reconciliation.rowsToDelete.map((row) => row.id));
+
+    if (deleteError) throw new Error(`Erro ao remover pagamentos ausentes do extrato: ${deleteError.message}`);
+  }
+
+  for (const { current, imported } of reconciliation.rowsToUpdate) {
+    const { error: updateError } = await supabase
+      .from('contas_pagar_itens')
+      .update({
+        descricao: imported.descricao,
+        vencimento_dia: imported.vencimentoDia,
+        vencimento_texto: imported.vencimentoTexto,
+        valor_previsto: imported.valorPrevisto,
+        categoria: imported.categoria || 'Sem categoria',
+        centro: imported.centro,
+        pago: Boolean(imported.pago),
+        origem_tipo: 'importacao',
+        origem_arquivo: fileName,
+        raw: imported.raw,
+      })
+      .eq('id', current.id);
+
+    if (updateError) throw new Error(`Erro ao atualizar pagamento importado: ${updateError.message}`);
+  }
+
+  if (reconciliation.rowsToInsert.length) {
+    const { error: insertError } = await supabase.from('contas_pagar_itens').insert(reconciliation.rowsToInsert.map((row) => ({
       competencia_id: competenciaId,
       competencia,
       descricao: row.descricao,
