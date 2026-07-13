@@ -25,6 +25,12 @@ type DiscoveredValue = {
   origem: string;
 };
 
+type CoreCarteiraRow = {
+  id: string;
+  nome: string;
+  status: string | null;
+};
+
 function assertConfigured(supabase: SupabaseClient | null): asserts supabase is SupabaseClient {
   if (!supabase) throw new Error('Supabase nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
 }
@@ -84,6 +90,77 @@ async function ensureAlias(supabase: SupabaseClient, cadastroId: string, tipo: C
   if (error) throw new Error(`Erro ao salvar alias ${alias}: ${error.message}`);
 }
 
+async function syncCoreCarteirasToCadastros(supabase: SupabaseClient) {
+  const { data: carteiras, error } = await supabase
+    .schema('core')
+    .from('carteiras')
+    .select('id,nome,status')
+    .order('nome', { ascending: true })
+    .limit(1000);
+  if (error) throw new Error(`Erro ao carregar carteiras do Core: ${error.message}`);
+
+  for (const carteira of (carteiras || []) as CoreCarteiraRow[]) {
+    const nome = String(carteira.nome || '').trim();
+    if (!nome) continue;
+
+    const slug = buildSlug(nome);
+    const status = carteira.status === 'inativo' ? 'inativo' : 'ativo';
+    const metadata = { core: { carteira_id: carteira.id, fonte: 'core.carteiras' } };
+
+    const { data: existing, error: existingError } = await supabase
+      .from('gkit_cadastros')
+      .select('id, nome, status, origem, metadata')
+      .eq('tipo', 'carteira')
+      .eq('slug', slug)
+      .maybeSingle();
+    if (existingError) throw new Error(`Erro ao consultar carteira ${nome}: ${existingError.message}`);
+
+    if (existing?.id) {
+      const existingMetadata = ((existing.metadata || {}) as Record<string, unknown>);
+      const existingCore = ((existingMetadata.core || {}) as Record<string, unknown>);
+      const nextMetadata = { ...existingMetadata, ...metadata };
+      const shouldUpdate =
+        existing.nome !== nome ||
+        existing.status !== status ||
+        existing.origem !== 'core' ||
+        existingCore.carteira_id !== carteira.id ||
+        existingCore.fonte !== 'core.carteiras';
+
+      if (shouldUpdate) {
+        const { error: updateError } = await supabase
+          .from('gkit_cadastros')
+          .update({
+            nome,
+            status,
+            origem: 'core',
+            metadata: nextMetadata,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id);
+        if (updateError) throw new Error(`Erro ao sincronizar carteira ${nome}: ${updateError.message}`);
+      }
+      await ensureAlias(supabase, existing.id as string, 'carteira', nome, 'core');
+      continue;
+    }
+
+    const { data: created, error: insertError } = await supabase
+      .from('gkit_cadastros')
+      .insert({
+        tipo: 'carteira',
+        nome,
+        slug,
+        status,
+        origem: 'core',
+        usos: 0,
+        metadata,
+      })
+      .select('id')
+      .single();
+    if (insertError) throw new Error(`Erro ao criar carteira ${nome} no Flex: ${insertError.message}`);
+    await ensureAlias(supabase, created.id as string, 'carteira', nome, 'core');
+  }
+}
+
 function countValues(rows: Array<Record<string, unknown>>, key: string, tipo: CadastroTipo, origem: string): DiscoveredValue[] {
   const map = new Map<string, { original: string; count: number }>();
   for (const row of rows) {
@@ -107,6 +184,8 @@ function countValues(rows: Array<Record<string, unknown>>, key: string, tipo: Ca
 export async function getCadastrosResumo() {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { configured: false, categorias: [], centros: [], carteiras: [], totais: { categorias: 0, centros: 0, carteiras: 0, aliases: 0 } };
+
+  await syncCoreCarteirasToCadastros(supabase);
 
   const { data: cadastros, error } = await supabase
     .from('gkit_cadastros')
@@ -163,6 +242,8 @@ export async function getCadastrosResumo() {
 export async function extractCadastrosFromOperationalData() {
   const supabase = getSupabaseAdmin();
   assertConfigured(supabase);
+
+  await syncCoreCarteirasToCadastros(supabase);
 
   const discovered: DiscoveredValue[] = [];
 
