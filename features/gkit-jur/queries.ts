@@ -50,6 +50,12 @@ import type {
   GkitJurMovimentacoesData,
   GkitJurNivelProntidao,
   GkitJurPendenciasData,
+  GkitJurPreJuridico,
+  GkitJurPreJuridicoData,
+  GkitJurPreJuridicoFilters,
+  GkitJurPreJuridicoPrioridade,
+  GkitJurPreJuridicoProbabilidade,
+  GkitJurPreJuridicoStatus,
   GkitJurPublicacao,
   GkitJurPublicacaoDecisao,
   GkitJurPublicacaoFilters,
@@ -368,6 +374,21 @@ export function buildGkitJurProcessFilters(params?: ModuleSearchParams | null): 
   }
 }
 
+export function buildGkitJurPreJuridicoFilters(params?: ModuleSearchParams | null): GkitJurPreJuridicoFilters {
+  const dir = singleParam(params?.dir) === 'asc' ? 'asc' : 'desc'
+  const sort = singleParam(params?.sort) || 'updated_at'
+
+  return {
+    carteiraId: singleParam(params?.carteira_id),
+    dir,
+    page: positiveInt(singleParam(params?.page), 1),
+    q: singleParam(params?.q).trim(),
+    responsavelId: singleParam(params?.responsavel_id),
+    sort,
+    status: singleParam(params?.status),
+  }
+}
+
 export function buildGkitJurMovimentacaoFilters(params?: ModuleSearchParams | null): GkitJurMovimentacaoFilters {
   const dir = singleParam(params?.dir) === 'asc' ? 'asc' : 'desc'
   const sort = singleParam(params?.sort) || 'data_hora'
@@ -418,6 +439,26 @@ function monitoramento(value: unknown): GkitJurMonitoramentoStatus {
   return 'monitorando'
 }
 
+function preJuridicoStatus(value: unknown): GkitJurPreJuridicoStatus {
+  const current = text(value, 'em_analise')
+  if (['em_analise', 'aguardando_documentos', 'aprovado', 'descartado', 'convertido'].includes(current)) {
+    return current as GkitJurPreJuridicoStatus
+  }
+  return 'em_analise'
+}
+
+function preJuridicoPrioridade(value: unknown): GkitJurPreJuridicoPrioridade {
+  const current = text(value, 'media')
+  if (['baixa', 'media', 'alta', 'critica'].includes(current)) return current as GkitJurPreJuridicoPrioridade
+  return 'media'
+}
+
+function preJuridicoProbabilidade(value: unknown): GkitJurPreJuridicoProbabilidade {
+  const current = text(value, 'media')
+  if (['baixa', 'media', 'alta'].includes(current)) return current as GkitJurPreJuridicoProbabilidade
+  return 'media'
+}
+
 function mapProcesso(row: Record<string, unknown>, maps: {
   clientes: Map<string, string>
   carteiras: Map<string, string>
@@ -445,6 +486,44 @@ function mapProcesso(row: Record<string, unknown>, maps: {
     status: status(row.status),
     statusMonitoramento: monitoramento(row.status_monitoramento),
     etiquetas: maps.etiquetas?.get(String(row.id)) ?? [],
+  }
+}
+
+function mapPreJuridico(row: Record<string, unknown>, maps: {
+  clientes: Map<string, string>
+  carteiras: Map<string, string>
+  responsaveis: Map<string, string>
+}): GkitJurPreJuridico {
+  const clienteId = text(row.cliente_id)
+  const carteiraId = text(row.carteira_id)
+  const responsavelId = text(row.responsavel_id)
+  const clienteSnapshot = text(row.cliente_nome) || null
+  const valorEstimado = row.valor_estimado === null || row.valor_estimado === undefined ? null : Number(row.valor_estimado)
+
+  return {
+    id: String(row.id),
+    titulo: text(row.titulo, 'Caso sem titulo'),
+    clienteId: clienteId || null,
+    clienteNome: clienteId ? (maps.clientes.get(clienteId) ?? clienteSnapshot) : clienteSnapshot,
+    clienteSnapshotNome: clienteSnapshot,
+    descricao: text(row.descricao),
+    carteiraId: carteiraId || null,
+    carteiraNome: carteiraId ? maps.carteiras.get(carteiraId) ?? null : null,
+    responsavelId: responsavelId || null,
+    responsavelNome: responsavelId ? maps.responsaveis.get(responsavelId) ?? null : null,
+    origem: text(row.origem) || null,
+    area: text(row.area) || null,
+    valorEstimado: Number.isFinite(valorEstimado) ? valorEstimado : null,
+    probabilidade: preJuridicoProbabilidade(row.probabilidade),
+    prioridade: preJuridicoPrioridade(row.prioridade),
+    status: preJuridicoStatus(row.status),
+    motivoStatus: text(row.motivo_status) || null,
+    dataEntrada: text(row.data_entrada) || null,
+    prazoAnalise: text(row.prazo_analise) || null,
+    convertidoProcessoId: text(row.convertido_processo_id) || null,
+    convertidoEm: text(row.convertido_em) || null,
+    createdAt: text(row.created_at) || null,
+    updatedAt: text(row.updated_at) || null,
   }
 }
 
@@ -929,6 +1008,56 @@ function applyProcessFilters(query: any, filters: GkitJurProcessFilters) {
   if (filters.saneamento === 'sem_tribunal') next = next.is('tribunal_sigla', null)
 
   return next
+}
+
+function applyPreJuridicoFilters(query: any, filters: GkitJurPreJuridicoFilters) {
+  let next = query
+
+  if (filters.q) {
+    const clean = filters.q.replace(/[%(),]/g, ' ').trim()
+    if (clean) {
+      const pattern = `%${clean}%`
+      next = next.or([
+        `titulo.ilike.${pattern}`,
+        `cliente_nome.ilike.${pattern}`,
+        `descricao.ilike.${pattern}`,
+        `origem.ilike.${pattern}`,
+        `area.ilike.${pattern}`,
+      ].join(','))
+    }
+  }
+
+  if (filters.status) next = next.eq('status', filters.status)
+  if (filters.carteiraId) next = next.eq('carteira_id', filters.carteiraId)
+  if (filters.responsavelId) next = next.eq('responsavel_id', filters.responsavelId)
+
+  return next
+}
+
+function preJuridicoSortColumn(sort: string) {
+  if (['titulo', 'cliente_nome', 'data_entrada', 'prazo_analise', 'status', 'prioridade', 'updated_at', 'created_at'].includes(sort)) return sort
+  return 'updated_at'
+}
+
+async function getGkitJurPreJuridicoMetrics() {
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('pre_juridicos')
+    .select('status')
+    .limit(5000)
+
+  if (result.error) throw new Error(result.error.message)
+  const rows = (result.data ?? []) as Array<Record<string, unknown>>
+  const count = (value: GkitJurPreJuridicoStatus) => rows.filter((row) => preJuridicoStatus(row.status) === value).length
+
+  return {
+    total: rows.length,
+    emAnalise: count('em_analise'),
+    aguardandoDocumentos: count('aguardando_documentos'),
+    aprovados: count('aprovado'),
+    descartados: count('descartado'),
+    convertidos: count('convertido'),
+  }
 }
 
 async function resolveEtiquetaProcessIds(etiquetaId: string) {

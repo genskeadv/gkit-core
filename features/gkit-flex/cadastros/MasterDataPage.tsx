@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { EmptyState, MetricCard, MonthContextHeader, StatusBadge } from '../ui/FlexUI';
+import { EmptyState, MetricCard, StatusBadge } from '../ui/FlexUI';
 
 type CadastroTipo = 'categoria' | 'centro' | 'carteira';
+type CadastroNatureza = 'receita' | 'despesa' | 'ambos';
 
 type CommissionRuleConfig = {
   ativa: boolean;
@@ -24,6 +25,7 @@ type CadastroItem = {
   usos: number;
   aliases: string[];
   naoGerarAutomaticamenteNaPrevia: boolean;
+  natureza: CadastroNatureza | null;
   comissao?: CommissionRuleConfig | null;
 };
 
@@ -47,6 +49,7 @@ type CadastroSavePayload = {
   nome: string;
   status: 'ativo' | 'inativo';
   aliases: string[];
+  natureza?: CadastroNatureza | null;
 };
 
 type CommissionRuleSavePayload = {
@@ -69,11 +72,6 @@ type ReclassPreview = {
   totalAtualizado?: number;
 };
 
-function currentMonthValue() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
-
 function plural(value: number, singular: string, pluralLabel: string) {
   return `${value} ${value === 1 ? singular : pluralLabel}`;
 }
@@ -87,6 +85,18 @@ function splitList(value: string) {
 
 function rateToPercent(value: number | undefined) {
   return Math.round(Number(value || 0) * 10000) / 100;
+}
+
+function naturezaLabel(value: CadastroNatureza | null | undefined) {
+  if (value === 'receita') return 'Receita';
+  if (value === 'despesa') return 'Despesa';
+  return 'Ambos';
+}
+
+function naturezaBadgeStatus(value: CadastroNatureza | null | undefined) {
+  if (value === 'receita') return 'ok' as const;
+  if (value === 'despesa') return 'aviso' as const;
+  return 'aberto' as const;
 }
 
 function origemLabel(value: string) {
@@ -141,29 +151,35 @@ function CadastroTable({
   onSave: (input: CadastroSavePayload) => Promise<void>;
 }) {
   const [filter, setFilter] = useState('');
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [editing, setEditing] = useState<CadastroItem | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formName, setFormName] = useState('');
   const [formStatus, setFormStatus] = useState<'ativo' | 'inativo'>('ativo');
   const [formAliases, setFormAliases] = useState('');
+  const [formNatureza, setFormNatureza] = useState<CadastroNatureza>('ambos');
+  const [naturezaFilter, setNaturezaFilter] = useState<'todas' | CadastroNatureza>('todas');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const filtered = useMemo(() => {
     const term = filter.trim().toLowerCase();
-    if (!term) return items;
-    return items.filter((item) =>
-      item.nome.toLowerCase().includes(term) ||
-      item.slug.toLowerCase().includes(term) ||
-      item.aliases.some((alias) => alias.toLowerCase().includes(term))
-    );
-  }, [filter, items]);
+    return items.filter((item) => {
+      if (tipo === 'categoria' && naturezaFilter !== 'todas' && item.natureza !== naturezaFilter) return false;
+      if (!term) return true;
+      return (
+        item.nome.toLowerCase().includes(term) ||
+        item.slug.toLowerCase().includes(term) ||
+        item.aliases.some((alias) => alias.toLowerCase().includes(term))
+      );
+    });
+  }, [filter, items, naturezaFilter, tipo]);
 
   function startNew() {
     setEditing(null);
     setFormName('');
     setFormStatus('ativo');
     setFormAliases('');
+    setFormNatureza('ambos');
     setFormError('');
     setFormOpen(true);
   }
@@ -173,6 +189,7 @@ function CadastroTable({
     setFormName(item.nome);
     setFormStatus(item.status);
     setFormAliases(item.aliases.join(', '));
+    setFormNatureza(item.natureza || 'ambos');
     setFormError('');
     setFormOpen(true);
   }
@@ -192,6 +209,7 @@ function CadastroTable({
         nome,
         status: formStatus,
         aliases: splitList(formAliases),
+        natureza: tipo === 'categoria' ? formNatureza : null,
       });
       setFormOpen(false);
       setEditing(null);
@@ -214,6 +232,7 @@ function CadastroTable({
         nome: item.nome,
         status: item.status === 'ativo' ? 'inativo' : 'ativo',
         aliases: item.aliases,
+        natureza: item.natureza,
       });
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Erro ao alterar status.');
@@ -238,6 +257,17 @@ function CadastroTable({
             Filtrar
             <input className="text-input" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Buscar nome ou alias" />
           </label>
+          {tipo === 'categoria' ? (
+            <label className="field-label compact-filter">
+              Natureza
+              <select className="text-input" value={naturezaFilter} onChange={(event) => setNaturezaFilter(event.target.value as 'todas' | CadastroNatureza)}>
+                <option value="todas">Todas</option>
+                <option value="receita">Receita</option>
+                <option value="despesa">Despesa</option>
+                <option value="ambos">Ambos</option>
+              </select>
+            </label>
+          ) : null}
           <button type="button" className="secondary-button" onClick={() => setCollapsed((value) => !value)}>
             {collapsed ? 'Expandir' : 'Recolher'}
           </button>
@@ -259,6 +289,16 @@ function CadastroTable({
                 <option value="inativo">Inativo</option>
               </select>
             </label>
+            {tipo === 'categoria' ? (
+              <label className="field-label">
+                Natureza
+                <select className="text-input" value={formNatureza} onChange={(event) => setFormNatureza(event.target.value as CadastroNatureza)}>
+                  <option value="receita">Receita</option>
+                  <option value="despesa">Despesa</option>
+                  <option value="ambos">Ambos</option>
+                </select>
+              </label>
+            ) : null}
             <label className="field-label wide-field">
               Aliases
               <input className="text-input" value={formAliases} onChange={(event) => setFormAliases(event.target.value)} placeholder="Separe por virgula" />
@@ -282,6 +322,7 @@ function CadastroTable({
               <tr>
                 <th>Nome canonico</th>
                 <th>Origem</th>
+                {tipo === 'categoria' ? <th>Natureza</th> : null}
                 <th>Status</th>
                 <th className="text-right">Usos</th>
                 {showForecastRule ? <th>Previa</th> : null}
@@ -297,6 +338,9 @@ function CadastroTable({
                     <p className="muted small-text">{item.slug}</p>
                   </td>
                   <td>{origemLabel(item.origem)}</td>
+                  {tipo === 'categoria' ? (
+                    <td><StatusBadge status={naturezaBadgeStatus(item.natureza)} label={naturezaLabel(item.natureza)} compact /></td>
+                  ) : null}
                   <td><StatusBadge status={item.status === 'ativo' ? 'ok' : 'indisponivel'} label={item.status === 'ativo' ? 'Ativo' : 'Inativo'} compact /></td>
                   <td className="text-right">{item.usos}</td>
                   {showForecastRule ? (
@@ -349,17 +393,22 @@ function CommissionRulesTable({
   const [commissionPercent, setCommissionPercent] = useState('0');
   const [splitBy, setSplitBy] = useState('1');
   const [filter, setFilter] = useState('');
+  const [naturezaFilter, setNaturezaFilter] = useState<'todas' | CadastroNatureza>('todas');
+  const [collapsed, setCollapsed] = useState(true);
   const [error, setError] = useState('');
 
   const filtered = useMemo(() => {
     const term = filter.trim().toLowerCase();
-    if (!term) return categorias;
-    return categorias.filter((item) =>
-      item.nome.toLowerCase().includes(term) ||
-      item.slug.toLowerCase().includes(term) ||
-      item.comissao?.matchers.some((matcher) => matcher.toLowerCase().includes(term))
-    );
-  }, [categorias, filter]);
+    return categorias.filter((item) => {
+      if (naturezaFilter !== 'todas' && item.natureza !== naturezaFilter) return false;
+      if (!term) return true;
+      return (
+        item.nome.toLowerCase().includes(term) ||
+        item.slug.toLowerCase().includes(term) ||
+        item.comissao?.matchers.some((matcher) => matcher.toLowerCase().includes(term))
+      );
+    });
+  }, [categorias, filter, naturezaFilter]);
 
   function startEdit(item: CadastroItem) {
     const rule = item.comissao;
@@ -402,10 +451,22 @@ function CommissionRulesTable({
           Filtrar
           <input className="text-input" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Buscar categoria" />
         </label>
+        <label className="field-label compact-filter">
+          Natureza
+          <select className="text-input" value={naturezaFilter} onChange={(event) => setNaturezaFilter(event.target.value as 'todas' | CadastroNatureza)}>
+            <option value="todas">Todas</option>
+            <option value="receita">Receita</option>
+            <option value="despesa">Despesa</option>
+            <option value="ambos">Ambos</option>
+          </select>
+        </label>
+        <button type="button" className="secondary-button" onClick={() => setCollapsed((value) => !value)}>
+          {collapsed ? 'Expandir' : 'Recolher'}
+        </button>
       </div>
 
       {error ? <div className="error">{error}</div> : null}
-      {editing ? (
+      {!collapsed && editing ? (
         <div className="inline-edit-panel">
           <div className="form-grid">
             <label className="field-label">
@@ -440,11 +501,17 @@ function CommissionRulesTable({
         </div>
       ) : null}
 
+      {collapsed ? (
+        <div className="collapsed-list-summary">
+          {plural(filtered.length, 'regra oculta', 'regras ocultas')}
+        </div>
+      ) : (
       <div className="table-wrap">
         <table className="periods-table">
           <thead>
             <tr>
               <th>Categoria</th>
+              <th>Natureza</th>
               <th>Status</th>
               <th>Redutor</th>
               <th>Comissao</th>
@@ -462,6 +529,7 @@ function CommissionRulesTable({
                     <strong>{item.nome}</strong>
                     <p className="muted small-text">{item.slug}</p>
                   </td>
+                  <td><StatusBadge status={naturezaBadgeStatus(item.natureza)} label={naturezaLabel(item.natureza)} compact /></td>
                   <td><StatusBadge status={rule?.ativa ? 'ok' : 'indisponivel'} label={rule ? (rule.ativa ? 'Ativa' : 'Inativa') : 'Sem regra'} compact /></td>
                   <td>{rule ? `${rateToPercent(rule.reductionRate)}%` : '-'}</td>
                   <td>{rule ? `${rateToPercent(rule.commissionRate)}%` : '-'}</td>
@@ -475,11 +543,12 @@ function CommissionRulesTable({
                 </tr>
               );
             }) : (
-              <tr><td colSpan={7}>Nenhuma categoria encontrada.</td></tr>
+              <tr><td colSpan={8}>Nenhuma categoria encontrada.</td></tr>
             )}
           </tbody>
         </table>
       </div>
+      )}
     </section>
   );
 }
@@ -632,9 +701,7 @@ function ReclassificationPanel({ data, onDone }: { data: CadastroResumo | null; 
 }
 
 export function MasterDataPage() {
-  const [competencia, setCompetencia] = useState(currentMonthValue());
   const [data, setData] = useState<CadastroResumo | null>(null);
-  const [loading, setLoading] = useState(true);
   const [extracting, setExtracting] = useState(false);
   const [savingRuleId, setSavingRuleId] = useState('');
   const [savingCommissionRuleId, setSavingCommissionRuleId] = useState('');
@@ -642,7 +709,6 @@ export function MasterDataPage() {
   const [success, setSuccess] = useState('');
 
   async function load() {
-    setLoading(true);
     setError('');
     try {
       const response = await fetch('/api/gkit-flex/cadastros/resumo');
@@ -651,8 +717,6 @@ export function MasterDataPage() {
       setData(payload);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar cadastros.');
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -737,16 +801,26 @@ export function MasterDataPage() {
 
   return (
     <main className="page-shell master-data-page">
-      <MonthContextHeader
-        title="Cadastros e normalizacao"
-        description="Controle nomes canonicos de categorias, centros e carteiras. Novos nomes continuam podendo nascer pela importacao, mas agora podem ser fundidos com seguranca."
-        competencia={competencia}
-        onCompetenciaChange={setCompetencia}
-        primaryStatus={{ label: 'Cadastros', status: data?.configured ? 'ok' : 'indisponivel' }}
-      >
-        <a className="secondary-button" href="/">Voltar ao cockpit</a>
-        <button className="primary-button" onClick={extract} disabled={extracting || !data?.configured}>{extracting ? 'Extraindo...' : 'Extrair dos dados'}</button>
-      </MonthContextHeader>
+      <section className="module-page-hero month-context-header">
+        <div className="module-page-hero-main">
+          <div className="module-page-hero-title">
+            <div className="month-context-main">
+              <p className="platform-kicker eyebrow">GKIT Flex</p>
+              <h1>Cadastros e normalizacao</h1>
+              <p className="muted">Controle nomes canonicos de categorias, centros e carteiras. Novos nomes continuam podendo nascer pela importacao, mas agora podem ser fundidos com seguranca.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="month-context-toolbar">
+        <div />
+        <div className="month-context-side">
+          <div className="month-context-actions">
+            <a className="secondary-button" href="/">Voltar ao cockpit</a>
+            <button className="primary-button" onClick={extract} disabled={extracting || !data?.configured}>{extracting ? 'Extraindo...' : 'Extrair dos dados'}</button>
+          </div>
+        </div>
+      </section>
 
       {error ? <div className="error">{error}</div> : null}
       {success ? <div className="success">{success}</div> : null}
@@ -757,17 +831,6 @@ export function MasterDataPage() {
         <MetricCard label="Centros" value={totals.centros} help={plural(totals.centros, 'centro padronizado', 'centros padronizados')} />
         <MetricCard label="Carteiras" value={totals.carteiras} help={plural(totals.carteiras, 'carteira', 'carteiras')} />
         <MetricCard label="Regras" value={totals.regrasComissao} help="categorias com comissao ativa" tone={totals.regrasComissao ? 'good' : 'default'} />
-      </section>
-
-      <section className="card">
-        <div className="header-row compact-header">
-          <div>
-            <p className="eyebrow">Regra v14</p>
-            <h2>Importacao cria, reclassificacao organiza</h2>
-            <p className="muted">Novas despesas, categorias e carteiras continuam nascendo pelas planilhas. Quando houver duplicidade, gere uma previa, confirme a fusao e o Flex atualiza os nomes historicos com log e aliases.</p>
-          </div>
-          <StatusBadge status={loading ? 'aviso' : 'ok'} label={loading ? 'Carregando' : 'Normalizacao'} />
-        </div>
       </section>
 
       <ReclassificationPanel data={data} onDone={load} />

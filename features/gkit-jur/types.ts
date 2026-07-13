@@ -32,6 +32,12 @@ export type GkitJurAcordoLembreteEmailStatus = 'pendente' | 'enviado' | 'cancela
 
 export type GkitJurAcordoLembreteEmailTipo = 'antes_vencimento' | 'no_vencimento' | 'apos_vencimento';
 
+export type GkitJurPreJuridicoStatus = 'em_analise' | 'aguardando_documentos' | 'aprovado' | 'descartado' | 'convertido';
+
+export type GkitJurPreJuridicoPrioridade = 'baixa' | 'media' | 'alta' | 'critica';
+
+export type GkitJurPreJuridicoProbabilidade = 'baixa' | 'media' | 'alta';
+
 export type GkitJurDocumentoTipo =
   | 'peticao'
   | 'publicacao'
@@ -166,6 +172,64 @@ export type GkitJurFormData = {
   clientes: GkitJurSelectOption[];
   etiquetas: GkitJurEtiqueta[];
   responsaveis: GkitJurSelectOption[];
+};
+
+export type GkitJurPreJuridico = {
+  id: string;
+  titulo: string;
+  clienteId: string | null;
+  clienteNome: string | null;
+  clienteSnapshotNome: string | null;
+  descricao: string;
+  carteiraId: string | null;
+  carteiraNome: string | null;
+  responsavelId: string | null;
+  responsavelNome: string | null;
+  origem: string | null;
+  area: string | null;
+  valorEstimado: number | null;
+  probabilidade: GkitJurPreJuridicoProbabilidade;
+  prioridade: GkitJurPreJuridicoPrioridade;
+  status: GkitJurPreJuridicoStatus;
+  motivoStatus: string | null;
+  dataEntrada: string | null;
+  prazoAnalise: string | null;
+  convertidoProcessoId: string | null;
+  convertidoEm: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type GkitJurPreJuridicoFilters = {
+  carteiraId: string;
+  dir: 'asc' | 'desc';
+  page: number;
+  q: string;
+  responsavelId: string;
+  sort: string;
+  status: string;
+};
+
+export type GkitJurPreJuridicoMetrics = {
+  total: number;
+  emAnalise: number;
+  aguardandoDocumentos: number;
+  aprovados: number;
+  descartados: number;
+  convertidos: number;
+};
+
+export type GkitJurPreJuridicoData = {
+  filters: GkitJurPreJuridicoFilters;
+  filterOptions: {
+    carteiras: GkitJurSelectOption[];
+    clientes: GkitJurSelectOption[];
+    responsaveis: GkitJurSelectOption[];
+  };
+  formData: GkitJurFormData;
+  items: GkitJurPreJuridico[];
+  metrics: GkitJurPreJuridicoMetrics;
+  pagination: GkitJurPagination;
 };
 
 export type GkitJurProcessDetail = GkitJurProcessListItem & {

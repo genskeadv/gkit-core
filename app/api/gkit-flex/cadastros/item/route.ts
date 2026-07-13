@@ -14,6 +14,7 @@ export async function POST(request: Request) {
       nome: String(payload?.nome || ''),
       status: payload?.status === 'inativo' ? 'inativo' : 'ativo',
       aliases: Array.isArray(payload?.aliases) ? payload.aliases.map(String) : [],
+      natureza: payload?.natureza ? String(payload.natureza) as 'receita' | 'despesa' | 'ambos' : null,
     });
     return NextResponse.json(data);
   } catch (error) {

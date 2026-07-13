@@ -4,6 +4,8 @@ import { COMMISSION_RULES } from '../comissoes/commissionProcessor';
 import type { CommissionRule } from '../comissoes/types';
 import { buildSlug, normalizeText, suggestCanonicalName, type CadastroTipo } from './normalization';
 
+export type CadastroNatureza = 'receita' | 'despesa' | 'ambos';
+
 export type CommissionRuleConfig = {
   ativa: boolean;
   label: string;
@@ -23,6 +25,7 @@ export type CadastroItem = {
   usos: number;
   aliases: string[];
   naoGerarAutomaticamenteNaPrevia: boolean;
+  natureza: CadastroNatureza | null;
   comissao?: CommissionRuleConfig | null;
   created_at?: string;
   updated_at?: string;
@@ -34,6 +37,7 @@ export type CadastroSaveInput = {
   nome: string;
   status?: 'ativo' | 'inativo';
   aliases?: string[];
+  natureza?: CadastroNatureza | null;
 };
 
 export type CommissionRuleSaveInput = {
@@ -52,6 +56,7 @@ type DiscoveredValue = {
   slug: string;
   usos: number;
   origem: string;
+  natureza?: CadastroNatureza | null;
 };
 
 type CoreCarteiraRow = {
@@ -67,7 +72,7 @@ function assertConfigured(supabase: SupabaseClient | null): asserts supabase is 
 async function upsertCadastro(supabase: SupabaseClient, item: DiscoveredValue) {
   const { data: existing, error: existingError } = await supabase
     .from('gkit_cadastros')
-    .select('id, usos, origem')
+    .select('id, usos, origem, metadata')
     .eq('tipo', item.tipo)
     .eq('slug', item.slug)
     .maybeSingle();
@@ -75,11 +80,15 @@ async function upsertCadastro(supabase: SupabaseClient, item: DiscoveredValue) {
   if (existingError) throw new Error(`Erro ao consultar cadastro ${item.nomeSugerido}: ${existingError.message}`);
 
   if (existing?.id) {
+    const metadata = asRecord(existing.metadata);
+    const currentNatureza = getStoredNatureza(metadata);
+    const nextNatureza = mergeNatureza(currentNatureza, item.natureza);
     const { error } = await supabase
       .from('gkit_cadastros')
       .update({
         usos: Math.max(Number(existing.usos || 0), item.usos),
         origem: existing.origem || item.origem,
+        metadata: withNatureza(metadata, nextNatureza),
         updated_at: new Date().toISOString(),
       })
       .eq('id', existing.id);
@@ -97,6 +106,7 @@ async function upsertCadastro(supabase: SupabaseClient, item: DiscoveredValue) {
       status: 'ativo',
       origem: item.origem,
       usos: item.usos,
+      metadata: withNatureza({}, item.natureza),
     })
     .select('id')
     .single();
@@ -127,6 +137,30 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+function normalizeNatureza(value: unknown): CadastroNatureza | null {
+  const raw = normalizeText(String(value || ''));
+  if (raw === 'receita') return 'receita';
+  if (raw === 'despesa') return 'despesa';
+  if (raw === 'ambos') return 'ambos';
+  return null;
+}
+
+function mergeNatureza(current: CadastroNatureza | null | undefined, next: CadastroNatureza | null | undefined): CadastroNatureza | null {
+  if (!current) return next || null;
+  if (!next) return current;
+  return current === next ? current : 'ambos';
+}
+
+function withNatureza(metadata: Record<string, unknown>, natureza: CadastroNatureza | null | undefined) {
+  if (!natureza) return metadata;
+  const flex = asRecord(metadata.gkit_flex);
+  return { ...metadata, gkit_flex: { ...flex, natureza } };
+}
+
+function getStoredNatureza(metadata: Record<string, unknown>): CadastroNatureza | null {
+  return normalizeNatureza(asRecord(metadata.gkit_flex).natureza);
+}
+
 function asPositiveNumber(value: unknown, fallback: number) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
@@ -144,6 +178,18 @@ function parseCommissionRule(metadata: Record<string, unknown>, fallbackLabel: s
     commissionRate: asPositiveNumber(raw.commissionRate, 0),
     splitBy: Math.max(1, Math.trunc(asPositiveNumber(raw.splitBy, 1))),
   };
+}
+
+function getCadastroNatureza(tipo: CadastroTipo, origem: string, metadata: Record<string, unknown>, comissao: CommissionRuleConfig | null): CadastroNatureza | null {
+  if (tipo !== 'categoria') return null;
+  const flex = asRecord(metadata.gkit_flex);
+  const stored = normalizeNatureza(flex.natureza);
+  if (stored) return stored;
+  if (comissao?.ativa) return 'receita';
+  if (origem === 'contas_pagar') return 'despesa';
+  if (origem === 'comissoes') return 'receita';
+  if (origem === 'mista') return 'ambos';
+  return 'ambos';
 }
 
 function commissionRuleToMetadata(rule: CommissionRule, ativa = true): CommissionRuleConfig {
@@ -172,11 +218,12 @@ async function ensureDefaultCommissionRules(supabase: SupabaseClient) {
     if (existing?.id) {
       const metadata = asRecord(existing.metadata);
       const current = parseCommissionRule(metadata, rule.label);
-      if (current) continue;
+      const currentNatureza = getStoredNatureza(metadata);
+      if (current && currentNatureza) continue;
       const { error } = await supabase
         .from('gkit_cadastros')
         .update({
-          metadata: { ...metadata, gkit_flex_comissao: nextRule },
+          metadata: withNatureza(current ? metadata : { ...metadata, gkit_flex_comissao: nextRule }, 'receita'),
           origem: existing.origem || 'comissoes',
           updated_at: new Date().toISOString(),
         })
@@ -194,7 +241,7 @@ async function ensureDefaultCommissionRules(supabase: SupabaseClient) {
         status: 'ativo',
         origem: 'comissoes',
         usos: 0,
-        metadata: { gkit_flex_comissao: nextRule },
+        metadata: withNatureza({ gkit_flex_comissao: nextRule }, 'receita'),
       })
       .select('id')
       .single();
@@ -275,7 +322,7 @@ async function syncCoreCarteirasToCadastros(supabase: SupabaseClient) {
   }
 }
 
-function countValues(rows: Array<Record<string, unknown>>, key: string, tipo: CadastroTipo, origem: string): DiscoveredValue[] {
+function countValues(rows: Array<Record<string, unknown>>, key: string, tipo: CadastroTipo, origem: string, natureza?: CadastroNatureza | null): DiscoveredValue[] {
   const map = new Map<string, { original: string; count: number }>();
   for (const row of rows) {
     const raw = String(row[key] || '').trim();
@@ -292,6 +339,7 @@ function countValues(rows: Array<Record<string, unknown>>, key: string, tipo: Ca
     slug,
     usos: data.count,
     origem,
+    natureza: tipo === 'categoria' ? natureza || null : null,
   }));
 }
 
@@ -326,6 +374,7 @@ export async function getCadastrosResumo() {
     const metadata = (item.metadata || {}) as Record<string, unknown>;
     const previsoes = (metadata.gkit_flex_previsoes || {}) as Record<string, unknown>;
     const comissao = parseCommissionRule(metadata, item.nome as string);
+    const natureza = getCadastroNatureza(item.tipo as CadastroTipo, String(item.origem || 'manual'), metadata, comissao);
     return {
       id: item.id as string,
       tipo: item.tipo as CadastroTipo,
@@ -336,6 +385,7 @@ export async function getCadastrosResumo() {
       usos: Number(item.usos || 0),
       aliases: aliasMap.get(item.id as string) || [],
       naoGerarAutomaticamenteNaPrevia: Boolean(previsoes.nao_gerar_automaticamente),
+      natureza,
       comissao,
       created_at: item.created_at as string,
       updated_at: item.updated_at as string,
@@ -368,6 +418,7 @@ export async function saveCadastroItem(input: CadastroSaveInput) {
   const status = input.status === 'inativo' ? 'inativo' : 'ativo';
   const slug = buildSlug(nome);
   const aliases = uniqText(input.aliases || []);
+  const natureza = tipo === 'categoria' ? normalizeNatureza(input.natureza) || 'ambos' : null;
 
   if (input.id) {
     const { data: existing, error: existingError } = await supabase
@@ -379,7 +430,7 @@ export async function saveCadastroItem(input: CadastroSaveInput) {
     if (!existing?.id) throw new Error('Cadastro nao encontrado.');
     if (existing.tipo !== tipo) throw new Error('Tipo do cadastro nao pode ser alterado.');
 
-    const metadata = asRecord(existing.metadata);
+    const metadata = withNatureza(asRecord(existing.metadata), natureza);
     const { error } = await supabase
       .from('gkit_cadastros')
       .update({
@@ -408,20 +459,20 @@ export async function saveCadastroItem(input: CadastroSaveInput) {
     await ensureAlias(supabase, input.id, tipo, nome, 'manual');
     for (const alias of aliases) await ensureAlias(supabase, input.id, tipo, alias, 'manual');
 
-    await logEvent({ supabase, modulo: 'cadastros', action: 'editar_cadastro', entidadeTipo: 'gkit_cadastros', entidadeId: input.id, detalhe: { tipo, nome, status, aliases } });
+    await logEvent({ supabase, modulo: 'cadastros', action: 'editar_cadastro', entidadeTipo: 'gkit_cadastros', entidadeId: input.id, detalhe: { tipo, nome, status, aliases, natureza } });
     return { ok: true, resumo: await getCadastrosResumo() };
   }
 
   const { data, error } = await supabase
     .from('gkit_cadastros')
-    .insert({ tipo, nome, slug, status, origem: 'manual', usos: 0, metadata: {} })
+    .insert({ tipo, nome, slug, status, origem: 'manual', usos: 0, metadata: withNatureza({}, natureza) })
     .select('id')
     .single();
   if (error) throw new Error(`Erro ao criar cadastro ${nome}: ${error.message}`);
   await ensureAlias(supabase, data.id as string, tipo, nome, 'manual');
   for (const alias of aliases) await ensureAlias(supabase, data.id as string, tipo, alias, 'manual');
 
-  await logEvent({ supabase, modulo: 'cadastros', action: 'criar_cadastro', entidadeTipo: 'gkit_cadastros', entidadeId: data.id as string, detalhe: { tipo, nome, status, aliases } });
+  await logEvent({ supabase, modulo: 'cadastros', action: 'criar_cadastro', entidadeTipo: 'gkit_cadastros', entidadeId: data.id as string, detalhe: { tipo, nome, status, aliases, natureza } });
   return { ok: true, resumo: await getCadastrosResumo() };
 }
 
@@ -431,7 +482,7 @@ export async function updateCategoriaCommissionRule(input: CommissionRuleSaveInp
 
   const { data: cadastro, error: cadastroError } = await supabase
     .from('gkit_cadastros')
-    .select('id, tipo, nome, slug, metadata')
+    .select('id, tipo, nome, slug, origem, metadata')
     .eq('id', input.cadastroId)
     .maybeSingle();
   if (cadastroError) throw new Error(`Erro ao consultar categoria: ${cadastroError.message}`);
@@ -451,10 +502,12 @@ export async function updateCategoriaCommissionRule(input: CommissionRuleSaveInp
   };
 
   const metadata = asRecord(cadastro.metadata);
+  const currentNatureza = getCadastroNatureza('categoria', String(cadastro.origem || ''), metadata, parseCommissionRule(metadata, cadastro.nome as string));
+  const nextNatureza = mergeNatureza(currentNatureza, 'receita');
   const { error: updateError } = await supabase
     .from('gkit_cadastros')
     .update({
-      metadata: { ...metadata, gkit_flex_comissao: rule },
+      metadata: withNatureza({ ...metadata, gkit_flex_comissao: rule }, nextNatureza),
       updated_at: new Date().toISOString(),
     })
     .eq('id', cadastro.id);
@@ -517,7 +570,7 @@ export async function extractCadastrosFromOperationalData() {
     .limit(5000);
   if (payableError) throw new Error(`Erro ao ler pagamentos: ${payableError.message}`);
 
-  discovered.push(...countValues((payables || []) as Array<Record<string, unknown>>, 'categoria', 'categoria', 'contas_pagar'));
+  discovered.push(...countValues((payables || []) as Array<Record<string, unknown>>, 'categoria', 'categoria', 'contas_pagar', 'despesa'));
   discovered.push(...countValues((payables || []) as Array<Record<string, unknown>>, 'centro', 'centro', 'contas_pagar'));
 
   const { data: commissionRows, error: commissionError } = await supabase
@@ -527,7 +580,7 @@ export async function extractCadastrosFromOperationalData() {
   if (commissionError) throw new Error(`Erro ao ler comissoes: ${commissionError.message}`);
 
   discovered.push(...countValues((commissionRows || []) as Array<Record<string, unknown>>, 'carteira', 'carteira', 'comissoes'));
-  discovered.push(...countValues((commissionRows || []) as Array<Record<string, unknown>>, 'categoria', 'categoria', 'comissoes'));
+  discovered.push(...countValues((commissionRows || []) as Array<Record<string, unknown>>, 'categoria', 'categoria', 'comissoes', 'receita'));
 
   const unique = new Map<string, DiscoveredValue>();
   for (const item of discovered) {
@@ -537,6 +590,7 @@ export async function extractCadastrosFromOperationalData() {
     if (current) {
       current.usos += item.usos;
       current.origem = current.origem === item.origem ? current.origem : 'mista';
+      current.natureza = mergeNatureza(current.natureza, item.natureza);
     } else {
       unique.set(key, { ...item });
     }
