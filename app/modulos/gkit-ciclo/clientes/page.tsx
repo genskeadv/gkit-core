@@ -11,7 +11,7 @@ type CicloClientesPageProps = {
 
 export default async function CicloClientesPage({ searchParams }: CicloClientesPageProps) {
   const params = await searchParams
-  const context = await requireCicloContext(moduleTarget('/modulos/ciclo/clientes', params))
+  const context = await requireCicloContext(moduleTarget('/modulos/gkit-ciclo/clientes', params))
   const data = await getCicloData(context)
   const canWrite = canAccess(context.permissions, 'ciclo.clientes.write')
   const filters = buildClienteListFilters(params)
@@ -23,7 +23,7 @@ export default async function CicloClientesPage({ searchParams }: CicloClientesP
   if (filters.carteira) exportParams.set('carteira', filters.carteira)
   exportParams.set('sort', filters.sort)
   exportParams.set('dir', filters.dir)
-  const exportHref = `/modulos/ciclo/clientes/exportar?${exportParams.toString()}`
+  const exportHref = `/modulos/gkit-ciclo/clientes/exportar?${exportParams.toString()}`
 
   return (
     <CicloShell
@@ -35,7 +35,7 @@ export default async function CicloClientesPage({ searchParams }: CicloClientesP
       actions={
         <>
           <Link className="button secondary" href={exportHref}>Exportar XLSX</Link>
-          {canWrite ? <Link className="button" href="/modulos/ciclo/clientes/novo">Novo cliente</Link> : null}
+          {canWrite ? <Link className="button" href="/modulos/gkit-ciclo/clientes/novo">Novo cliente</Link> : null}
         </>
       }
     >

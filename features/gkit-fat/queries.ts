@@ -6,10 +6,13 @@ import type {
   GkitFatContrato,
   GkitFatContratoStatus,
   GkitFatDashboardData,
+  GkitFatEmpresaEmissora,
   GkitFatFormData,
   GkitFatHealth,
   GkitFatOption,
+  GkitFatNfseEvento,
   GkitFatOrdemServico,
+  GkitFatOrdemServicoDetail,
   GkitFatTipoCliente,
   GkitFatTipoPessoa,
 } from '@/features/gkit-fat/types'
@@ -45,6 +48,10 @@ function labelDate(value: unknown) {
   return new Intl.DateTimeFormat('pt-BR').format(date)
 }
 
+function recordValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
 export function tipoCliente(value: unknown): GkitFatTipoCliente {
   if (value === 'pontual' || value === 'cobranca') return value
   return 'mensal'
@@ -77,6 +84,8 @@ export function statusLabel(value: string) {
     autorizada: 'Autorizada',
     rejeitada: 'Rejeitada',
     manual_pendente: 'Manual pendente',
+    pre_nota: 'Pre-nota',
+    observacao: 'Observacao',
     nao_gerar_financeiro: 'Nao gerar',
     aguardando_fiscal: 'Aguardando fiscal',
     prevista: 'Prevista',
@@ -243,8 +252,77 @@ function mapOrdem(
     situacao_operacional: text(row.situacao_operacional, 'rascunho'),
     situacao_fiscal: text(row.situacao_fiscal, 'nao_enviada'),
     situacao_financeira: text(row.situacao_financeira, 'prevista'),
+    numero_nfse: text(row.numero_nfse) || null,
+    nfse_url: text(row.nfse_url) || null,
     atualizado_em: labelDate(row.atualizado_em),
   }
+}
+
+function mapEmpresa(row: Record<string, any>): GkitFatEmpresaEmissora {
+  return {
+    id: String(row.id),
+    nome: text(row.nome, 'Empresa emissora'),
+    razao_social: text(row.razao_social) || null,
+    cnpj: text(row.cnpj) || null,
+    inscricao_municipal: text(row.inscricao_municipal) || null,
+    municipio: text(row.municipio) || null,
+    codigo_municipio_ibge: text(row.codigo_municipio_ibge) || null,
+    regime_tributario: text(row.regime_tributario) || null,
+    regime_especial_tributacao: text(row.regime_especial_tributacao) || null,
+    ambiente: row.ambiente === 'producao' ? 'producao' : 'homologacao',
+    serie_rps: text(row.serie_rps) || null,
+    proximo_numero_rps: row.proximo_numero_rps === null ? null : integerValue(row.proximo_numero_rps),
+    aliquota_iss: row.aliquota_iss === null ? null : numberValue(row.aliquota_iss),
+    iss_retido_padrao: Boolean(row.iss_retido_padrao),
+    certificado_alias: text(row.certificado_alias) || null,
+    certificado_validade: text(row.certificado_validade) || null,
+    observacoes: text(row.observacoes) || null,
+    ativo: row.ativo !== false,
+  }
+}
+
+function mapEvento(row: Record<string, any>): GkitFatNfseEvento {
+  return {
+    id: String(row.id),
+    tipo_evento: text(row.tipo_evento),
+    status_fiscal_anterior: text(row.status_fiscal_anterior) || null,
+    status_fiscal_novo: text(row.status_fiscal_novo) || null,
+    observacoes: text(row.observacoes) || null,
+    criado_em: labelDate(row.criado_em) ?? text(row.criado_em),
+  }
+}
+
+export function validateNfsePayload(ordem: Record<string, any>, empresa?: GkitFatEmpresaEmissora | null) {
+  const tomador = recordValue(ordem.tomador_snapshot)
+  const erros: string[] = []
+  const alertas: string[] = []
+  const empresaCnpj = empresa?.cnpj?.replace(/\D/g, '') ?? ''
+  const tomadorDoc = text(tomador.documento).replace(/\D/g, '')
+
+  if (!empresa) erros.push('Empresa emissora nao configurada.')
+  if (empresa && !empresaCnpj) erros.push('CNPJ da empresa emissora ausente.')
+  if (empresa && !empresa.inscricao_municipal) alertas.push('Inscricao municipal da empresa emissora nao preenchida.')
+  if (empresa && !empresa.municipio) erros.push('Municipio da empresa emissora ausente.')
+  if (!tomadorDoc) erros.push('CPF/CNPJ do tomador ausente.')
+  if (!text(tomador.razao_social) && !text(tomador.nome) && !text(tomador.nome_fantasia)) erros.push('Nome/razao social do tomador ausente.')
+  if (!text(tomador.email)) alertas.push('E-mail fiscal do tomador ausente.')
+  if (!text(tomador.cidade) || !text(tomador.estado)) alertas.push('Endereco fiscal do tomador incompleto.')
+  if (text(ordem.servico_codigo) !== '03220') erros.push('Codigo de servico diferente de 03220.')
+  if (numberValue(ordem.valor_total) <= 0) erros.push('Valor da OS precisa ser maior que zero.')
+
+  return { ok: erros.length === 0, erros, alertas }
+}
+
+export async function listGkitFatEmpresasEmissoras(): Promise<GkitFatEmpresaEmissora[]> {
+  const { data, error } = await admin()
+    .schema('gkit_fat')
+    .from('empresas_emissoras')
+    .select('*')
+    .order('ativo', { ascending: false })
+    .order('nome', { ascending: true })
+
+  if (error) return []
+  return ((data ?? []) as Array<Record<string, any>>).map(mapEmpresa)
 }
 
 export async function listGkitFatContratos(usuario: PlatformUsuario, limit = 500) {
@@ -301,9 +379,59 @@ export async function listGkitFatOrdens(usuario: PlatformUsuario, limit = 500) {
   return rows.map((row) => mapOrdem(row, clientes, carteiras, contratos))
 }
 
+export async function getGkitFatOrdem(usuario: PlatformUsuario, id: string): Promise<GkitFatOrdemServicoDetail | null> {
+  const { data, error } = await admin()
+    .schema('gkit_fat')
+    .from('ordens_servico')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error || !data) return null
+  const scope = await allowedCarteiras(usuario)
+  const rows = filterRowsByCarteira([data as Record<string, any>], scope)
+  if (!rows.length) return null
+
+  const row = rows[0]
+  const clientes = await mapClientes([text(row.cliente_id), text(row.tomador_id)])
+  const carteiras = await mapCarteiras([text(row.carteira_id), text(clientes.get(text(row.cliente_id))?.carteira_id)])
+  const contratoResult = text(row.contrato_id)
+    ? await admin().schema('gkit_fat').from('contratos_servico').select('id,numero').eq('id', text(row.contrato_id)).maybeSingle()
+    : { data: null }
+  const contratos = new Map<string, string>(contratoResult.data ? [[String(contratoResult.data.id), text(contratoResult.data.numero)]] : [])
+  const base = mapOrdem(row, clientes, carteiras, contratos)
+  const empresas = await listGkitFatEmpresasEmissoras()
+  const empresa = empresas.find((item) => item.id === text(row.empresa_emissora_id)) ?? empresas.find((item) => item.ativo) ?? null
+  const eventosResult = await admin()
+    .schema('gkit_fat')
+    .from('nfse_eventos')
+    .select('*')
+    .eq('ordem_servico_id', id)
+    .order('criado_em', { ascending: false })
+
+  return {
+    ...base,
+    empresa_emissora_id: text(row.empresa_emissora_id) || null,
+    numero_rps: text(row.numero_rps) || null,
+    serie_rps: text(row.serie_rps) || null,
+    codigo_verificacao: text(row.codigo_verificacao) || null,
+    xml_url: text(row.xml_url) || null,
+    pdf_url: text(row.pdf_url) || null,
+    data_emissao: labelDate(row.data_emissao),
+    data_autorizacao: labelDate(row.data_autorizacao),
+    motivo_rejeicao: text(row.motivo_rejeicao) || null,
+    tomador_snapshot: recordValue(row.tomador_snapshot),
+    servico_snapshot: recordValue(row.servico_snapshot),
+    nfse_payload: recordValue(row.nfse_payload),
+    retorno_emissao: recordValue(row.retorno_emissao),
+    validacao_fiscal: validateNfsePayload(row, empresa),
+    eventos: ((eventosResult.data ?? []) as Array<Record<string, any>>).map(mapEvento),
+  }
+}
+
 export async function getGkitFatFormData(usuario: PlatformUsuario): Promise<GkitFatFormData> {
   const scope = await allowedCarteiras(usuario)
-  const [clientesResult, carteirasResult, contratosResult] = await Promise.all([
+  const [clientesResult, carteirasResult, contratosResult, empresasResult] = await Promise.all([
     admin()
       .schema('ciclo')
       .from('clientes')
@@ -317,6 +445,7 @@ export async function getGkitFatFormData(usuario: PlatformUsuario): Promise<Gkit
         ? admin().schema('core').from('carteiras').select('id,nome').in('id', [...scope]).eq('status', 'ativo').order('nome', { ascending: true }).limit(500)
         : { data: [] },
     admin().schema('gkit_fat').from('contratos_servico').select('id,numero,cliente_id,carteira_id,status').order('numero', { ascending: true }).limit(1000),
+    admin().schema('gkit_fat').from('empresas_emissoras').select('*').eq('ativo', true).order('nome', { ascending: true }).limit(100),
   ])
 
   const clienteRows = filterRowsByCarteira((clientesResult.data ?? []) as Array<Record<string, any>>, scope)
@@ -345,6 +474,7 @@ export async function getGkitFatFormData(usuario: PlatformUsuario): Promise<Gkit
         carteira_id: text(row.carteira_id) || null,
       }
     }),
+    empresasEmissoras: ((empresasResult.data ?? []) as Array<Record<string, any>>).map(mapEmpresa),
   }
 }
 
@@ -370,7 +500,7 @@ export async function getGkitFatDashboard(usuario: PlatformUsuario): Promise<Gki
     quickLinks: [
       { href: '/modulos/gkit-fat/contratos/novo', title: 'Novo contrato', description: 'Criar contrato mensal, pontual ou cobranca para cliente do Ciclo.', label: 'Contratos' },
       { href: '/modulos/gkit-fat/faturas', title: 'Preparar OS', description: 'Gerar ordem de servico com snapshot para NFS-e 03220.', label: 'Faturamento' },
-      { href: '/modulos/ciclo/clientes', title: 'Cadastro do cliente', description: 'Ajustar categoria e natureza do tomador no cadastro mestre.', label: 'Ciclo' },
+      { href: '/modulos/gkit-ciclo/clientes', title: 'Cadastro do cliente', description: 'Ajustar categoria e natureza do tomador no cadastro mestre.', label: 'GKIT Ciclo' },
     ],
     contratosRecentes: contratos.slice(0, 8),
     ordensRecentes: ordens.slice(0, 8),

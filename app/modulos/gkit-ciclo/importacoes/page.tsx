@@ -19,7 +19,7 @@ export default async function CicloImportacoesPage({
 }) {
   const params = await searchParams
   const tab = activeTab(params?.tipo)
-  const context = await requireCicloContext(moduleTarget('/modulos/ciclo/importacoes', params))
+  const context = await requireCicloContext(moduleTarget('/modulos/gkit-ciclo/importacoes', params))
   const rows = await listCicloImportacaoRows(context)
   const canWrite = canAccess(context.permissions, 'ciclo.clientes.write')
 
@@ -40,8 +40,8 @@ export default async function CicloImportacoesPage({
             : 'Importe os atendimentos consultivos exportados do ASTREA.'}
           action={(
             <nav className="suite-tabs flex-import-tabs ciclo-import-tabs" aria-label="Tipo de importação">
-              <Link className={tab === 'clientes' ? 'active' : ''} href="/modulos/ciclo/importacoes?tipo=clientes">Clientes</Link>
-              <Link className={tab === 'atendimentos' ? 'active' : ''} href="/modulos/ciclo/importacoes?tipo=atendimentos">Atendimentos</Link>
+              <Link className={tab === 'clientes' ? 'active' : ''} href="/modulos/gkit-ciclo/importacoes?tipo=clientes">Clientes</Link>
+              <Link className={tab === 'atendimentos' ? 'active' : ''} href="/modulos/gkit-ciclo/importacoes?tipo=atendimentos">Atendimentos</Link>
             </nav>
           )}
         >
@@ -67,7 +67,7 @@ export default async function CicloImportacoesPage({
         <CicloGenericList
           title="Lotes processados"
           description="Arquivos processados para clientes e atendimentos."
-          detailHrefBase="/modulos/ciclo/importacoes"
+          detailHrefBase="/modulos/gkit-ciclo/importacoes"
           emptyLabel="Nenhuma importação encontrada."
           rows={rows}
         />

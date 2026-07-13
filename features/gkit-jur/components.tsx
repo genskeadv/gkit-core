@@ -2498,6 +2498,16 @@ function GkitJurAcordoForm({
       <Field label="Primeiro vencimento">
         <input name="primeiro_vencimento" required type="date" />
       </Field>
+      <Field label="E-mail de lembrete">
+        <input name="email_lembrete" type="email" placeholder="cliente@empresa.com.br" />
+      </Field>
+      <Field label="Regua de dias">
+        <input name="lembrete_dias" defaultValue="-5,-1,0,3,7" placeholder="-5,-1,0,3,7" />
+      </Field>
+      <label className="checkbox-row">
+        <input name="lembretes_pagamento_ativos" type="checkbox" defaultChecked value="on" />
+        <span>Ativar lembretes de pagamento</span>
+      </label>
       <div className="module-form-wide">
         <Field label="Condicoes / observacoes">
           <textarea name="observacoes" rows={3} placeholder="Resumo do acordo, multa, cláusulas sensíveis ou origem da homologação." />
@@ -2507,6 +2517,117 @@ function GkitJurAcordoForm({
         <button className="button primary-button" type="submit">Cadastrar acordo</button>
       </div>
     </form>
+  )
+}
+
+function reminderOffsetLabel(days: number) {
+  if (days === 0) return 'No vencimento'
+  if (days < 0) return `${Math.abs(days)} dia(s) antes`
+  return `${days} dia(s) depois`
+}
+
+function reminderMailto(acordo: GkitJurAcordoJudicial, lembrete: GkitJurAcordoJudicial['lembretesEmail'][number]) {
+  const to = lembrete.destinatarioEmail || acordo.emailLembrete || ''
+  const subject = lembrete.assunto || `Lembrete de pagamento - ${acordo.numeroCnj}`
+  const body = lembrete.corpo || ''
+  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+}
+
+function GkitJurAcordoReguaEmail({
+  acordo,
+  canWrite,
+  returnTo,
+  updateLembreteEmailAction,
+  updateReguaEmailAction,
+}: {
+  acordo: GkitJurAcordoJudicial
+  canWrite: boolean
+  returnTo: string
+  updateLembreteEmailAction: (formData: FormData) => Promise<void>
+  updateReguaEmailAction: (formData: FormData) => Promise<void>
+}) {
+  const today = new Date().toISOString().slice(0, 10)
+  const fila = acordo.lembretesEmail.filter((lembrete) => lembrete.status === 'pendente').slice(0, 6)
+  const historico = acordo.lembretesEmail.filter((lembrete) => lembrete.status !== 'pendente').slice(0, 3)
+
+  return (
+    <div className="gkit-jur-agreement-reminders">
+      <div className="gkit-jur-agreement-reminders-head">
+        <div>
+          <span className={acordo.lembretesPagamentoAtivos ? 'suite-pill primary' : 'suite-pill muted'}>
+            {acordo.lembretesPagamentoAtivos ? 'regua ativa' : 'regua pausada'}
+          </span>
+          <strong>E-mails de lembrete</strong>
+          <small>{acordo.lembretesPendentes.toLocaleString('pt-BR')} pendente(s), {acordo.lembretesAtrasados.toLocaleString('pt-BR')} atrasado(s)</small>
+        </div>
+        <span>{acordo.proximoLembreteEmail ? `Proximo: ${formatDate(acordo.proximoLembreteEmail)}` : 'Sem envio pendente'}</span>
+      </div>
+
+      {canWrite ? (
+        <form action={updateReguaEmailAction} className="gkit-jur-agreement-reminder-form">
+          <input name="acordo_id" type="hidden" value={acordo.id} />
+          <input name="return_to" type="hidden" value={returnTo} />
+          <label>
+            <span>Destinatario</span>
+            <input name="email_lembrete" type="email" defaultValue={acordo.emailLembrete ?? ''} placeholder="cliente@empresa.com.br" />
+          </label>
+          <label>
+            <span>Dias da regua</span>
+            <input name="lembrete_dias" defaultValue={acordo.lembreteDias.join(',')} placeholder="-5,-1,0,3,7" />
+          </label>
+          <label className="checkbox-row">
+            <input name="lembretes_pagamento_ativos" type="checkbox" defaultChecked={acordo.lembretesPagamentoAtivos} value="on" />
+            <span>Ativa</span>
+          </label>
+          <button className="button secondary" type="submit">Salvar regua</button>
+        </form>
+      ) : null}
+
+      {fila.length ? (
+        <div className="gkit-jur-agreement-reminder-list">
+          {fila.map((lembrete) => (
+            <article className={lembrete.agendadoPara < today ? 'late' : ''} key={lembrete.id}>
+              <div>
+                <strong>{formatDate(lembrete.agendadoPara)}</strong>
+                <small>Parcela {lembrete.parcelaNumero ?? '-'} - {reminderOffsetLabel(lembrete.diasReferencia)}</small>
+                <small>{lembrete.destinatarioEmail || acordo.emailLembrete || 'Sem destinatario'}</small>
+              </div>
+              <div>
+                {(lembrete.destinatarioEmail || acordo.emailLembrete) ? (
+                  <a className="button secondary" href={reminderMailto(acordo, lembrete)}>Abrir e-mail</a>
+                ) : null}
+                {canWrite ? (
+                  <form action={updateLembreteEmailAction}>
+                    <input name="lembrete_id" type="hidden" value={lembrete.id} />
+                    <input name="return_to" type="hidden" value={returnTo} />
+                    <input name="status" type="hidden" value="enviado" />
+                    <button className="button secondary" type="submit">Registrar envio</button>
+                  </form>
+                ) : null}
+                {canWrite ? (
+                  <form action={updateLembreteEmailAction}>
+                    <input name="lembrete_id" type="hidden" value={lembrete.id} />
+                    <input name="return_to" type="hidden" value={returnTo} />
+                    <input name="status" type="hidden" value="cancelado" />
+                    <button className="button secondary" type="submit">Cancelar</button>
+                  </form>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="suite-empty-block">Sem lembretes pendentes para parcelas em aberto.</div>
+      )}
+
+      {historico.length ? (
+        <div className="gkit-jur-agreement-reminder-history">
+          {historico.map((lembrete) => (
+            <span key={lembrete.id}>{formatDate(lembrete.agendadoPara)} - {statusLabel(lembrete.status)}</span>
+          ))}
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -2550,13 +2671,17 @@ function GkitJurAcordoCard({
   acordo,
   canWrite,
   context = 'processo',
+  updateLembreteEmailAction,
   updateParcelaAction,
+  updateReguaEmailAction,
   updateStatusAction,
 }: {
   acordo: GkitJurAcordoJudicial
   canWrite: boolean
   context?: 'processo' | 'central'
+  updateLembreteEmailAction: (formData: FormData) => Promise<void>
   updateParcelaAction: (formData: FormData) => Promise<void>
+  updateReguaEmailAction: (formData: FormData) => Promise<void>
   updateStatusAction: (formData: FormData) => Promise<void>
 }) {
   const returnTo = context === 'central' ? '/modulos/gkit-jur/acordos/lista' : `/modulos/gkit-jur/processos/${acordo.processoId}#acordos`
@@ -2580,6 +2705,13 @@ function GkitJurAcordoCard({
         <span><strong>Atrasadas</strong>{acordo.parcelasAtrasadas.toLocaleString('pt-BR')}</span>
       </div>
       {acordo.observacoes ? <p className="gkit-jur-agreement-note">{acordo.observacoes}</p> : null}
+      <GkitJurAcordoReguaEmail
+        acordo={acordo}
+        canWrite={canWrite && acordo.status === 'ativo'}
+        returnTo={returnTo}
+        updateLembreteEmailAction={updateLembreteEmailAction}
+        updateReguaEmailAction={updateReguaEmailAction}
+      />
       <GkitJurAcordoParcelas acordo={acordo} canWrite={canWrite && acordo.status === 'ativo'} returnTo={returnTo} updateParcelaAction={updateParcelaAction} />
       <div className="gkit-jur-agreement-actions">
         {context === 'central' ? <Link className="button secondary" href={`/modulos/gkit-jur/processos/${acordo.processoId}#acordos`}>Abrir processo</Link> : null}
@@ -2609,14 +2741,18 @@ function GkitJurProcessAcordosSection({
   canWrite,
   createAcordoAction,
   processoId,
+  updateLembreteEmailAction,
   updateParcelaAction,
+  updateReguaEmailAction,
   updateStatusAction,
 }: {
   acordos: GkitJurAcordoJudicial[]
   canWrite: boolean
   createAcordoAction: (formData: FormData) => Promise<void>
   processoId: string
+  updateLembreteEmailAction: (formData: FormData) => Promise<void>
   updateParcelaAction: (formData: FormData) => Promise<void>
+  updateReguaEmailAction: (formData: FormData) => Promise<void>
   updateStatusAction: (formData: FormData) => Promise<void>
 }) {
   const hasActiveAgreement = acordos.some((acordo) => acordo.status === 'ativo')
@@ -2636,7 +2772,9 @@ function GkitJurProcessAcordosSection({
               acordo={acordo}
               canWrite={canWrite}
               key={acordo.id}
+              updateLembreteEmailAction={updateLembreteEmailAction}
               updateParcelaAction={updateParcelaAction}
+              updateReguaEmailAction={updateReguaEmailAction}
               updateStatusAction={updateStatusAction}
             />
           ))}
@@ -2863,12 +3001,16 @@ export function GkitJurAcordosCockpitPage({ data }: { data: GkitJurAcordosData }
 export function GkitJurAcordosPage({
   canWrite,
   data,
+  updateLembreteEmailAction,
   updateParcelaAction,
+  updateReguaEmailAction,
   updateStatusAction,
 }: {
   canWrite: boolean
   data: GkitJurAcordosData
+  updateLembreteEmailAction: (formData: FormData) => Promise<void>
   updateParcelaAction: (formData: FormData) => Promise<void>
+  updateReguaEmailAction: (formData: FormData) => Promise<void>
   updateStatusAction: (formData: FormData) => Promise<void>
 }) {
   const atrasados = data.acordos.filter((acordo) => acordo.status === 'ativo' && acordo.parcelasAtrasadas > 0)
@@ -2898,6 +3040,26 @@ export function GkitJurAcordosPage({
         </article>
       </section>
 
+      <GkitJurSection title="Regua de e-mails" description="Lembretes de pagamento gerados a partir das parcelas dos acordos judiciais.">
+        <div className="gkit-jur-agreement-reminder-command">
+          <article>
+            <span>Pendentes</span>
+            <strong>{data.metrics.lembretesPendentes.toLocaleString('pt-BR')}</strong>
+            <small>e-mails aguardando envio</small>
+          </article>
+          <article className={data.metrics.lembretesHoje ? 'warning' : 'success'}>
+            <span>Hoje</span>
+            <strong>{data.metrics.lembretesHoje.toLocaleString('pt-BR')}</strong>
+            <small>programados para hoje</small>
+          </article>
+          <article className={data.metrics.lembretesAtrasados ? 'warning' : 'success'}>
+            <span>Atrasados</span>
+            <strong>{data.metrics.lembretesAtrasados.toLocaleString('pt-BR')}</strong>
+            <small>pendentes antes de hoje</small>
+          </article>
+        </div>
+      </GkitJurSection>
+
       {atrasados.length ? (
         <GkitJurSection title="Acordos com atraso" description="Prioridade operacional para sinalizar quebra, cobrar parcela ou registrar pagamento.">
           <div className="gkit-jur-agreement-list" role="list">
@@ -2907,7 +3069,9 @@ export function GkitJurAcordosPage({
                 canWrite={canWrite}
                 context="central"
                 key={acordo.id}
+                updateLembreteEmailAction={updateLembreteEmailAction}
                 updateParcelaAction={updateParcelaAction}
+                updateReguaEmailAction={updateReguaEmailAction}
                 updateStatusAction={updateStatusAction}
               />
             ))}
@@ -2924,7 +3088,9 @@ export function GkitJurAcordosPage({
                 canWrite={canWrite}
                 context="central"
                 key={acordo.id}
+                updateLembreteEmailAction={updateLembreteEmailAction}
                 updateParcelaAction={updateParcelaAction}
+                updateReguaEmailAction={updateReguaEmailAction}
                 updateStatusAction={updateStatusAction}
               />
             ))}
@@ -2950,7 +3116,9 @@ export function GkitJurProcessDetailPage({
   syncAction,
   syncFeedback,
   updateEtiquetaAction,
+  updateAcordoLembreteEmailAction,
   updateAcordoParcelaAction,
+  updateAcordoReguaEmailAction,
   updateAcordoStatusAction,
   updateTarefaPlanejamentoAction,
   updateTarefaStatusAction,
@@ -2967,7 +3135,9 @@ export function GkitJurProcessDetailPage({
   syncAction: (formData: FormData) => Promise<void>
   syncFeedback: GkitJurProcessSyncFeedback
   updateEtiquetaAction: (formData: FormData) => Promise<void>
+  updateAcordoLembreteEmailAction: (formData: FormData) => Promise<void>
   updateAcordoParcelaAction: (formData: FormData) => Promise<void>
+  updateAcordoReguaEmailAction: (formData: FormData) => Promise<void>
   updateAcordoStatusAction: (formData: FormData) => Promise<void>
   updateTarefaPlanejamentoAction: (formData: FormData) => Promise<void>
   updateTarefaStatusAction: (formData: FormData) => Promise<void>
@@ -3090,7 +3260,9 @@ export function GkitJurProcessDetailPage({
         canWrite={canWrite}
         createAcordoAction={createAcordoAction}
         processoId={processo.id}
+        updateLembreteEmailAction={updateAcordoLembreteEmailAction}
         updateParcelaAction={updateAcordoParcelaAction}
+        updateReguaEmailAction={updateAcordoReguaEmailAction}
         updateStatusAction={updateAcordoStatusAction}
       />
 

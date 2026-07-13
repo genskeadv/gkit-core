@@ -6,7 +6,9 @@ import {
   createGkitJurTarefaAction,
   createGkitJurTarefaFromReferenceAction,
   syncGkitJurProcessNowAction,
+  updateGkitJurAcordoLembreteEmailAction,
   updateGkitJurAcordoParcelaAction,
+  updateGkitJurAcordoReguaEmailAction,
   updateGkitJurAcordoStatusAction,
   updateGkitJurProcessoEtiquetaAction,
   updateGkitJurProcessoAction,
@@ -75,7 +77,9 @@ export default async function GkitJurProcessoDetailRoute({
         data={data}
         syncAction={syncGkitJurProcessNowAction}
         syncFeedback={syncFeedback(query)}
+        updateAcordoLembreteEmailAction={updateGkitJurAcordoLembreteEmailAction}
         updateAcordoParcelaAction={updateGkitJurAcordoParcelaAction}
+        updateAcordoReguaEmailAction={updateGkitJurAcordoReguaEmailAction}
         updateAcordoStatusAction={updateGkitJurAcordoStatusAction}
         updateEtiquetaAction={updateGkitJurProcessoEtiquetaAction}
         updateTarefaPlanejamentoAction={updateGkitJurTarefaPlanejamentoAction}

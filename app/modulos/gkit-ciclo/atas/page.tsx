@@ -15,7 +15,7 @@ export default async function CicloAtasPage() {
       title="Atas"
       description="Atas, assembleias, validade e observações operacionais."
       usuario={context.usuario}
-      actions={canWrite ? <Link className="button" href="/modulos/ciclo/atas/nova">Nova ata</Link> : null}
+      actions={canWrite ? <Link className="button" href="/modulos/gkit-ciclo/atas/nova">Nova ata</Link> : null}
     >
       <CicloSection
         eyebrow="Resumo"
@@ -32,7 +32,7 @@ export default async function CicloAtasPage() {
         <CicloGenericList
           title="Lista de atas"
           description="Atas cadastradas no schema Ciclo."
-          detailHrefBase={canWrite ? '/modulos/ciclo/atas' : undefined}
+          detailHrefBase={canWrite ? '/modulos/gkit-ciclo/atas' : undefined}
           emptyLabel="Nenhuma ata encontrada."
           rows={rows}
         />

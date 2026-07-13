@@ -17,5 +17,5 @@ test('active canonical module paths are not treated as retired', () => {
   assert.equal(isRetiredModulePath('/modulos/gkit-flex'), false)
   assert.equal(isRetiredModulePath('/modulos/gkit-jur'), false)
   assert.equal(isRetiredModulePath('/modulos/gkit-new/oportunidades'), false)
-  assert.equal(isRetiredModulePath('/modulos/ciclo/clientes'), false)
+  assert.equal(isRetiredModulePath('/modulos/gkit-ciclo/clientes'), false)
 })

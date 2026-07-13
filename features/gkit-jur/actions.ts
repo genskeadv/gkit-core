@@ -88,6 +88,135 @@ function monthlyDueDate(firstDueDate: string, monthOffset: number, dueDay: numbe
   return `${target.getUTCFullYear()}-${String(target.getUTCMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
+function addDays(dateOnlyValue: string, days: number) {
+  const [year, month, day] = dateOnlyValue.split('-').map((part) => Number.parseInt(part, 10))
+  const date = new Date(Date.UTC(year, month - 1, day + days))
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+}
+
+function optionalEmail(value: string) {
+  const current = value.trim().toLowerCase()
+  if (!current) return null
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(current)) throw new Error('E-mail de lembrete invalido.')
+  return current
+}
+
+function reminderDays(value: string) {
+  const parsed = [...new Set(value
+    .split(/[,\n;]/)
+    .map((item) => Number.parseInt(item.trim(), 10))
+    .filter((item) => Number.isFinite(item) && item >= -30 && item <= 60))]
+    .sort((a, b) => a - b)
+  return parsed.length ? parsed.slice(0, 12) : [-5, -1, 0, 3, 7]
+}
+
+function reminderType(days: number) {
+  if (days < 0) return 'antes_vencimento'
+  if (days === 0) return 'no_vencimento'
+  return 'apos_vencimento'
+}
+
+function reminderSubject(parcelaNumero: number) {
+  return `Lembrete de pagamento - acordo judicial - parcela ${parcelaNumero}`
+}
+
+function reminderBody(input: {
+  numeroCnj?: string
+  parcelaNumero: number
+  valor: string | number
+  vencimento: string
+}) {
+  const valor = typeof input.valor === 'number' ? input.valor.toFixed(2) : String(input.valor)
+  return [
+    'Prezado(a),',
+    '',
+    `Lembramos o pagamento da parcela ${input.parcelaNumero} do acordo judicial${input.numeroCnj ? ` do processo ${formatCnjForAction(input.numeroCnj)}` : ''}.`,
+    `Valor: R$ ${valor.replace('.', ',')}`,
+    `Vencimento: ${input.vencimento.split('-').reverse().join('/')}`,
+    '',
+    'Caso o pagamento ja tenha sido realizado, por favor desconsidere este lembrete.',
+  ].join('\n')
+}
+
+async function syncGkitJurAcordoEmailReminders(input: {
+  acordoId: string
+  active: boolean
+  days: number[]
+  email: string | null
+  numeroCnj?: string
+  parcelas?: Array<Record<string, unknown>>
+  usuarioId: string
+}) {
+  const parcelasResult = input.parcelas ? null : await admin()
+    .schema('gkit_jur')
+    .from('acordo_parcelas')
+    .select('id,numero,valor,vencimento,status')
+    .eq('acordo_id', input.acordoId)
+    .order('numero', { ascending: true })
+
+  if (parcelasResult?.error) throw new Error(parcelasResult.error.message)
+  const parcelas = input.parcelas ?? ((parcelasResult?.data ?? []) as Array<Record<string, unknown>>)
+
+  const pendingParcelas = parcelas.filter((parcela) => valueText(parcela.status, 'pendente') === 'pendente')
+
+  const deleteResult = await admin()
+    .schema('gkit_jur')
+    .from('acordo_lembretes_email')
+    .delete()
+    .eq('acordo_id', input.acordoId)
+    .eq('status', 'pendente')
+
+  if (deleteResult.error && !['42P01', 'PGRST205'].includes(String(deleteResult.error.code))) {
+    throw new Error(deleteResult.error.message)
+  }
+
+  if (!input.active || !pendingParcelas.length) return
+
+  const existingResult = await admin()
+    .schema('gkit_jur')
+    .from('acordo_lembretes_email')
+    .select('parcela_id,dias_referencia')
+    .eq('acordo_id', input.acordoId)
+
+  if (existingResult.error && !['42P01', 'PGRST205'].includes(String(existingResult.error.code))) {
+    throw new Error(existingResult.error.message)
+  }
+
+  const existing = new Set(((existingResult.data ?? []) as Array<Record<string, unknown>>)
+    .map((row) => `${valueText(row.parcela_id)}:${Number.parseInt(String(row.dias_referencia), 10)}`))
+
+  const rows = pendingParcelas.flatMap((parcela) => {
+    const parcelaId = valueText(parcela.id)
+    const numero = Number.parseInt(String(parcela.numero ?? '0'), 10)
+    const vencimento = valueText(parcela.vencimento)
+    if (!parcelaId || !numero || !vencimento) return []
+    return input.days
+      .filter((days) => !existing.has(`${parcelaId}:${days}`))
+      .map((days) => ({
+        acordo_id: input.acordoId,
+        parcela_id: parcelaId,
+        dias_referencia: days,
+        tipo: reminderType(days),
+        agendado_para: addDays(vencimento, days),
+        destinatario_email: input.email,
+        assunto: reminderSubject(numero),
+        corpo: reminderBody({
+          numeroCnj: input.numeroCnj,
+          parcelaNumero: numero,
+          valor: parcela.valor as string | number,
+          vencimento,
+        }),
+        status: 'pendente',
+        criado_por: input.usuarioId,
+        updated_at: new Date().toISOString(),
+      }))
+  })
+
+  if (!rows.length) return
+  const insertResult = await admin().schema('gkit_jur').from('acordo_lembretes_email').insert(rows)
+  if (insertResult.error) throw new Error(insertResult.error.message)
+}
+
 function formatCnjForAction(value: string) {
   const digits = value.replace(/\D/g, '')
   if (digits.length !== 20) return value
@@ -276,6 +405,9 @@ export async function createGkitJurAcordoJudicialAction(formData: FormData) {
   const quantidadeParcelas = positiveInt(text(formData, 'quantidade_parcelas'), 1, 240)
   const diaVencimento = positiveInt(text(formData, 'dia_vencimento'), 1, 31)
   const primeiroVencimento = dateOnly(text(formData, 'primeiro_vencimento'), 'Primeiro vencimento')
+  const emailLembrete = optionalEmail(text(formData, 'email_lembrete'))
+  const lembreteDias = reminderDays(text(formData, 'lembrete_dias'))
+  const lembretesPagamentoAtivos = text(formData, 'lembretes_pagamento_ativos') !== 'off'
   const observacoes = text(formData, 'observacoes') || null
 
   const acordoResult = await admin()
@@ -288,6 +420,9 @@ export async function createGkitJurAcordoJudicialAction(formData: FormData) {
       dia_vencimento: diaVencimento,
       primeiro_vencimento: primeiroVencimento,
       status: 'ativo',
+      email_lembrete: emailLembrete,
+      lembrete_dias: lembreteDias,
+      lembretes_pagamento_ativos: lembretesPagamentoAtivos,
       observacoes,
       criado_por: context.usuario.id,
       atualizado_por: context.usuario.id,
@@ -313,8 +448,22 @@ export async function createGkitJurAcordoJudicialAction(formData: FormData) {
     }
   })
 
-  const parcelasResult = await admin().schema('gkit_jur').from('acordo_parcelas').insert(parcelas)
+  const parcelasResult = await admin()
+    .schema('gkit_jur')
+    .from('acordo_parcelas')
+    .insert(parcelas)
+    .select('id,numero,valor,vencimento,status')
   if (parcelasResult.error) throw new Error(parcelasResult.error.message)
+
+  await syncGkitJurAcordoEmailReminders({
+    acordoId: acordoResult.data.id,
+    active: lembretesPagamentoAtivos,
+    days: lembreteDias,
+    email: emailLembrete,
+    numeroCnj: valueText(processo.numero_cnj),
+    parcelas: (parcelasResult.data ?? []) as Array<Record<string, unknown>>,
+    usuarioId: context.usuario.id,
+  })
 
   await admin().schema('gkit_jur').from('eventos_operacionais').insert({
     user_id: context.usuario.id,
@@ -442,6 +591,122 @@ export async function updateGkitJurAcordoStatusAction(formData: FormData) {
     descricao: `Acordo judicial marcado como ${nextStatus}.`,
     payload: { processo_id: processoId, status: nextStatus },
   })
+
+  revalidateGkitJur()
+  revalidatePath('/modulos/gkit-jur/acordos')
+  if (processoId) revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  redirect(safeReturnTo(formData, processoId ? `/modulos/gkit-jur/processos/${processoId}#acordos` : '/modulos/gkit-jur/acordos'))
+}
+
+export async function updateGkitJurAcordoReguaEmailAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.write')
+  const acordoId = requiredText(formData, 'acordo_id', 'Acordo')
+  const emailLembrete = optionalEmail(text(formData, 'email_lembrete'))
+  const lembreteDias = reminderDays(text(formData, 'lembrete_dias'))
+  const lembretesPagamentoAtivos = text(formData, 'lembretes_pagamento_ativos') === 'on'
+
+  const acordoResult = await admin()
+    .schema('gkit_jur')
+    .from('acordos_judiciais')
+    .select('id,processo_id')
+    .eq('id', acordoId)
+    .single()
+
+  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Acordo nao encontrado.')
+  const acordo = acordoResult.data as Record<string, unknown>
+  const processoId = valueText(acordo.processo_id)
+  const processo = processoId ? await getActiveJurProcess(processoId) : null
+
+  const updateResult = await admin()
+    .schema('gkit_jur')
+    .from('acordos_judiciais')
+    .update({
+      email_lembrete: emailLembrete,
+      lembrete_dias: lembreteDias,
+      lembretes_pagamento_ativos: lembretesPagamentoAtivos,
+      atualizado_por: context.usuario.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', acordoId)
+
+  if (updateResult.error) throw new Error(updateResult.error.message)
+
+  await syncGkitJurAcordoEmailReminders({
+    acordoId,
+    active: lembretesPagamentoAtivos,
+    days: lembreteDias,
+    email: emailLembrete,
+    numeroCnj: processo ? valueText(processo.numero_cnj) : undefined,
+    usuarioId: context.usuario.id,
+  })
+
+  await admin().schema('gkit_jur').from('eventos_operacionais').insert({
+    user_id: context.usuario.id,
+    entidade_tipo: 'acordo_judicial',
+    entidade_id: acordoId,
+    acao: 'acordo_judicial_regua_email_atualizada',
+    descricao: 'Regua de e-mails de lembrete do acordo judicial atualizada.',
+    payload: {
+      processo_id: processoId,
+      email_lembrete: emailLembrete,
+      lembrete_dias: lembreteDias,
+      lembretes_pagamento_ativos: lembretesPagamentoAtivos,
+    },
+  })
+
+  revalidateGkitJur()
+  revalidatePath('/modulos/gkit-jur/acordos')
+  if (processoId) revalidatePath(`/modulos/gkit-jur/processos/${processoId}`)
+  redirect(safeReturnTo(formData, processoId ? `/modulos/gkit-jur/processos/${processoId}#acordos` : '/modulos/gkit-jur/acordos'))
+}
+
+export async function updateGkitJurAcordoLembreteEmailAction(formData: FormData) {
+  const context = await requireGkitJurWrite('gkit_jur.processos.write')
+  const lembreteId = requiredText(formData, 'lembrete_id', 'Lembrete')
+  const nextStatus = allowed(text(formData, 'status'), ['pendente', 'enviado', 'cancelado', 'erro'] as const, 'enviado')
+
+  const lembreteResult = await admin()
+    .schema('gkit_jur')
+    .from('acordo_lembretes_email')
+    .select('id,acordo_id')
+    .eq('id', lembreteId)
+    .single()
+
+  if (lembreteResult.error || !lembreteResult.data) throw new Error(lembreteResult.error?.message ?? 'Lembrete nao encontrado.')
+  const acordoId = valueText((lembreteResult.data as Record<string, unknown>).acordo_id)
+
+  const acordoResult = await admin()
+    .schema('gkit_jur')
+    .from('acordos_judiciais')
+    .select('id,processo_id')
+    .eq('id', acordoId)
+    .single()
+
+  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Acordo nao encontrado.')
+  const processoId = valueText((acordoResult.data as Record<string, unknown>).processo_id)
+  const now = new Date().toISOString()
+  const payload: Record<string, unknown> = {
+    status: nextStatus,
+    erro_mensagem: nextStatus === 'erro' ? (text(formData, 'erro_mensagem') || 'Falha registrada manualmente.') : null,
+    updated_at: now,
+  }
+
+  if (nextStatus === 'enviado') {
+    payload.enviado_em = now
+    payload.enviado_por = context.usuario.id
+  }
+  if (nextStatus === 'pendente') {
+    payload.enviado_em = null
+    payload.enviado_por = null
+  }
+
+  const updateResult = await admin()
+    .schema('gkit_jur')
+    .from('acordo_lembretes_email')
+    .update(payload)
+    .eq('id', lembreteId)
+
+  if (updateResult.error) throw new Error(updateResult.error.message)
 
   revalidateGkitJur()
   revalidatePath('/modulos/gkit-jur/acordos')

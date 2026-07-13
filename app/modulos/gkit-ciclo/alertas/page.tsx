@@ -15,7 +15,7 @@ export default async function CicloAlertasPage() {
       title="Alertas"
       description="Pontos de atenção por cliente: documentos, ocorrências, risco e prazos."
       usuario={context.usuario}
-      actions={canWrite ? <Link className="button" href="/modulos/ciclo/alertas/novo">Novo alerta</Link> : null}
+      actions={canWrite ? <Link className="button" href="/modulos/gkit-ciclo/alertas/novo">Novo alerta</Link> : null}
     >
       <CicloSection
         eyebrow="Resumo"

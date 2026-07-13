@@ -434,7 +434,7 @@ insert into core.apps (codigo, nome, descricao, status, url_path, ordem)
 values
   ('painel', 'Painel', 'Hub operacional da plataforma.', 'ativo', '/modulos/painel', 10),
   ('core', 'Admin Core', 'Administracao de usuarios, acessos, apps e carteiras.', 'ativo', '/admin', 20),
-  ('ciclo', 'Ciclo', 'Operacao de contratos, documentos, onboarding e regularidade.', 'ativo', '/modulos/ciclo', 30),
+  ('ciclo', 'GKIT Ciclo', 'Operacao de contratos, documentos, onboarding e regularidade.', 'ativo', '/modulos/gkit-ciclo', 30),
   ('colab', 'Colab', 'Area do colaborador.', 'ativo', '/modulos/colab', 40),
   ('gkit_new', 'GKIT New', 'CRM e oportunidades.', 'ativo', '/modulos/gkit-new', 50),
   ('gkit_flex', 'GKIT Flex', 'Gestao financeira operacional, comissoes, pagamentos, previsoes e cadastros.', 'ativo', '/modulos/gkit-flex', 60),

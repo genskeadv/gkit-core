@@ -133,7 +133,7 @@ export function ImportarClientesForm() {
         <section className="suite-empty-block success">
           <strong>{result.criadosOuAtualizados} cliente(s) criado(s) ou atualizado(s)</strong>
           <span>{result.criados} criado(s), {result.atualizados} atualizado(s), {result.contatos} contato(s).</span>
-          {result.loteId ? <Link href={`/modulos/ciclo/importacoes/${result.loteId}`}>Ver detalhes do lote</Link> : null}
+          {result.loteId ? <Link href={`/modulos/gkit-ciclo/importacoes/${result.loteId}`}>Ver detalhes do lote</Link> : null}
         </section>
       ) : null}
     </div>

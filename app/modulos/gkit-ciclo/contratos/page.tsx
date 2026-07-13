@@ -15,7 +15,7 @@ export default async function CicloContratosPage() {
       title="Contratos"
       description="Contratos, vigências, valores e reajustes vinculados aos clientes."
       usuario={context.usuario}
-      actions={canWrite ? <Link className="button" href="/modulos/ciclo/contratos/novo">Novo contrato</Link> : null}
+      actions={canWrite ? <Link className="button" href="/modulos/gkit-ciclo/contratos/novo">Novo contrato</Link> : null}
     >
       <CicloSection
         eyebrow="Resumo"
@@ -32,7 +32,7 @@ export default async function CicloContratosPage() {
         <CicloGenericList
           title="Lista de contratos"
           description="Contratos cadastrados no schema Ciclo."
-          detailHrefBase={canWrite ? '/modulos/ciclo/contratos' : undefined}
+          detailHrefBase={canWrite ? '/modulos/gkit-ciclo/contratos' : undefined}
           emptyLabel="Nenhum contrato encontrado."
           rows={rows}
         />

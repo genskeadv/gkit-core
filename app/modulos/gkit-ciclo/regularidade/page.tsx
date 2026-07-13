@@ -28,7 +28,7 @@ export default async function CicloRegularidadePage() {
         <CicloGenericList
           title="Regularidade por cliente"
           description="Percentual de regularidade e indicadores de risco."
-          detailHrefBase="/modulos/ciclo/clientes"
+          detailHrefBase="/modulos/gkit-ciclo/clientes"
           emptyLabel="Nenhum cliente encontrado para regularidade."
           rows={rows}
         />

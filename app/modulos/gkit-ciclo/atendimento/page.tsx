@@ -28,7 +28,7 @@ function dateFilter(value?: string) {
 
 export default async function CicloAtendimentoPage({ searchParams }: CicloAtendimentoPageProps) {
   const params = await searchParams
-  const context = await requireCicloContext(moduleTarget('/modulos/ciclo/atendimento', params))
+  const context = await requireCicloContext(moduleTarget('/modulos/gkit-ciclo/atendimento', params))
   const tab = activeTab(params?.aba)
   const filters = {
     dataDe: dateFilter(params?.de),

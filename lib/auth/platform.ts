@@ -22,8 +22,9 @@ export type PlatformModule = {
 }
 
 const MODULE_PATHS: Record<string, string> = {
-  ciclo: '/modulos/ciclo',
+  ciclo: '/modulos/gkit-ciclo',
   core: '/admin',
+  'gkit-ciclo': '/modulos/gkit-ciclo',
   'gkit-ate': '/modulos/gkit-ate',
   'gkit-dir': '/modulos/gkit-dir',
   'gkit-fat': '/modulos/gkit-fat',
@@ -32,6 +33,7 @@ const MODULE_PATHS: Record<string, string> = {
   'gkit-new': '/modulos/gkit-new',
   'gkit-performa': '/modulos/gkit-performa',
   gkit_ate: '/modulos/gkit-ate',
+  gkit_ciclo: '/modulos/gkit-ciclo',
   gkit_dir: '/modulos/gkit-dir',
   gkit_fat: '/modulos/gkit-fat',
   gkit_flex: '/modulos/gkit-flex',
@@ -65,6 +67,7 @@ function moduleHref(app: any, codigo: string) {
 function moduleCode(codigo: unknown) {
   const value = String(codigo)
   if (value === 'gkit_ate') return 'gkit-ate'
+  if (value === 'gkit_ciclo') return 'gkit-ciclo'
   if (value === 'gkit_dir') return 'gkit-dir'
   if (value === 'gkit_fat') return 'gkit-fat'
   if (value === 'gkit_flex') return 'gkit-flex'

@@ -1,4 +1,9 @@
-import { updateGkitJurAcordoParcelaAction, updateGkitJurAcordoStatusAction } from '@/features/gkit-jur/actions'
+import {
+  updateGkitJurAcordoLembreteEmailAction,
+  updateGkitJurAcordoParcelaAction,
+  updateGkitJurAcordoReguaEmailAction,
+  updateGkitJurAcordoStatusAction,
+} from '@/features/gkit-jur/actions'
 import { GkitJurAcordosPage, GkitJurShell } from '@/features/gkit-jur/components'
 import { canWriteGkitJur, getGkitJurAcordosData, requireGkitJurContext } from '@/features/gkit-jur/queries'
 
@@ -18,7 +23,9 @@ export default async function GkitJurAcordosListaRoute() {
       <GkitJurAcordosPage
         canWrite={canWriteGkitJur(context.permissions)}
         data={data}
+        updateLembreteEmailAction={updateGkitJurAcordoLembreteEmailAction}
         updateParcelaAction={updateGkitJurAcordoParcelaAction}
+        updateReguaEmailAction={updateGkitJurAcordoReguaEmailAction}
         updateStatusAction={updateGkitJurAcordoStatusAction}
       />
     </GkitJurShell>

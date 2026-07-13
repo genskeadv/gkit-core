@@ -12,7 +12,7 @@ export default async function CicloOnboardingPage() {
       eyebrow="Operacao"
       title="Onboarding"
       description="Fila de implantacao de clientes, progresso e checklist operacional."
-      actions={<Link className="button secondary" href="/modulos/ciclo/onboarding/workflow">Workflow</Link>}
+      actions={<Link className="button secondary" href="/modulos/gkit-ciclo/onboarding/workflow">Workflow</Link>}
       usuario={context.usuario}
     >
       <CicloSection

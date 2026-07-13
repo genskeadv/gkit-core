@@ -127,7 +127,7 @@ export function CicloCockpit({
             <Link
               aria-current={activePanel === panel.id ? 'page' : undefined}
               className={activePanel === panel.id ? 'ciclo-quick-card active' : 'ciclo-quick-card'}
-              href={`/modulos/ciclo?panel=${panel.id}`}
+              href={`/modulos/gkit-ciclo?panel=${panel.id}`}
               key={panel.id}
             >
               <span>{panel.label}</span>

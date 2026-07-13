@@ -28,6 +28,10 @@ export type GkitJurAcordoStatus = 'ativo' | 'cumprido' | 'quebrado' | 'cancelado
 
 export type GkitJurAcordoParcelaStatus = 'pendente' | 'paga' | 'cancelada';
 
+export type GkitJurAcordoLembreteEmailStatus = 'pendente' | 'enviado' | 'cancelado' | 'erro';
+
+export type GkitJurAcordoLembreteEmailTipo = 'antes_vencimento' | 'no_vencimento' | 'apos_vencimento';
+
 export type GkitJurDocumentoTipo =
   | 'peticao'
   | 'publicacao'
@@ -192,6 +196,23 @@ export type GkitJurAcordoParcela = {
   emAtraso: boolean;
 };
 
+export type GkitJurAcordoLembreteEmail = {
+  id: string;
+  acordoId: string;
+  parcelaId: string;
+  parcelaNumero: number | null;
+  parcelaVencimento: string | null;
+  diasReferencia: number;
+  tipo: GkitJurAcordoLembreteEmailTipo;
+  agendadoPara: string;
+  destinatarioEmail: string | null;
+  assunto: string | null;
+  corpo: string | null;
+  status: GkitJurAcordoLembreteEmailStatus;
+  enviadoEm: string | null;
+  erroMensagem: string | null;
+};
+
 export type GkitJurAcordoJudicial = {
   id: string;
   processoId: string;
@@ -205,6 +226,9 @@ export type GkitJurAcordoJudicial = {
   diaVencimento: number;
   primeiroVencimento: string;
   status: GkitJurAcordoStatus;
+  emailLembrete: string | null;
+  lembretesPagamentoAtivos: boolean;
+  lembreteDias: number[];
   observacoes: string | null;
   quebradoEm: string | null;
   quitadoEm: string | null;
@@ -217,6 +241,10 @@ export type GkitJurAcordoJudicial = {
   valorPago: number;
   valorPendente: number;
   proximoVencimento: string | null;
+  lembretesEmail: GkitJurAcordoLembreteEmail[];
+  lembretesPendentes: number;
+  lembretesAtrasados: number;
+  proximoLembreteEmail: string | null;
 };
 
 export type GkitJurProcessSummary = {
@@ -470,6 +498,9 @@ export type GkitJurAcordosData = {
   metrics: {
     ativos: number;
     atrasados: number;
+    lembretesAtrasados: number;
+    lembretesHoje: number;
+    lembretesPendentes: number;
     quebrados: number;
     total: number;
     valorAberto: number;

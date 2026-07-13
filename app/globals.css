@@ -8189,6 +8189,139 @@ tbody tr:hover {
   text-transform: uppercase;
 }
 
+.gkit-jur-agreement-reminders {
+  background: rgba(248, 250, 252, 0.68);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.gkit-jur-agreement-reminders-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.gkit-jur-agreement-reminders-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.gkit-jur-agreement-reminders-head strong {
+  color: var(--new-ink);
+  font-size: 13px;
+}
+
+.gkit-jur-agreement-reminders-head small,
+.gkit-jur-agreement-reminders-head > span,
+.gkit-jur-agreement-reminder-list small,
+.gkit-jur-agreement-reminder-form span,
+.gkit-jur-agreement-reminder-history {
+  color: var(--new-muted);
+  font-size: 12px;
+}
+
+.gkit-jur-agreement-reminder-form {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(130px, 0.8fr) auto auto;
+}
+
+.gkit-jur-agreement-reminder-form label:not(.checkbox-row) {
+  display: grid;
+  gap: 4px;
+}
+
+.gkit-jur-agreement-reminder-form input[type="email"],
+.gkit-jur-agreement-reminder-form input:not([type]) {
+  min-height: 34px;
+}
+
+.gkit-jur-agreement-reminder-list {
+  display: grid;
+  gap: 6px;
+}
+
+.gkit-jur-agreement-reminder-list article {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  padding: 8px;
+}
+
+.gkit-jur-agreement-reminder-list article.late {
+  background: rgba(254, 243, 199, 0.62);
+  border-color: rgba(217, 119, 6, 0.28);
+}
+
+.gkit-jur-agreement-reminder-list article > div:first-child,
+.gkit-jur-agreement-reminder-history {
+  display: grid;
+  gap: 3px;
+}
+
+.gkit-jur-agreement-reminder-list article > div:last-child {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.gkit-jur-agreement-reminder-list form {
+  margin: 0;
+}
+
+.gkit-jur-agreement-reminder-list .button,
+.gkit-jur-agreement-reminder-form .button {
+  min-height: 32px;
+  padding: 6px 10px;
+}
+
+.gkit-jur-agreement-reminder-command {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gkit-jur-agreement-reminder-command article {
+  background: rgba(248, 250, 252, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: var(--suite-module-card-radius, 8px);
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.gkit-jur-agreement-reminder-command article.warning {
+  background: rgba(254, 243, 199, 0.52);
+  border-color: rgba(217, 119, 6, 0.24);
+}
+
+.gkit-jur-agreement-reminder-command article.success {
+  background: rgba(220, 252, 231, 0.48);
+  border-color: rgba(22, 163, 74, 0.2);
+}
+
+.gkit-jur-agreement-reminder-command span,
+.gkit-jur-agreement-reminder-command small {
+  color: var(--new-muted);
+  font-size: 12px;
+}
+
+.gkit-jur-agreement-reminder-command strong {
+  color: var(--new-ink);
+  font-size: 22px;
+}
+
 .gkit-jur-agreement-installments {
   display: grid;
   gap: 6px;
@@ -11314,8 +11447,17 @@ tbody tr:hover {
   .gkit-jur-publication-cockpit-panel.status,
   .gkit-jur-inbox-cockpit-panel.status,
   .gkit-jur-agreement-head,
+  .gkit-jur-agreement-reminder-command,
+  .gkit-jur-agreement-reminder-form,
+  .gkit-jur-agreement-reminder-list article,
   .gkit-jur-agreement-installments article {
     grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-agreement-reminders-head,
+  .gkit-jur-agreement-reminder-list article > div:last-child {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .gkit-jur-process-cockpit-metrics {
@@ -23597,6 +23739,651 @@ body:has(.gkit-flex-operational-shell) {
 
   .gkit-jur-process-pulse {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Unified operational shell for Flex, New, Ciclo, ATE, FAT, DIR and Performa. */
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) {
+  --unified-accent: #5d2f75;
+  --unified-accent-border: rgba(93, 47, 117, 0.22);
+  --unified-accent-soft: rgba(93, 47, 117, 0.09);
+  --unified-border: rgba(148, 163, 184, 0.24);
+  --unified-ink: #131927;
+  --unified-muted: #5b6b86;
+  --unified-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+  --unified-shadow-soft: 0 10px 26px rgba(15, 23, 42, 0.045);
+  --unified-surface: rgba(255, 255, 255, 0.94);
+  --unified-surface-2: rgba(255, 255, 255, 0.72);
+  background: linear-gradient(180deg, #fbfcff 0%, #f5f7fb 44%, #f7f8fb 100%) !important;
+  color: var(--unified-ink) !important;
+  letter-spacing: 0 !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) * {
+  letter-spacing: 0 !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+  :where(strong, b, h1, h2, h3, h4, .metric-value, .module-main-value, .button, .suite-pill, .status-pill, .ciclo-pill) {
+  font-weight: 500 !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .platform-bg {
+  background: transparent !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-right: 1px solid var(--unified-border) !important;
+  border-radius: 0 !important;
+  box-shadow: 14px 0 44px rgba(15, 23, 42, 0.045) !important;
+  gap: 18px !important;
+  padding: 20px !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-header,
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-footer {
+  background: var(--unified-surface) !important;
+  border: 1px solid var(--unified-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--unified-shadow-soft) !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-header {
+  gap: 12px !important;
+  min-height: 70px !important;
+  padding: 12px 14px !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-mark {
+  background: #fff !important;
+  border-radius: 8px !important;
+  box-shadow: inset 0 0 0 1px var(--unified-border) !important;
+  flex: 0 0 44px !important;
+  height: 44px !important;
+  width: 44px !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-header strong {
+  color: var(--unified-ink) !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  line-height: 1.2 !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-header small,
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-footer span {
+  background: transparent !important;
+  border: 0 !important;
+  color: var(--unified-muted) !important;
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  line-height: 1.25 !important;
+  margin: 2px 0 0 !important;
+  padding: 0 !important;
+  text-transform: none !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar nav {
+  display: grid !important;
+  gap: 8px !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar a:not(.module-sidebar-header),
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-group-label {
+  border-radius: 8px !important;
+  font-weight: 400 !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar a:not(.module-sidebar-header) {
+  align-items: center !important;
+  color: #1f2937 !important;
+  display: flex !important;
+  font-size: 13px !important;
+  justify-content: space-between !important;
+  min-height: 44px !important;
+  padding: 12px 13px !important;
+  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+  .module-sidebar a:not(.module-sidebar-header):not(.active) {
+  background: #e9e7eb !important;
+  box-shadow: none !important;
+  color: #1f2937 !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+  .module-sidebar a:not(.module-sidebar-header):not(.active):hover {
+  background: var(--unified-accent-soft) !important;
+  color: var(--unified-accent) !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar a.active {
+  background: var(--unified-accent) !important;
+  box-shadow: 0 10px 22px rgba(93, 47, 117, 0.18) !important;
+  color: #fff !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .sidebar-badge {
+  background: var(--unified-accent-soft) !important;
+  border: 1px solid rgba(93, 47, 117, 0.14) !important;
+  color: var(--unified-accent) !important;
+  font-size: 12px !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-main {
+  background: transparent !important;
+  padding: 16px 18px 22px !important;
+}
+
+:is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-page-content,
+.gkit-flex-operational-shell .page-shell {
+  display: grid !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  max-width: none !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-page-hero,
+.gkit-flex-operational-shell .month-context-header {
+  background: var(--unified-surface) !important;
+  border: 1px solid var(--unified-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--unified-shadow) !important;
+  color: var(--unified-ink) !important;
+  margin: 0 0 10px !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding: 14px !important;
+  position: relative !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-page-hero::before,
+.gkit-flex-operational-shell .month-context-header::before {
+  background: var(--unified-accent) !important;
+  border-radius: 0 !important;
+  content: "" !important;
+  height: auto !important;
+  inset: 0 auto 0 0 !important;
+  opacity: 1 !important;
+  position: absolute !important;
+  width: 4px !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-page-hero-main,
+.gkit-flex-operational-shell .month-context-header,
+.gkit-flex-operational-shell .month-context-main {
+  display: block !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-page-hero .platform-kicker,
+.gkit-flex-operational-shell .month-context-header .eyebrow {
+  color: var(--unified-muted) !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  line-height: 1.3 !important;
+  margin: 0 0 6px !important;
+  text-transform: none !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-page-hero h1,
+.gkit-flex-operational-shell .month-context-header h1 {
+  color: var(--unified-ink) !important;
+  font-size: 28px !important;
+  font-weight: 450 !important;
+  line-height: 1.08 !important;
+  margin: 0 !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-page-hero p:not(.platform-kicker),
+.gkit-flex-operational-shell .month-context-header .muted {
+  color: var(--unified-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  margin: 6px 0 0 !important;
+  max-width: none !important;
+}
+
+.gkit-flex-operational-shell .month-context-toolbar {
+  align-items: center !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--unified-shadow-soft) !important;
+  display: flex !important;
+  gap: 12px !important;
+  justify-content: space-between !important;
+  margin: -2px 0 10px !important;
+  min-height: 46px !important;
+  padding: 8px 12px !important;
+}
+
+.gkit-flex-operational-shell .month-context-toolbar .month-context-statuses,
+.gkit-flex-operational-shell .month-context-toolbar .month-context-side {
+  align-items: center !important;
+  bottom: auto !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  justify-content: flex-start !important;
+  position: static !important;
+  right: auto !important;
+  top: auto !important;
+  width: auto !important;
+}
+
+.gkit-flex-operational-shell .month-context-toolbar .month-context-side {
+  justify-content: flex-end !important;
+}
+
+.gkit-flex-operational-shell .month-context-toolbar .dashboard-month {
+  align-items: center !important;
+  display: flex !important;
+  gap: 8px !important;
+  width: auto !important;
+}
+
+.gkit-flex-operational-shell .month-context-toolbar .dashboard-month input,
+.gkit-flex-operational-shell .month-context-toolbar .dashboard-month select {
+  min-height: 34px !important;
+  width: 132px !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .suite-panel,
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .card,
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .ciclo-panel,
+.gkit-flex-operational-shell .card,
+.gkit-flex-operational-shell .flex-cockpit-panel,
+.gkit-flex-operational-shell .metric,
+.gkit-flex-operational-shell .empty-state {
+  background: var(--unified-surface) !important;
+  border: 1px solid var(--unified-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--unified-shadow-soft) !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .suite-panel,
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .ciclo-cockpit-form-panel,
+.gkit-flex-operational-shell .flex-cockpit-panel {
+  padding: 12px !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .suite-panel-heading,
+.gkit-flex-operational-shell .header-row.compact-header {
+  align-items: end !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14) !important;
+  margin-bottom: 10px !important;
+  padding-bottom: 9px !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .suite-panel-heading h2,
+.gkit-flex-operational-shell .header-row h2 {
+  color: var(--unified-ink) !important;
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .suite-panel-heading p,
+.gkit-flex-operational-shell .header-row p,
+.gkit-flex-operational-shell .muted,
+.gkit-flex-operational-shell .small-text {
+  color: var(--unified-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) :is(.suite-kpi-grid, .suite-kpi-grid.compact) {
+  gap: 8px !important;
+  grid-template-columns: repeat(4, minmax(132px, 1fr)) !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .metric-card,
+.gkit-flex-operational-shell .metric {
+  background: linear-gradient(180deg, #fff, #fbfcff) !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  min-height: 78px !important;
+  padding: 10px !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .metric-label,
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .metric-hint,
+.gkit-flex-operational-shell .metric-label,
+.gkit-flex-operational-shell .metric-hint {
+  color: var(--unified-muted) !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .metric-value,
+.gkit-flex-operational-shell .metric-value {
+  color: var(--unified-ink) !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  margin: 6px 0 !important;
+  overflow-wrap: anywhere !important;
+}
+
+:is(.gkit-new-quick-grid, .ciclo-quick-grid, .gkit-ate-quick-grid, .gkit-fat-quick-grid),
+.gkit-flex-operational-shell .flex-cockpit-grid {
+  display: grid !important;
+  gap: 8px !important;
+  grid-template-columns: repeat(4, minmax(132px, 1fr)) !important;
+}
+
+.gkit-fat-command-grid {
+  display: grid !important;
+  gap: 10px !important;
+}
+
+:is(.gkit-new-quick-card, .ciclo-quick-card, .gkit-ate-quick-card, .gkit-fat-quick-card),
+.gkit-flex-operational-shell .flex-cockpit-card {
+  background: var(--unified-surface-2) !important;
+  border: 1px solid rgba(93, 47, 117, 0.18) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  cursor: pointer !important;
+  display: grid !important;
+  gap: 3px !important;
+  grid-auto-rows: max-content !important;
+  min-height: 83px !important;
+  padding: 9px 28px 9px 10px !important;
+  position: relative !important;
+  text-align: left !important;
+  text-decoration: none !important;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease !important;
+}
+
+:is(.gkit-new-quick-card, .ciclo-quick-card, .gkit-ate-quick-card, .gkit-fat-quick-card)::after,
+.gkit-flex-operational-shell .flex-cockpit-card::after {
+  color: var(--unified-accent) !important;
+  content: ">" !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  position: absolute !important;
+  right: 12px !important;
+  top: 12px !important;
+}
+
+:is(.gkit-new-quick-card, .ciclo-quick-card, .gkit-ate-quick-card, .gkit-fat-quick-card):hover,
+:is(.gkit-new-quick-card, .ciclo-quick-card, .gkit-ate-quick-card, .gkit-fat-quick-card).active,
+.gkit-flex-operational-shell .flex-cockpit-card.active,
+.gkit-flex-operational-shell .flex-cockpit-card:hover {
+  background: rgba(93, 47, 117, 0.08) !important;
+  border-color: rgba(93, 47, 117, 0.28) !important;
+  transform: translateY(-1px) !important;
+}
+
+:is(.gkit-new-quick-card, .ciclo-quick-card, .gkit-ate-quick-card, .gkit-fat-quick-card) span,
+:is(.gkit-new-quick-card, .ciclo-quick-card, .gkit-ate-quick-card, .gkit-fat-quick-card) small,
+.gkit-flex-operational-shell .flex-cockpit-card .eyebrow {
+  background: var(--unified-accent-soft) !important;
+  border-radius: 999px !important;
+  color: var(--unified-accent) !important;
+  display: inline-flex !important;
+  font-size: 10px !important;
+  line-height: 1.1 !important;
+  padding: 3px 7px !important;
+  width: fit-content !important;
+}
+
+:is(.gkit-new-quick-card, .ciclo-quick-card, .gkit-ate-quick-card, .gkit-fat-quick-card) h3,
+.gkit-flex-operational-shell .flex-cockpit-card strong {
+  color: var(--unified-ink) !important;
+  font-size: 13px !important;
+  font-weight: 450 !important;
+  line-height: 1.2 !important;
+  margin: 4px 0 3px !important;
+}
+
+:is(.gkit-new-quick-card, .ciclo-quick-card, .gkit-ate-quick-card, .gkit-fat-quick-card) p,
+.gkit-flex-operational-shell .flex-cockpit-card .small-text {
+  color: var(--unified-muted) !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  margin: 0 !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .suite-table-list article,
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .suite-table-list .suite-row-link,
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .ciclo-table-list article,
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .ciclo-cockpit-row {
+  background: #fff !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  min-height: 58px !important;
+  padding: 9px 10px !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .suite-empty-block,
+.gkit-flex-operational-shell .empty-state {
+  background: rgba(248, 250, 252, 0.72) !important;
+  border: 1px dashed rgba(148, 163, 184, 0.28) !important;
+  border-radius: 8px !important;
+  color: var(--unified-muted) !important;
+}
+
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .button,
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) button.button,
+:is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) a.button,
+.gkit-flex-operational-shell :is(.button, .primary-button, .secondary-button, .danger-button, .home-link, .card-cta) {
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  min-height: 34px !important;
+  padding: 8px 12px !important;
+}
+
+.gkit-dir-shell .gkit-dir-row,
+.gkit-performa-shell .gkit-performa-empty-state,
+.gkit-performa-shell .gkit-performa-import-status,
+.gkit-performa-shell .gkit-performa-detail-grid span,
+.gkit-performa-shell .gkit-performa-save-message {
+  background: #fff !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.gkit-dir-shell .gkit-dir-row {
+  min-height: 68px !important;
+  padding: 9px 10px !important;
+}
+
+.gkit-dir-shell .gkit-dir-row h3,
+.gkit-dir-shell .gkit-dir-row strong,
+.gkit-performa-shell .gkit-performa-detail-grid strong,
+.gkit-performa-shell .gkit-performa-table td {
+  color: var(--unified-ink) !important;
+}
+
+.gkit-dir-shell .gkit-dir-row p,
+.gkit-dir-shell .gkit-dir-row small,
+.gkit-dir-shell .gkit-dir-row > div > span:not(.suite-pill),
+.gkit-performa-shell .gkit-performa-empty-state span,
+.gkit-performa-shell .gkit-performa-import-status span,
+.gkit-performa-shell .gkit-performa-detail-grid span,
+.gkit-performa-shell .gkit-performa-table th,
+.gkit-performa-shell .gkit-performa-audit-callout p {
+  color: var(--unified-muted) !important;
+}
+
+.gkit-performa-shell .gkit-performa-page {
+  gap: 10px !important;
+}
+
+.gkit-performa-shell .gkit-performa-filter-grid {
+  gap: 8px !important;
+}
+
+.gkit-performa-shell .gkit-performa-filter-grid label {
+  gap: 5px !important;
+}
+
+.gkit-performa-shell .gkit-performa-filter-grid span,
+.gkit-dir-shell .gkit-new-filter-fields label > span {
+  color: var(--unified-muted) !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  line-height: 1.25 !important;
+  text-transform: none !important;
+}
+
+.gkit-performa-shell :is(input, select, textarea),
+.gkit-dir-shell :is(input, select, textarea) {
+  background: #fff !important;
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  border-radius: 8px !important;
+  color: var(--unified-ink) !important;
+  min-height: 34px !important;
+}
+
+.gkit-performa-shell .gkit-performa-grid {
+  gap: 10px !important;
+}
+
+.gkit-performa-shell .gkit-performa-table-wrap {
+  border: 1px solid rgba(148, 163, 184, 0.16) !important;
+  border-radius: 8px !important;
+}
+
+.gkit-performa-shell .gkit-performa-table th,
+.gkit-performa-shell .gkit-performa-table td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16) !important;
+  font-size: 12px !important;
+  padding: 8px 9px !important;
+}
+
+.gkit-performa-shell .gkit-performa-table th {
+  background: rgba(248, 250, 252, 0.82) !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+}
+
+.gkit-performa-shell .gkit-performa-table tr.selected td {
+  background: var(--unified-accent-soft) !important;
+}
+
+.gkit-performa-shell .gkit-performa-row-button {
+  color: var(--unified-accent) !important;
+  font-weight: 500 !important;
+}
+
+.gkit-performa-shell .gkit-performa-tabs button {
+  background: #fff !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  border-radius: 8px !important;
+  color: var(--unified-muted) !important;
+  font-size: 12px !important;
+  min-height: 34px !important;
+  padding: 8px 11px !important;
+}
+
+.gkit-performa-shell .gkit-performa-tabs button.active,
+.gkit-performa-shell .gkit-performa-tabs button:hover {
+  background: var(--unified-accent) !important;
+  border-color: var(--unified-accent) !important;
+  color: #fff !important;
+}
+
+.gkit-performa-shell .gkit-performa-audit-callout {
+  gap: 12px !important;
+}
+
+@media (max-width: 1100px) {
+  :is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell).module-shell {
+    display: block !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
+  }
+
+  :is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar {
+    border-bottom: 1px solid var(--unified-border) !important;
+    border-right: 0 !important;
+    display: grid !important;
+    gap: 8px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 10px !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+  }
+
+  :is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-header {
+    min-height: 50px !important;
+    padding: 7px !important;
+  }
+
+  :is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-mark {
+    flex-basis: 34px !important;
+    height: 34px !important;
+    width: 34px !important;
+  }
+
+  :is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-header small,
+  :is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar-footer {
+    display: none !important;
+  }
+
+  :is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar nav {
+    align-items: center !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    padding: 0 0 2px !important;
+    scrollbar-width: thin !important;
+  }
+
+  :is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-sidebar a:not(.module-sidebar-header) {
+    flex: 0 0 auto !important;
+    min-height: 32px !important;
+    padding: 7px 10px !important;
+    white-space: nowrap !important;
+  }
+
+  :is(.gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-main {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    padding: 12px !important;
+  }
+
+  :is(.gkit-new-quick-grid, .ciclo-quick-grid, .gkit-ate-quick-grid, .gkit-fat-quick-grid),
+  .gkit-flex-operational-shell .flex-cockpit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  :is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .module-page-hero,
+  .gkit-flex-operational-shell .month-context-header {
+    padding: 12px 12px 12px 14px !important;
+  }
+
+  :is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) .suite-panel-heading,
+  .gkit-flex-operational-shell .header-row.compact-header,
+  .gkit-flex-operational-shell .month-context-toolbar,
+  .gkit-flex-operational-shell .month-context-toolbar .month-context-side,
+  .gkit-flex-operational-shell .month-context-toolbar .dashboard-month {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  :is(.gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell) :is(.suite-kpi-grid, .suite-kpi-grid.compact),
+  :is(.gkit-new-quick-grid, .ciclo-quick-grid, .gkit-ate-quick-grid, .gkit-fat-quick-grid),
+  .gkit-flex-operational-shell .flex-cockpit-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 

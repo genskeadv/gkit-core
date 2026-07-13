@@ -6,7 +6,7 @@ import { getCicloCliente, getCicloClienteFormData, requireCicloContext } from '@
 
 export default async function EditarCicloClientePage({ params }: { params: Promise<{ id: string }> }) {
   const context = await requireCicloContext()
-  if (!canAccess(context.permissions, 'ciclo.clientes.write')) redirect('/modulos/ciclo/clientes')
+  if (!canAccess(context.permissions, 'ciclo.clientes.write')) redirect('/modulos/gkit-ciclo/clientes')
 
   const { id } = await params
   const [formData, cliente] = await Promise.all([

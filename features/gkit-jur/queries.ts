@@ -5,6 +5,9 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { DATAJUD_TRIBUNAIS } from './datajud-tribunais'
 import { formatCnj } from './normalizer'
 import type {
+  GkitJurAcordoLembreteEmail,
+  GkitJurAcordoLembreteEmailStatus,
+  GkitJurAcordoLembreteEmailTipo,
   GkitJurAcordoJudicial,
   GkitJurAcordoParcela,
   GkitJurAcordoParcelaStatus,
@@ -1241,6 +1244,18 @@ function acordoParcelaStatus(value: unknown): GkitJurAcordoParcelaStatus {
   return 'pendente'
 }
 
+function acordoLembreteEmailStatus(value: unknown): GkitJurAcordoLembreteEmailStatus {
+  const current = text(value, 'pendente')
+  if (['pendente', 'enviado', 'cancelado', 'erro'].includes(current)) return current as GkitJurAcordoLembreteEmailStatus
+  return 'pendente'
+}
+
+function acordoLembreteEmailTipo(value: unknown): GkitJurAcordoLembreteEmailTipo {
+  const current = text(value, 'antes_vencimento')
+  if (['antes_vencimento', 'no_vencimento', 'apos_vencimento'].includes(current)) return current as GkitJurAcordoLembreteEmailTipo
+  return 'antes_vencimento'
+}
+
 function moneyNumber(value: unknown) {
   const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value ?? '').replace(',', '.'))
   return Number.isFinite(parsed) ? parsed : 0
@@ -1271,6 +1286,28 @@ function mapAcordoParcela(row: Record<string, unknown>): GkitJurAcordoParcela {
   }
 }
 
+function mapAcordoLembreteEmail(
+  row: Record<string, unknown>,
+  parcela: GkitJurAcordoParcela | null,
+): GkitJurAcordoLembreteEmail {
+  return {
+    id: String(row.id),
+    acordoId: String(row.acordo_id),
+    parcelaId: String(row.parcela_id),
+    parcelaNumero: parcela?.numero ?? null,
+    parcelaVencimento: parcela?.vencimento ?? null,
+    diasReferencia: numberValue(row.dias_referencia),
+    tipo: acordoLembreteEmailTipo(row.tipo),
+    agendadoPara: text(row.agendado_para),
+    destinatarioEmail: text(row.destinatario_email) || null,
+    assunto: text(row.assunto) || null,
+    corpo: text(row.corpo) || null,
+    status: acordoLembreteEmailStatus(row.status),
+    enviadoEm: text(row.enviado_em) || null,
+    erroMensagem: text(row.erro_mensagem) || null,
+  }
+}
+
 function emptyProcessForAcordo(processoId: string): GkitJurProcessListItem {
   return {
     id: processoId,
@@ -1295,6 +1332,7 @@ function mapAcordoJudicial(
   row: Record<string, unknown>,
   processo: GkitJurProcessListItem | null,
   parcelas: GkitJurAcordoParcela[],
+  lembretesEmail: GkitJurAcordoLembreteEmail[],
 ): GkitJurAcordoJudicial {
   const processoId = String(row.processo_id)
   const process = processo ?? emptyProcessForAcordo(processoId)
@@ -1306,6 +1344,14 @@ function mapAcordoJudicial(
   const nextParcela = parcelas
     .filter((parcela) => parcela.status === 'pendente')
     .sort((a, b) => a.vencimento.localeCompare(b.vencimento))[0]
+  const lembretesPendentes = lembretesEmail.filter((lembrete) => lembrete.status === 'pendente').length
+  const lembretesAtrasados = lembretesEmail.filter((lembrete) => lembrete.status === 'pendente' && isPastDate(lembrete.agendadoPara)).length
+  const proximoLembrete = lembretesEmail
+    .filter((lembrete) => lembrete.status === 'pendente')
+    .sort((a, b) => a.agendadoPara.localeCompare(b.agendadoPara))[0]
+  const rawLembreteDias = Array.isArray(row.lembrete_dias)
+    ? row.lembrete_dias.map((value) => Number.parseInt(String(value), 10)).filter((value) => Number.isFinite(value))
+    : [-5, -1, 0, 3, 7]
 
   return {
     id: String(row.id),
@@ -1320,6 +1366,9 @@ function mapAcordoJudicial(
     diaVencimento: numberValue(row.dia_vencimento),
     primeiroVencimento: text(row.primeiro_vencimento),
     status: acordoStatus(row.status),
+    emailLembrete: text(row.email_lembrete) || null,
+    lembretesPagamentoAtivos: row.lembretes_pagamento_ativos !== false,
+    lembreteDias: rawLembreteDias.length ? rawLembreteDias : [-5, -1, 0, 3, 7],
     observacoes: text(row.observacoes) || null,
     quebradoEm: text(row.quebrado_em) || null,
     quitadoEm: text(row.quitado_em) || null,
@@ -1332,6 +1381,10 @@ function mapAcordoJudicial(
     valorPago,
     valorPendente: Math.max(0, valorTotal - valorPago),
     proximoVencimento: nextParcela?.vencimento ?? null,
+    lembretesEmail,
+    lembretesPendentes,
+    lembretesAtrasados,
+    proximoLembreteEmail: proximoLembrete?.agendadoPara ?? null,
   }
 }
 
@@ -1342,7 +1395,7 @@ async function hydrateAcordosJudiciais(
   const acordoIds = acordoRows.map((row) => String(row.id)).filter(Boolean)
   const processoIds = [...new Set(acordoRows.map((row) => text(row.processo_id)).filter(Boolean))]
 
-  const [parcelasResult, processosResult] = await Promise.all([
+  const [parcelasResult, lembretesResult, processosResult] = await Promise.all([
     acordoIds.length
       ? admin()
         .schema('gkit_jur')
@@ -1350,6 +1403,14 @@ async function hydrateAcordosJudiciais(
         .select('id,acordo_id,numero,valor,vencimento,status,pago_em,valor_pago,observacoes')
         .in('acordo_id', acordoIds)
         .order('numero', { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
+    acordoIds.length
+      ? admin()
+        .schema('gkit_jur')
+        .from('acordo_lembretes_email')
+        .select('id,acordo_id,parcela_id,dias_referencia,tipo,agendado_para,destinatario_email,assunto,corpo,status,enviado_em,erro_mensagem')
+        .in('acordo_id', acordoIds)
+        .order('agendado_para', { ascending: true })
       : Promise.resolve({ data: [], error: null }),
     processoIds.filter((id) => !knownProcessos.has(id)).length
       ? admin()
@@ -1361,6 +1422,9 @@ async function hydrateAcordosJudiciais(
   ])
 
   if (parcelasResult.error) throw new Error(parcelasResult.error.message)
+  if (lembretesResult.error && !['42P01', 'PGRST205'].includes(String(lembretesResult.error.code))) {
+    throw new Error(lembretesResult.error.message)
+  }
   if (processosResult.error) throw new Error(processosResult.error.message)
 
   const processRows = (processosResult.data ?? []) as Array<Record<string, unknown>>
@@ -1372,17 +1436,32 @@ async function hydrateAcordosJudiciais(
   }
 
   const parcelasByAcordo = new Map<string, GkitJurAcordoParcela[]>()
+  const parcelasById = new Map<string, GkitJurAcordoParcela>()
   for (const row of (parcelasResult.data ?? []) as Array<Record<string, unknown>>) {
     const parcela = mapAcordoParcela(row)
+    parcelasById.set(parcela.id, parcela)
     const current = parcelasByAcordo.get(parcela.acordoId) ?? []
     current.push(parcela)
     parcelasByAcordo.set(parcela.acordoId, current)
   }
 
+  const lembretesByAcordo = new Map<string, GkitJurAcordoLembreteEmail[]>()
+  for (const row of (lembretesResult.data ?? []) as Array<Record<string, unknown>>) {
+    const lembrete = mapAcordoLembreteEmail(row, parcelasById.get(String(row.parcela_id)) ?? null)
+    const current = lembretesByAcordo.get(lembrete.acordoId) ?? []
+    current.push(lembrete)
+    lembretesByAcordo.set(lembrete.acordoId, current)
+  }
+
   return acordoRows.map((row) => {
     const acordoId = String(row.id)
     const processoId = text(row.processo_id)
-    return mapAcordoJudicial(row, processoMap.get(processoId) ?? null, parcelasByAcordo.get(acordoId) ?? [])
+    return mapAcordoJudicial(
+      row,
+      processoMap.get(processoId) ?? null,
+      parcelasByAcordo.get(acordoId) ?? [],
+      lembretesByAcordo.get(acordoId) ?? [],
+    )
   })
 }
 
@@ -1689,7 +1768,7 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
     admin()
       .schema('gkit_jur')
       .from('acordos_judiciais')
-      .select('id,processo_id,valor_total,quantidade_parcelas,dia_vencimento,primeiro_vencimento,status,observacoes,quebrado_em,quitado_em,created_at,updated_at')
+      .select('id,processo_id,valor_total,quantidade_parcelas,dia_vencimento,primeiro_vencimento,status,email_lembrete,lembretes_pagamento_ativos,lembrete_dias,observacoes,quebrado_em,quitado_em,created_at,updated_at')
       .eq('processo_id', id)
       .order('created_at', { ascending: false })
       .limit(20),
@@ -1755,7 +1834,7 @@ export async function getGkitJurAcordosData(): Promise<GkitJurAcordosData> {
   const result = await admin()
     .schema('gkit_jur')
     .from('acordos_judiciais')
-    .select('id,processo_id,valor_total,quantidade_parcelas,dia_vencimento,primeiro_vencimento,status,observacoes,quebrado_em,quitado_em,created_at,updated_at')
+    .select('id,processo_id,valor_total,quantidade_parcelas,dia_vencimento,primeiro_vencimento,status,email_lembrete,lembretes_pagamento_ativos,lembrete_dias,observacoes,quebrado_em,quitado_em,created_at,updated_at')
     .in('status', ['ativo', 'quebrado', 'cumprido'])
     .order('updated_at', { ascending: false })
     .limit(500)
@@ -1765,12 +1844,21 @@ export async function getGkitJurAcordosData(): Promise<GkitJurAcordosData> {
   const acordos = await hydrateAcordosJudiciais((result.data ?? []) as Array<Record<string, unknown>>)
   const ativos = acordos.filter((acordo) => acordo.status === 'ativo')
   const atrasados = acordos.filter((acordo) => acordo.status === 'ativo' && acordo.parcelasAtrasadas > 0)
+  const lembretesPendentes = ativos.reduce((total, acordo) => total + acordo.lembretesPendentes, 0)
+  const lembretesAtrasados = ativos.reduce((total, acordo) => total + acordo.lembretesAtrasados, 0)
+  const hoje = new Date().toISOString().slice(0, 10)
+  const lembretesHoje = ativos.reduce((total, acordo) => (
+    total + acordo.lembretesEmail.filter((lembrete) => lembrete.status === 'pendente' && lembrete.agendadoPara === hoje).length
+  ), 0)
 
   return {
     acordos,
     metrics: {
       ativos: ativos.length,
       atrasados: atrasados.length,
+      lembretesAtrasados,
+      lembretesHoje,
+      lembretesPendentes,
       quebrados: acordos.filter((acordo) => acordo.status === 'quebrado').length,
       total: acordos.length,
       valorAberto: ativos.reduce((total, acordo) => total + acordo.valorPendente, 0),

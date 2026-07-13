@@ -6,6 +6,16 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const sessionResponse = await updateSession(request)
 
+  if (pathname === '/modulos/ciclo' || pathname.startsWith('/modulos/ciclo/')) {
+    const url = request.nextUrl.clone()
+    url.pathname = pathname.replace('/modulos/ciclo', '/modulos/gkit-ciclo')
+    const response = NextResponse.redirect(url)
+    sessionResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie)
+    })
+    return response
+  }
+
   if (isRetiredModulePath(pathname)) {
     const response = NextResponse.redirect(new URL('/plataforma', request.url))
     sessionResponse.cookies.getAll().forEach((cookie) => {

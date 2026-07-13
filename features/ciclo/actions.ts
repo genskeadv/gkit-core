@@ -1192,8 +1192,8 @@ export async function createCicloAdministradoraAction(formData: FormData) {
 
   if (error) throw new Error(error.message)
 
-  revalidatePath('/modulos/ciclo/administradoras')
-  redirect(`/modulos/ciclo/administradoras/${data.id}`)
+  revalidatePath('/modulos/gkit-ciclo/administradoras')
+  redirect(`/modulos/gkit-ciclo/administradoras/${data.id}`)
 }
 
 export async function updateCicloAdministradoraAction(formData: FormData) {
@@ -1208,9 +1208,9 @@ export async function updateCicloAdministradoraAction(formData: FormData) {
 
   if (error) throw new Error(error.message)
 
-  revalidatePath('/modulos/ciclo/administradoras')
-  revalidatePath(`/modulos/ciclo/administradoras/${id}`)
-  redirect('/modulos/ciclo/administradoras')
+  revalidatePath('/modulos/gkit-ciclo/administradoras')
+  revalidatePath(`/modulos/gkit-ciclo/administradoras/${id}`)
+  redirect('/modulos/gkit-ciclo/administradoras')
 }
 
 export async function createCicloClienteAction(formData: FormData) {
@@ -1228,11 +1228,11 @@ export async function createCicloClienteAction(formData: FormData) {
 
   await logTimeline(data.id, carteiraId, context.usuario.id, 'Cliente criado no Ciclo', 'Entrada do cliente na esteira operacional.')
 
-  revalidatePath('/modulos/ciclo')
-  revalidatePath('/modulos/ciclo/clientes')
-  revalidatePath('/modulos/ciclo/onboarding')
-  if (shouldReturnToCockpit(formData)) redirect('/modulos/ciclo')
-  redirect('/modulos/ciclo/clientes')
+  revalidatePath('/modulos/gkit-ciclo')
+  revalidatePath('/modulos/gkit-ciclo/clientes')
+  revalidatePath('/modulos/gkit-ciclo/onboarding')
+  if (shouldReturnToCockpit(formData)) redirect('/modulos/gkit-ciclo')
+  redirect('/modulos/gkit-ciclo/clientes')
 }
 
 export async function updateCicloClienteAction(formData: FormData) {
@@ -1250,11 +1250,11 @@ export async function updateCicloClienteAction(formData: FormData) {
 
   await logTimeline(id, carteiraId, context.usuario.id, 'Cliente atualizado no Ciclo', 'Cadastro operacional atualizado.')
 
-  revalidatePath('/modulos/ciclo')
-  revalidatePath('/modulos/ciclo/clientes')
-  revalidatePath('/modulos/ciclo/onboarding')
-  revalidatePath(`/modulos/ciclo/clientes/${id}`)
-  redirect('/modulos/ciclo/clientes')
+  revalidatePath('/modulos/gkit-ciclo')
+  revalidatePath('/modulos/gkit-ciclo/clientes')
+  revalidatePath('/modulos/gkit-ciclo/onboarding')
+  revalidatePath(`/modulos/gkit-ciclo/clientes/${id}`)
+  redirect('/modulos/gkit-ciclo/clientes')
 }
 
 export async function createCicloDocumentoAction(formData: FormData) {
@@ -1277,10 +1277,10 @@ export async function createCicloDocumentoAction(formData: FormData) {
   await recalcularRegularidade(clienteId, cliente.carteira_id)
   await logTimeline(clienteId, cliente.carteira_id, context.usuario.id, 'Documento cadastrado', `${text(formData, 'titulo') || text(formData, 'tipo_documento')} incluido no controle documental.`)
 
-  revalidatePath('/modulos/ciclo/documentos')
-  revalidatePath('/modulos/ciclo/regularidade')
-  revalidatePath('/modulos/ciclo/onboarding')
-  redirect(`/modulos/ciclo/documentos/${data.id}`)
+  revalidatePath('/modulos/gkit-ciclo/documentos')
+  revalidatePath('/modulos/gkit-ciclo/regularidade')
+  revalidatePath('/modulos/gkit-ciclo/onboarding')
+  redirect(`/modulos/gkit-ciclo/documentos/${data.id}`)
 }
 
 export async function updateCicloDocumentoAction(formData: FormData) {
@@ -1300,11 +1300,11 @@ export async function updateCicloDocumentoAction(formData: FormData) {
   await recalcularRegularidade(clienteId, cliente.carteira_id)
   await logTimeline(clienteId, cliente.carteira_id, context.usuario.id, 'Documento atualizado', `${text(formData, 'titulo') || text(formData, 'tipo_documento')} atualizado no controle documental.`)
 
-  revalidatePath('/modulos/ciclo/documentos')
-  revalidatePath(`/modulos/ciclo/documentos/${id}`)
-  revalidatePath('/modulos/ciclo/regularidade')
-  revalidatePath('/modulos/ciclo/onboarding')
-  redirect('/modulos/ciclo/documentos')
+  revalidatePath('/modulos/gkit-ciclo/documentos')
+  revalidatePath(`/modulos/gkit-ciclo/documentos/${id}`)
+  revalidatePath('/modulos/gkit-ciclo/regularidade')
+  revalidatePath('/modulos/gkit-ciclo/onboarding')
+  redirect('/modulos/gkit-ciclo/documentos')
 }
 
 export async function createCicloAlertaAction(formData: FormData) {
@@ -1322,9 +1322,9 @@ export async function createCicloAlertaAction(formData: FormData) {
   if (error) throw new Error(error.message)
   if (cliente) await logTimeline(cliente.id, cliente.carteira_id, context.usuario.id, 'Alerta criado', text(formData, 'titulo'))
 
-  revalidatePath('/modulos/ciclo')
-  revalidatePath('/modulos/ciclo/alertas')
-  redirect(`/modulos/ciclo/alertas/${data.id}`)
+  revalidatePath('/modulos/gkit-ciclo')
+  revalidatePath('/modulos/gkit-ciclo/alertas')
+  redirect(`/modulos/gkit-ciclo/alertas/${data.id}`)
 }
 
 export async function updateCicloAlertaAction(formData: FormData) {
@@ -1342,10 +1342,10 @@ export async function updateCicloAlertaAction(formData: FormData) {
   if (error) throw new Error(error.message)
   if (cliente) await logTimeline(cliente.id, cliente.carteira_id, context.usuario.id, 'Alerta atualizado', `${text(formData, 'titulo')} - ${text(formData, 'status')}`)
 
-  revalidatePath('/modulos/ciclo')
-  revalidatePath('/modulos/ciclo/alertas')
-  revalidatePath(`/modulos/ciclo/alertas/${id}`)
-  redirect('/modulos/ciclo/alertas')
+  revalidatePath('/modulos/gkit-ciclo')
+  revalidatePath('/modulos/gkit-ciclo/alertas')
+  revalidatePath(`/modulos/gkit-ciclo/alertas/${id}`)
+  redirect('/modulos/gkit-ciclo/alertas')
 }
 
 export async function resolveCicloAlertaAction(formData: FormData) {
@@ -1363,8 +1363,8 @@ export async function resolveCicloAlertaAction(formData: FormData) {
   if (error) throw new Error(error.message)
   if (cliente) await logTimeline(cliente.id, cliente.carteira_id, context.usuario.id, 'Alerta resolvido', text(formData, 'titulo') || 'Alerta operacional resolvido.')
 
-  revalidatePath('/modulos/ciclo')
-  revalidatePath('/modulos/ciclo/alertas')
+  revalidatePath('/modulos/gkit-ciclo')
+  revalidatePath('/modulos/gkit-ciclo/alertas')
 }
 
 export async function createCicloOcorrenciaAction(formData: FormData) {
@@ -1405,11 +1405,11 @@ export async function createCicloOcorrenciaAction(formData: FormData) {
     if (alerta.error) throw new Error(alerta.error.message)
   }
 
-  revalidatePath('/modulos/ciclo')
-  revalidatePath('/modulos/ciclo/ocorrencias')
-  revalidatePath('/modulos/ciclo/alertas')
-  if (shouldReturnToCockpit(formData)) redirect('/modulos/ciclo')
-  redirect(`/modulos/ciclo/ocorrencias/${data.id}`)
+  revalidatePath('/modulos/gkit-ciclo')
+  revalidatePath('/modulos/gkit-ciclo/ocorrencias')
+  revalidatePath('/modulos/gkit-ciclo/alertas')
+  if (shouldReturnToCockpit(formData)) redirect('/modulos/gkit-ciclo')
+  redirect(`/modulos/gkit-ciclo/ocorrencias/${data.id}`)
 }
 
 export async function updateCicloOcorrenciaAction(formData: FormData) {
@@ -1428,10 +1428,10 @@ export async function updateCicloOcorrenciaAction(formData: FormData) {
   if (error) throw new Error(error.message)
   if (cliente) await logTimeline(cliente.id, cliente.carteira_id, context.usuario.id, 'Ocorrencia atualizada', `${payload.titulo} - ${payload.metadata.status}`)
 
-  revalidatePath('/modulos/ciclo')
-  revalidatePath('/modulos/ciclo/ocorrencias')
-  revalidatePath(`/modulos/ciclo/ocorrencias/${id}`)
-  redirect('/modulos/ciclo/ocorrencias')
+  revalidatePath('/modulos/gkit-ciclo')
+  revalidatePath('/modulos/gkit-ciclo/ocorrencias')
+  revalidatePath(`/modulos/gkit-ciclo/ocorrencias/${id}`)
+  redirect('/modulos/gkit-ciclo/ocorrencias')
 }
 
 export async function createCicloContratoAction(formData: FormData) {
@@ -1450,9 +1450,9 @@ export async function createCicloContratoAction(formData: FormData) {
   if (error) throw new Error(error.message)
   if (cliente) await logTimeline(cliente.id, cliente.carteira_id, context.usuario.id, 'Contrato cadastrado', payload.numero_contrato ?? 'Contrato operacional cadastrado.')
 
-  revalidatePath('/modulos/ciclo/contratos')
-  revalidatePath('/modulos/ciclo/timeline')
-  redirect(`/modulos/ciclo/contratos/${data.id}`)
+  revalidatePath('/modulos/gkit-ciclo/contratos')
+  revalidatePath('/modulos/gkit-ciclo/timeline')
+  redirect(`/modulos/gkit-ciclo/contratos/${data.id}`)
 }
 
 export async function updateCicloContratoAction(formData: FormData) {
@@ -1471,10 +1471,10 @@ export async function updateCicloContratoAction(formData: FormData) {
   if (error) throw new Error(error.message)
   if (cliente) await logTimeline(cliente.id, cliente.carteira_id, context.usuario.id, 'Contrato atualizado', payload.numero_contrato ?? 'Contrato operacional atualizado.')
 
-  revalidatePath('/modulos/ciclo/contratos')
-  revalidatePath(`/modulos/ciclo/contratos/${id}`)
-  revalidatePath('/modulos/ciclo/timeline')
-  redirect('/modulos/ciclo/contratos')
+  revalidatePath('/modulos/gkit-ciclo/contratos')
+  revalidatePath(`/modulos/gkit-ciclo/contratos/${id}`)
+  revalidatePath('/modulos/gkit-ciclo/timeline')
+  redirect('/modulos/gkit-ciclo/contratos')
 }
 
 export async function createCicloAtaAction(formData: FormData) {
@@ -1493,9 +1493,9 @@ export async function createCicloAtaAction(formData: FormData) {
   if (error) throw new Error(error.message)
   if (cliente) await logTimeline(cliente.id, cliente.carteira_id, context.usuario.id, 'Ata cadastrada', payload.tipo)
 
-  revalidatePath('/modulos/ciclo/atas')
-  revalidatePath('/modulos/ciclo/timeline')
-  redirect(`/modulos/ciclo/atas/${data.id}`)
+  revalidatePath('/modulos/gkit-ciclo/atas')
+  revalidatePath('/modulos/gkit-ciclo/timeline')
+  redirect(`/modulos/gkit-ciclo/atas/${data.id}`)
 }
 
 export async function updateCicloAtaAction(formData: FormData) {
@@ -1514,10 +1514,10 @@ export async function updateCicloAtaAction(formData: FormData) {
   if (error) throw new Error(error.message)
   if (cliente) await logTimeline(cliente.id, cliente.carteira_id, context.usuario.id, 'Ata atualizada', payload.tipo)
 
-  revalidatePath('/modulos/ciclo/atas')
-  revalidatePath(`/modulos/ciclo/atas/${id}`)
-  revalidatePath('/modulos/ciclo/timeline')
-  redirect('/modulos/ciclo/atas')
+  revalidatePath('/modulos/gkit-ciclo/atas')
+  revalidatePath(`/modulos/gkit-ciclo/atas/${id}`)
+  revalidatePath('/modulos/gkit-ciclo/timeline')
+  redirect('/modulos/gkit-ciclo/atas')
 }
 
 export async function startCicloOnboardingAction(formData: FormData) {
@@ -1542,11 +1542,11 @@ export async function startCicloOnboardingAction(formData: FormData) {
   await recalcularRegularidade(clienteId, cliente.carteira_id)
   await logTimeline(clienteId, cliente.carteira_id, context.usuario.id, 'Onboarding iniciado', 'Checklist operacional criado e cliente movido para implantacao.')
 
-  revalidatePath('/modulos/ciclo')
-  revalidatePath('/modulos/ciclo/onboarding')
-  revalidatePath(`/modulos/ciclo/onboarding/${clienteId}`)
-  revalidatePath('/modulos/ciclo/clientes')
-  if (shouldReturnToCockpit(formData)) redirect('/modulos/ciclo')
+  revalidatePath('/modulos/gkit-ciclo')
+  revalidatePath('/modulos/gkit-ciclo/onboarding')
+  revalidatePath(`/modulos/gkit-ciclo/onboarding/${clienteId}`)
+  revalidatePath('/modulos/gkit-ciclo/clientes')
+  if (shouldReturnToCockpit(formData)) redirect('/modulos/gkit-ciclo')
 }
 
 export async function updateCicloCockpitDocumentacaoAction(formData: FormData) {
@@ -1588,12 +1588,12 @@ export async function updateCicloCockpitDocumentacaoAction(formData: FormData) {
   await logTimeline(clienteId, cliente.carteira_id, context.usuario.id, 'Documentacao atualizada pelo cockpit', descricao)
   await runOptionalRpc('gkli_recalcular_regularidade_cliente', clienteId)
 
-  revalidatePath('/modulos/ciclo')
-  revalidatePath('/modulos/ciclo/documentos')
-  revalidatePath('/modulos/ciclo/regularidade')
-  revalidatePath('/modulos/ciclo/onboarding')
-  revalidatePath(`/modulos/ciclo/onboarding/${clienteId}`)
-  redirect('/modulos/ciclo')
+  revalidatePath('/modulos/gkit-ciclo')
+  revalidatePath('/modulos/gkit-ciclo/documentos')
+  revalidatePath('/modulos/gkit-ciclo/regularidade')
+  revalidatePath('/modulos/gkit-ciclo/onboarding')
+  revalidatePath(`/modulos/gkit-ciclo/onboarding/${clienteId}`)
+  redirect('/modulos/gkit-ciclo')
 }
 
 export async function updateCicloOnboardingDocumentoAction(formData: FormData) {
@@ -1623,10 +1623,10 @@ export async function updateCicloOnboardingDocumentoAction(formData: FormData) {
   await logTimeline(clienteId, cliente.carteira_id, context.usuario.id, 'Documento de onboarding atualizado', `Status alterado para ${status}.`)
   await runOptionalRpc('gkli_recalcular_regularidade_cliente', clienteId)
 
-  revalidatePath('/modulos/ciclo/onboarding')
-  revalidatePath(`/modulos/ciclo/onboarding/${clienteId}`)
-  revalidatePath('/modulos/ciclo/documentos')
-  revalidatePath('/modulos/ciclo/regularidade')
+  revalidatePath('/modulos/gkit-ciclo/onboarding')
+  revalidatePath(`/modulos/gkit-ciclo/onboarding/${clienteId}`)
+  revalidatePath('/modulos/gkit-ciclo/documentos')
+  revalidatePath('/modulos/gkit-ciclo/regularidade')
 }
 
 export async function createCicloOnboardingWorkflowAtividadeAction(formData: FormData) {
@@ -1647,8 +1647,8 @@ export async function createCicloOnboardingWorkflowAtividadeAction(formData: For
 
   if (error) throw new Error(error.message)
 
-  revalidatePath('/modulos/ciclo/onboarding')
-  revalidatePath('/modulos/ciclo/onboarding/workflow')
+  revalidatePath('/modulos/gkit-ciclo/onboarding')
+  revalidatePath('/modulos/gkit-ciclo/onboarding/workflow')
 }
 
 export async function updateCicloOnboardingWorkflowAtividadeAction(formData: FormData) {
@@ -1672,8 +1672,8 @@ export async function updateCicloOnboardingWorkflowAtividadeAction(formData: For
 
   if (error) throw new Error(error.message)
 
-  revalidatePath('/modulos/ciclo/onboarding')
-  revalidatePath('/modulos/ciclo/onboarding/workflow')
+  revalidatePath('/modulos/gkit-ciclo/onboarding')
+  revalidatePath('/modulos/gkit-ciclo/onboarding/workflow')
 }
 
 export async function updateCicloOnboardingAtividadeAction(formData: FormData) {
@@ -1700,8 +1700,8 @@ export async function updateCicloOnboardingAtividadeAction(formData: FormData) {
 
   await logTimeline(clienteId, cliente.carteira_id, context.usuario.id, 'Atividade de onboarding atualizada', `${text(formData, 'descricao') || 'Atividade'} - ${status}`)
 
-  revalidatePath('/modulos/ciclo/onboarding')
-  revalidatePath(`/modulos/ciclo/onboarding/${clienteId}`)
+  revalidatePath('/modulos/gkit-ciclo/onboarding')
+  revalidatePath(`/modulos/gkit-ciclo/onboarding/${clienteId}`)
 }
 
 export async function completeCicloOnboardingAction(formData: FormData) {
@@ -1765,10 +1765,10 @@ export async function completeCicloOnboardingAction(formData: FormData) {
   await logTimeline(clienteId, cliente.carteira_id, context.usuario.id, 'Onboarding concluido', 'Cliente ativado apos validacao documental.')
   await runOptionalRpc('gkli_recalcular_regularidade_cliente', clienteId)
 
-  revalidatePath('/modulos/ciclo')
-  revalidatePath('/modulos/ciclo/onboarding')
-  revalidatePath(`/modulos/ciclo/onboarding/${clienteId}`)
-  revalidatePath('/modulos/ciclo/clientes')
+  revalidatePath('/modulos/gkit-ciclo')
+  revalidatePath('/modulos/gkit-ciclo/onboarding')
+  revalidatePath(`/modulos/gkit-ciclo/onboarding/${clienteId}`)
+  revalidatePath('/modulos/gkit-ciclo/clientes')
 }
 
 export async function previewImportacaoClientesXlsx(formData: FormData): Promise<PreviewImportacaoClientes> {
@@ -1922,10 +1922,10 @@ export async function importarClientesXlsx(formData: FormData): Promise<Importac
 
   await finalizarLoteImportacao(loteId, result, finalStatus)
 
-  revalidatePath('/modulos/ciclo')
-  revalidatePath('/modulos/ciclo/clientes')
-  revalidatePath('/modulos/ciclo/importacoes')
-  revalidatePath('/modulos/ciclo/onboarding')
+  revalidatePath('/modulos/gkit-ciclo')
+  revalidatePath('/modulos/gkit-ciclo/clientes')
+  revalidatePath('/modulos/gkit-ciclo/importacoes')
+  revalidatePath('/modulos/gkit-ciclo/onboarding')
   return result
 }
 
@@ -2012,8 +2012,8 @@ export async function importarAtendimentosAstreaXlsx(formData: FormData): Promis
 
   await finalizarLoteImportacaoAtendimentos(loteId, result, analysis, finalStatus)
 
-  revalidatePath('/modulos/ciclo')
-  revalidatePath('/modulos/ciclo/atendimento')
-  revalidatePath('/modulos/ciclo/importacoes')
+  revalidatePath('/modulos/gkit-ciclo')
+  revalidatePath('/modulos/gkit-ciclo/atendimento')
+  revalidatePath('/modulos/gkit-ciclo/importacoes')
   return result
 }

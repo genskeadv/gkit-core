@@ -23,7 +23,7 @@ export default async function CicloPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
   const params = await searchParams
-  const context = await requireCicloContext(moduleTarget('/modulos/ciclo', params))
+  const context = await requireCicloContext(moduleTarget('/modulos/gkit-ciclo', params))
   const data = await getCicloCockpitData(context)
 
   return (

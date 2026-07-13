@@ -92,74 +92,74 @@ type CicloTab =
   | 'ocorrencias'
 
 const activeHref: Record<CicloTab, string> = {
-  cockpit: '/modulos/ciclo',
-  dashboard: '/modulos/ciclo/dashboard',
-  clientes: '/modulos/ciclo/clientes',
-  atendimento: '/modulos/ciclo/atendimento',
-  administradoras: '/modulos/ciclo/administradoras',
-  importacoes: '/modulos/ciclo/importacoes',
-  documentos: '/modulos/ciclo/documentos',
-  alertas: '/modulos/ciclo/alertas',
-  onboarding: '/modulos/ciclo/onboarding',
-  regularidade: '/modulos/ciclo/regularidade',
-  timeline: '/modulos/ciclo/timeline',
-  ocorrencias: '/modulos/ciclo/ocorrencias',
+  cockpit: '/modulos/gkit-ciclo',
+  dashboard: '/modulos/gkit-ciclo/dashboard',
+  clientes: '/modulos/gkit-ciclo/clientes',
+  atendimento: '/modulos/gkit-ciclo/atendimento',
+  administradoras: '/modulos/gkit-ciclo/administradoras',
+  importacoes: '/modulos/gkit-ciclo/importacoes',
+  documentos: '/modulos/gkit-ciclo/documentos',
+  alertas: '/modulos/gkit-ciclo/alertas',
+  onboarding: '/modulos/gkit-ciclo/onboarding',
+  regularidade: '/modulos/gkit-ciclo/regularidade',
+  timeline: '/modulos/gkit-ciclo/timeline',
+  ocorrencias: '/modulos/gkit-ciclo/ocorrencias',
 }
 
 const navGroups: ModuleNavGroup[] = [
   {
     title: 'Cockpit',
     items: [
-      { href: '/modulos/ciclo', label: 'Cockpit' },
-      { href: '/modulos/ciclo/dashboard', label: 'Dashboard' },
+      { href: '/modulos/gkit-ciclo', label: 'Cockpit' },
+      { href: '/modulos/gkit-ciclo/dashboard', label: 'Dashboard' },
     ],
   },
   {
     title: 'Base cadastral',
     items: [
-      { href: '/modulos/ciclo/clientes', label: 'Clientes' },
-      { href: '/modulos/ciclo/administradoras', label: 'Administradoras' },
+      { href: '/modulos/gkit-ciclo/clientes', label: 'Clientes' },
+      { href: '/modulos/gkit-ciclo/administradoras', label: 'Administradoras' },
     ],
   },
   {
     title: 'Operação',
     items: [
-      { href: '/modulos/ciclo/documentos', label: 'Documentos' },
-      { href: '/modulos/ciclo/alertas', label: 'Alertas' },
-      { href: '/modulos/ciclo/onboarding', label: 'Onboarding' },
-      { href: '/modulos/ciclo/regularidade', label: 'Regularidade' },
-      { href: '/modulos/ciclo/timeline', label: 'Timeline' },
-      { href: '/modulos/ciclo/ocorrencias', label: 'Ocorrências' },
+      { href: '/modulos/gkit-ciclo/documentos', label: 'Documentos' },
+      { href: '/modulos/gkit-ciclo/alertas', label: 'Alertas' },
+      { href: '/modulos/gkit-ciclo/onboarding', label: 'Onboarding' },
+      { href: '/modulos/gkit-ciclo/regularidade', label: 'Regularidade' },
+      { href: '/modulos/gkit-ciclo/timeline', label: 'Timeline' },
+      { href: '/modulos/gkit-ciclo/ocorrencias', label: 'Ocorrências' },
     ],
   },
 ]
 
 const navTitleByHref: Record<string, string> = {
-  '/modulos/ciclo': 'Cockpit',
-  '/modulos/ciclo/dashboard': 'Gestão',
-  '/modulos/ciclo/clientes': 'Clientes',
-  '/modulos/ciclo/atendimento': 'Atendimento',
-  '/modulos/ciclo/documentos': 'Documentos',
-  '/modulos/ciclo/alertas': 'Alertas',
-  '/modulos/ciclo/onboarding': 'Onboarding',
-  '/modulos/ciclo/regularidade': 'Regularidade',
-  '/modulos/ciclo/ocorrencias': 'Ocorrências',
-  '/modulos/ciclo/administradoras': 'Administradoras',
-  '/modulos/ciclo/importacoes': 'Importações',
+  '/modulos/gkit-ciclo': 'Cockpit',
+  '/modulos/gkit-ciclo/dashboard': 'Gestão',
+  '/modulos/gkit-ciclo/clientes': 'Clientes',
+  '/modulos/gkit-ciclo/atendimento': 'Atendimento',
+  '/modulos/gkit-ciclo/documentos': 'Documentos',
+  '/modulos/gkit-ciclo/alertas': 'Alertas',
+  '/modulos/gkit-ciclo/onboarding': 'Onboarding',
+  '/modulos/gkit-ciclo/regularidade': 'Regularidade',
+  '/modulos/gkit-ciclo/ocorrencias': 'Ocorrências',
+  '/modulos/gkit-ciclo/administradoras': 'Administradoras',
+  '/modulos/gkit-ciclo/importacoes': 'Importações',
 }
 
 const navOrder = [
-  '/modulos/ciclo',
-  '/modulos/ciclo/importacoes',
-  '/modulos/ciclo/clientes',
-  '/modulos/ciclo/atendimento',
-  '/modulos/ciclo/documentos',
-  '/modulos/ciclo/alertas',
-  '/modulos/ciclo/onboarding',
-  '/modulos/ciclo/regularidade',
-  '/modulos/ciclo/ocorrencias',
-  '/modulos/ciclo/administradoras',
-  '/modulos/ciclo/dashboard',
+  '/modulos/gkit-ciclo',
+  '/modulos/gkit-ciclo/importacoes',
+  '/modulos/gkit-ciclo/clientes',
+  '/modulos/gkit-ciclo/atendimento',
+  '/modulos/gkit-ciclo/documentos',
+  '/modulos/gkit-ciclo/alertas',
+  '/modulos/gkit-ciclo/onboarding',
+  '/modulos/gkit-ciclo/regularidade',
+  '/modulos/gkit-ciclo/ocorrencias',
+  '/modulos/gkit-ciclo/administradoras',
+  '/modulos/gkit-ciclo/dashboard',
 ]
 
 const availableNavHrefs = new Set(navGroups.flatMap((group) => (group.items ?? []).map((item) => item.href)))
@@ -280,7 +280,7 @@ export function CicloPriorityList({ clientes }: { clientes: CicloCliente[] }) {
           <h2>Clientes prioritários</h2>
           <p>Fila por risco, score, regularidade, alertas e temperatura.</p>
         </div>
-        <Link className="button secondary" href="/modulos/ciclo/clientes">Ver clientes</Link>
+        <Link className="button secondary" href="/modulos/gkit-ciclo/clientes">Ver clientes</Link>
       </div>
 
       {rows.length ? (
@@ -340,7 +340,7 @@ export function CicloAlertList({ alertas, canWrite = false }: { alertas: CicloAl
           <h2>Alertas recentes</h2>
           <p>Fila de risco operacional, documentação e acompanhamento.</p>
         </div>
-        <Link className="button secondary" href="/modulos/ciclo/alertas">Ver alertas</Link>
+        <Link className="button secondary" href="/modulos/gkit-ciclo/alertas">Ver alertas</Link>
       </div>
 
       {rows.length ? (
@@ -391,7 +391,7 @@ export function CicloClienteList({
     if (filters.carteira) params.set('carteira', filters.carteira)
     params.set('sort', sort)
     params.set('dir', filters.sort === sort && filters.dir === 'asc' ? 'desc' : 'asc')
-    return `/modulos/ciclo/clientes?${params.toString()}`
+    return `/modulos/gkit-ciclo/clientes?${params.toString()}`
   }
   const sortLabel = (sort: typeof filters.sort) => (filters.sort === sort ? (filters.dir === 'asc' ? '↑' : '↓') : '')
 
@@ -421,7 +421,7 @@ export function CicloClienteList({
           </select>
         </label>
         <button className="button secondary" type="submit">Filtrar</button>
-        {hasFilters ? <Link className="button secondary" href="/modulos/ciclo/clientes">Limpar</Link> : null}
+        {hasFilters ? <Link className="button secondary" href="/modulos/gkit-ciclo/clientes">Limpar</Link> : null}
         <span className="ciclo-clientes-count">{clientes.length} de {totalClientes}</span>
       </form>
 
@@ -456,8 +456,8 @@ export function CicloClienteList({
                 <span className={`ciclo-pill ${riskTone(cliente.risco)}`}>{cliente.risco}</span>
               </div>
               <div className="ciclo-clientes-actions">
-                <Link className="button secondary" href={`/modulos/ciclo/clientes/${cliente.id}/cockpit`}>Cockpit</Link>
-                {canWrite ? <Link className="button secondary" href={`/modulos/ciclo/clientes/${cliente.id}`}>Editar</Link> : null}
+                <Link className="button secondary" href={`/modulos/gkit-ciclo/clientes/${cliente.id}/cockpit`}>Cockpit</Link>
+                {canWrite ? <Link className="button secondary" href={`/modulos/gkit-ciclo/clientes/${cliente.id}`}>Editar</Link> : null}
               </div>
             </article>
           ))}
@@ -482,7 +482,7 @@ function atendimentoHref(tab: CicloAtendimentoTab, filters: { dataDe?: string; d
   if (filters.dataDe) params.set('de', filters.dataDe)
   if (filters.dataAte) params.set('ate', filters.dataAte)
   if (filters.status) params.set('status', filters.status)
-  return `/modulos/ciclo/atendimento?${params.toString()}`
+  return `/modulos/gkit-ciclo/atendimento?${params.toString()}`
 }
 
 function onboardingPercent(value: string) {
@@ -587,7 +587,7 @@ export function CicloOnboardingOverview({ rows }: { rows: CicloListRow[] }) {
                     <span>risco {meta.risco}</span>
                   </div>
                   <div className="ciclo-clientes-actions">
-                    <Link className="button secondary" href={`/modulos/ciclo/onboarding/${row.id}`}>Checklist</Link>
+                    <Link className="button secondary" href={`/modulos/gkit-ciclo/onboarding/${row.id}`}>Checklist</Link>
                   </div>
                 </article>
               )
@@ -640,7 +640,7 @@ export function CicloAtendimentoDashboardView({
           </select>
         </label>
         <button className="button secondary" type="submit">Filtrar</button>
-        <Link className="button secondary" href="/modulos/ciclo/atendimento">Limpar</Link>
+        <Link className="button secondary" href="/modulos/gkit-ciclo/atendimento">Limpar</Link>
       </form>
 
       <section className="ciclo-atendimento-kpis">
@@ -754,7 +754,7 @@ export function CicloDocumentoList({ canWrite = false, documentos }: { canWrite?
               <strong>{documento.obrigatorio ? 'Obrigatório' : 'Opcional'}</strong>
               <small>
                 {formatDate(documento.dataRenovacao)}
-                {canWrite ? <Link className="button secondary" href={`/modulos/ciclo/documentos/${documento.id}`}>Editar</Link> : null}
+                {canWrite ? <Link className="button secondary" href={`/modulos/gkit-ciclo/documentos/${documento.id}`}>Editar</Link> : null}
               </small>
             </article>
           ))}
@@ -909,7 +909,7 @@ export function CicloClienteForm({
 
       <div className="form-actions module-form-wide">
         <CicloSubmitButton>Salvar cliente</CicloSubmitButton>
-        <Link className="button secondary" href="/modulos/ciclo/clientes">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/gkit-ciclo/clientes">Cancelar</Link>
       </div>
     </form>
   )
@@ -963,7 +963,7 @@ export function CicloAdministradoraForm({
 
       <div className="form-actions module-form-wide">
         <CicloSubmitButton>Salvar administradora</CicloSubmitButton>
-        <Link className="button secondary" href="/modulos/ciclo/administradoras">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/gkit-ciclo/administradoras">Cancelar</Link>
       </div>
     </form>
   )
@@ -1060,7 +1060,7 @@ export function CicloDocumentoForm({
 
       <div className="form-actions module-form-wide">
         <CicloSubmitButton>Salvar documento</CicloSubmitButton>
-        <Link className="button secondary" href="/modulos/ciclo/documentos">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/gkit-ciclo/documentos">Cancelar</Link>
       </div>
     </form>
   )
@@ -1137,7 +1137,7 @@ export function CicloAlertaForm({
 
       <div className="form-actions module-form-wide">
         <CicloSubmitButton>Salvar alerta</CicloSubmitButton>
-        <Link className="button secondary" href="/modulos/ciclo/alertas">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/gkit-ciclo/alertas">Cancelar</Link>
       </div>
     </form>
   )
@@ -1241,7 +1241,7 @@ export function CicloOcorrenciaForm({
 
       <div className="form-actions module-form-wide">
         <CicloSubmitButton>Salvar ocorrência</CicloSubmitButton>
-        <Link className="button secondary" href="/modulos/ciclo/ocorrencias">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/gkit-ciclo/ocorrencias">Cancelar</Link>
       </div>
     </form>
   )
@@ -1328,7 +1328,7 @@ export function CicloContratoForm({
 
       <div className="form-actions module-form-wide">
         <CicloSubmitButton>Salvar contrato</CicloSubmitButton>
-        <Link className="button secondary" href="/modulos/ciclo/contratos">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/gkit-ciclo/contratos">Cancelar</Link>
       </div>
     </form>
   )
@@ -1401,7 +1401,7 @@ export function CicloAtaForm({
 
       <div className="form-actions module-form-wide">
         <CicloSubmitButton>Salvar ata</CicloSubmitButton>
-        <Link className="button secondary" href="/modulos/ciclo/atas">Cancelar</Link>
+        <Link className="button secondary" href="/modulos/gkit-ciclo/atas">Cancelar</Link>
       </div>
     </form>
   )
@@ -1431,10 +1431,10 @@ export function CicloClienteIntegralCockpit({ detail }: { detail: CicloClienteIn
           <p>{cliente.documento ?? 'Sem documento'} - {detail.carteira} - {detail.administradora}</p>
         </div>
         <div className="ciclo-quick-actions">
-          <Link className="button secondary" href={`/modulos/ciclo/clientes/${cliente.id}`}>Editar cliente</Link>
-          <Link className="button secondary" href="/modulos/ciclo/documentos/novo">Novo documento</Link>
-          <Link className="button secondary" href="/modulos/ciclo/ocorrencias/nova">Nova ocorrência</Link>
-          <Link className="button secondary" href="/modulos/ciclo/alertas/novo">Novo alerta</Link>
+          <Link className="button secondary" href={`/modulos/gkit-ciclo/clientes/${cliente.id}`}>Editar cliente</Link>
+          <Link className="button secondary" href="/modulos/gkit-ciclo/documentos/novo">Novo documento</Link>
+          <Link className="button secondary" href="/modulos/gkit-ciclo/ocorrencias/nova">Nova ocorrência</Link>
+          <Link className="button secondary" href="/modulos/gkit-ciclo/alertas/novo">Novo alerta</Link>
         </div>
       </section>
 
@@ -1509,7 +1509,7 @@ export function CicloClienteIntegralCockpit({ detail }: { detail: CicloClienteIn
         <CicloIntegralList
           empty="Nenhum documento cadastrado."
           items={documentos.slice(0, 8).map((documento) => ({
-            href: `/modulos/ciclo/documentos/${documento.id}`,
+            href: `/modulos/gkit-ciclo/documentos/${documento.id}`,
             meta: formatDate(documento.data_renovacao ?? ''),
             status: documento.status,
             title: documento.titulo ?? documento.tipo_documento,
@@ -1521,7 +1521,7 @@ export function CicloClienteIntegralCockpit({ detail }: { detail: CicloClienteIn
         <CicloIntegralList
           empty="Nenhuma ocorrência registrada."
           items={ocorrencias.slice(0, 8).map((ocorrencia) => ({
-            href: `/modulos/ciclo/ocorrencias/${ocorrencia.id}`,
+            href: `/modulos/gkit-ciclo/ocorrencias/${ocorrencia.id}`,
             meta: ocorrencia.responsavel ?? 'Sem responsável',
             status: ocorrencia.status,
             title: ocorrencia.titulo,
@@ -1610,7 +1610,7 @@ export function CicloOnboardingWorkflowConfig({ atividades }: { atividades: Cicl
             <h2>Atividades do workflow</h2>
             <p>Ordem, descricao e responsavel usados ao iniciar o onboarding.</p>
           </div>
-          <Link className="button secondary" href="/modulos/ciclo/onboarding">Voltar</Link>
+          <Link className="button secondary" href="/modulos/gkit-ciclo/onboarding">Voltar</Link>
         </div>
 
         {atividades.length ? (
@@ -1792,7 +1792,7 @@ export function CicloOnboardingDetalhe({ detail }: { detail: CicloOnboardingDeta
             <h2>Timeline</h2>
             <p>Eventos recentes do onboarding.</p>
           </div>
-          <Link className="button secondary" href="/modulos/ciclo/onboarding">Voltar</Link>
+          <Link className="button secondary" href="/modulos/gkit-ciclo/onboarding">Voltar</Link>
         </div>
         {timeline.length ? (
           <div className="ciclo-table-list">
@@ -1916,7 +1916,7 @@ export function CicloImportacaoDetalhe({
             <h2>Itens do lote</h2>
             <p>Resultado linha a linha da importação.</p>
           </div>
-          <Link className="button secondary" href="/modulos/ciclo/importacoes">Voltar</Link>
+          <Link className="button secondary" href="/modulos/gkit-ciclo/importacoes">Voltar</Link>
         </div>
 
         {itens.length ? (

@@ -819,7 +819,7 @@ export async function getCicloCliente(id: string, context: CicloContext): Promis
   const carteiraId = text(row.carteira_id)
 
   if (context.usuario.tipo !== 'admin_global' && carteiraId && !allowedIds.has(carteiraId)) {
-    redirect('/modulos/ciclo/clientes')
+    redirect('/modulos/gkit-ciclo/clientes')
   }
 
   return {
@@ -1099,7 +1099,7 @@ export async function getCicloCockpitData(context: CicloContext): Promise<CicloC
       status,
       value: detalhe || 'Documentacao pendente',
       meta: `${metaOk} de ${documentosCliente.length} ok`,
-      detailHref: `/modulos/ciclo/clientes/${clienteId}/cockpit`,
+      detailHref: `/modulos/gkit-ciclo/clientes/${clienteId}/cockpit`,
       tone: vencidos ? 'danger' as const : 'warning' as const,
     })
   }
@@ -1133,7 +1133,7 @@ export async function getCicloDocumento(id: string, context: CicloContext): Prom
   const carteiraId = text(row.carteira_id)
 
   if (context.usuario.tipo !== 'admin_global' && carteiraId && !allowedIds.has(carteiraId)) {
-    redirect('/modulos/ciclo/documentos')
+    redirect('/modulos/gkit-ciclo/documentos')
   }
 
   return {
@@ -1170,7 +1170,7 @@ export async function getCicloAlerta(id: string, context: CicloContext): Promise
   const carteiraId = text(row.carteira_id)
 
   if (context.usuario.tipo !== 'admin_global' && carteiraId && !allowedIds.has(carteiraId)) {
-    redirect('/modulos/ciclo/alertas')
+    redirect('/modulos/gkit-ciclo/alertas')
   }
 
   return {
@@ -1205,7 +1205,7 @@ export async function getCicloOcorrencia(id: string, context: CicloContext): Pro
   const carteiraId = text(row.carteira_id)
 
   if (context.usuario.tipo !== 'admin_global' && carteiraId && !allowedIds.has(carteiraId)) {
-    redirect('/modulos/ciclo/ocorrencias')
+    redirect('/modulos/gkit-ciclo/ocorrencias')
   }
 
   return {
@@ -1241,7 +1241,7 @@ export async function getCicloContrato(id: string, context: CicloContext): Promi
   const carteiraId = text(row.carteira_id)
 
   if (context.usuario.tipo !== 'admin_global' && carteiraId && !allowedIds.has(carteiraId)) {
-    redirect('/modulos/ciclo/contratos')
+    redirect('/modulos/gkit-ciclo/contratos')
   }
 
   return {
@@ -1277,7 +1277,7 @@ export async function getCicloAta(id: string, context: CicloContext): Promise<Ci
   const carteiraId = text(row.carteira_id)
 
   if (context.usuario.tipo !== 'admin_global' && carteiraId && !allowedIds.has(carteiraId)) {
-    redirect('/modulos/ciclo/atas')
+    redirect('/modulos/gkit-ciclo/atas')
   }
 
   return {

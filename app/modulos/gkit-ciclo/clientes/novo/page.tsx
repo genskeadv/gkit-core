@@ -6,7 +6,7 @@ import { getCicloClienteFormData, requireCicloContext } from '@/features/ciclo/q
 
 export default async function NovoCicloClientePage() {
   const context = await requireCicloContext()
-  if (!canAccess(context.permissions, 'ciclo.clientes.write')) redirect('/modulos/ciclo/clientes')
+  if (!canAccess(context.permissions, 'ciclo.clientes.write')) redirect('/modulos/gkit-ciclo/clientes')
 
   const formData = await getCicloClienteFormData(context)
 

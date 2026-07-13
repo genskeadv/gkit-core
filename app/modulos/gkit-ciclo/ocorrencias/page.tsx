@@ -15,7 +15,7 @@ export default async function CicloOcorrenciasPage() {
       title="Ocorrencias"
       description="Registros operacionais que impactam score, risco e rotina dos clientes."
       usuario={context.usuario}
-      actions={canWrite ? <Link className="button" href="/modulos/ciclo/ocorrencias/nova">Nova ocorrência</Link> : null}
+      actions={canWrite ? <Link className="button" href="/modulos/gkit-ciclo/ocorrencias/nova">Nova ocorrência</Link> : null}
     >
       <CicloSection
         eyebrow="Resumo"
@@ -32,7 +32,7 @@ export default async function CicloOcorrenciasPage() {
         <CicloGenericList
           title="Lista de ocorrências"
           description="Ocorrencias cadastradas no schema Ciclo."
-          detailHrefBase={canWrite ? '/modulos/ciclo/ocorrencias' : undefined}
+          detailHrefBase={canWrite ? '/modulos/gkit-ciclo/ocorrencias' : undefined}
           emptyLabel="Nenhuma ocorrência encontrada."
           rows={rows}
         />
