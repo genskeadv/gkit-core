@@ -2093,7 +2093,7 @@ function GkitJurPreJuridicoForm({
           <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="retorno_administradora">Registrar retorno adm</button>
           <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="gerar_procuracao">Registrar procuração gerada</button>
           <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="enviar_sindico">Registrar envio ao síndico</button>
-          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="retorno_sindico">Registrar retorno síndico</button>
+          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="retorno_sindico">Registrar retorno do síndico</button>
         </div>
       ) : null}
       <div className="gkit-jur-form-actions">
