@@ -77,7 +77,7 @@ const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-jur/novo-jur', title: 'Novo Jur' },
   { href: '/modulos/gkit-jur/publicacoes', title: 'Publicações' },
   { href: '/modulos/gkit-jur/acordos', title: 'Acordos Judiciais' },
-  { href: '/modulos/gkit-jur/pre-juridico', title: 'Pre-juridico' },
+  { href: '/modulos/gkit-jur/pre-juridico', title: 'Pré-jurídico' },
   { href: '/modulos/gkit-jur/processos', title: 'Processos' },
 ]
 
@@ -1864,28 +1864,36 @@ function preJuridicoCotasText(item?: GkitJurPreJuridico) {
 
 function GkitJurPreJuridicoMetrics({ data }: { data: GkitJurPreJuridicoData }) {
   const { metrics } = data
+  const emFluxo = metrics.emAnalise + metrics.aguardandoDocumentos + metrics.aprovados
   return (
-    <section className="suite-kpi-grid compact">
-      <article className="metric-card">
-        <span className="metric-label">Pre-juridicos</span>
-        <strong className="metric-value">{metrics.total.toLocaleString('pt-BR')}</strong>
-        <span className="metric-hint">casos separados dos processos</span>
-      </article>
-      <article className="metric-card">
-        <span className="metric-label">Em analise</span>
-        <strong className="metric-value">{metrics.emAnalise.toLocaleString('pt-BR')}</strong>
-        <span className="metric-hint">triagem ativa</span>
-      </article>
-      <article className="metric-card">
-        <span className="metric-label">Documentos</span>
-        <strong className="metric-value">{metrics.aguardandoDocumentos.toLocaleString('pt-BR')}</strong>
-        <span className="metric-hint">pendencia do cliente</span>
-      </article>
-      <article className="metric-card">
-        <span className="metric-label">Aprovados</span>
-        <strong className="metric-value">{metrics.aprovados.toLocaleString('pt-BR')}</strong>
-        <span className="metric-hint">{metrics.convertidos.toLocaleString('pt-BR')} convertido(s)</span>
-      </article>
+    <section className="gkit-jur-pre-command">
+      <div className="gkit-jur-pre-command-copy">
+        <span>Pré-jurídico</span>
+        <h2>Entrada, documentação e liberação para distribuição.</h2>
+        <p>Controle o laudo recebido, acompanhe atas, débitos atualizados e procuração antes de transformar o caso em processo judicial.</p>
+      </div>
+      <div className="gkit-jur-pre-command-metrics" aria-label="Indicadores do pré-jurídico">
+        <Link href="/modulos/gkit-jur/pre-juridico">
+          <span>Total</span>
+          <strong>{metrics.total.toLocaleString('pt-BR')}</strong>
+          <small>{emFluxo.toLocaleString('pt-BR')} em fluxo</small>
+        </Link>
+        <Link href="/modulos/gkit-jur/pre-juridico?status=em_analise">
+          <span>Em análise</span>
+          <strong>{metrics.emAnalise.toLocaleString('pt-BR')}</strong>
+          <small>triagem ativa</small>
+        </Link>
+        <Link href="/modulos/gkit-jur/pre-juridico?status=aguardando_documentos">
+          <span>Documentos</span>
+          <strong>{metrics.aguardandoDocumentos.toLocaleString('pt-BR')}</strong>
+          <small>pendência externa</small>
+        </Link>
+        <Link href="/modulos/gkit-jur/pre-juridico?status=aprovado">
+          <span>Aprovados</span>
+          <strong>{metrics.aprovados.toLocaleString('pt-BR')}</strong>
+          <small>{metrics.convertidos.toLocaleString('pt-BR')} convertido(s)</small>
+        </Link>
+      </div>
     </section>
   )
 }
@@ -1897,7 +1905,7 @@ function GkitJurPreJuridicoFilters({ data }: { data: GkitJurPreJuridicoData }) {
     filters.status ? { label: 'Status', value: optionLabel(gkitJurPreJuridicoStatusOptions, filters.status) } : null,
     filters.prioridade ? { label: 'Prioridade', value: optionLabel(gkitJurPreJuridicoPrioridadeOptions, filters.prioridade) } : null,
     filters.carteiraId ? { label: 'Carteira', value: activeValueLabel(filterOptions.carteiras, filters.carteiraId) } : null,
-    filters.responsavelId ? { label: 'Responsavel', value: activeValueLabel(filterOptions.responsaveis, filters.responsavelId) } : null,
+    filters.responsavelId ? { label: 'Responsável', value: activeValueLabel(filterOptions.responsaveis, filters.responsavelId) } : null,
   ].filter(Boolean) as Array<{ label: string; value: string }>
 
   return (
@@ -1905,27 +1913,27 @@ function GkitJurPreJuridicoFilters({ data }: { data: GkitJurPreJuridicoData }) {
       <div className="gkit-jur-filter-fields">
         <label>
           <span>Busca</span>
-          <input defaultValue={filters.q} name="q" placeholder="Titulo, cliente, origem, area ou descricao" type="search" />
+          <input defaultValue={filters.q} name="q" placeholder="Título, cliente, origem, área ou descrição" type="search" />
         </label>
         <SelectField label="Status" name="status" options={gkitJurPreJuridicoStatusOptions} placeholder="Todos" value={filters.status} />
         <SelectField label="Prioridade" name="prioridade" options={gkitJurPreJuridicoPrioridadeOptions} placeholder="Todas" value={filters.prioridade} />
         <SelectField label="Carteira" name="carteira_id" options={filterOptions.carteiras} placeholder="Todas" value={filters.carteiraId} />
-        <SelectField label="Responsavel" name="responsavel_id" options={filterOptions.responsaveis} placeholder="Todos" value={filters.responsavelId} />
+        <SelectField label="Responsável" name="responsavel_id" options={filterOptions.responsaveis} placeholder="Todos" value={filters.responsavelId} />
         <SelectField
           label="Ordenar por"
           name="sort"
           options={[
-            { label: 'Atualizacao', value: 'updated_at' },
+            { label: 'Atualização', value: 'updated_at' },
             { label: 'Entrada', value: 'data_entrada' },
             { label: 'Vencimento', value: 'prazo_analise' },
             { label: 'Cliente', value: 'cliente_nome' },
             { label: 'Prioridade', value: 'prioridade' },
           ]}
-          placeholder="Atualizacao"
+          placeholder="Atualização"
           value={filters.sort}
         />
         <SelectField
-          label="Direcao"
+          label="Direção"
           name="dir"
           options={[{ label: 'Mais recentes', value: 'desc' }, { label: 'Mais antigos', value: 'asc' }]}
           placeholder="Mais recentes"
@@ -1959,32 +1967,32 @@ function GkitJurPreJuridicoForm({
       {item ? <input name="id" type="hidden" value={item.id} /> : null}
       <input name="return_to" type="hidden" value={returnTo} />
       <input name="pronto_distribuicao_em" type="hidden" value={item?.prontoDistribuicaoEm ?? ''} />
-      <Field label="Titulo">
-        <input name="titulo" required defaultValue={item?.titulo ?? ''} placeholder="Resumo do caso em analise" />
+      <Field label="Título">
+        <input name="titulo" required defaultValue={item?.titulo ?? ''} placeholder="Resumo do caso em análise" />
       </Field>
       <Field label="Cliente cadastrado">
         <select name="cliente_id" defaultValue={item?.clienteId ?? ''}>
-          {optionList(data.formData.clientes, 'Sem vinculo')}
+          {optionList(data.formData.clientes, 'Sem vínculo')}
         </select>
       </Field>
       <Field label="Nome do cliente">
-        <input name="cliente_nome" defaultValue={item?.clienteSnapshotNome ?? item?.clienteNome ?? ''} placeholder="Use quando o cliente ainda nao estiver completo" />
+        <input name="cliente_nome" defaultValue={item?.clienteSnapshotNome ?? item?.clienteNome ?? ''} placeholder="Use quando o cliente ainda não estiver completo" />
       </Field>
       <Field label="Carteira">
         <select name="carteira_id" defaultValue={item?.carteiraId ?? ''}>
           {optionList(data.formData.carteiras, 'Sem carteira')}
         </select>
       </Field>
-      <Field label="Responsavel">
+      <Field label="Responsável">
         <select name="responsavel_id" defaultValue={item?.responsavelId ?? ''}>
-          {optionList(data.formData.responsaveis, 'Sem responsavel')}
+          {optionList(data.formData.responsaveis, 'Sem responsável')}
         </select>
       </Field>
       <Field label="Origem">
-        <input name="origem" defaultValue={item?.origem ?? ''} placeholder="Indicacao, cliente, consulta..." />
+        <input name="origem" defaultValue={item?.origem ?? ''} placeholder="Indicação, cliente, consulta..." />
       </Field>
       <Field label="Area">
-        <input name="area" defaultValue={item?.area ?? ''} placeholder="Civel, trabalhista, condominial..." />
+        <input name="area" defaultValue={item?.area ?? ''} placeholder="Cível, trabalhista, condominial..." />
       </Field>
       <Field label="Laudo PDF">
         <input name="laudo_pdf_url" defaultValue={item?.laudoPdfUrl ?? ''} placeholder="Link do laudo recebido" />
@@ -1995,7 +2003,7 @@ function GkitJurPreJuridicoForm({
       <Field label="Bloco">
         <input name="bloco" defaultValue={item?.bloco ?? ''} placeholder="Bloco" />
       </Field>
-      <Field label="Responsavel da unidade">
+      <Field label="Responsável da unidade">
         <input name="responsavel_unidade" defaultValue={item?.responsavelUnidade ?? ''} placeholder="Nome no laudo" />
       </Field>
       <Field label="Valor estimado">
@@ -2025,22 +2033,22 @@ function GkitJurPreJuridicoForm({
           {gkitJurPreJuridicoStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </Field>
-      <Field label="Ata de eleicao">
+      <Field label="Ata de eleição">
         <select name="ata_eleicao_status" defaultValue={item?.ataEleicaoStatus ?? 'pendente'}>
           {gkitJurPreJuridicoAtaStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </Field>
-      <Field label="Ata de prestacao de contas">
+      <Field label="Ata de prestação de contas">
         <select name="ata_prestacao_contas_status" defaultValue={item?.ataPrestacaoContasStatus ?? 'pendente'}>
           {gkitJurPreJuridicoAtaStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </Field>
-      <Field label="Debitos atualizados">
+      <Field label="Débitos atualizados">
         <select name="debitos_atualizados_status" defaultValue={item?.debitosAtualizadosStatus ?? 'pendente'}>
           {gkitJurPreJuridicoDebitoStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </Field>
-      <Field label="Procuracao">
+      <Field label="Procuração">
         <select name="procuracao_status" defaultValue={item?.procuracaoStatus ?? 'pendente'}>
           {gkitJurPreJuridicoProcuracaoStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
@@ -2048,44 +2056,44 @@ function GkitJurPreJuridicoForm({
       <Field label="Email da administradora">
         <input name="administradora_email" defaultValue={item?.administradoraEmail ?? ''} placeholder="adm@condominio.com.br" type="email" />
       </Field>
-      <Field label="Pedido enviado a administradora">
+      <Field label="Pedido enviado à administradora">
         <input name="administradora_solicitada_em" defaultValue={dateInputValue(item?.administradoraSolicitadaEm)} type="date" />
       </Field>
       <Field label="Retorno da administradora">
         <input name="administradora_retorno_em" defaultValue={dateInputValue(item?.administradoraRetornoEm)} type="date" />
       </Field>
-      <Field label="Email do sindico">
+      <Field label="Email do síndico">
         <input name="sindico_email" defaultValue={item?.sindicoEmail ?? ''} placeholder="sindico@condominio.com.br" type="email" />
       </Field>
-      <Field label="Procuracao gerada">
+      <Field label="Procuração gerada">
         <input name="procuracao_gerada_em" defaultValue={dateInputValue(item?.procuracaoGeradaEm)} type="date" />
       </Field>
-      <Field label="Procuracao enviada">
+      <Field label="Procuração enviada">
         <input name="procuracao_enviada_em" defaultValue={dateInputValue(item?.procuracaoEnviadaEm)} type="date" />
       </Field>
-      <Field label="Retorno do sindico">
+      <Field label="Retorno do síndico">
         <input name="sindico_retorno_em" defaultValue={dateInputValue(item?.sindicoRetornoEm)} type="date" />
       </Field>
       <Field label="Data de entrada">
         <input name="data_entrada" type="date" defaultValue={dateInputValue(item?.dataEntrada) || new Date().toISOString().slice(0, 10)} />
       </Field>
-      <Field label="Vencimento da analise">
+      <Field label="Vencimento da análise">
         <input name="prazo_analise" type="date" defaultValue={dateInputValue(item?.prazoAnalise)} />
       </Field>
-      <Field label="Descricao">
+      <Field label="Descrição">
         <textarea name="descricao" required defaultValue={item?.descricao ?? ''} rows={4} />
       </Field>
-      <Field label="Motivo / observacao do status">
+      <Field label="Motivo / observação do status">
         <textarea name="motivo_status" defaultValue={item?.motivoStatus ?? ''} rows={3} />
       </Field>
       {item ? (
-        <div className="gkit-jur-pre-quick-actions" aria-label="Acoes rapidas do fluxo pre-juridico">
+        <div className="gkit-jur-pre-quick-actions" aria-label="Ações rápidas do fluxo pré-jurídico">
           <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="atas_recebidas">Marcar atas recebidas</button>
           <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="solicitar_administradora">Registrar pedido a adm</button>
           <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="retorno_administradora">Registrar retorno adm</button>
-          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="gerar_procuracao">Registrar procuracao gerada</button>
-          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="enviar_sindico">Registrar envio ao sindico</button>
-          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="retorno_sindico">Registrar retorno sindico</button>
+          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="gerar_procuracao">Registrar procuração gerada</button>
+          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="enviar_sindico">Registrar envio ao síndico</button>
+          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="retorno_sindico">Registrar retorno síndico</button>
         </div>
       ) : null}
       <div className="gkit-jur-form-actions">
@@ -2099,7 +2107,7 @@ function GkitJurPreJuridicoPager({ data }: { data: GkitJurPreJuridicoData }) {
   const { filters, pagination } = data
   return (
     <div className="gkit-jur-pagination">
-      <span>Pagina {pagination.currentPage} de {pagination.totalPages}</span>
+      <span>Página {pagination.currentPage} de {pagination.totalPages}</span>
       <div>
         <Link
           aria-disabled={pagination.currentPage <= 1}
@@ -2113,7 +2121,7 @@ function GkitJurPreJuridicoPager({ data }: { data: GkitJurPreJuridicoData }) {
           className={pagination.currentPage >= pagination.totalPages ? 'button secondary disabled' : 'button secondary'}
           href={preJuridicoHref(filters, Math.min(pagination.totalPages, pagination.currentPage + 1))}
         >
-          Proxima
+          Próxima
         </Link>
       </div>
     </div>
@@ -2131,38 +2139,43 @@ function GkitJurPreJuridicoList({
   returnTo: string
   updateAction: (formData: FormData) => Promise<void>
 }) {
-  if (!data.items.length) return <div className="suite-empty-block">Nenhum pre-juridico encontrado com os filtros atuais.</div>
+  if (!data.items.length) return <div className="suite-empty-block gkit-jur-pre-empty">Nenhum pré-jurídico encontrado com os filtros atuais.</div>
 
   return (
-    <div className="suite-table-list compact" role="list">
+    <div className="gkit-jur-pre-list" role="list">
       {data.items.map((item) => {
         const flow = preJuridicoFlowState(item)
         const unidade = [item.unidade ? `Unidade ${item.unidade}` : null, item.bloco ? `Bloco ${item.bloco}` : null].filter(Boolean).join(' - ')
         return (
-        <article className="gkit-jur-process-row" key={item.id} role="listitem">
-          <div className="suite-row-link">
-            <div>
+        <article className={`gkit-jur-pre-case ${item.prontoDistribuicao ? 'ready' : preJuridicoTone(item.status)}`} key={item.id} role="listitem">
+          <div className="gkit-jur-pre-case-grid">
+            <div className="gkit-jur-pre-case-main">
+              <span>{item.id.slice(0, 8).toUpperCase()}</span>
               <h3>{item.titulo}</h3>
-              <p>{item.clienteNome || 'Cliente nao vinculado'}{item.area ? ` - ${item.area}` : ''}</p>
-              {unidade ? <small>{unidade}</small> : null}
-              {item.valorEstimado ? <small>Divida estimada {formatMoney(item.valorEstimado)}</small> : null}
+              <p>{item.clienteNome || 'Cliente não vinculado'}{item.area ? ` - ${item.area}` : ''}</p>
+              <div>
+                {unidade ? <small>{unidade}</small> : null}
+                {item.valorEstimado ? <small>Dívida estimada {formatMoney(item.valorEstimado)}</small> : null}
+              </div>
             </div>
-            <div className="gkit-jur-pre-flow" aria-label="Checklist do pre-juridico">
+            <div className="gkit-jur-pre-flow" aria-label="Checklist do pré-jurídico">
               <span className={`suite-pill ${flow.atasTone}`}>Atas</span>
-              <span className={`suite-pill ${flow.debitosTone}`}>Debitos atualizados</span>
-              <span className={`suite-pill ${flow.procuracaoTone}`}>Procuracao</span>
+              <span className={`suite-pill ${flow.debitosTone}`}>Débitos atualizados</span>
+              <span className={`suite-pill ${flow.procuracaoTone}`}>Procuração</span>
             </div>
-            <span className={`suite-pill ${item.prontoDistribuicao ? 'success' : preJuridicoTone(item.status)}`}>
-              {item.prontoDistribuicao ? 'Pronto para distribuir' : optionLabel(gkitJurPreJuridicoStatusOptions, item.status)}
-            </span>
-            <strong>{item.carteiraNome || 'Sem carteira'}</strong>
-            <small>{item.responsavelNome || 'Sem responsavel'}</small>
-            <div className="gkit-jur-row-stack">
-              <span>{optionLabel(gkitJurPreJuridicoPrioridadeOptions, item.prioridade)}</span>
+            <div className="gkit-jur-pre-case-status">
+              <span className={`suite-pill ${item.prontoDistribuicao ? 'success' : preJuridicoTone(item.status)}`}>
+                {item.prontoDistribuicao ? 'Pronto para distribuir' : optionLabel(gkitJurPreJuridicoStatusOptions, item.status)}
+              </span>
+              <strong>{optionLabel(gkitJurPreJuridicoPrioridadeOptions, item.prioridade)}</strong>
               <small>{item.prazoAnalise ? `Vencimento ${formatDate(item.prazoAnalise)}` : `Entrada ${formatDate(item.dataEntrada)}`}</small>
             </div>
+            <div className="gkit-jur-pre-case-owner">
+              <span>{item.carteiraNome || 'Sem carteira'}</span>
+              <strong>{item.responsavelNome || 'Sem responsável'}</strong>
+            </div>
           </div>
-          <details className="gkit-jur-process-tag-editor">
+          <details className="gkit-jur-pre-case-editor">
             <summary>{canWrite ? 'Editar' : 'Detalhes'}</summary>
             {canWrite ? (
               <GkitJurPreJuridicoForm action={updateAction} canWrite={canWrite} data={data} item={item} returnTo={returnTo} />
@@ -2191,19 +2204,19 @@ export function GkitJurPreJuridicoPage({
   const returnTo = preJuridicoHref(data.filters, data.pagination.currentPage)
 
   return (
-    <>
+    <div className="gkit-jur-pre-page">
       <GkitJurPreJuridicoMetrics data={data} />
 
-      <GkitJurCollapsibleSection title="Novo caso em analise" description="Cadastre a triagem antes de existir CNJ, pasta ou dados processuais.">
+      <GkitJurCollapsibleSection className="gkit-jur-pre-create-panel" title="Novo caso em análise" description="Cadastre a triagem antes de existir CNJ, pasta ou dados processuais.">
         <GkitJurPreJuridicoForm action={createAction} canWrite={canWrite} data={data} returnTo={returnTo} />
       </GkitJurCollapsibleSection>
 
-      <GkitJurSection title="Carteira pre-juridica" description="Casos em avaliacao, separados do cadastro de processos.">
+      <GkitJurSection className="gkit-jur-pre-workbench" title="Fila pré-jurídica" description="Casos em avaliação, separados do cadastro de processos.">
         <GkitJurPreJuridicoFilters data={data} />
         <GkitJurPreJuridicoList canWrite={canWrite} data={data} returnTo={returnTo} updateAction={updateAction} />
         <GkitJurPreJuridicoPager data={data} />
       </GkitJurSection>
-    </>
+    </div>
   )
 }
 

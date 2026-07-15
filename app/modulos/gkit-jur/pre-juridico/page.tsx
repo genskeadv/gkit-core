@@ -19,8 +19,8 @@ export default async function GkitJurPreJuridicoRoute({
   return (
     <GkitJurShell
       active="pre_juridico"
-      description="Triagem de casos em analise antes de virarem processos judiciais."
-      title="Pre-juridico"
+      description="Triagem de casos em análise antes de virarem processos judiciais."
+      title="Pré-jurídico"
       usuario={context.usuario}
     >
       <GkitJurPreJuridicoPage

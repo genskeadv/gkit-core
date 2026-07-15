@@ -8925,6 +8925,214 @@ tbody tr:hover {
   resize: vertical;
 }
 
+.gkit-jur-pre-page {
+  display: grid;
+  gap: 14px;
+}
+
+.gkit-jur-pre-command {
+  align-items: stretch;
+  background: #351b40;
+  border: 1px solid #351b40;
+  border-radius: 8px;
+  color: #fff;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(260px, 0.82fr) minmax(420px, 1.18fr);
+  padding: 16px;
+}
+
+.gkit-jur-pre-command-copy {
+  align-content: center;
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-jur-pre-command-copy span,
+.gkit-jur-pre-command-metrics span,
+.gkit-jur-pre-case-main > span,
+.gkit-jur-pre-case-owner span {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.gkit-jur-pre-command-copy span,
+.gkit-jur-pre-command-copy p,
+.gkit-jur-pre-command-metrics small {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.gkit-jur-pre-command-copy h2 {
+  color: #fff;
+  font-size: clamp(22px, 3vw, 34px);
+  font-weight: 620;
+  line-height: 1.08;
+  margin: 0;
+}
+
+.gkit-jur-pre-command-copy p {
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 760px;
+}
+
+.gkit-jur-pre-command-metrics {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.gkit-jur-pre-command-metrics a {
+  background: rgba(255, 255, 255, 0.075);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: #fff;
+  display: grid;
+  gap: 6px;
+  min-height: 112px;
+  padding: 12px;
+  text-decoration: none;
+}
+
+.gkit-jur-pre-command-metrics a:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.gkit-jur-pre-command-metrics strong {
+  color: #fff;
+  font-size: 28px;
+  font-weight: 620;
+  line-height: 1;
+}
+
+.gkit-jur-pre-create-panel,
+.gkit-jur-pre-workbench {
+  border-color: rgba(53, 27, 64, 0.2);
+}
+
+.gkit-jur-pre-workbench .gkit-jur-filter-bar {
+  background: #f8fafc;
+  border: 1px solid rgba(53, 27, 64, 0.16);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  padding: 10px;
+}
+
+.gkit-jur-pre-list {
+  display: grid;
+  gap: 10px;
+}
+
+.gkit-jur-pre-case {
+  background: #fff;
+  border: 1px solid rgba(53, 27, 64, 0.18);
+  border-left: 4px solid #64748b;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.gkit-jur-pre-case.success,
+.gkit-jur-pre-case.ready {
+  border-left-color: #059669;
+}
+
+.gkit-jur-pre-case.warning {
+  border-left-color: #d97706;
+}
+
+.gkit-jur-pre-case.danger {
+  border-left-color: #dc2626;
+}
+
+.gkit-jur-pre-case-grid {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(280px, 1fr) minmax(220px, 0.42fr) minmax(150px, 0.22fr) minmax(170px, 0.26fr);
+}
+
+.gkit-jur-pre-case-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.gkit-jur-pre-case-main > span,
+.gkit-jur-pre-case-owner span {
+  color: #64748b;
+}
+
+.gkit-jur-pre-case-main h3 {
+  color: #111827;
+  font-size: 15px;
+  font-weight: 620;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.gkit-jur-pre-case-main p {
+  color: #334155;
+  font-size: 13px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.gkit-jur-pre-case-main div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gkit-jur-pre-case-main small,
+.gkit-jur-pre-case-status small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.gkit-jur-pre-case-status,
+.gkit-jur-pre-case-owner {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.gkit-jur-pre-case-status strong,
+.gkit-jur-pre-case-owner strong {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 620;
+  overflow-wrap: anywhere;
+}
+
+.gkit-jur-pre-case-editor {
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  padding-top: 8px;
+}
+
+.gkit-jur-pre-case-editor summary {
+  color: #351b40;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.gkit-jur-pre-case-editor .gkit-jur-pre-form {
+  margin-top: 10px;
+  max-height: none;
+  width: 100%;
+}
+
+.gkit-jur-pre-empty {
+  border-style: dashed;
+}
+
 .gkit-jur-pre-form {
   grid-template-columns: repeat(2, minmax(220px, 1fr));
   max-height: min(78vh, 760px);
@@ -8964,6 +9172,28 @@ tbody tr:hover {
   font-size: 11px;
   padding: 4px 8px;
   white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .gkit-jur-pre-command,
+  .gkit-jur-pre-case-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-pre-command-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .gkit-jur-pre-command-metrics,
+  .gkit-jur-pre-form {
+    grid-template-columns: 1fr;
+  }
+
+  .gkit-jur-pre-form {
+    width: 100%;
+  }
 }
 
 .gkit-jur-reference-task-form {
