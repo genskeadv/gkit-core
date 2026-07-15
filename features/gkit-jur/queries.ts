@@ -25,6 +25,8 @@ import type {
   GkitJurDocumento,
   GkitJurDocumentoStatus,
   GkitJurDocumentoTipo,
+  GkitJurEmailsData,
+  GkitJurEmailMonitorItem,
   GkitJurEtiqueta,
   GkitJurEtiquetasData,
   GkitJurEventoProcesso,
@@ -2116,6 +2118,151 @@ export async function getGkitJurAcordosData(): Promise<GkitJurAcordosData> {
       quebrados: acordos.filter((acordo) => acordo.status === 'quebrado').length,
       total: acordos.length,
       valorAberto: ativos.reduce((total, acordo) => total + acordo.valorPendente, 0),
+    },
+  }
+}
+
+function emailStatusSort(status: string) {
+  if (status === 'erro') return 0
+  if (status === 'pendente') return 1
+  if (status === 'registrado') return 2
+  return 3
+}
+
+function emailTypeLabel(value: string) {
+  return value.replace(/_/g, ' ')
+}
+
+export async function getGkitJurEmailsData(): Promise<GkitJurEmailsData> {
+  const [lembretesResult, preJuridicosResult] = await Promise.all([
+    admin()
+      .schema('gkit_jur')
+      .from('acordo_lembretes_email')
+      .select('id,acordo_id,parcela_id,dias_referencia,tipo,agendado_para,destinatario_email,assunto,status,enviado_em,erro_mensagem')
+      .order('agendado_para', { ascending: false })
+      .limit(80),
+    admin()
+      .schema('gkit_jur')
+      .from('pre_juridicos')
+      .select('id,titulo,cliente_nome,administradora_email,sindico_email,administradora_solicitada_em,procuracao_enviada_em,updated_at')
+      .or('administradora_solicitada_em.not.is.null,procuracao_enviada_em.not.is.null')
+      .order('updated_at', { ascending: false })
+      .limit(80),
+  ])
+
+  if (lembretesResult.error && !['42P01', 'PGRST205'].includes(String(lembretesResult.error.code))) {
+    throw new Error(lembretesResult.error.message)
+  }
+  if (preJuridicosResult.error) throw new Error(preJuridicosResult.error.message)
+
+  const lembreteRows = (lembretesResult.data ?? []) as Array<Record<string, unknown>>
+  const acordoIds = [...new Set(lembreteRows.map((row) => text(row.acordo_id)).filter(Boolean))]
+  const acordosResult = acordoIds.length
+    ? await admin()
+      .schema('gkit_jur')
+      .from('acordos_judiciais')
+      .select('id,processo_id')
+      .in('id', acordoIds)
+    : { data: [], error: null }
+
+  if (acordosResult.error) throw new Error(acordosResult.error.message)
+
+  const acordoProcessoIds = new Map(((acordosResult.data ?? []) as Array<Record<string, unknown>>)
+    .map((row) => [String(row.id), text(row.processo_id)]))
+  const processoIds = [...new Set([...acordoProcessoIds.values()].filter(Boolean))]
+  const processosResult = processoIds.length
+    ? await admin()
+      .schema('gkit_jur')
+      .from('processos')
+      .select('id,numero_cnj,titulo,cliente_nome')
+      .in('id', processoIds)
+    : { data: [], error: null }
+
+  if (processosResult.error) throw new Error(processosResult.error.message)
+
+  const processos = new Map(((processosResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), row]))
+  const acordoItems: GkitJurEmailMonitorItem[] = lembreteRows.map((row) => {
+    const acordoId = text(row.acordo_id)
+    const processoId = acordoProcessoIds.get(acordoId) ?? ''
+    const processo = processos.get(processoId)
+    const numeroCnj = text(processo?.numero_cnj)
+    const clienteNome = text(processo?.cliente_nome)
+    const titulo = text(processo?.titulo)
+    const referencia = [numeroCnj ? formatCnj(numeroCnj) : null, clienteNome || titulo || null].filter(Boolean).join(' - ') || 'Acordo judicial'
+    return {
+      id: `acordo-${String(row.id)}`,
+      origem: 'acordo',
+      tipo: `Lembrete de acordo (${emailTypeLabel(text(row.tipo, 'email'))})`,
+      destinatario: text(row.destinatario_email) || null,
+      assunto: text(row.assunto) || null,
+      status: text(row.status, 'pendente'),
+      agendadoPara: text(row.agendado_para) || null,
+      enviadoEm: text(row.enviado_em) || null,
+      referencia,
+      href: processoId ? `/modulos/gkit-jur/processos/${processoId}` : '/modulos/gkit-jur/acordos/lista',
+      erroMensagem: text(row.erro_mensagem) || null,
+    }
+  })
+
+  const preItems = ((preJuridicosResult.data ?? []) as Array<Record<string, unknown>>).flatMap((row): GkitJurEmailMonitorItem[] => {
+    const titulo = text(row.titulo, 'Pre-juridico')
+    const cliente = text(row.cliente_nome)
+    const referencia = cliente ? `${titulo} - ${cliente}` : titulo
+    const href = `/modulos/gkit-jur/pre-juridico?q=${encodeURIComponent(titulo)}`
+    const items: GkitJurEmailMonitorItem[] = []
+    const administradoraSolicitadaEm = text(row.administradora_solicitada_em)
+    const procuracaoEnviadaEm = text(row.procuracao_enviada_em)
+    if (administradoraSolicitadaEm) {
+      items.push({
+        id: `pre-adm-${String(row.id)}`,
+        origem: 'pre_juridico',
+        tipo: 'Pedido de debitos a administradora',
+        destinatario: text(row.administradora_email) || null,
+        assunto: 'Solicitacao de planilha atualizada',
+        status: 'registrado',
+        agendadoPara: null,
+        enviadoEm: administradoraSolicitadaEm,
+        referencia,
+        href,
+        erroMensagem: null,
+      })
+    }
+    if (procuracaoEnviadaEm) {
+      items.push({
+        id: `pre-sindico-${String(row.id)}`,
+        origem: 'pre_juridico',
+        tipo: 'Envio de procuracao ao sindico',
+        destinatario: text(row.sindico_email) || null,
+        assunto: 'Procuracao para assinatura',
+        status: 'registrado',
+        agendadoPara: null,
+        enviadoEm: procuracaoEnviadaEm,
+        referencia,
+        href,
+        erroMensagem: null,
+      })
+    }
+    return items
+  })
+
+  const items = [...acordoItems, ...preItems]
+    .sort((a, b) => {
+      const statusDiff = emailStatusSort(a.status) - emailStatusSort(b.status)
+      if (statusDiff) return statusDiff
+      const aDate = a.enviadoEm ?? a.agendadoPara ?? ''
+      const bDate = b.enviadoEm ?? b.agendadoPara ?? ''
+      return bDate.localeCompare(aDate)
+    })
+    .slice(0, 100)
+
+  return {
+    items,
+    metrics: {
+      enviados: items.filter((item) => item.status === 'enviado').length,
+      erros: items.filter((item) => item.status === 'erro').length,
+      manuais: items.filter((item) => item.status === 'registrado').length,
+      pendentes: items.filter((item) => item.status === 'pendente').length,
+      total: items.length,
     },
   }
 }

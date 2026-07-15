@@ -20,6 +20,7 @@ import type {
   GkitJurAuditoriaData,
   GkitJurDashboardMetrics,
   GkitJurDocumento,
+  GkitJurEmailsData,
   GkitJurEtiqueta,
   GkitJurEtiquetasData,
   GkitJurFormData,
@@ -5245,6 +5246,12 @@ const gkitJurConfiguracoesItems = [
     label: 'Configurar etiquetas',
   },
   {
+    title: 'E-mails',
+    description: 'Fila, historico e registros manuais de e-mails do juridico.',
+    href: '/modulos/gkit-jur/configuracoes/emails',
+    label: 'Acompanhar envios',
+  },
+  {
     title: 'Agente auxiliar',
     description: 'Fontes, receitas, validações e execuções assistidas do módulo jurídico.',
     href: '/modulos/gkit-jur/agente',
@@ -5277,6 +5284,77 @@ export function GkitJurConfiguracoesPage() {
         ))}
       </div>
     </GkitJurSection>
+  )
+}
+
+function emailMonitorTone(status: string) {
+  if (status === 'enviado' || status === 'registrado') return 'success'
+  if (status === 'erro') return 'danger'
+  if (status === 'cancelado') return 'muted'
+  return 'warning'
+}
+
+function emailOrigemLabel(origem: string) {
+  if (origem === 'pre_juridico') return 'Pre-juridico'
+  if (origem === 'acordo') return 'Acordo'
+  return statusLabel(origem)
+}
+
+export function GkitJurEmailsPage({ data }: { data: GkitJurEmailsData }) {
+  return (
+    <>
+      <section className="suite-kpi-grid compact">
+        <article className="metric-card">
+          <span className="metric-label">Registros</span>
+          <strong className="metric-value">{data.metrics.total.toLocaleString('pt-BR')}</strong>
+          <span className="metric-hint">ultimos acompanhamentos</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Pendentes</span>
+          <strong className="metric-value">{data.metrics.pendentes.toLocaleString('pt-BR')}</strong>
+          <span className="metric-hint">fila aguardando acao</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Enviados</span>
+          <strong className="metric-value">{data.metrics.enviados.toLocaleString('pt-BR')}</strong>
+          <span className="metric-hint">marcados como enviados</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Manuais</span>
+          <strong className="metric-value">{data.metrics.manuais.toLocaleString('pt-BR')}</strong>
+          <span className="metric-hint">pre-juridico registrado</span>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Erros</span>
+          <strong className="metric-value">{data.metrics.erros.toLocaleString('pt-BR')}</strong>
+          <span className="metric-hint">precisam revisao</span>
+        </article>
+      </section>
+
+      <GkitJurSection title="Acompanhamento de e-mails" description="Fila de lembretes e registros manuais de envios do pre-juridico.">
+        {data.items.length ? (
+          <div className="suite-table-list compact" role="list">
+            {data.items.map((item) => (
+              <article className="gkit-jur-process-row" key={item.id} role="listitem">
+                <Link className="suite-row-link" href={item.href}>
+                  <div>
+                    <h3>{item.tipo}</h3>
+                    <p>{item.referencia}</p>
+                    <small>{item.destinatario || 'Sem destinatario'}{item.assunto ? ` - ${item.assunto}` : ''}</small>
+                    {item.erroMensagem ? <small>{item.erroMensagem}</small> : null}
+                  </div>
+                  <span className={`suite-pill ${emailMonitorTone(item.status)}`}>{statusLabel(item.status)}</span>
+                  <strong>{emailOrigemLabel(item.origem)}</strong>
+                  <small>{item.enviadoEm ? `Enviado ${formatDate(item.enviadoEm)}` : item.agendadoPara ? `Agendado ${formatDate(item.agendadoPara)}` : 'Sem data'}</small>
+                </Link>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="suite-empty-block">Ainda nao existem e-mails enviados, pendentes ou registrados.</div>
+        )}
+      </GkitJurSection>
+    </>
   )
 }
 

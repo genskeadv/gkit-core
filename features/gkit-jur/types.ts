@@ -669,6 +669,31 @@ export type GkitJurAuditoriaData = {
   sincronizacoes: GkitJurAuditoriaItem[];
 };
 
+export type GkitJurEmailMonitorItem = {
+  id: string;
+  origem: 'acordo' | 'pre_juridico';
+  tipo: string;
+  destinatario: string | null;
+  assunto: string | null;
+  status: string;
+  agendadoPara: string | null;
+  enviadoEm: string | null;
+  referencia: string;
+  href: string;
+  erroMensagem: string | null;
+};
+
+export type GkitJurEmailsData = {
+  items: GkitJurEmailMonitorItem[];
+  metrics: {
+    enviados: number;
+    erros: number;
+    manuais: number;
+    pendentes: number;
+    total: number;
+  };
+};
+
 export type GkitJurInboxItem = {
   id: string;
   tipo: string;
