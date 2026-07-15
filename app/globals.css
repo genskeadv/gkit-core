@@ -28,7 +28,7 @@
   --shadow-purple: 0 16px 34px rgba(51, 37, 59, 0.13);
 }
 
-.gkit-jur-cockpit-mockup {
+.gkit-jur-novo-jur {
   background: #edf0f3;
   color: #111827;
   display: grid;
@@ -37,12 +37,12 @@
   padding: 12px;
 }
 
-.gkit-jur-cockpit-mockup :where(h1, strong, p, span, small, button, input, label, a) {
+.gkit-jur-novo-jur :where(h1, strong, p, span, small, button, input, label, a) {
   letter-spacing: 0;
   font-weight: 500;
 }
 
-.gkit-jur-cockpit-mockup-header,
+.gkit-jur-novo-jur-header,
 .gkit-jur-cockpit-actions,
 .gkit-jur-cockpit-workspace {
   background: #f4f6f8;
@@ -50,7 +50,7 @@
   border-radius: 8px;
 }
 
-.gkit-jur-cockpit-mockup-header {
+.gkit-jur-novo-jur-header {
   align-items: center;
   display: grid;
   gap: 10px;
@@ -58,15 +58,15 @@
   padding: 11px;
 }
 
-.gkit-jur-cockpit-mockup-brand,
-.gkit-jur-cockpit-mockup-operator {
+.gkit-jur-novo-jur-brand,
+.gkit-jur-novo-jur-operator {
   display: grid;
   gap: 3px;
   min-width: 0;
 }
 
-.gkit-jur-cockpit-mockup-brand span,
-.gkit-jur-cockpit-mockup-operator small,
+.gkit-jur-novo-jur-brand span,
+.gkit-jur-novo-jur-operator small,
 .gkit-jur-cockpit-dashboard-head span,
 .gkit-jur-cockpit-filterbar span,
 .gkit-jur-cockpit-row span {
@@ -75,16 +75,16 @@
   text-transform: uppercase;
 }
 
-.gkit-jur-cockpit-mockup-brand span,
-.gkit-jur-cockpit-mockup-operator small,
+.gkit-jur-novo-jur-brand span,
+.gkit-jur-novo-jur-operator small,
 .gkit-jur-cockpit-filterbar span,
 .gkit-jur-cockpit-row span,
 .gkit-jur-cockpit-row small {
   color: #5b6472;
 }
 
-.gkit-jur-cockpit-mockup-brand strong,
-.gkit-jur-cockpit-mockup-operator span {
+.gkit-jur-novo-jur-brand strong,
+.gkit-jur-novo-jur-operator span {
   color: #111827;
   font-size: 15px;
   font-weight: 580;
@@ -93,20 +93,26 @@
   white-space: nowrap;
 }
 
-.gkit-jur-cockpit-mockup-search {
+.gkit-jur-novo-jur-search {
   display: grid;
   gap: 4px;
   min-width: 0;
 }
 
-.gkit-jur-cockpit-mockup-search label {
+.gkit-jur-novo-jur-search div {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.gkit-jur-novo-jur-search label {
   color: #351b40;
   font-size: 11px;
   font-weight: 560;
   text-transform: uppercase;
 }
 
-.gkit-jur-cockpit-mockup-search input {
+.gkit-jur-novo-jur-search input {
   background: #fff;
   border: 1px solid rgba(53, 27, 64, 0.34);
   border-radius: 8px;
@@ -116,14 +122,26 @@
   padding: 0 11px;
 }
 
-.gkit-jur-cockpit-mockup-search input:focus {
+.gkit-jur-novo-jur-search input:focus {
   border-color: #351b40;
   box-shadow: 0 0 0 3px rgba(53, 27, 64, 0.14);
 }
 
-.gkit-jur-cockpit-mockup-settings,
+.gkit-jur-novo-jur-search button {
+  background: #351b40;
+  border: 1px solid #351b40;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 560;
+  min-height: 38px;
+  padding: 0 13px;
+}
+
+.gkit-jur-novo-jur-settings,
 .gkit-jur-cockpit-dashboard-toggle,
-.gkit-jur-cockpit-filterchips button {
+.gkit-jur-cockpit-filterchips a {
   align-items: center;
   border-radius: 8px;
   display: inline-flex;
@@ -134,7 +152,7 @@
   text-decoration: none;
 }
 
-.gkit-jur-cockpit-mockup-settings {
+.gkit-jur-novo-jur-settings {
   background: #351b40;
   border: 1px solid #351b40;
   color: #fff;
@@ -417,15 +435,16 @@
   justify-content: flex-end;
 }
 
-.gkit-jur-cockpit-filterchips button {
+.gkit-jur-cockpit-filterchips a {
   background: #fff;
   border: 1px solid rgba(53, 27, 64, 0.28);
   color: #351b40;
   cursor: pointer;
   padding: 0 10px;
+  text-decoration: none;
 }
 
-.gkit-jur-cockpit-filterchips button.active {
+.gkit-jur-cockpit-filterchips a.active {
   background: #351b40;
   color: #fff;
 }
@@ -490,8 +509,27 @@
   overflow-wrap: anywhere;
 }
 
+.gkit-jur-cockpit-empty {
+  align-items: center;
+  background: #fff;
+  border: 1px dashed rgba(53, 27, 64, 0.28);
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 13px;
+}
+
+.gkit-jur-cockpit-empty a {
+  color: #351b40;
+  font-size: 13px;
+  font-weight: 560;
+  text-decoration: none;
+}
+
 @media (max-width: 1120px) {
-  .gkit-jur-cockpit-mockup-header,
+  .gkit-jur-novo-jur-header,
   .gkit-jur-cockpit-dashboard-body {
     grid-template-columns: 1fr;
   }
@@ -501,18 +539,19 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .gkit-jur-cockpit-mockup-settings {
+  .gkit-jur-novo-jur-settings {
     width: 100%;
   }
 }
 
 @media (max-width: 720px) {
-  .gkit-jur-cockpit-mockup {
+  .gkit-jur-novo-jur {
     padding: 10px;
   }
 
   .gkit-jur-cockpit-actions,
   .gkit-jur-cockpit-dashboard-rhythm div,
+  .gkit-jur-novo-jur-search div,
   .gkit-jur-cockpit-row {
     grid-template-columns: 1fr;
   }
@@ -524,6 +563,7 @@
   }
 
   .gkit-jur-cockpit-filterchips,
+  .gkit-jur-cockpit-empty,
   .gkit-jur-cockpit-row div:last-child {
     justify-content: flex-start;
     text-align: left;

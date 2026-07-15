@@ -388,6 +388,7 @@ export function buildGkitJurPreJuridicoFilters(params?: ModuleSearchParams | nul
     carteiraId: singleParam(params?.carteira_id),
     dir,
     page: positiveInt(singleParam(params?.page), 1),
+    prioridade: singleParam(params?.prioridade),
     q: singleParam(params?.q).trim(),
     responsavelId: singleParam(params?.responsavel_id),
     sort,
@@ -1108,6 +1109,7 @@ function applyPreJuridicoFilters(query: any, filters: GkitJurPreJuridicoFilters)
   }
 
   if (filters.status) next = next.eq('status', filters.status)
+  if (filters.prioridade) next = next.eq('prioridade', filters.prioridade)
   if (filters.carteiraId) next = next.eq('carteira_id', filters.carteiraId)
   if (filters.responsavelId) next = next.eq('responsavel_id', filters.responsavelId)
 
@@ -2337,7 +2339,7 @@ async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData>
     action: 'Carteira processual',
     count,
     description: 'Processos ativos da carteira, com dono, prontidao e movimento.',
-    filters: ['Sem dono', 'Sem movimento', 'Alta exposicao', 'Prontos'],
+    filters: ['Sem dono', 'Sem movimento', 'Alta exposição', 'Prontos'],
     bars: cockpitBars([
       { label: 'Pronto', count: readinessValues.pronto, tone: 'green' },
       { label: 'Parcial', count: readinessValues.parcial, tone: 'blue' },
@@ -2385,7 +2387,7 @@ async function getGkitJurCockpitPreJuridicoArea(): Promise<GkitJurCockpitAreaDat
     action: 'Triagem antes do processo',
     count: ativos,
     description: 'Casos pre-juridicos em triagem, documentos e decisao de ajuizamento.',
-    filters: ['Em analise', 'Documentos', 'Alta prioridade', 'Aprovados'],
+    filters: ['Em análise', 'Documentos', 'Alta prioridade', 'Aprovados'],
     bars: cockpitBars([
       { label: 'Analise', count: metrics.emAnalise, tone: 'blue' },
       { label: 'Docs', count: metrics.aguardandoDocumentos, tone: 'yellow' },
@@ -2441,7 +2443,7 @@ async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
     action: 'Fila operacional',
     count: total,
     description: 'Tarefas abertas da carteira, priorizadas por vencimento e severidade.',
-    filters: ['Criticas', 'Hoje', 'Sem responsavel', 'Automacao'],
+    filters: ['Críticas', 'Hoje', 'Sem responsável', 'Automação'],
     bars: cockpitBars([
       { label: 'Critica', count: criticaCount, tone: 'red' },
       { label: 'Alta', count: altaCount, tone: 'yellow' },
@@ -2489,7 +2491,7 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
         action: 'Inbox de publicacoes',
         count: 0,
         description: 'Publicacoes dos processos da carteira.',
-        filters: ['Nao tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
+        filters: ['Não tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
         bars: cockpitBars([]),
         trend: cockpitTrend([0]),
         rows: [],
@@ -2534,7 +2536,7 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
     action: 'Inbox de publicacoes',
     count: total,
     description: 'Publicacoes dos processos da carteira, agrupadas para tratamento.',
-    filters: ['Nao tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
+    filters: ['Não tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
     bars: cockpitBars([
       { label: 'Pendente', count: pendentesCount, tone: 'red' },
       { label: 'Triada', count: triadasCount, tone: 'yellow' },

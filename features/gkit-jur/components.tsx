@@ -54,10 +54,11 @@ import type {
   GkitJurTimelineItem,
 } from './types'
 
-type GkitJurTab = 'inbox' | 'lab' | 'pre_juridico' | 'processos' | 'pendencias' | 'publicacoes' | 'acordos' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria' | 'configuracoes'
+type GkitJurTab = 'inbox' | 'novo_jur' | 'lab' | 'pre_juridico' | 'processos' | 'pendencias' | 'publicacoes' | 'acordos' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria' | 'configuracoes'
 
 const activeHref: Record<GkitJurTab, string> = {
   inbox: '/modulos/gkit-jur/inbox',
+  novo_jur: '/modulos/gkit-jur/novo-jur',
   lab: '/modulos/gkit-jur/lab',
   pre_juridico: '/modulos/gkit-jur/pre-juridico',
   processos: '/modulos/gkit-jur/processos',
@@ -73,7 +74,7 @@ const activeHref: Record<GkitJurTab, string> = {
 
 const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-jur/inbox', title: 'Inbox' },
-  { href: '/modulos/gkit-jur/lab', title: 'Lab' },
+  { href: '/modulos/gkit-jur/novo-jur', title: 'Novo Jur' },
   { href: '/modulos/gkit-jur/publicacoes', title: 'Publicações' },
   { href: '/modulos/gkit-jur/acordos', title: 'Acordos Judiciais' },
   { href: '/modulos/gkit-jur/pre-juridico', title: 'Pre-juridico' },
@@ -81,7 +82,7 @@ const navGroups: ModuleNavGroup[] = [
 ]
 
 const gkitJurPreJuridicoStatusOptions: GkitJurSelectOption[] = [
-  { label: 'Em analise', value: 'em_analise' },
+  { label: 'Em análise', value: 'em_analise' },
   { label: 'Aguardando documentos', value: 'aguardando_documentos' },
   { label: 'Aprovado', value: 'aprovado' },
   { label: 'Descartado', value: 'descartado' },
@@ -89,14 +90,14 @@ const gkitJurPreJuridicoStatusOptions: GkitJurSelectOption[] = [
 
 const gkitJurPreJuridicoPrioridadeOptions: GkitJurSelectOption[] = [
   { label: 'Baixa', value: 'baixa' },
-  { label: 'Media', value: 'media' },
+  { label: 'Média', value: 'media' },
   { label: 'Alta', value: 'alta' },
-  { label: 'Critica', value: 'critica' },
+  { label: 'Crítica', value: 'critica' },
 ]
 
 const gkitJurPreJuridicoProbabilidadeOptions: GkitJurSelectOption[] = [
   { label: 'Baixa', value: 'baixa' },
-  { label: 'Media', value: 'media' },
+  { label: 'Média', value: 'media' },
   { label: 'Alta', value: 'alta' },
 ]
 
@@ -197,7 +198,7 @@ export function GkitJurLabShell({
 
       <nav className="gkit-jur-lab-modes" aria-label="Modos do laboratorio">
         <a href="#hoje">Hoje</a>
-        <Link href="/modulos/gkit-jur/lab/cockpit-unico">Cockpit unico</Link>
+        <Link href="/modulos/gkit-jur/novo-jur">Novo Jur</Link>
         <a href="#modelos">Modelos</a>
         <a href="#risco">Risco</a>
         <a href="#prontuario">Prontuário</a>
@@ -1799,6 +1800,7 @@ function preJuridicoHref(filters: GkitJurPreJuridicoFilters, page: number) {
   Object.entries({
     carteira_id: filters.carteiraId,
     dir: filters.dir,
+    prioridade: filters.prioridade,
     q: filters.q,
     responsavel_id: filters.responsavelId,
     sort: filters.sort,
@@ -1893,6 +1895,7 @@ function GkitJurPreJuridicoFilters({ data }: { data: GkitJurPreJuridicoData }) {
   const activeFilters = [
     filters.q ? { label: 'Busca', value: filters.q } : null,
     filters.status ? { label: 'Status', value: optionLabel(gkitJurPreJuridicoStatusOptions, filters.status) } : null,
+    filters.prioridade ? { label: 'Prioridade', value: optionLabel(gkitJurPreJuridicoPrioridadeOptions, filters.prioridade) } : null,
     filters.carteiraId ? { label: 'Carteira', value: activeValueLabel(filterOptions.carteiras, filters.carteiraId) } : null,
     filters.responsavelId ? { label: 'Responsavel', value: activeValueLabel(filterOptions.responsaveis, filters.responsavelId) } : null,
   ].filter(Boolean) as Array<{ label: string; value: string }>
@@ -1905,6 +1908,7 @@ function GkitJurPreJuridicoFilters({ data }: { data: GkitJurPreJuridicoData }) {
           <input defaultValue={filters.q} name="q" placeholder="Titulo, cliente, origem, area ou descricao" type="search" />
         </label>
         <SelectField label="Status" name="status" options={gkitJurPreJuridicoStatusOptions} placeholder="Todos" value={filters.status} />
+        <SelectField label="Prioridade" name="prioridade" options={gkitJurPreJuridicoPrioridadeOptions} placeholder="Todas" value={filters.prioridade} />
         <SelectField label="Carteira" name="carteira_id" options={filterOptions.carteiras} placeholder="Todas" value={filters.carteiraId} />
         <SelectField label="Responsavel" name="responsavel_id" options={filterOptions.responsaveis} placeholder="Todos" value={filters.responsavelId} />
         <SelectField
@@ -5250,6 +5254,12 @@ const gkitJurConfiguracoesItems = [
     description: 'Fila, historico e registros manuais de e-mails do juridico.',
     href: '/modulos/gkit-jur/configuracoes/emails',
     label: 'Acompanhar envios',
+  },
+  {
+    title: 'Laboratorio',
+    description: 'Experimentos de UX, modelos de tela e roteiro de avaliacao do novo Jur.',
+    href: '/modulos/gkit-jur/lab',
+    label: 'Abrir laboratorio',
   },
   {
     title: 'Agente auxiliar',

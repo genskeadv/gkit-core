@@ -1,16 +1,11 @@
-import { GkitJurCockpitMockup } from '@/features/gkit-jur/lab-cockpit-mockup'
-import { getGkitJurCockpitUnicoData, requireGkitJurContext } from '@/features/gkit-jur/queries'
-import { moduleTarget, type ModuleSearchParams } from '@/lib/auth/platform'
+import { redirect } from 'next/navigation'
 
 export default async function GkitJurCockpitUnicoLabRoute({
-  searchParams,
+  searchParams: _searchParams,
 }: {
-  searchParams?: Promise<ModuleSearchParams>
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const params = await searchParams
-  const context = await requireGkitJurContext(moduleTarget('/modulos/gkit-jur/lab/cockpit-unico', params))
-  const data = await getGkitJurCockpitUnicoData()
+  const params = await _searchParams
   const area = typeof params?.area === 'string' ? params.area : undefined
-
-  return <GkitJurCockpitMockup data={data} initialArea={area} usuario={context.usuario} />
+  redirect(area ? `/modulos/gkit-jur/novo-jur?area=${encodeURIComponent(area)}` : '/modulos/gkit-jur/novo-jur')
 }

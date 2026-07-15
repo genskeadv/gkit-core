@@ -234,6 +234,7 @@ export type GkitJurPreJuridicoFilters = {
   carteiraId: string;
   dir: 'asc' | 'desc';
   page: number;
+  prioridade: string;
   q: string;
   responsavelId: string;
   sort: string;
