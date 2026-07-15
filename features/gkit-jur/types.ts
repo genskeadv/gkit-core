@@ -38,6 +38,18 @@ export type GkitJurPreJuridicoPrioridade = 'baixa' | 'media' | 'alta' | 'critica
 
 export type GkitJurPreJuridicoProbabilidade = 'baixa' | 'media' | 'alta';
 
+export type GkitJurPreJuridicoAtaStatus = 'pendente' | 'solicitada' | 'recebida' | 'dispensada';
+
+export type GkitJurPreJuridicoDebitoStatus = 'pendente' | 'solicitado' | 'recebido' | 'dispensado';
+
+export type GkitJurPreJuridicoProcuracaoStatus = 'pendente' | 'gerada' | 'enviada' | 'assinada' | 'dispensada';
+
+export type GkitJurPreJuridicoCotaDebito = {
+  recibo: string;
+  vencimento: string | null;
+  valor: number;
+};
+
 export type GkitJurDocumentoTipo =
   | 'peticao'
   | 'publicacao'
@@ -188,6 +200,24 @@ export type GkitJurPreJuridico = {
   origem: string | null;
   area: string | null;
   valorEstimado: number | null;
+  laudoPdfUrl: string | null;
+  unidade: string | null;
+  bloco: string | null;
+  responsavelUnidade: string | null;
+  cotasDebito: GkitJurPreJuridicoCotaDebito[];
+  ataEleicaoStatus: GkitJurPreJuridicoAtaStatus;
+  ataPrestacaoContasStatus: GkitJurPreJuridicoAtaStatus;
+  debitosAtualizadosStatus: GkitJurPreJuridicoDebitoStatus;
+  procuracaoStatus: GkitJurPreJuridicoProcuracaoStatus;
+  administradoraEmail: string | null;
+  sindicoEmail: string | null;
+  administradoraSolicitadaEm: string | null;
+  administradoraRetornoEm: string | null;
+  procuracaoGeradaEm: string | null;
+  procuracaoEnviadaEm: string | null;
+  sindicoRetornoEm: string | null;
+  prontoDistribuicaoEm: string | null;
+  prontoDistribuicao: boolean;
   probabilidade: GkitJurPreJuridicoProbabilidade;
   prioridade: GkitJurPreJuridicoPrioridade;
   status: GkitJurPreJuridicoStatus;
@@ -729,7 +759,7 @@ export type GkitJurLabData = {
   briefings: GkitJurLabBriefing[];
 };
 
-export type GkitJurCockpitArea = 'processos' | 'tarefas' | 'publicacoes' | 'acordos' | 'agenda';
+export type GkitJurCockpitArea = 'processos' | 'pre_juridico' | 'tarefas' | 'publicacoes' | 'acordos' | 'agenda';
 
 export type GkitJurCockpitBar = {
   label: string;

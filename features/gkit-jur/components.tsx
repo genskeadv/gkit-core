@@ -99,6 +99,28 @@ const gkitJurPreJuridicoProbabilidadeOptions: GkitJurSelectOption[] = [
   { label: 'Alta', value: 'alta' },
 ]
 
+const gkitJurPreJuridicoAtaStatusOptions: GkitJurSelectOption[] = [
+  { label: 'Pendente', value: 'pendente' },
+  { label: 'Solicitada', value: 'solicitada' },
+  { label: 'Recebida', value: 'recebida' },
+  { label: 'Dispensada', value: 'dispensada' },
+]
+
+const gkitJurPreJuridicoDebitoStatusOptions: GkitJurSelectOption[] = [
+  { label: 'Pendente', value: 'pendente' },
+  { label: 'Solicitado', value: 'solicitado' },
+  { label: 'Recebido', value: 'recebido' },
+  { label: 'Dispensado', value: 'dispensado' },
+]
+
+const gkitJurPreJuridicoProcuracaoStatusOptions: GkitJurSelectOption[] = [
+  { label: 'Pendente', value: 'pendente' },
+  { label: 'Gerada', value: 'gerada' },
+  { label: 'Enviada', value: 'enviada' },
+  { label: 'Assinada', value: 'assinada' },
+  { label: 'Dispensada', value: 'dispensada' },
+]
+
 export function GkitJurShell({
   active,
   actions,
@@ -261,6 +283,10 @@ function GkitJurCollapsibleSection({
 function formatDate(value: string | null) {
   if (!value) return '-'
   return new Date(value).toLocaleDateString('pt-BR')
+}
+
+function dateInputValue(value: string | null | undefined) {
+  return value ? value.slice(0, 10) : ''
 }
 
 function formatDateTime(value: string | null) {
@@ -1792,6 +1818,47 @@ function preJuridicoTone(status: string) {
   return 'muted'
 }
 
+function preJuridicoAtasOk(item: GkitJurPreJuridico) {
+  const ok = ['recebida', 'dispensada']
+  return ok.includes(item.ataEleicaoStatus) && ok.includes(item.ataPrestacaoContasStatus)
+}
+
+function preJuridicoDebitosOk(item: GkitJurPreJuridico) {
+  return ['recebido', 'dispensado'].includes(item.debitosAtualizadosStatus)
+}
+
+function preJuridicoProcuracaoOk(item: GkitJurPreJuridico) {
+  return ['assinada', 'dispensada'].includes(item.procuracaoStatus)
+}
+
+function preJuridicoFlowTone(ok: boolean, started: boolean) {
+  if (ok) return 'success'
+  if (started) return 'warning'
+  return 'muted'
+}
+
+function preJuridicoFlowState(item: GkitJurPreJuridico) {
+  const atasStarted = item.ataEleicaoStatus !== 'pendente' || item.ataPrestacaoContasStatus !== 'pendente'
+  const debitosStarted = item.debitosAtualizadosStatus !== 'pendente' || Boolean(item.administradoraSolicitadaEm)
+  const procuracaoStarted = item.procuracaoStatus !== 'pendente' || Boolean(item.procuracaoGeradaEm || item.procuracaoEnviadaEm)
+  return {
+    atasTone: preJuridicoFlowTone(preJuridicoAtasOk(item), atasStarted),
+    debitosTone: preJuridicoFlowTone(preJuridicoDebitosOk(item), debitosStarted),
+    procuracaoTone: preJuridicoFlowTone(preJuridicoProcuracaoOk(item), procuracaoStarted),
+  }
+}
+
+function preJuridicoCotasText(item?: GkitJurPreJuridico) {
+  if (!item?.cotasDebito.length) return ''
+  return item.cotasDebito
+    .map((cota) => [
+      cota.recibo,
+      cota.vencimento ?? '',
+      cota.valor.toLocaleString('pt-BR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }),
+    ].join('; '))
+    .join('\n')
+}
+
 function GkitJurPreJuridicoMetrics({ data }: { data: GkitJurPreJuridicoData }) {
   const { metrics } = data
   return (
@@ -1883,9 +1950,10 @@ function GkitJurPreJuridicoForm({
   returnTo: string
 }) {
   return (
-    <form action={action} className="gkit-jur-inline-plan-form">
+    <form action={action} className="gkit-jur-inline-plan-form gkit-jur-pre-form">
       {item ? <input name="id" type="hidden" value={item.id} /> : null}
       <input name="return_to" type="hidden" value={returnTo} />
+      <input name="pronto_distribuicao_em" type="hidden" value={item?.prontoDistribuicaoEm ?? ''} />
       <Field label="Titulo">
         <input name="titulo" required defaultValue={item?.titulo ?? ''} placeholder="Resumo do caso em analise" />
       </Field>
@@ -1913,8 +1981,29 @@ function GkitJurPreJuridicoForm({
       <Field label="Area">
         <input name="area" defaultValue={item?.area ?? ''} placeholder="Civel, trabalhista, condominial..." />
       </Field>
+      <Field label="Laudo PDF">
+        <input name="laudo_pdf_url" defaultValue={item?.laudoPdfUrl ?? ''} placeholder="Link do laudo recebido" />
+      </Field>
+      <Field label="Unidade">
+        <input name="unidade" defaultValue={item?.unidade ?? ''} placeholder="Unidade do cliente" />
+      </Field>
+      <Field label="Bloco">
+        <input name="bloco" defaultValue={item?.bloco ?? ''} placeholder="Bloco" />
+      </Field>
+      <Field label="Responsavel da unidade">
+        <input name="responsavel_unidade" defaultValue={item?.responsavelUnidade ?? ''} placeholder="Nome no laudo" />
+      </Field>
       <Field label="Valor estimado">
         <input name="valor_estimado" defaultValue={item?.valorEstimado ?? ''} inputMode="decimal" placeholder="0,00" />
+      </Field>
+      <Field label="Cotas com recibo, vencimento e valor">
+        <textarea
+          className="gkit-jur-pre-cotas"
+          name="cotas_debito_text"
+          defaultValue={preJuridicoCotasText(item)}
+          placeholder={'REC123; 2026-07-10; 1.234,56\nREC124; 2026-08-10; 987,65'}
+          rows={4}
+        />
       </Field>
       <Field label="Probabilidade">
         <select name="probabilidade" defaultValue={item?.probabilidade ?? 'media'}>
@@ -1931,11 +2020,52 @@ function GkitJurPreJuridicoForm({
           {gkitJurPreJuridicoStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </Field>
+      <Field label="Ata de eleicao">
+        <select name="ata_eleicao_status" defaultValue={item?.ataEleicaoStatus ?? 'pendente'}>
+          {gkitJurPreJuridicoAtaStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </Field>
+      <Field label="Ata de prestacao de contas">
+        <select name="ata_prestacao_contas_status" defaultValue={item?.ataPrestacaoContasStatus ?? 'pendente'}>
+          {gkitJurPreJuridicoAtaStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </Field>
+      <Field label="Debitos atualizados">
+        <select name="debitos_atualizados_status" defaultValue={item?.debitosAtualizadosStatus ?? 'pendente'}>
+          {gkitJurPreJuridicoDebitoStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </Field>
+      <Field label="Procuracao">
+        <select name="procuracao_status" defaultValue={item?.procuracaoStatus ?? 'pendente'}>
+          {gkitJurPreJuridicoProcuracaoStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </Field>
+      <Field label="Email da administradora">
+        <input name="administradora_email" defaultValue={item?.administradoraEmail ?? ''} placeholder="adm@condominio.com.br" type="email" />
+      </Field>
+      <Field label="Pedido enviado a administradora">
+        <input name="administradora_solicitada_em" defaultValue={dateInputValue(item?.administradoraSolicitadaEm)} type="date" />
+      </Field>
+      <Field label="Retorno da administradora">
+        <input name="administradora_retorno_em" defaultValue={dateInputValue(item?.administradoraRetornoEm)} type="date" />
+      </Field>
+      <Field label="Email do sindico">
+        <input name="sindico_email" defaultValue={item?.sindicoEmail ?? ''} placeholder="sindico@condominio.com.br" type="email" />
+      </Field>
+      <Field label="Procuracao gerada">
+        <input name="procuracao_gerada_em" defaultValue={dateInputValue(item?.procuracaoGeradaEm)} type="date" />
+      </Field>
+      <Field label="Procuracao enviada">
+        <input name="procuracao_enviada_em" defaultValue={dateInputValue(item?.procuracaoEnviadaEm)} type="date" />
+      </Field>
+      <Field label="Retorno do sindico">
+        <input name="sindico_retorno_em" defaultValue={dateInputValue(item?.sindicoRetornoEm)} type="date" />
+      </Field>
       <Field label="Data de entrada">
-        <input name="data_entrada" type="date" defaultValue={item?.dataEntrada ?? new Date().toISOString().slice(0, 10)} />
+        <input name="data_entrada" type="date" defaultValue={dateInputValue(item?.dataEntrada) || new Date().toISOString().slice(0, 10)} />
       </Field>
       <Field label="Prazo de analise">
-        <input name="prazo_analise" type="date" defaultValue={item?.prazoAnalise ?? ''} />
+        <input name="prazo_analise" type="date" defaultValue={dateInputValue(item?.prazoAnalise)} />
       </Field>
       <Field label="Descricao">
         <textarea name="descricao" required defaultValue={item?.descricao ?? ''} rows={4} />
@@ -1943,6 +2073,16 @@ function GkitJurPreJuridicoForm({
       <Field label="Motivo / observacao do status">
         <textarea name="motivo_status" defaultValue={item?.motivoStatus ?? ''} rows={3} />
       </Field>
+      {item ? (
+        <div className="gkit-jur-pre-quick-actions" aria-label="Acoes rapidas do fluxo pre-juridico">
+          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="atas_recebidas">Marcar atas recebidas</button>
+          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="solicitar_administradora">Registrar pedido a adm</button>
+          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="retorno_administradora">Registrar retorno adm</button>
+          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="gerar_procuracao">Registrar procuracao gerada</button>
+          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="enviar_sindico">Registrar envio ao sindico</button>
+          <button className="button secondary" disabled={!canWrite} name="fluxo_acao" type="submit" value="retorno_sindico">Registrar retorno sindico</button>
+        </div>
+      ) : null}
       <div className="gkit-jur-form-actions">
         <button className="button primary-button" disabled={!canWrite} type="submit">{item ? 'Salvar caso' : 'Cadastrar caso'}</button>
       </div>
@@ -1990,14 +2130,26 @@ function GkitJurPreJuridicoList({
 
   return (
     <div className="suite-table-list compact" role="list">
-      {data.items.map((item) => (
+      {data.items.map((item) => {
+        const flow = preJuridicoFlowState(item)
+        const unidade = [item.unidade ? `Unidade ${item.unidade}` : null, item.bloco ? `Bloco ${item.bloco}` : null].filter(Boolean).join(' - ')
+        return (
         <article className="gkit-jur-process-row" key={item.id} role="listitem">
           <div className="suite-row-link">
             <div>
               <h3>{item.titulo}</h3>
               <p>{item.clienteNome || 'Cliente nao vinculado'}{item.area ? ` - ${item.area}` : ''}</p>
+              {unidade ? <small>{unidade}</small> : null}
+              {item.valorEstimado ? <small>Divida estimada {formatMoney(item.valorEstimado)}</small> : null}
             </div>
-            <span className={`suite-pill ${preJuridicoTone(item.status)}`}>{optionLabel(gkitJurPreJuridicoStatusOptions, item.status)}</span>
+            <div className="gkit-jur-pre-flow" aria-label="Checklist do pre-juridico">
+              <span className={`suite-pill ${flow.atasTone}`}>Atas</span>
+              <span className={`suite-pill ${flow.debitosTone}`}>Debitos atualizados</span>
+              <span className={`suite-pill ${flow.procuracaoTone}`}>Procuracao</span>
+            </div>
+            <span className={`suite-pill ${item.prontoDistribuicao ? 'success' : preJuridicoTone(item.status)}`}>
+              {item.prontoDistribuicao ? 'Pronto para distribuir' : optionLabel(gkitJurPreJuridicoStatusOptions, item.status)}
+            </span>
             <strong>{item.carteiraNome || 'Sem carteira'}</strong>
             <small>{item.responsavelNome || 'Sem responsavel'}</small>
             <div className="gkit-jur-row-stack">
@@ -2014,7 +2166,8 @@ function GkitJurPreJuridicoList({
             )}
           </details>
         </article>
-      ))}
+        )
+      })}
     </div>
   )
 }

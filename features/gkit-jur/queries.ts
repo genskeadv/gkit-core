@@ -51,10 +51,14 @@ import type {
   GkitJurNivelProntidao,
   GkitJurPendenciasData,
   GkitJurPreJuridico,
+  GkitJurPreJuridicoAtaStatus,
+  GkitJurPreJuridicoCotaDebito,
   GkitJurPreJuridicoData,
+  GkitJurPreJuridicoDebitoStatus,
   GkitJurPreJuridicoFilters,
   GkitJurPreJuridicoPrioridade,
   GkitJurPreJuridicoProbabilidade,
+  GkitJurPreJuridicoProcuracaoStatus,
   GkitJurPreJuridicoStatus,
   GkitJurPublicacao,
   GkitJurPublicacaoDecisao,
@@ -459,6 +463,49 @@ function preJuridicoProbabilidade(value: unknown): GkitJurPreJuridicoProbabilida
   return 'media'
 }
 
+function preJuridicoAtaStatus(value: unknown): GkitJurPreJuridicoAtaStatus {
+  const current = text(value, 'pendente')
+  if (['pendente', 'solicitada', 'recebida', 'dispensada'].includes(current)) return current as GkitJurPreJuridicoAtaStatus
+  return 'pendente'
+}
+
+function preJuridicoDebitoStatus(value: unknown): GkitJurPreJuridicoDebitoStatus {
+  const current = text(value, 'pendente')
+  if (['pendente', 'solicitado', 'recebido', 'dispensado'].includes(current)) return current as GkitJurPreJuridicoDebitoStatus
+  return 'pendente'
+}
+
+function preJuridicoProcuracaoStatus(value: unknown): GkitJurPreJuridicoProcuracaoStatus {
+  const current = text(value, 'pendente')
+  if (['pendente', 'gerada', 'enviada', 'assinada', 'dispensada'].includes(current)) return current as GkitJurPreJuridicoProcuracaoStatus
+  return 'pendente'
+}
+
+function preJuridicoCotasDebito(value: unknown): GkitJurPreJuridicoCotaDebito[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const record = recordValue(item)
+    const valor = Number(record.valor ?? 0)
+    return {
+      recibo: text(record.recibo),
+      vencimento: text(record.vencimento) || null,
+      valor: Number.isFinite(valor) ? valor : 0,
+    }
+  }).filter((item) => item.recibo || item.vencimento || item.valor > 0)
+}
+
+function preJuridicoProntoDistribuicao(row: {
+  ataEleicaoStatus: GkitJurPreJuridicoAtaStatus
+  ataPrestacaoContasStatus: GkitJurPreJuridicoAtaStatus
+  debitosAtualizadosStatus: GkitJurPreJuridicoDebitoStatus
+  procuracaoStatus: GkitJurPreJuridicoProcuracaoStatus
+}) {
+  const atasOk = ['recebida', 'dispensada'].includes(row.ataEleicaoStatus) && ['recebida', 'dispensada'].includes(row.ataPrestacaoContasStatus)
+  const debitosOk = ['recebido', 'dispensado'].includes(row.debitosAtualizadosStatus)
+  const procuracaoOk = ['assinada', 'dispensada'].includes(row.procuracaoStatus)
+  return atasOk && debitosOk && procuracaoOk
+}
+
 function mapProcesso(row: Record<string, unknown>, maps: {
   clientes: Map<string, string>
   carteiras: Map<string, string>
@@ -499,6 +546,16 @@ function mapPreJuridico(row: Record<string, unknown>, maps: {
   const responsavelId = text(row.responsavel_id)
   const clienteSnapshot = text(row.cliente_nome) || null
   const valorEstimado = row.valor_estimado === null || row.valor_estimado === undefined ? null : Number(row.valor_estimado)
+  const ataEleicaoStatus = preJuridicoAtaStatus(row.ata_eleicao_status)
+  const ataPrestacaoContasStatus = preJuridicoAtaStatus(row.ata_prestacao_contas_status)
+  const debitosAtualizadosStatus = preJuridicoDebitoStatus(row.debitos_atualizados_status)
+  const procuracaoStatus = preJuridicoProcuracaoStatus(row.procuracao_status)
+  const prontoDistribuicao = preJuridicoProntoDistribuicao({
+    ataEleicaoStatus,
+    ataPrestacaoContasStatus,
+    debitosAtualizadosStatus,
+    procuracaoStatus,
+  })
 
   return {
     id: String(row.id),
@@ -514,6 +571,24 @@ function mapPreJuridico(row: Record<string, unknown>, maps: {
     origem: text(row.origem) || null,
     area: text(row.area) || null,
     valorEstimado: Number.isFinite(valorEstimado) ? valorEstimado : null,
+    laudoPdfUrl: text(row.laudo_pdf_url) || null,
+    unidade: text(row.unidade) || null,
+    bloco: text(row.bloco) || null,
+    responsavelUnidade: text(row.responsavel_unidade) || null,
+    cotasDebito: preJuridicoCotasDebito(row.cotas_debito),
+    ataEleicaoStatus,
+    ataPrestacaoContasStatus,
+    debitosAtualizadosStatus,
+    procuracaoStatus,
+    administradoraEmail: text(row.administradora_email) || null,
+    sindicoEmail: text(row.sindico_email) || null,
+    administradoraSolicitadaEm: text(row.administradora_solicitada_em) || null,
+    administradoraRetornoEm: text(row.administradora_retorno_em) || null,
+    procuracaoGeradaEm: text(row.procuracao_gerada_em) || null,
+    procuracaoEnviadaEm: text(row.procuracao_enviada_em) || null,
+    sindicoRetornoEm: text(row.sindico_retorno_em) || null,
+    prontoDistribuicaoEm: text(row.pronto_distribuicao_em) || null,
+    prontoDistribuicao,
     probabilidade: preJuridicoProbabilidade(row.probabilidade),
     prioridade: preJuridicoPrioridade(row.prioridade),
     status: preJuridicoStatus(row.status),
@@ -1023,6 +1098,9 @@ function applyPreJuridicoFilters(query: any, filters: GkitJurPreJuridicoFilters)
         `descricao.ilike.${pattern}`,
         `origem.ilike.${pattern}`,
         `area.ilike.${pattern}`,
+        `unidade.ilike.${pattern}`,
+        `bloco.ilike.${pattern}`,
+        `responsavel_unidade.ilike.${pattern}`,
       ].join(','))
     }
   }
@@ -1035,7 +1113,7 @@ function applyPreJuridicoFilters(query: any, filters: GkitJurPreJuridicoFilters)
 }
 
 function preJuridicoSortColumn(sort: string) {
-  if (['titulo', 'cliente_nome', 'data_entrada', 'prazo_analise', 'status', 'prioridade', 'updated_at', 'created_at'].includes(sort)) return sort
+  if (['titulo', 'cliente_nome', 'data_entrada', 'prazo_analise', 'status', 'prioridade', 'unidade', 'updated_at', 'created_at'].includes(sort)) return sort
   return 'updated_at'
 }
 
@@ -1090,7 +1168,7 @@ export async function listGkitJurPreJuridicos(filters: GkitJurPreJuridicoFilters
   let query = admin()
     .schema('gkit_jur')
     .from('pre_juridicos')
-    .select('id,titulo,cliente_id,cliente_nome,descricao,carteira_id,responsavel_id,origem,area,valor_estimado,probabilidade,prioridade,status,motivo_status,data_entrada,prazo_analise,convertido_processo_id,convertido_em,created_at,updated_at', { count: 'exact' })
+    .select('id,titulo,cliente_id,cliente_nome,descricao,carteira_id,responsavel_id,origem,area,valor_estimado,laudo_pdf_url,unidade,bloco,responsavel_unidade,cotas_debito,ata_eleicao_status,ata_prestacao_contas_status,debitos_atualizados_status,procuracao_status,administradora_email,sindico_email,administradora_solicitada_em,administradora_retorno_em,procuracao_gerada_em,procuracao_enviada_em,sindico_retorno_em,pronto_distribuicao_em,probabilidade,prioridade,status,motivo_status,data_entrada,prazo_analise,convertido_processo_id,convertido_em,created_at,updated_at', { count: 'exact' })
 
   query = applyPreJuridicoFilters(query, filters)
     .order(preJuridicoSortColumn(filters.sort), { ascending: filters.dir === 'asc', nullsFirst: false })
@@ -2136,6 +2214,51 @@ async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData>
   }
 }
 
+async function getGkitJurCockpitPreJuridicoArea(): Promise<GkitJurCockpitAreaData> {
+  const [rowsResult, metrics] = await Promise.all([
+    admin()
+      .schema('gkit_jur')
+      .from('pre_juridicos')
+      .select('id,titulo,cliente_id,cliente_nome,descricao,carteira_id,responsavel_id,origem,area,valor_estimado,laudo_pdf_url,unidade,bloco,responsavel_unidade,cotas_debito,ata_eleicao_status,ata_prestacao_contas_status,debitos_atualizados_status,procuracao_status,administradora_email,sindico_email,administradora_solicitada_em,administradora_retorno_em,procuracao_gerada_em,procuracao_enviada_em,sindico_retorno_em,pronto_distribuicao_em,probabilidade,prioridade,status,motivo_status,data_entrada,prazo_analise,convertido_processo_id,convertido_em,created_at,updated_at', { count: 'exact' })
+      .in('status', ['em_analise', 'aguardando_documentos', 'aprovado'])
+      .order('prazo_analise', { ascending: true, nullsFirst: false })
+      .order('updated_at', { ascending: false })
+      .limit(5),
+    getGkitJurPreJuridicoMetrics(),
+  ])
+
+  if (rowsResult.error) throw new Error(rowsResult.error.message)
+
+  const rows = (rowsResult.data ?? []) as Array<Record<string, unknown>>
+  const maps = await lookupMaps(rows)
+  const items = rows.map((row) => mapPreJuridico(row, maps))
+  const ativos = metrics.emAnalise + metrics.aguardandoDocumentos + metrics.aprovados
+
+  return {
+    action: 'Triagem antes do processo',
+    count: ativos,
+    description: 'Casos pre-juridicos em triagem, documentos e decisao de ajuizamento.',
+    filters: ['Em analise', 'Documentos', 'Alta prioridade', 'Aprovados'],
+    bars: cockpitBars([
+      { label: 'Analise', count: metrics.emAnalise, tone: 'blue' },
+      { label: 'Docs', count: metrics.aguardandoDocumentos, tone: 'yellow' },
+      { label: 'Aprovado', count: metrics.aprovados, tone: 'green' },
+      { label: 'Convertido', count: metrics.convertidos, tone: 'red' },
+    ]),
+    trend: cockpitTrend([metrics.aguardandoDocumentos, metrics.emAnalise, metrics.aprovados, metrics.convertidos, ativos]),
+    rows: items.map((item) => ({
+      id: item.id,
+      title: item.titulo,
+      subtitle: item.clienteNome || item.clienteSnapshotNome || item.descricao || 'Caso em triagem pre-juridica',
+      owner: cockpitOwner(item.responsavelNome, item.carteiraNome),
+      status: item.prioridade === 'critica' ? 'critica' : item.status,
+      due: item.prazoAnalise ? cockpitDate(item.prazoAnalise) : cockpitDate(item.updatedAt || item.dataEntrada || item.createdAt),
+      tone: cockpitTone(item.prioridade, item.status),
+      href: `/modulos/gkit-jur/pre-juridico?q=${encodeURIComponent(item.titulo)}`,
+    })),
+  }
+}
+
 async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
   const [rowsResult, criticaCount, altaCount, mediaCount, baixaCount] = await Promise.all([
     admin()
@@ -2399,15 +2522,16 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
 }
 
 export async function getGkitJurCockpitUnicoData(): Promise<GkitJurCockpitUnicoData> {
-  const [processos, tarefas, publicacoes, acordos, agenda] = await Promise.all([
+  const [processos, preJuridico, tarefas, publicacoes, acordos, agenda] = await Promise.all([
     getGkitJurCockpitProcessosArea(),
+    getGkitJurCockpitPreJuridicoArea(),
     getGkitJurCockpitTarefasArea(),
     getGkitJurCockpitPublicacoesArea(),
     getGkitJurCockpitAcordosArea(),
     getGkitJurCockpitAgendaArea(),
   ])
 
-  return { processos, tarefas, publicacoes, acordos, agenda }
+  return { processos, pre_juridico: preJuridico, tarefas, publicacoes, acordos, agenda }
 }
 
 async function pendingGroup(title: string, description: string, href: string, column: string) {

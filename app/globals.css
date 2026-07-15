@@ -339,7 +339,7 @@
 .gkit-jur-cockpit-actions {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   padding: 8px;
 }
 
@@ -8868,7 +8868,8 @@ tbody tr:hover {
 }
 
 .gkit-jur-inline-plan-form input,
-.gkit-jur-inline-plan-form select {
+.gkit-jur-inline-plan-form select,
+.gkit-jur-inline-plan-form textarea {
   background: #fff;
   border: 1px solid rgba(148, 163, 184, 0.34);
   border-radius: var(--suite-module-card-radius, 8px);
@@ -8876,6 +8877,53 @@ tbody tr:hover {
   font-size: 13px;
   min-height: 38px;
   padding: 8px 10px;
+}
+
+.gkit-jur-inline-plan-form textarea {
+  line-height: 1.45;
+  min-height: 82px;
+  resize: vertical;
+}
+
+.gkit-jur-pre-form {
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  max-height: min(78vh, 760px);
+  overflow: auto;
+  width: min(760px, calc(100vw - 40px));
+}
+
+.gkit-jur-pre-form label:has(textarea),
+.gkit-jur-pre-form .gkit-jur-pre-quick-actions,
+.gkit-jur-pre-form .gkit-jur-form-actions {
+  grid-column: 1 / -1;
+}
+
+.gkit-jur-pre-quick-actions {
+  align-items: center;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.gkit-jur-pre-quick-actions .button {
+  min-height: 34px;
+  padding: 7px 10px;
+}
+
+.gkit-jur-pre-flow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 150px;
+}
+
+.gkit-jur-pre-flow .suite-pill {
+  font-size: 11px;
+  padding: 4px 8px;
+  white-space: nowrap;
 }
 
 .gkit-jur-reference-task-form {

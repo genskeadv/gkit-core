@@ -80,9 +80,121 @@ function optionalMoney(value: string) {
   return moneyCents(value) / 100
 }
 
+function looseMoney(value: string) {
+  if (!value.trim()) return 0
+  const normalized = value
+    .replace(/[^\d,.-]/g, '')
+    .replace(/\.(?=\d{3}(\D|$))/g, '')
+    .replace(',', '.')
+  const parsed = Number.parseFloat(normalized)
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * 100) / 100 : 0
+}
+
 function dateOnly(value: string, label: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`${label} e obrigatorio.`)
   return value
+}
+
+function optionalDateOnly(value: string, label: string) {
+  return value ? dateOnly(value, label) : null
+}
+
+function flexibleDateOnly(value: string) {
+  const current = value.trim()
+  if (!current) return null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(current)) return current
+  const match = current.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (!match) return null
+  return `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`
+}
+
+function parseCotasDebito(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [recibo = '', vencimento = '', valor = ''] = line.split(/[;\t]/).map((part) => part.trim())
+      return {
+        recibo,
+        vencimento: flexibleDateOnly(vencimento),
+        valor: looseMoney(valor),
+      }
+    })
+    .filter((row) => row.recibo || row.vencimento || row.valor > 0)
+}
+
+function preJuridicoWorkflowReady(payload: {
+  ata_eleicao_status: string
+  ata_prestacao_contas_status: string
+  debitos_atualizados_status: string
+  procuracao_status: string
+}) {
+  const atasOk = ['recebida', 'dispensada'].includes(payload.ata_eleicao_status) && ['recebida', 'dispensada'].includes(payload.ata_prestacao_contas_status)
+  const debitosOk = ['recebido', 'dispensado'].includes(payload.debitos_atualizados_status)
+  const procuracaoOk = ['assinada', 'dispensada'].includes(payload.procuracao_status)
+  return atasOk && debitosOk && procuracaoOk
+}
+
+function preJuridicoWorkflowStarted(payload: {
+  ata_eleicao_status: string
+  ata_prestacao_contas_status: string
+  debitos_atualizados_status: string
+  procuracao_status: string
+  administradora_solicitada_em: string | null
+  administradora_retorno_em: string | null
+  procuracao_gerada_em: string | null
+  procuracao_enviada_em: string | null
+  sindico_retorno_em: string | null
+}) {
+  return [
+    payload.ata_eleicao_status,
+    payload.ata_prestacao_contas_status,
+    payload.debitos_atualizados_status,
+    payload.procuracao_status,
+  ].some((status) => status !== 'pendente') ||
+    Boolean(payload.administradora_solicitada_em || payload.administradora_retorno_em || payload.procuracao_gerada_em || payload.procuracao_enviada_em || payload.sindico_retorno_em)
+}
+
+function applyPreJuridicoWorkflowAction(payload: {
+  ata_eleicao_status: string
+  ata_prestacao_contas_status: string
+  debitos_atualizados_status: string
+  procuracao_status: string
+  administradora_solicitada_em: string | null
+  administradora_retorno_em: string | null
+  procuracao_gerada_em: string | null
+  procuracao_enviada_em: string | null
+  sindico_retorno_em: string | null
+}, action: string) {
+  const today = new Date().toISOString().slice(0, 10)
+  if (action === 'atas_recebidas') {
+    payload.ata_eleicao_status = 'recebida'
+    payload.ata_prestacao_contas_status = 'recebida'
+  }
+  if (action === 'solicitar_administradora') {
+    payload.debitos_atualizados_status = 'solicitado'
+    payload.administradora_solicitada_em ||= today
+  }
+  if (action === 'retorno_administradora') {
+    payload.debitos_atualizados_status = 'recebido'
+    payload.administradora_retorno_em ||= today
+  }
+  if (action === 'gerar_procuracao') {
+    payload.procuracao_status = 'gerada'
+    payload.procuracao_gerada_em ||= today
+  }
+  if (action === 'enviar_sindico') {
+    payload.procuracao_status = payload.procuracao_status === 'assinada' || payload.procuracao_status === 'dispensada'
+      ? payload.procuracao_status
+      : 'enviada'
+    payload.procuracao_gerada_em ||= today
+    payload.procuracao_enviada_em ||= today
+  }
+  if (action === 'retorno_sindico') {
+    payload.procuracao_status = 'assinada'
+    payload.sindico_retorno_em ||= today
+  }
 }
 
 function monthlyDueDate(firstDueDate: string, monthOffset: number, dueDay: number) {
@@ -327,6 +439,40 @@ export async function updateGkitJurProcessoAction(formData: FormData) {
 function preJuridicoPayload(formData: FormData, usuarioId: string) {
   const dataEntrada = text(formData, 'data_entrada')
   const prazoAnalise = text(formData, 'prazo_analise')
+  const cotasDebito = parseCotasDebito(text(formData, 'cotas_debito_text'))
+  const valorEstimado = optionalMoney(text(formData, 'valor_estimado')) ?? (
+    cotasDebito.length ? cotasDebito.reduce((sum, row) => sum + row.valor, 0) : null
+  )
+  const workflowPayload = {
+    ata_eleicao_status: allowed(text(formData, 'ata_eleicao_status'), ['pendente', 'solicitada', 'recebida', 'dispensada'], 'pendente'),
+    ata_prestacao_contas_status: allowed(text(formData, 'ata_prestacao_contas_status'), ['pendente', 'solicitada', 'recebida', 'dispensada'], 'pendente'),
+    debitos_atualizados_status: allowed(text(formData, 'debitos_atualizados_status'), ['pendente', 'solicitado', 'recebido', 'dispensado'], 'pendente'),
+    procuracao_status: allowed(text(formData, 'procuracao_status'), ['pendente', 'gerada', 'enviada', 'assinada', 'dispensada'], 'pendente'),
+    administradora_solicitada_em: optionalDateOnly(text(formData, 'administradora_solicitada_em'), 'Solicitacao a administradora'),
+    administradora_retorno_em: optionalDateOnly(text(formData, 'administradora_retorno_em'), 'Retorno da administradora'),
+    procuracao_gerada_em: optionalDateOnly(text(formData, 'procuracao_gerada_em'), 'Procuracao gerada'),
+    procuracao_enviada_em: optionalDateOnly(text(formData, 'procuracao_enviada_em'), 'Procuracao enviada'),
+    sindico_retorno_em: optionalDateOnly(text(formData, 'sindico_retorno_em'), 'Retorno do sindico'),
+  }
+  const fluxoAcao = allowed(text(formData, 'fluxo_acao'), [
+    'nenhuma',
+    'atas_recebidas',
+    'solicitar_administradora',
+    'retorno_administradora',
+    'gerar_procuracao',
+    'enviar_sindico',
+    'retorno_sindico',
+  ] as const, 'nenhuma')
+  applyPreJuridicoWorkflowAction(workflowPayload, fluxoAcao)
+  const requestedStatus = allowed(text(formData, 'status'), ['em_analise', 'aguardando_documentos', 'aprovado', 'descartado'], 'em_analise')
+  const ready = preJuridicoWorkflowReady(workflowPayload)
+  const status = requestedStatus === 'descartado'
+    ? 'descartado'
+    : ready
+      ? 'aprovado'
+      : preJuridicoWorkflowStarted(workflowPayload)
+        ? 'aguardando_documentos'
+        : 'em_analise'
 
   return {
     titulo: requiredText(formData, 'titulo', 'Titulo'),
@@ -337,13 +483,22 @@ function preJuridicoPayload(formData: FormData, usuarioId: string) {
     responsavel_id: optionalUuid(formData, 'responsavel_id'),
     origem: text(formData, 'origem') || null,
     area: text(formData, 'area') || null,
-    valor_estimado: optionalMoney(text(formData, 'valor_estimado')),
+    valor_estimado: valorEstimado,
+    laudo_pdf_url: text(formData, 'laudo_pdf_url') || null,
+    unidade: text(formData, 'unidade') || null,
+    bloco: text(formData, 'bloco') || null,
+    responsavel_unidade: text(formData, 'responsavel_unidade') || null,
+    cotas_debito: cotasDebito,
     probabilidade: allowed(text(formData, 'probabilidade'), ['baixa', 'media', 'alta'], 'media'),
     prioridade: allowed(text(formData, 'prioridade'), ['baixa', 'media', 'alta', 'critica'], 'media'),
-    status: allowed(text(formData, 'status'), ['em_analise', 'aguardando_documentos', 'aprovado', 'descartado'], 'em_analise'),
+    status,
     motivo_status: text(formData, 'motivo_status') || null,
     data_entrada: dataEntrada ? dateOnly(dataEntrada, 'Data de entrada') : new Date().toISOString().slice(0, 10),
     prazo_analise: prazoAnalise ? dateOnly(prazoAnalise, 'Prazo de analise') : null,
+    ...workflowPayload,
+    administradora_email: optionalEmail(text(formData, 'administradora_email')),
+    sindico_email: optionalEmail(text(formData, 'sindico_email')),
+    pronto_distribuicao_em: ready ? (text(formData, 'pronto_distribuicao_em') || new Date().toISOString()) : null,
     atualizado_por: usuarioId,
     updated_at: new Date().toISOString(),
   }

@@ -10,13 +10,14 @@ const STORAGE_DASHBOARD_KEY = 'gkit-jur-cockpit-lab-dashboard-collapsed'
 
 const areaLabels: Record<GkitJurCockpitArea, string> = {
   processos: 'Processos',
+  pre_juridico: 'Pre-juridico',
   tarefas: 'Tarefas',
   publicacoes: 'Publicacoes',
   acordos: 'Acordos',
   agenda: 'Agenda',
 }
 
-const areaOrder: GkitJurCockpitArea[] = ['processos', 'tarefas', 'publicacoes', 'acordos', 'agenda']
+const areaOrder: GkitJurCockpitArea[] = ['processos', 'pre_juridico', 'tarefas', 'publicacoes', 'acordos', 'agenda']
 
 function isArea(value: string | null): value is GkitJurCockpitArea {
   return Boolean(value && areaOrder.includes(value as GkitJurCockpitArea))
@@ -62,7 +63,7 @@ export function GkitJurCockpitMockup({
 
         <form className="gkit-jur-cockpit-mockup-search">
           <label htmlFor="gkit-jur-cockpit-search">Busca geral</label>
-          <input id="gkit-jur-cockpit-search" placeholder="Processo, publicacao, tarefa, acordo..." type="search" />
+          <input id="gkit-jur-cockpit-search" placeholder="Processo, pre-juridico, publicacao, tarefa..." type="search" />
         </form>
 
         <div className="gkit-jur-cockpit-mockup-operator">
