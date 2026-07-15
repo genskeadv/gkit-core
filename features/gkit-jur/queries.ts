@@ -1391,13 +1391,13 @@ export async function searchGkitJurGlobal(query: string): Promise<GkitJurGlobalS
     .map((row): GkitJurGlobalSearchResult | null => {
       const processo = processMap.get(text(row.processo_id))
       if (!processo) return null
-      const prazo = text(row.prazo_at)
+      const vencimento = text(row.prazo_at)
       return {
         id: `tarefa-${String(row.id)}`,
         type: 'tarefa',
         title: text(row.titulo, 'Tarefa sem titulo'),
         subtitle: `${processo.numeroCnj} - ${processo.clienteNome || processo.titulo || 'Processo ativo'}`,
-        meta: [text(row.prioridade, 'media'), prazo ? `Prazo ${formatDate(prazo)}` : '', processo.responsavelNome].filter(Boolean).join(' | '),
+        meta: [text(row.prioridade, 'media'), vencimento ? `Vencimento ${formatDate(vencimento)}` : '', processo.responsavelNome].filter(Boolean).join(' | '),
         href: `/modulos/gkit-jur/processos/${processo.id}#tarefas`,
       }
     })
@@ -2440,7 +2440,7 @@ async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
   return {
     action: 'Fila operacional',
     count: total,
-    description: 'Tarefas abertas da carteira, priorizadas por prazo e severidade.',
+    description: 'Tarefas abertas da carteira, priorizadas por vencimento e severidade.',
     filters: ['Criticas', 'Hoje', 'Sem responsavel', 'Automacao'],
     bars: cockpitBars([
       { label: 'Critica', count: criticaCount, tone: 'red' },
@@ -2590,38 +2590,41 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const todayIso = today.toISOString()
+  const tomorrowIso = new Date(today.getTime() + 86_400_000).toISOString()
+  const weekIso = new Date(today.getTime() + 7 * 86_400_000).toISOString()
 
-  const rowsResult = await admin()
-    .schema('gkit_jur')
-    .from('eventos_processo')
-    .select('id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,data_evento,origem,created_at', { count: 'exact' })
-    .gte('data_evento', todayIso)
-    .order('data_evento', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: false })
-    .limit(5)
-
-  if (rowsResult.error) {
-    if (['42P01', 'PGRST205'].includes(text(rowsResult.error.code))) {
-      return {
-        action: 'Eventos da carteira',
-        count: 0,
-        description: 'Eventos futuros dos processos da carteira.',
-        filters: ['Hoje', 'Semana', 'Audiencias', 'Prazos internos'],
-        bars: cockpitBars([]),
-        trend: cockpitTrend([0]),
-        rows: [],
-      }
-    }
-    throw new Error(rowsResult.error.message)
-  }
-
-  const rows = (rowsResult.data ?? []) as Array<Record<string, unknown>>
-  const [audienciasCount, prazosCount, providenciasCount] = await Promise.all([
+  const [eventRowsResult, taskRowsResult, eventosCount, audienciasCount, tarefasVencidasCount, tarefasHojeCount, tarefasSemanaCount] = await Promise.all([
+    admin()
+      .schema('gkit_jur')
+      .from('eventos_processo')
+      .select('id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,data_evento,origem,created_at')
+      .gte('data_evento', todayIso)
+      .order('data_evento', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(5),
+    admin()
+      .schema('gkit_jur')
+      .from('tarefas')
+      .select('id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,status,prioridade,prazo_at,origem,payload,created_at', { count: 'exact' })
+      .in('status', ['aberta', 'em_andamento'])
+      .not('prazo_at', 'is', null)
+      .order('prazo_at', { ascending: true, nullsFirst: false })
+      .limit(5),
+    countRows(admin().schema('gkit_jur').from('eventos_processo').select('id', { count: 'exact', head: true }).gte('data_evento', todayIso), true),
     countRows(admin().schema('gkit_jur').from('eventos_processo').select('id', { count: 'exact', head: true }).gte('data_evento', todayIso).eq('tipo', 'audiencia'), true),
-    countRows(admin().schema('gkit_jur').from('eventos_processo').select('id', { count: 'exact', head: true }).gte('data_evento', todayIso).eq('tipo', 'prazo'), true),
-    countRows(admin().schema('gkit_jur').from('eventos_processo').select('id', { count: 'exact', head: true }).gte('data_evento', todayIso).eq('tipo', 'providencia_interna'), true),
+    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', ['aberta', 'em_andamento']).lt('prazo_at', todayIso)),
+    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', ['aberta', 'em_andamento']).gte('prazo_at', todayIso).lt('prazo_at', tomorrowIso)),
+    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', ['aberta', 'em_andamento']).gte('prazo_at', todayIso).lt('prazo_at', weekIso)),
   ])
-  const processoIds = [...new Set(rows.map((row) => text(row.processo_id)).filter(Boolean))]
+
+  if (eventRowsResult.error && !['42P01', 'PGRST205'].includes(text(eventRowsResult.error.code))) {
+    throw new Error(eventRowsResult.error.message)
+  }
+  if (taskRowsResult.error) throw new Error(taskRowsResult.error.message)
+
+  const eventRows = (eventRowsResult.data ?? []) as Array<Record<string, unknown>>
+  const taskRows = (taskRowsResult.data ?? []) as Array<Record<string, unknown>>
+  const processoIds = [...new Set([...eventRows, ...taskRows].map((row) => text(row.processo_id)).filter(Boolean))]
   const processosResult = processoIds.length
     ? await admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('id', processoIds)
     : { data: [], error: null }
@@ -2630,41 +2633,71 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
   const processoRows = (processosResult.data ?? []) as Array<Record<string, unknown>>
   const processoMaps = await lookupMaps(processoRows)
   const processoMap = new Map(processoRows.map((row) => [String(row.id), mapProcesso(row, processoMaps)]))
-  const eventoMaps = await lookupTarefaMaps(rows)
-  const eventos = rows.map((row) => {
+  const agendaMaps = await lookupTarefaMaps([...eventRows, ...taskRows])
+  const eventos = eventRows.map((row) => {
     const processo = processoMap.get(text(row.processo_id))
-    return mapEventoProcesso(row, eventoMaps, {
+    return mapEventoProcesso(row, agendaMaps, {
       carteiraNome: processo?.carteiraNome ?? null,
       responsavelNome: processo?.responsavelNome ?? null,
     })
   })
-  const total = rowsResult.count ?? rows.length
-
-  return {
-    action: 'Eventos da carteira',
-    count: total,
-    description: 'Audiencias, prazos internos e compromissos futuros dos processos.',
-    filters: ['Hoje', 'Semana', 'Audiencias', 'Prazos internos'],
-    bars: cockpitBars([
-      { label: 'Audiencia', count: audienciasCount, tone: 'red' },
-      { label: 'Prazo', count: prazosCount, tone: 'yellow' },
-      { label: 'Providencia', count: providenciasCount, tone: 'blue' },
-      { label: 'Outros', count: Math.max(0, total - audienciasCount - prazosCount - providenciasCount), tone: 'green' },
-    ]),
-    trend: cockpitTrend([audienciasCount, prazosCount, providenciasCount, total]),
-    rows: eventos.map((evento) => {
-      const processo = processoMap.get(evento.processoId)
+  const tarefas = taskRows.map((row) => {
+    const processo = processoMap.get(text(row.processo_id))
+    return mapTarefa(row, agendaMaps, {
+      carteiraNome: processo?.carteiraNome ?? null,
+      responsavelNome: processo?.responsavelNome ?? null,
+    })
+  })
+  const total = (taskRowsResult.count ?? taskRows.length) + eventosCount
+  const agendaRows = [
+    ...tarefas.map((tarefa) => {
+      const processo = processoMap.get(tarefa.processoId)
+      const vencida = tarefa.prazoAt ? tarefa.prazoAt < todayIso : false
       return {
-        id: evento.id,
-        title: evento.titulo,
-        subtitle: processo ? `${processo.numeroCnj} - ${processo.clienteNome || processo.titulo || 'Processo ativo'}` : evento.descricao || 'Evento vinculado ao juridico',
-        owner: cockpitOwner(evento.responsavelNome, evento.carteiraNome),
-        status: evento.tipo,
-        due: cockpitDate(evento.dataEvento),
-        tone: cockpitTone('', evento.tipo),
-        href: `/modulos/gkit-jur/processos/${evento.processoId}#timeline`,
+        sort: tarefa.prazoAt ?? tarefa.createdAt,
+        row: {
+          id: tarefa.id,
+          title: tarefa.titulo,
+          subtitle: processo ? `${processo.numeroCnj} - ${processo.clienteNome || processo.titulo || 'Processo ativo'}` : tarefa.descricao || 'Tarefa com vencimento',
+          owner: cockpitOwner(tarefa.responsavelNome, tarefa.carteiraNome),
+          status: vencida ? 'vencida' : tarefa.tipo,
+          due: cockpitDate(tarefa.prazoAt),
+          tone: cockpitTone(tarefa.prioridade, vencida ? 'vencida' : tarefa.status),
+          href: `/modulos/gkit-jur/processos/${tarefa.processoId}#tarefas`,
+        },
       }
     }),
+    ...eventos.map((evento) => {
+      const processo = processoMap.get(evento.processoId)
+      return {
+        sort: evento.dataEvento ?? evento.createdAt,
+        row: {
+          id: evento.id,
+          title: evento.titulo,
+          subtitle: processo ? `${processo.numeroCnj} - ${processo.clienteNome || processo.titulo || 'Processo ativo'}` : evento.descricao || 'Evento vinculado ao juridico',
+          owner: cockpitOwner(evento.responsavelNome, evento.carteiraNome),
+          status: evento.tipo,
+          due: cockpitDate(evento.dataEvento),
+          tone: cockpitTone('', evento.tipo),
+          href: `/modulos/gkit-jur/processos/${evento.processoId}#timeline`,
+        },
+      }
+    }),
+  ].sort((a, b) => a.sort.localeCompare(b.sort)).slice(0, 5).map((item) => item.row)
+
+  return {
+    action: 'Vencimentos e prazos',
+    count: total,
+    description: 'Vencimentos de tarefas, prazos juridicos e compromissos que exigem acompanhamento.',
+    filters: ['Vencidas', 'Hoje', 'Semana', 'Eventos'],
+    bars: cockpitBars([
+      { label: 'Vencidas', count: tarefasVencidasCount, tone: 'red' },
+      { label: 'Hoje', count: tarefasHojeCount, tone: 'yellow' },
+      { label: 'Semana', count: tarefasSemanaCount, tone: 'blue' },
+      { label: 'Eventos', count: eventosCount + audienciasCount, tone: 'green' },
+    ]),
+    trend: cockpitTrend([tarefasVencidasCount, tarefasHojeCount, tarefasSemanaCount, eventosCount, total]),
+    rows: agendaRows,
   }
 }
 
@@ -3340,7 +3373,7 @@ function taskInboxItem(task: GkitJurTarefa, processo: GkitJurProcessListItem): G
     entidadeId: task.id,
     acaoLabel: 'Abrir processo',
     acaoUrl: `/modulos/gkit-jur/processos/${task.processoId}#tarefas`,
-    motivo: overdue ? 'Tarefa com prazo vencido.' : task.prazoAt ? 'Tarefa com prazo definido.' : 'Tarefa aberta aguardando providência.',
+    motivo: overdue ? 'Vencimento da tarefa ultrapassado.' : task.prazoAt ? 'Tarefa com vencimento definido.' : 'Tarefa aberta aguardando providência.',
   }
 }
 
@@ -3645,7 +3678,7 @@ export async function getGkitJurInbox(params?: ModuleSearchParams | null): Promi
     },
     {
       title: 'Executar tarefas abertas',
-      description: 'Prazos e providencias ja viraram tarefa operacional. Comece pelas vencidas ou criticas.',
+      description: 'Prazos juridicos e providencias ja viraram tarefa operacional. Comece pelas vencidas ou criticas.',
       href: '/modulos/gkit-jur/inbox?fila=tarefas',
       label: 'Abrir tarefas',
       priority: (tarefas.some((item) => item.prioridade === 'critica') ? 'critica' : tarefas.length ? 'alta' : 'baixa') as GkitJurInboxPrioridade,

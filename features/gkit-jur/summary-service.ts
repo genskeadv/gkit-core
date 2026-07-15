@@ -87,7 +87,7 @@ function fallbackResumoInteligente(input: {
   numeroCnj: string
   orgao: string | null
   relevantMovements: Array<ReturnType<typeof compactMovement>>
-  tarefas: Array<{ prazo: string | null; prioridade: string; status: string; titulo: string }>
+  tarefas: Array<{ vencimento: string | null; prioridade: string; status: string; titulo: string }>
   titulo: string | null
   tribunal: string | null
 }): GkitJurResumoInteligente {
@@ -102,8 +102,8 @@ function fallbackResumoInteligente(input: {
   ].filter(Boolean) as string[]
   const proximasAcoes = input.tarefas.length
     ? input.tarefas.slice(0, 5).map((task) => {
-      const prazo = task.prazo ? ` até ${dateLabel(task.prazo) ?? task.prazo}` : ''
-      return `${task.titulo}${prazo}`
+      const vencimento = task.vencimento ? ` com vencimento em ${dateLabel(task.vencimento) ?? task.vencimento}` : ''
+      return `${task.titulo}${vencimento}`
     })
     : ['Revisar últimos andamentos e confirmar se há prazo, intimação ou providência pendente.']
   const doQueSeTrata = [
@@ -197,7 +197,7 @@ async function generateOpenAiResumoInteligente(input: {
   numeroCnj: string
   orgao: string | null
   relevantMovements: Array<ReturnType<typeof compactMovement>>
-  tarefas: Array<{ prazo: string | null; prioridade: string; status: string; titulo: string }>
+  tarefas: Array<{ vencimento: string | null; prioridade: string; status: string; titulo: string }>
   titulo: string | null
   tribunal: string | null
 }) {
@@ -421,7 +421,7 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
   const relevantMovements = ((relevantMovementsResult.data ?? []) as MovementSummaryRow[]).map(compactMovement)
   const openTasks = ((openTasksResult.data ?? []) as Array<Record<string, unknown>>).map((task) => ({
     origem: text(task.origem, 'manual'),
-    prazo: text(task.prazo_at) || null,
+    vencimento: text(task.prazo_at) || null,
     prioridade: text(task.prioridade, 'media'),
     status: text(task.status, 'aberta'),
     titulo: text(task.titulo, 'Tarefa operacional'),

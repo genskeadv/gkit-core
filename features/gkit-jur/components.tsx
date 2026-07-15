@@ -669,7 +669,7 @@ export function GkitJurInboxPage({
                 <input name="processo_id" type="hidden" value={topTask.processoId ?? ''} />
                 <input name="return_to" type="hidden" value={returnTo} />
                 <label>
-                  <span>Prazo</span>
+                  <span>Vencimento</span>
                   <input name="prazo_at" type="datetime-local" defaultValue={formatDateTimeLocal(topTask.prazoAt)} />
                 </label>
                 <label>
@@ -793,7 +793,7 @@ export function GkitJurInboxPage({
                         <input name="processo_id" type="hidden" value={item.processoId ?? ''} />
                         <input name="return_to" type="hidden" value={returnTo} />
                         <label>
-                          <span>Prazo</span>
+                          <span>Vencimento</span>
                           <input name="prazo_at" type="datetime-local" defaultValue={formatDateTimeLocal(item.prazoAt)} />
                         </label>
                         <label>
@@ -964,7 +964,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
       <section className="gkit-jur-lab-control-grid">
         <article className="gkit-jur-lab-priority-panel">
           <div className="gkit-jur-lab-section-title">
-            <span>Prazos críticos</span>
+            <span>Prioridades críticas</span>
             <h3>O sistema escolhe a fila; o humano confirma o tratamento.</h3>
           </div>
           <div className="gkit-jur-lab-action-stack">
@@ -1913,7 +1913,7 @@ function GkitJurPreJuridicoFilters({ data }: { data: GkitJurPreJuridicoData }) {
           options={[
             { label: 'Atualizacao', value: 'updated_at' },
             { label: 'Entrada', value: 'data_entrada' },
-            { label: 'Prazo', value: 'prazo_analise' },
+            { label: 'Vencimento', value: 'prazo_analise' },
             { label: 'Cliente', value: 'cliente_nome' },
             { label: 'Prioridade', value: 'prioridade' },
           ]}
@@ -2065,7 +2065,7 @@ function GkitJurPreJuridicoForm({
       <Field label="Data de entrada">
         <input name="data_entrada" type="date" defaultValue={dateInputValue(item?.dataEntrada) || new Date().toISOString().slice(0, 10)} />
       </Field>
-      <Field label="Prazo de analise">
+      <Field label="Vencimento da analise">
         <input name="prazo_analise" type="date" defaultValue={dateInputValue(item?.prazoAnalise)} />
       </Field>
       <Field label="Descricao">
@@ -2155,7 +2155,7 @@ function GkitJurPreJuridicoList({
             <small>{item.responsavelNome || 'Sem responsavel'}</small>
             <div className="gkit-jur-row-stack">
               <span>{optionLabel(gkitJurPreJuridicoPrioridadeOptions, item.prioridade)}</span>
-              <small>{item.prazoAnalise ? `Prazo ${formatDate(item.prazoAnalise)}` : `Entrada ${formatDate(item.dataEntrada)}`}</small>
+              <small>{item.prazoAnalise ? `Vencimento ${formatDate(item.prazoAnalise)}` : `Entrada ${formatDate(item.dataEntrada)}`}</small>
             </div>
           </div>
           <details className="gkit-jur-process-tag-editor">
@@ -2481,7 +2481,7 @@ function GkitJurTarefaList({
           </div>
           <span className="suite-pill primary">{optionLabel(gkitJurTarefaStatusOptions, row.status)}</span>
           <strong>{row.responsavelNome || row.carteiraNome || 'Sem dono definido'}</strong>
-          <small>{row.prazoAt ? formatDate(row.prazoAt) : 'Sem prazo'}</small>
+          <small>{row.prazoAt ? formatDate(row.prazoAt) : 'Sem vencimento'}</small>
           {canWrite ? (
             <div className="gkit-jur-task-actions">
               {row.status === 'aberta' ? (
@@ -2506,7 +2506,7 @@ function GkitJurTarefaList({
                   <input name="tarefa_id" type="hidden" value={row.id} />
                   <input name="processo_id" type="hidden" value={row.processoId} />
                   <input name="return_to" type="hidden" value={`/modulos/gkit-jur/processos/${row.processoId}#tarefas`} />
-                  <Field label="Prazo">
+                  <Field label="Vencimento">
                     <input name="prazo_at" type="datetime-local" defaultValue={formatDateTimeLocal(row.prazoAt)} />
                   </Field>
                   <Field label="Responsável">
@@ -3750,7 +3750,7 @@ export function GkitJurProcessDetailPage({
                 ))}
               </select>
             </Field>
-            <Field label="Prazo">
+            <Field label="Vencimento">
               <input name="prazo_at" type="datetime-local" />
             </Field>
             <Field label="Responsável">
@@ -4741,7 +4741,7 @@ function GkitJurPublicacaoCard({
                   {gkitJurPublicacaoDecisaoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </Field>
-              <Field label="Prazo sugerido">
+              <Field label="Vencimento sugerido">
                 <input name="prazo_at" type="datetime-local" />
               </Field>
               <label className="suite-checkbox">
@@ -5488,8 +5488,8 @@ function GkitJurMovimentacaoTarefaForm({
         </select>
       </label>
       <label>
-        Prazo em dias
-        <input disabled={!canWrite} name="prazo_dias" type="number" defaultValue={regra?.prazoDias ?? ''} placeholder="Sem prazo" />
+        Vencimento em dias
+        <input disabled={!canWrite} name="prazo_dias" type="number" defaultValue={regra?.prazoDias ?? ''} placeholder="Sem vencimento" />
       </label>
       <label className="span-2">
         Título da tarefa
@@ -5554,7 +5554,7 @@ function GkitJurMovimentacaoTarefaPageOld({
         <GkitJurMovimentacaoTarefaForm action={saveAction} canWrite={canWrite} />
       </GkitJurSection>
 
-      <GkitJurSection title="Regras configuradas" description="Ajuste termos, prioridade, prazo e geração automática sem mexer no código.">
+      <GkitJurSection title="Regras configuradas" description="Ajuste termos, prioridade, vencimento e geração automática sem mexer no código.">
         {data.regras.length ? (
           <div className="suite-table-list compact gkit-jur-rule-list" role="list">
             {data.regras.map((regra) => (
@@ -5580,7 +5580,7 @@ function GkitJurMovimentacaoTarefaPageOld({
                   <span><strong>Gatilho</strong>{regra.codigoMovimento ? `CNJ ${regra.codigoMovimento}` : termsText(regra.termos) || 'Termos não definidos'}</span>
                   <span><strong>Tarefa</strong>{gkitJurTarefaTipoOptions.find((option) => option.value === regra.tipoTarefa)?.label ?? regra.tipoTarefa}</span>
                   <span><strong>Prioridade</strong>{gkitJurTarefaPrioridadeOptions.find((option) => option.value === regra.prioridade)?.label ?? regra.prioridade}</span>
-                  <span><strong>Prazo</strong>{regra.prazoDias ? `${regra.prazoDias} dia(s)` : 'Sem prazo'}</span>
+                  <span><strong>Vencimento</strong>{regra.prazoDias ? `${regra.prazoDias} dia(s)` : 'Sem vencimento'}</span>
                 </div>
                 <details className="gkit-jur-rule-edit">
                   <summary>Editar regra</summary>
@@ -5634,8 +5634,8 @@ function GkitJurRuleFormClean({
         </select>
       </label>
       <label>
-        Prazo
-        <input disabled={!canWrite} name="prazo_dias" type="number" defaultValue={regra?.prazoDias ?? ''} placeholder="Sem prazo" />
+        Vencimento
+        <input disabled={!canWrite} name="prazo_dias" type="number" defaultValue={regra?.prazoDias ?? ''} placeholder="Sem vencimento" />
       </label>
       <label className="span-2">
         Título gerado no inbox
@@ -5704,7 +5704,7 @@ function GkitJurRuleCardClean({
         <span><strong>Gatilho</strong>{trigger}</span>
         <span><strong>Tarefa</strong>{ruleOptionLabel(gkitJurTarefaTipoOptions, regra.tipoTarefa)}</span>
         <span><strong>Prioridade</strong>{ruleOptionLabel(gkitJurTarefaPrioridadeOptions, regra.prioridade)}</span>
-        <span><strong>Prazo</strong>{regra.prazoDias ? `${regra.prazoDias} dia(s)` : 'Sem prazo'}</span>
+        <span><strong>Vencimento</strong>{regra.prazoDias ? `${regra.prazoDias} dia(s)` : 'Sem vencimento'}</span>
       </div>
       <details className="gkit-jur-rule-edit">
         <summary>Editar regra</summary>
