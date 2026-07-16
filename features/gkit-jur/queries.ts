@@ -2301,6 +2301,27 @@ function cockpitDate(value: string | null | undefined) {
   return value ? formatDate(value) : 'Sem data'
 }
 
+function preJuridicoCockpitId(item: GkitJurPreJuridico) {
+  return `PRE-${item.id.slice(0, 8).toUpperCase()}`
+}
+
+function preJuridicoCockpitTone(item: GkitJurPreJuridico): GkitJurCockpitRow['tone'] {
+  if (item.prontoDistribuicao || item.status === 'aprovado' || item.status === 'convertido') return 'ok'
+  if (item.prioridade === 'critica') return 'critical'
+  if (item.prioridade === 'alta' || item.status === 'aguardando_documentos') return 'medium'
+  return cockpitTone(item.prioridade, item.status)
+}
+
+function preJuridicoCockpitSubtitle(item: GkitJurPreJuridico) {
+  const unidade = [item.unidade ? `Unidade ${item.unidade}` : null, item.bloco ? `Bloco ${item.bloco}` : null].filter(Boolean).join(' - ')
+  return [
+    item.clienteNome || item.clienteSnapshotNome,
+    item.area,
+    unidade,
+    item.origem,
+  ].filter(Boolean).join(' | ') || item.descricao || 'Caso em triagem pre-juridica'
+}
+
 async function countRows(query: any, missingAsZero = false) {
   const result = await query
   if (result.error) {
@@ -2396,13 +2417,13 @@ async function getGkitJurCockpitPreJuridicoArea(): Promise<GkitJurCockpitAreaDat
     ]),
     trend: cockpitTrend([metrics.aguardandoDocumentos, metrics.emAnalise, metrics.aprovados, metrics.convertidos, ativos]),
     rows: items.map((item) => ({
-      id: item.id,
+      id: preJuridicoCockpitId(item),
       title: item.titulo,
-      subtitle: item.clienteNome || item.clienteSnapshotNome || item.descricao || 'Caso em triagem pre-juridica',
+      subtitle: preJuridicoCockpitSubtitle(item),
       owner: cockpitOwner(item.responsavelNome, item.carteiraNome),
       status: item.prioridade === 'critica' ? 'critica' : item.status,
       due: item.prazoAnalise ? cockpitDate(item.prazoAnalise) : cockpitDate(item.updatedAt || item.dataEntrada || item.createdAt),
-      tone: cockpitTone(item.prioridade, item.status),
+      tone: preJuridicoCockpitTone(item),
       href: `/modulos/gkit-jur/pre-juridico?q=${encodeURIComponent(item.titulo)}`,
     })),
   }

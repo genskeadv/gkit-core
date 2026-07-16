@@ -1866,34 +1866,27 @@ function GkitJurPreJuridicoMetrics({ data }: { data: GkitJurPreJuridicoData }) {
   const { metrics } = data
   const emFluxo = metrics.emAnalise + metrics.aguardandoDocumentos + metrics.aprovados
   return (
-    <section className="gkit-jur-pre-command">
-      <div className="gkit-jur-pre-command-copy">
-        <span>Pré-jurídico</span>
-        <h2>Entrada, documentação e liberação para distribuição.</h2>
-        <p>Controle o laudo recebido, acompanhe atas, débitos atualizados e procuração antes de transformar o caso em processo judicial.</p>
-      </div>
-      <div className="gkit-jur-pre-command-metrics" aria-label="Indicadores do pré-jurídico">
-        <Link href="/modulos/gkit-jur/pre-juridico">
-          <span>Total</span>
-          <strong>{metrics.total.toLocaleString('pt-BR')}</strong>
-          <small>{emFluxo.toLocaleString('pt-BR')} em fluxo</small>
-        </Link>
-        <Link href="/modulos/gkit-jur/pre-juridico?status=em_analise">
-          <span>Em análise</span>
-          <strong>{metrics.emAnalise.toLocaleString('pt-BR')}</strong>
-          <small>triagem ativa</small>
-        </Link>
-        <Link href="/modulos/gkit-jur/pre-juridico?status=aguardando_documentos">
-          <span>Documentos</span>
-          <strong>{metrics.aguardandoDocumentos.toLocaleString('pt-BR')}</strong>
-          <small>pendência externa</small>
-        </Link>
-        <Link href="/modulos/gkit-jur/pre-juridico?status=aprovado">
-          <span>Aprovados</span>
-          <strong>{metrics.aprovados.toLocaleString('pt-BR')}</strong>
-          <small>{metrics.convertidos.toLocaleString('pt-BR')} convertido(s)</small>
-        </Link>
-      </div>
+    <section className="suite-kpi-grid compact gkit-jur-pre-command" aria-label="Indicadores do pré-jurídico">
+      <Link className="metric-card" href="/modulos/gkit-jur/pre-juridico">
+        <span className="metric-label">Total</span>
+        <strong className="metric-value">{metrics.total.toLocaleString('pt-BR')}</strong>
+        <span className="metric-hint">{emFluxo.toLocaleString('pt-BR')} em fluxo</span>
+      </Link>
+      <Link className="metric-card" href="/modulos/gkit-jur/pre-juridico?status=em_analise">
+        <span className="metric-label">Em análise</span>
+        <strong className="metric-value">{metrics.emAnalise.toLocaleString('pt-BR')}</strong>
+        <span className="metric-hint">triagem ativa</span>
+      </Link>
+      <Link className="metric-card" href="/modulos/gkit-jur/pre-juridico?status=aguardando_documentos">
+        <span className="metric-label">Documentos</span>
+        <strong className="metric-value">{metrics.aguardandoDocumentos.toLocaleString('pt-BR')}</strong>
+        <span className="metric-hint">pendência externa</span>
+      </Link>
+      <Link className="metric-card" href="/modulos/gkit-jur/pre-juridico?status=aprovado">
+        <span className="metric-label">Aprovados</span>
+        <strong className="metric-value">{metrics.aprovados.toLocaleString('pt-BR')}</strong>
+        <span className="metric-hint">{metrics.convertidos.toLocaleString('pt-BR')} convertido(s)</span>
+      </Link>
     </section>
   )
 }
@@ -2142,7 +2135,7 @@ function GkitJurPreJuridicoList({
   if (!data.items.length) return <div className="suite-empty-block gkit-jur-pre-empty">Nenhum pré-jurídico encontrado com os filtros atuais.</div>
 
   return (
-    <div className="gkit-jur-pre-list" role="list">
+    <div className="suite-table-list compact gkit-jur-pre-list" role="list">
       {data.items.map((item) => {
         const flow = preJuridicoFlowState(item)
         const unidade = [item.unidade ? `Unidade ${item.unidade}` : null, item.bloco ? `Bloco ${item.bloco}` : null].filter(Boolean).join(' - ')
