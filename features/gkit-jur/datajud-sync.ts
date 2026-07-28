@@ -24,6 +24,7 @@ type SyncOneResult = {
 
 type SyncBatchResult = {
   processos: number
+  processoIds: string[]
   selecionados: number
   sucesso: number
   semResultado: number
@@ -225,7 +226,10 @@ async function insertMovimentacoesInChunks(movimentos: Array<Record<string, any>
     const insertResult = await admin()
       .schema('gkit_jur')
       .from('movimentacoes')
-      .insert(movimentos.slice(from, from + MOVEMENT_INSERT_CHUNK_SIZE))
+      .upsert(movimentos.slice(from, from + MOVEMENT_INSERT_CHUNK_SIZE), {
+        ignoreDuplicates: true,
+        onConflict: 'processo_id,hash_movimento',
+      })
 
     if (insertResult.error) throw new Error(insertResult.error.message)
   }
@@ -834,6 +838,7 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
       totalResultados: 0,
     })
 
+    await applyMovementRetentionBestEffort(row.id)
     await refreshSummaryBestEffort(row.id)
 
     return { erroCodigo, httpStatus, status: 'erro', tarefasGeradas: 0, transient: isTransient, movimentosRecebidos: 0, movimentosNovos: 0 }
@@ -841,10 +846,12 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
 }
 
 export async function syncGkitJurDataJudBatch(options: {
+  excludeProcessIds?: string[]
   limit: number
   maxTransientErrors?: number
   processoId?: string
   shouldContinue?: () => boolean
+  syncedBefore?: string
   tribunal?: string
 }): Promise<SyncBatchResult> {
   const limit = Math.max(1, Math.min(options.limit, 25))
@@ -852,8 +859,10 @@ export async function syncGkitJurDataJudBatch(options: {
   let candidateResult = await admin()
     .schema('gkit_jur')
     .rpc('proximos_processos_sync', {
+      p_exclude_ids: options.excludeProcessIds ?? [],
       p_limit: limit,
       p_processo_id: options.processoId ?? null,
+      p_synced_before: options.syncedBefore ?? null,
       p_tribunal: options.tribunal ?? null,
     })
 
@@ -870,6 +879,12 @@ export async function syncGkitJurDataJudBatch(options: {
     if (options.processoId) fallbackQuery = fallbackQuery.eq('id', options.processoId)
     else fallbackQuery = fallbackQuery.eq('status_monitoramento', 'monitorando')
     if (options.tribunal) fallbackQuery = fallbackQuery.eq('tribunal_sigla', options.tribunal)
+    if (!options.processoId && options.excludeProcessIds?.length) {
+      fallbackQuery = fallbackQuery.not('id', 'in', `(${options.excludeProcessIds.join(',')})`)
+    }
+    if (!options.processoId && options.syncedBefore) {
+      fallbackQuery = fallbackQuery.or(`ultima_sincronizacao_em.is.null,ultima_sincronizacao_em.lt.${options.syncedBefore}`)
+    }
 
     candidateResult = await fallbackQuery
   }
@@ -892,6 +907,7 @@ export async function syncGkitJurDataJudBatch(options: {
     tarefasGeradas: 0,
     movimentosNovos: 0,
     movimentosRecebidos: 0,
+    processoIds: rows.map((row) => row.id),
     processos: 0,
     selecionados: rows.length,
     semResultado: 0,
@@ -899,8 +915,6 @@ export async function syncGkitJurDataJudBatch(options: {
   }
 
   let transientErrors = 0
-  let consecutiveTransientErrors = 0
-
   for (const row of rows) {
     if (options.shouldContinue && !options.shouldContinue()) {
       result.finalizado = false
@@ -914,15 +928,12 @@ export async function syncGkitJurDataJudBatch(options: {
     if (sync.status === 'erro') result.erro += 1
     if (sync.transient) {
       transientErrors += 1
-      consecutiveTransientErrors += 1
-    } else {
-      consecutiveTransientErrors = 0
     }
     result.tarefasGeradas += sync.tarefasGeradas
     result.movimentosRecebidos += sync.movimentosRecebidos
     result.movimentosNovos += sync.movimentosNovos
 
-    if (transientErrors >= maxTransientErrors || consecutiveTransientErrors >= Math.min(2, maxTransientErrors)) {
+    if (transientErrors >= maxTransientErrors) {
       result.finalizado = false
       break
     }

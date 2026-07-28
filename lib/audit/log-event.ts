@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 type LogEventInput = {
+  usuarioId?: string | null
   acao: string
   descricao?: string
   appCodigo?: string | null
@@ -15,6 +16,7 @@ export async function logAdminEvent(input: LogEventInput) {
   const supabase = createSupabaseAdminClient()
 
   await supabase.schema('audit').from('eventos').insert({
+    usuario_id: input.usuarioId ?? null,
     acao: input.acao,
     descricao: input.descricao ?? null,
     app_codigo: input.appCodigo ?? null,

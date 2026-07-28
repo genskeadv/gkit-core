@@ -90,6 +90,8 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
   }
 
   if (provider === 'datajud' || provider === 'redundante') {
+    const attemptedDataJudProcessIds = new Set<string>()
+
     for (let batch = 0; batch < maxDataJudBatches; batch += 1) {
       if (!hasBudgetFor(startedAt, timeBudgetMs, DATAJUD_NEXT_PROCESS_RESERVE_MS)) {
         result.finalizado = false
@@ -97,6 +99,7 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
       }
 
       const dataJudResult = await syncGkitJurDataJudBatch({
+        excludeProcessIds: Array.from(attemptedDataJudProcessIds),
         limit: dataJudBatchLimit,
         maxTransientErrors: dataJudMaxTransientErrors,
         processoId: options.processoId,
@@ -112,6 +115,7 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
       result.semResultado += dataJudResult.semResultado
       result.sucesso += dataJudResult.sucesso
       result.tarefasGeradas += dataJudResult.tarefasGeradas
+      for (const processoId of dataJudResult.processoIds) attemptedDataJudProcessIds.add(processoId)
 
       if (!dataJudResult.finalizado) {
         result.finalizado = false

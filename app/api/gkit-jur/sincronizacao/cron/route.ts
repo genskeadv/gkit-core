@@ -11,7 +11,7 @@ const JOB_KEY = 'gkit_jur_nightly_sync'
 const CRON_SCHEDULE = '0 6 * * *'
 const LOCK_TTL_MS = 30 * 60 * 1000
 const DEFAULT_CRON_DATAJUD_LIMIT = 4
-const DEFAULT_CRON_DATAJUD_MAX_TRANSIENT_ERRORS = 2
+const DEFAULT_CRON_DATAJUD_MAX_TRANSIENT_ERRORS = 4
 const DEFAULT_CRON_TIME_BUDGET_MS = 240_000
 
 function admin() {
