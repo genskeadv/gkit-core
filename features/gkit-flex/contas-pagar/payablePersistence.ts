@@ -42,6 +42,13 @@ function itemBusinessKey(row: Pick<PayableImportRow, 'descricao' | 'vencimentoDi
   return [String(descricao || '').trim().toLowerCase(), String(vencimento || '').padStart(2, '0'), String(categoria || '').trim().toLowerCase()].join('|');
 }
 
+function importDuplicateKey(row: PayableImportRow): string {
+  return [
+    itemBusinessKey(row),
+    roundMoney(Number(row.valorPrevisto || 0)).toFixed(2),
+  ].join('|');
+}
+
 function reconciliationKey(row: Pick<PayableImportRow, 'descricao' | 'vencimentoDia' | 'valorPrevisto'> | Pick<PayableItem, 'descricao' | 'vencimento_dia' | 'valor_previsto'>): string {
   const descricao = String(row.descricao || '')
     .normalize('NFD')
@@ -123,7 +130,7 @@ function validatePayableRows(rows: PayableImportRow[]): PayableImportIssue[] {
       issues.push({ linha: row.linha, severidade: 'aviso', campo: 'Categoria', mensagem: 'Categoria vazia; sera gravada como Sem categoria.' });
     }
 
-    const key = itemBusinessKey(row);
+    const key = importDuplicateKey(row);
     if (seen.has(key)) {
       issues.push({ linha: row.linha, severidade: 'aviso', mensagem: 'Possivel despesa duplicada na planilha importada.' });
     }
