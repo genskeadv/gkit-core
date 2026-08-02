@@ -4,6 +4,8 @@ import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { GKIT_PERFORMA_STORAGE_KEY } from './storage'
 
 type AgendaRow = {
+  attention: boolean
+  attentionReason: string
   ate: string
   conclusao: Date | null
   criacao: Date | null
@@ -23,7 +25,9 @@ type AgendaRow = {
 }
 
 type WorkUnit = {
+  attentionReasons: string[]
   atrasada: boolean
+  cancelada: boolean
   codigoATE: string
   concluida: boolean
   dataConclusao: Date | null
@@ -214,13 +218,22 @@ function isLegalDeadlineTitle(title: string) {
   return includesAny(normalized, LEGAL_KEYWORDS)
 }
 
-function classifyRow(row: Omit<AgendaRow, 'ate' | 'eligibleForATE' | 'excluded' | 'legalPrazo' | 'reason'>) {
+function isConcludedStatus(status: string) {
+  return normalize(status).includes('CONCLUID')
+}
+
+function isCanceledStatus(status: string) {
+  return normalize(status).includes('CANCEL')
+}
+
+function classifyRow(row: Omit<AgendaRow, 'attention' | 'attentionReason' | 'ate' | 'eligibleForATE' | 'excluded' | 'legalPrazo' | 'reason'>) {
   const tipo = normalize(row.tipo)
   const ate = extractATE(row.tituloE, row.tituloF)
   let eligibleForATE = Boolean(ate)
   let legalPrazo = false
   let excluded = false
   let reason = ''
+  let attention = false
 
   if (tipo === 'PRAZO' && includesAny(row.tituloE, ['FOLLOWUP', 'FOLLOW UP'])) {
     excluded = true
@@ -234,7 +247,6 @@ function classifyRow(row: Omit<AgendaRow, 'ate' | 'eligibleForATE' | 'excluded' 
     if (isLegalDeadlineTitle(row.tituloE)) {
       legalPrazo = true
     } else {
-      excluded = true
       if (includesAny(row.tituloE, ['PRE-PROCESSUAL', 'PRE PROCESSUAL'])) {
         reason = 'Pre-processual'
       } else if (includesAny(row.tituloE, OPERATIONAL_KEYWORDS)) {
@@ -244,10 +256,16 @@ function classifyRow(row: Omit<AgendaRow, 'ate' | 'eligibleForATE' | 'excluded' 
       } else {
         reason = 'Titulo sem ato juridico identificavel'
       }
+
+      if (ate) {
+        attention = true
+      } else {
+        excluded = true
+      }
     }
   }
 
-  return { ate, eligibleForATE, excluded, legalPrazo, reason }
+  return { ate, attention, eligibleForATE, excluded, legalPrazo, reason }
 }
 
 function findColumn(headers: string[], candidates: string[], fallbackIndex: number) {
@@ -295,7 +313,19 @@ function mapRows(jsonRows: Array<Record<string, unknown>>, headers: string[]) {
       tituloF: asText(raw[cols.tituloF]),
     }
 
-    return { ...base, ...classifyRow(base) }
+    const classified = classifyRow(base)
+    const attentionReasons = [
+      classified.attention ? `${classified.reason}; consolidado pelo ATE` : '',
+      isConcludedStatus(base.status) && !base.conclusao ? 'Concluido sem data de conclusao' : '',
+      isCanceledStatus(base.status) ? 'Linha cancelada' : '',
+    ].filter(Boolean)
+
+    return {
+      ...base,
+      ...classified,
+      attention: classified.attention || attentionReasons.length > 0,
+      attentionReason: attentionReasons.join('; '),
+    }
   })
 }
 
@@ -324,18 +354,29 @@ function daysBetween(a: Date | null, b: Date | null) {
 }
 
 function makeUnitFromRows(id: string, tipoUnidade: WorkUnit['tipoUnidade'], rows: AgendaRow[]): WorkUnit {
+  const activeRows = rows.filter((row) => !isCanceledStatus(row.status))
+  const conclusionRows = activeRows.length ? activeRows : rows
   const dataInicio = minDate(rows.map((row) => row.criacao || row.data))
   const dataPrazo = minDate(rows.map((row) => row.data))
-  const dataConclusao = maxDate(rows.map((row) => row.conclusao))
-  const allConcluded = rows.every((row) => normalize(row.status).includes('CONCLUID'))
-  const anyConcluded = rows.some((row) => normalize(row.status).includes('CONCLUID'))
+  const dataConclusao = maxDate(conclusionRows.map((row) => row.conclusao))
+  const allConcluded = conclusionRows.length > 0 && conclusionRows.every((row) => isConcludedStatus(row.status))
+  const anyConcluded = conclusionRows.some((row) => isConcludedStatus(row.status))
+  const cancelada = activeRows.length === 0 && rows.some((row) => isCanceledStatus(row.status))
   const concluida = allConcluded || (tipoUnidade === 'PRAZO_JURIDICO' && anyConcluded)
   const refEnd = concluida ? dataConclusao : TODAY
-  const atrasada = Boolean(dataPrazo && refEnd && new Date(refEnd) > new Date(dataPrazo))
+  const atrasada = !cancelada && Boolean(dataPrazo && refEnd && new Date(refEnd) > new Date(dataPrazo))
   const noPrazo = Boolean(concluida && dataPrazo && dataConclusao && new Date(dataConclusao) <= new Date(dataPrazo))
+  const responsaveis = [...new Set(rows.map((row) => row.responsavel).filter(Boolean))]
+  const attentionReasons = [
+    rows.some((row) => isCanceledStatus(row.status)) ? 'ATE contem linha cancelada' : '',
+    responsaveis.length > 1 ? 'ATE com responsaveis diferentes' : '',
+    concluida && !dataConclusao ? 'Unidade concluida sem data de conclusao' : '',
+  ].filter(Boolean)
 
   return {
+    attentionReasons,
     atrasada,
+    cancelada,
     codigoATE: tipoUnidade === 'ATE' ? id : '',
     concluida,
     dataConclusao,
@@ -348,7 +389,7 @@ function makeUnitFromRows(id: string, tipoUnidade: WorkUnit['tipoUnidade'], rows
     noPrazo,
     qtdLinhasOrigem: rows.length,
     responsavel: mode(rows.map((row) => row.responsavel), '(sem responsavel)'),
-    status: concluida ? 'Concluido' : 'Aberto',
+    status: cancelada ? 'Cancelado' : concluida ? 'Concluido' : 'Aberto',
     tipoUnidade,
     titulo: mode(rows.map((row) => row.tituloE || row.tituloF), id),
   }
@@ -512,6 +553,8 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
   const units = useMemo(() => filteredUnits(active?.units ?? [], startDate, endDate, responsavel), [active, endDate, responsavel, startDate])
   const ranking = useMemo(() => buildRanking(units, rankingType), [rankingType, units])
   const selected = ranking.find((item) => item.name === selectedName) ?? null
+  const attentionRows = active?.rows.filter((row) => row.attention) ?? []
+  const attentionUnits = units.filter((unit) => unit.attentionReasons.length)
   const excludedRows = active?.rows.filter((row) => row.excluded) ?? []
   const concluded = units.filter((unit) => unit.concluida).length
   const overdue = units.filter((unit) => unit.atrasada).length
@@ -591,9 +634,10 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
         sheetName: active.sheetName,
         summary: {
           ates: units.filter((unit) => unit.tipoUnidade === 'ATE').length,
+          alertas: attentionRows.length + attentionUnits.length,
           atrasadas: overdue,
           concluidas: concluded,
-          excluidas: excludedRows.length,
+          descartadas: excludedRows.length,
           prazosJuridicos: units.filter((unit) => unit.tipoUnidade === 'PRAZO_JURIDICO').length,
           registros: active.rows.length,
           unidades: units.length,
@@ -705,7 +749,7 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
           <article className="metric-card">
             <span className="metric-label">Atrasadas</span>
             <strong className="metric-value">{overdue}</strong>
-            <span className="metric-hint">{excludedRows.length} descartes auditados</span>
+            <span className="metric-hint">{attentionRows.length + attentionUnits.length} alertas; {excludedRows.length} descartes</span>
           </article>
         </section> : null}
 

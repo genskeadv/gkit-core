@@ -65,14 +65,15 @@ Use para conferir a qualidade da base processada. A auditoria pode separar:
 
 - Unidades.
 - ATEs E/F.
-- Linhas excluidas.
-- Possiveis duplicidades ou registros ignorados.
+- Alertas de base ou regra, como concluido sem data, cancelado ou ATE com mais de um responsavel.
+- Descartes reais, que ficam fora do ranking.
+- Possiveis duplicidades.
 
 ## Rotina recomendada
 
 1. Trabalhe sempre com periodo definido.
 2. Importe a agenda mais recente.
-3. Verifique se houve linhas excluidas na auditoria.
+3. Verifique alertas e descartes na auditoria.
 4. Analise ranking e detalhe antes de tirar conclusoes.
 5. Exporte CSV para compartilhamento ou fechamento.
 6. Salve o ranking apenas quando tiver permissao e a base estiver conferida.

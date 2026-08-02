@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import type {
   ClientInputRow,
   CommissionAuditRow,
+  CommissionCollaboratorSummaryRow,
   CommissionProcessResult,
   CommissionRule,
   CommissionSummaryRow,
@@ -25,6 +26,28 @@ export const COMMISSION_RULES: CommissionRule[] = [
     reductionRate: 0.14,
     commissionRate: 0.015,
     splitBy: 1,
+  },
+];
+
+export const COMMISSION_WALLET_OVERRIDES = [
+  {
+    carteira: 'Carteira Aline_Lidiane',
+    commissionRate: 1,
+    splitBy: 1,
+    observacao: '100% da base apos reducao',
+  },
+  {
+    carteira: 'Carteira Vania_Lidiane',
+    commissionRate: 1,
+    splitBy: 1,
+    observacao: '100% da base apos reducao',
+  },
+];
+
+const COMMISSION_WALLET_ALIASES = [
+  {
+    carteira: 'Carteira Vania_Lidiane',
+    aliases: ['Carteira_Vania', 'Carteira Vania'],
   },
 ];
 
@@ -81,6 +104,14 @@ function moneyToNumber(value: unknown): number {
 
 function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function titleCaseName(value: string): string {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
 }
 
 function findColumn(headers: string[], aliases: string[]): string | null {
@@ -193,7 +224,7 @@ function makeClientMaps(clientRows: ClientInputRow[]) {
   const byName = new Map<string, string>();
 
   for (const row of clientRows) {
-    const vendedor = String(row[sellerColumn] ?? '').trim() || 'Sem vendedor';
+    const vendedor = canonicalWalletName(String(row[sellerColumn] ?? '').trim() || 'Sem vendedor');
     const doc = onlyDigits(row[docColumn ?? '']);
     const name = normalizeName(row[clientColumn ?? '']);
 
@@ -212,6 +243,70 @@ function matchRule(categoria: string, rules: CommissionRule[] = COMMISSION_RULES
 function isMissingSeller(value: unknown): boolean {
   const normalized = normalizeKey(value);
   return !normalized || normalized === 'sem vendedor' || normalized === 'sem carteira';
+}
+
+function canonicalWalletName(carteira: string): string {
+  const normalizedCarteira = normalizeKey(carteira);
+  const matched = COMMISSION_WALLET_ALIASES.find((row) =>
+    row.aliases.some((alias) => normalizeKey(alias) === normalizedCarteira),
+  );
+  return matched?.carteira ?? carteira;
+}
+
+function walletOverride(carteira: string) {
+  const normalizedCarteira = normalizeKey(canonicalWalletName(carteira));
+  return COMMISSION_WALLET_OVERRIDES.find((override) => normalizeKey(override.carteira) === normalizedCarteira) ?? null;
+}
+
+function collaboratorsFromWallet(carteira: string): string[] {
+  const cleaned = canonicalWalletName(String(carteira || ''))
+    .replace(/^carteira\s+/i, '')
+    .replace(/^carteira[_\s-]*/i, '')
+    .trim();
+
+  if (!cleaned || isMissingSeller(cleaned)) return ['Sem colaborador'];
+
+  const parts = cleaned
+    .split(/[_/&,+]+|\s+e\s+/i)
+    .map((part) => titleCaseName(part.trim()))
+    .filter(Boolean);
+
+  return parts.length ? Array.from(new Set(parts)) : [titleCaseName(cleaned)];
+}
+
+export function buildCollaboratorSummaries(summaries: CommissionSummaryRow[]): CommissionCollaboratorSummaryRow[] {
+  return summaries
+    .flatMap((summary) => {
+      const colaboradores = collaboratorsFromWallet(summary.carteira);
+      const percentualRateio = 1 / colaboradores.length;
+      let allocatedValorRecebido = 0;
+      let allocatedValorAposReducao = 0;
+      let allocatedComissao = 0;
+
+      return colaboradores.map((colaborador, index) => {
+        const isLast = index === colaboradores.length - 1;
+        const valorRecebido = isLast ? round2(summary.valorRecebido - allocatedValorRecebido) : round2(summary.valorRecebido * percentualRateio);
+        const valorAposReducao = isLast ? round2(summary.valorAposReducao - allocatedValorAposReducao) : round2(summary.valorAposReducao * percentualRateio);
+        const comissaoFinal = isLast ? round2(summary.comissaoFinal - allocatedComissao) : round2(summary.comissaoFinal * percentualRateio);
+
+        allocatedValorRecebido = round2(allocatedValorRecebido + valorRecebido);
+        allocatedValorAposReducao = round2(allocatedValorAposReducao + valorAposReducao);
+        allocatedComissao = round2(allocatedComissao + comissaoFinal);
+
+        return {
+          colaborador,
+          carteira: summary.carteira,
+          categoria: summary.categoria,
+          quantidadeLancamentos: summary.quantidadeLancamentos,
+          valorRecebido,
+          valorAposReducao,
+          comissaoCarteira: summary.comissaoFinal,
+          percentualRateio,
+          comissaoFinal,
+        };
+      });
+    })
+    .sort((a, b) => a.colaborador.localeCompare(b.colaborador) || a.categoria.localeCompare(b.categoria));
 }
 
 export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, clientRows: ClientInputRow[], rules: CommissionRule[] = COMMISSION_RULES): CommissionProcessResult {
@@ -284,6 +379,7 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
       vendedor = 'Sem vendedor';
       observacao = observacao || 'Cliente encontrado, mas sem vendedor/carteira cadastrada.';
     }
+    vendedor = canonicalWalletName(vendedor);
 
     return {
       linha: index + 2,
@@ -344,15 +440,20 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
     .map((item) => {
       const valorReducao = item.valorRecebido * item.reducaoPercentual;
       const valorAposReducao = item.valorRecebido - valorReducao;
-      const comissaoTotal = valorAposReducao * item.percentualComissao;
-      const comissaoFinal = comissaoTotal / item.divisor;
+      const override = walletOverride(item.carteira);
+      const percentualComissao = override?.commissionRate ?? item.percentualComissao;
+      const divisor = override?.splitBy ?? item.divisor;
+      const comissaoTotal = valorAposReducao * percentualComissao;
+      const comissaoFinal = comissaoTotal / divisor;
 
       return {
         ...item,
         valorRecebido: round2(item.valorRecebido),
         valorReducao: round2(valorReducao),
         valorAposReducao: round2(valorAposReducao),
+        percentualComissao,
         comissaoTotal: round2(comissaoTotal),
+        divisor,
         comissaoFinal: round2(comissaoFinal),
       };
     })
@@ -362,7 +463,7 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
     throw new Error('Nao encontrei valores liquidos na planilha de contas a receber.');
   }
 
-  return { enrichedRows, summaries, auditRows };
+  return { enrichedRows, summaries, collaboratorSummaries: buildCollaboratorSummaries(summaries), auditRows };
 }
 
 export function processCommissionFiles(receivablesBuffer: ArrayBuffer, clientsBuffer: ArrayBuffer, rules: CommissionRule[] = COMMISSION_RULES): CommissionProcessResult {
@@ -394,6 +495,23 @@ export function buildCommissionWorkbook(result: CommissionProcessResult): Buffer
 
   const acordos = resumo.filter((row) => row.Categoria === 'Repasse de Acordos Judiciais');
   const mensalidade = resumo.filter((row) => row.Categoria === 'Mensalidade de Assessoria Juridica');
+  const colaboradores = result.collaboratorSummaries.map((row) => ({
+    Colaborador: row.colaborador,
+    Carteira: row.carteira,
+    Categoria: row.categoria,
+    'Qtde. lancamentos': row.quantidadeLancamentos,
+    'Valor liquido rateado': row.valorRecebido,
+    'Valor apos reducao rateado': row.valorAposReducao,
+    'Comissao carteira': row.comissaoCarteira,
+    'Rateio %': row.percentualRateio,
+    'Comissao colaborador': row.comissaoFinal,
+  }));
+  const excecoesCarteira = COMMISSION_WALLET_OVERRIDES.map((row) => ({
+    Carteira: row.carteira,
+    Regra: row.observacao,
+    'Comissao %': row.commissionRate,
+    Divisor: row.splitBy,
+  }));
 
   const enriquecida = result.enrichedRows.map((row) => ({
     Linha: row.linha,
@@ -420,8 +538,10 @@ export function buildCommissionWorkbook(result: CommissionProcessResult): Buffer
   makeSheet(workbook, 'Resumo Comissoes', resumo);
   makeSheet(workbook, 'Acordos Judiciais', acordos);
   makeSheet(workbook, 'Mensalidade Assessoria', mensalidade);
+  makeSheet(workbook, 'Comissao Colaboradores', colaboradores);
   makeSheet(workbook, 'Contas com Carteira', enriquecida);
   makeSheet(workbook, 'Auditoria', auditoria);
+  makeSheet(workbook, 'Excecoes Carteira', excecoesCarteira);
 
   return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 }

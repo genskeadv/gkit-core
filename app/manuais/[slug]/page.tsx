@@ -13,15 +13,16 @@ type ManualSource = {
 
 const manualSources: Record<string, ManualSource> = {
   core: { title: 'Manual - Core', folder: 'manuais', filename: 'core.md', moduleHref: '/admin' },
-  colab: { title: 'Manual - GKIT Colab', folder: 'modulos', filename: 'colab.md', moduleHref: '/modulos/colab' },
+  colab: { title: 'Manual - GKIT Colab', folder: 'manuais', filename: 'colab.md', moduleHref: '/modulos/colab' },
   'gkit-ate': { title: 'Manual - GKIT ATE', folder: 'manuais', filename: 'gkit-ate.md', moduleHref: '/modulos/gkit-ate' },
   'gkit-ciclo': { title: 'Manual - GKIT Ciclo', folder: 'manuais', filename: 'gkit-ciclo.md', moduleHref: '/modulos/gkit-ciclo' },
   'gkit-dir': { title: 'Manual - GKIT DIR', folder: 'manuais', filename: 'gkit-dir.md', moduleHref: '/modulos/gkit-dir' },
   'gkit-fat': { title: 'Manual - GKIT FAT', folder: 'manuais', filename: 'gkit-fat.md', moduleHref: '/modulos/gkit-fat' },
   'gkit-flex': { title: 'Manual - GKIT Flex', folder: 'manuais', filename: 'gkit-flex.md', moduleHref: '/modulos/gkit-flex' },
-  'gkit-jur': { title: 'Manual - GKIT Jur', folder: 'modulos', filename: 'gkit-jur.md', moduleHref: '/modulos/gkit-jur/inbox' },
+  'gkit-jur': { title: 'Manual - GKIT Jur', folder: 'manuais', filename: 'gkit-jur.md', moduleHref: '/modulos/gkit-jur/inbox' },
   'gkit-new': { title: 'Manual - GKIT New', folder: 'manuais', filename: 'gkit-new.md', moduleHref: '/modulos/gkit-new' },
   'gkit-performa': { title: 'Manual - GKIT Performa', folder: 'manuais', filename: 'gkit-performa.md', moduleHref: '/modulos/gkit-performa' },
+  painel: { title: 'Manual - Painel', folder: 'manuais', filename: 'painel.md', moduleHref: '/modulos/painel' },
 }
 
 export const dynamic = 'force-static'

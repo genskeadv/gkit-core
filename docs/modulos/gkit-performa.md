@@ -21,7 +21,9 @@ O ranking nao conta apenas linhas da agenda. Ele consolida:
 - ATE unico: codigos `ATE` encontrados no titulo ou no titulo do processo/caso/atendimento.
 - Prazo juridico real: prazo sem ATE cujo titulo indica ato juridico controlavel.
 
-Linhas operacionais, follow-up, manifestacao, pre-processual e prazos cujo titulo identifica apenas cliente ou condominio ficam visiveis na auditoria de descartes.
+Linhas operacionais, follow-up, manifestacao, pre-processual e prazos sem ATE cujo titulo identifica apenas cliente ou condominio ficam visiveis na auditoria de descartes.
+
+Quando a linha tem ATE e tambem algum sinal de qualidade de base, ela continua consolidada no ranking e aparece na auditoria como alerta. Entram nessa lista, por exemplo, prazos com titulo apenas de cliente/condominio, concluido sem data de conclusao, linhas canceladas e ATEs com responsaveis diferentes.
 
 ## Score
 

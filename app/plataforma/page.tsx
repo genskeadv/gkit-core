@@ -21,6 +21,7 @@ const manualSlugs: Record<string, string> = {
   'gkit-jur': 'gkit-jur',
   'gkit-new': 'gkit-new',
   'gkit-performa': 'gkit-performa',
+  painel: 'painel',
 }
 
 const adminModule: ModuleCard = {

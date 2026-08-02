@@ -25,6 +25,18 @@ type SummaryRow = {
   comissaoFinal: number;
 };
 
+type CollaboratorSummaryRow = {
+  colaborador: string;
+  carteira: string;
+  categoria: string;
+  quantidadeLancamentos: number;
+  valorRecebido: number;
+  valorAposReducao: number;
+  comissaoCarteira: number;
+  percentualRateio: number;
+  comissaoFinal: number;
+};
+
 type MonthStatus = 'aberto' | 'fechado' | 'nao_aberto' | 'indisponivel';
 
 function formatCurrency(value: number) {
@@ -40,6 +52,7 @@ export function CommissionUploader() {
   const [loading, setLoading] = useState(false);
   const [monthLoading, setMonthLoading] = useState(false);
   const [summary, setSummary] = useState<SummaryRow[]>([]);
+  const [collaboratorSummary, setCollaboratorSummary] = useState<CollaboratorSummaryRow[]>([]);
   const [auditCount, setAuditCount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
@@ -162,6 +175,7 @@ export function CommissionUploader() {
     setError(null);
     setSaveStatus(null);
     setSummary([]);
+    setCollaboratorSummary([]);
     setAuditCount(null);
 
     try {
@@ -180,10 +194,14 @@ export function CommissionUploader() {
       }
 
       const encodedSummary = response.headers.get('X-Commission-Summary');
+      const encodedCollaborators = response.headers.get('X-Commission-Collaborators');
       const auditHeader = response.headers.get('X-Audit-Count');
 
       if (encodedSummary) {
         setSummary(JSON.parse(decodeURIComponent(encodedSummary)) as SummaryRow[]);
+      }
+      if (encodedCollaborators) {
+        setCollaboratorSummary(JSON.parse(decodeURIComponent(encodedCollaborators)) as CollaboratorSummaryRow[]);
       }
       if (auditHeader) {
         setAuditCount(Number(auditHeader));
@@ -290,6 +308,42 @@ export function CommissionUploader() {
         <MetricCard label="Base apos redutores" value={formatCurrency(displayTotals.valorAposReducao)} help="Apos 15% em acordos e 14% em mensalidade" />
         <MetricCard label="Comissao final" value={formatCurrency(displayTotals.comissaoFinal)} help="Valor final por regra de categoria" tone={displayTotals.comissaoFinal > 0 ? 'good' : 'default'} />
       </section>
+
+      {collaboratorSummary.length > 0 && (
+        <section className="card">
+          <div className="header-row">
+            <div>
+              <h2>Resumo por colaborador</h2>
+              <p className="muted">Rateio 50/50 nas carteiras com dois nomes e 100% nas individuais.</p>
+            </div>
+          </div>
+
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Colaborador</th>
+                  <th>Carteira</th>
+                  <th>Categoria</th>
+                  <th className="text-right">Rateio</th>
+                  <th className="text-right">Comissao colaborador</th>
+                </tr>
+              </thead>
+              <tbody>
+                {collaboratorSummary.map((row, index) => (
+                  <tr key={`${row.colaborador}-${row.carteira}-${row.categoria}-${index}`}>
+                    <td><strong>{row.colaborador}</strong></td>
+                    <td>{row.carteira}</td>
+                    <td>{row.categoria}</td>
+                    <td className="text-right">{Math.round(row.percentualRateio * 100)}%</td>
+                    <td className="text-right"><strong>{formatCurrency(row.comissaoFinal)}</strong></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <section className="card">
         <div className="header-row">

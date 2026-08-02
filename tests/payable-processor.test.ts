@@ -8,7 +8,7 @@ function workbookFile(rows: unknown[][], filename = 'extrato.xlsx') {
   const sheet = XLSX.utils.aoa_to_sheet(rows)
   XLSX.utils.book_append_sheet(workbook, sheet, 'Extrato')
   const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer
-  return new File([buffer], filename, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  return new File([new Uint8Array(buffer)], filename, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
 }
 
 test('payable bank statement parser preserves decimal-dot amounts and statement categories', async () => {
@@ -31,4 +31,3 @@ test('payable bank statement parser preserves decimal-dot amounts and statement 
   assert.equal(rows[1].categoria, 'Aluguel')
   assert.equal(rows[1].centro, 'Estrutura')
 })
-

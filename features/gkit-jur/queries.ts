@@ -93,7 +93,7 @@ const GKIT_JUR_CRON_TIMEZONE = 'America/Sao_Paulo'
 const GKIT_JUR_CRON_DEFAULT_DATAJUD_LIMIT = 8
 const GKIT_JUR_CRON_DEFAULT_TIME_BUDGET_MS = 240_000
 const MOVEMENT_PROCESS_SCOPE_LIMIT = 5000
-const PROCESS_LIST_SELECT = 'id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento'
+const PROCESS_LIST_SELECT = 'id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,ultima_tentativa_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultimo_status_sincronizacao,proxima_tentativa_sincronizacao_em,falhas_transientes_consecutivas,sem_resultado_consecutivos,status,status_monitoramento'
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -533,6 +533,12 @@ function mapProcesso(row: Record<string, unknown>, maps: {
     orgaoJulgadorNome: text(row.orgao_julgador_nome) || null,
     ultimaMovimentacaoEm: text(row.ultima_movimentacao_em) || null,
     ultimaSincronizacaoEm: text(row.ultima_sincronizacao_em) || null,
+    ultimaTentativaSincronizacaoEm: text(row.ultima_tentativa_sincronizacao_em) || null,
+    ultimaSincronizacaoComResultadoEm: text(row.ultima_sincronizacao_com_resultado_em) || null,
+    ultimoStatusSincronizacao: text(row.ultimo_status_sincronizacao) || null,
+    proximaTentativaSincronizacaoEm: text(row.proxima_tentativa_sincronizacao_em) || null,
+    falhasTransientesConsecutivas: Number(row.falhas_transientes_consecutivas ?? 0),
+    semResultadoConsecutivos: Number(row.sem_resultado_consecutivos ?? 0),
     status: status(row.status),
     statusMonitoramento: monitoramento(row.status_monitoramento),
     etiquetas: maps.etiquetas?.get(String(row.id)) ?? [],
@@ -1977,7 +1983,7 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
     admin()
       .schema('gkit_jur')
       .from('processos')
-      .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,tribunal_alias,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,data_ajuizamento,observacoes,url_processo,origem_modulo,importado_de,created_at,updated_at')
+      .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,tribunal_alias,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,ultima_tentativa_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultimo_status_sincronizacao,proxima_tentativa_sincronizacao_em,falhas_transientes_consecutivas,sem_resultado_consecutivos,status,status_monitoramento,data_ajuizamento,observacoes,url_processo,origem_modulo,importado_de,created_at,updated_at')
       .eq('id', id)
       .single(),
     getGkitJurFormData(),
@@ -4149,7 +4155,7 @@ async function fetchAllActiveProcessMonitoringRows() {
     const result = await admin()
       .schema('gkit_jur')
       .from('processos')
-      .select('id,tribunal_sigla,tribunal_alias,status_monitoramento,ultima_sincronizacao_em,carteira_id,responsavel_id')
+      .select('id,tribunal_sigla,tribunal_alias,status_monitoramento,ultima_sincronizacao_em,ultima_tentativa_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultimo_status_sincronizacao,proxima_tentativa_sincronizacao_em,carteira_id,responsavel_id')
       .eq('status', DEFAULT_PROCESS_STATUS)
       .range(from, from + pageSize - 1)
 
@@ -4166,7 +4172,7 @@ async function fetchAllActiveProcessMonitoringRows() {
 function tribunalMonitoramentoNivel(item: Omit<GkitJurIntegracaoTribunal, 'nivel' | 'status'>): GkitJurMonitoramentoNivel {
   if (!item.totalAtivos) return 'cinza'
   if (!item.alias || item.erro > 0) return 'vermelho'
-  if (item.semSincronizacao > 0 || item.atrasados > 0 || item.semCarteira > 0 || item.semResponsavel > 0 || item.pausado > 0) return 'amarelo'
+  if (item.semSincronizacao > 0 || item.atrasados > 0 || item.emBackoff > 0 || item.semResultadoRecente > 0 || item.semCarteira > 0 || item.semResponsavel > 0 || item.pausado > 0) return 'amarelo'
   return 'verde'
 }
 
@@ -4266,6 +4272,7 @@ export async function getGkitJurIntegracaoData(): Promise<GkitJurIntegracaoData>
       alias: (catalog?.alias ?? text(row.tribunal_alias)) || null,
       atrasados: 0,
       erro: 0,
+      emBackoff: 0,
       monitorando: 0,
       naoMonitorar: 0,
       nome: catalog?.nome ?? (sigla === 'SEM_TRIBUNAL' ? 'Tribunal não identificado' : sigla),
@@ -4273,14 +4280,18 @@ export async function getGkitJurIntegracaoData(): Promise<GkitJurIntegracaoData>
       saneamentoProcessos: 0,
       semCarteira: 0,
       semResponsavel: 0,
+      semResultadoRecente: 0,
       semSincronizacao: 0,
       totalAtivos: 0,
       tribunal: sigla,
     }
 
-    const syncAt = text(row.ultima_sincronizacao_em)
+    const syncAt = text(row.ultima_sincronizacao_com_resultado_em) || text(row.ultima_sincronizacao_em)
     const syncTime = syncAt ? new Date(syncAt).getTime() : Number.NaN
     const monitor = monitoramento(row.status_monitoramento)
+    const nextAttemptAt = text(row.proxima_tentativa_sincronizacao_em)
+    const nextAttemptTime = nextAttemptAt ? new Date(nextAttemptAt).getTime() : Number.NaN
+    const lastStatus = text(row.ultimo_status_sincronizacao)
 
     current.totalAtivos += 1
     if (monitor === 'monitorando') current.monitorando += 1
@@ -4290,6 +4301,8 @@ export async function getGkitJurIntegracaoData(): Promise<GkitJurIntegracaoData>
     if (!text(row.carteira_id) || !text(row.responsavel_id)) current.saneamentoProcessos += 1
     if (!text(row.carteira_id)) current.semCarteira += 1
     if (!text(row.responsavel_id)) current.semResponsavel += 1
+    if (Number.isFinite(nextAttemptTime) && nextAttemptTime > Date.now()) current.emBackoff += 1
+    if (lastStatus === 'sem_resultado') current.semResultadoRecente += 1
     if (!syncAt) current.semSincronizacao += 1
     if (syncAt && (!Number.isFinite(syncTime) || syncTime < staleBefore)) current.atrasados += 1
 
@@ -4333,7 +4346,9 @@ export async function getGkitJurIntegracaoData(): Promise<GkitJurIntegracaoData>
       atrasados: tribunais.reduce((total, item) => total + item.atrasados, 0),
       configurados: tribunais.filter((item) => item.alias).length,
       criticos: tribunais.filter((item) => item.nivel === 'vermelho').length,
+      emBackoff: tribunais.reduce((total, item) => total + item.emBackoff, 0),
       semMapeamento: tribunais.filter((item) => !item.alias).reduce((total, item) => total + item.totalAtivos, 0),
+      semResultadoRecente: tribunais.reduce((total, item) => total + item.semResultadoRecente, 0),
       semSincronizacao: tribunais.reduce((total, item) => total + item.semSincronizacao, 0),
       totalAtivos: rows.length,
     },

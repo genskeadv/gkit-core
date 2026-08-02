@@ -116,6 +116,7 @@ export async function POST(request: NextRequest) {
         arquivo: contasFile.name,
         competencia,
         resumo,
+        colaboradores: result.collaboratorSummaries,
         totals,
         auditCount: result.auditRows.length,
       });
@@ -133,6 +134,7 @@ export async function POST(request: NextRequest) {
         arquivo: contasFile.name,
         competencia,
         resumo,
+        colaboradores: result.collaboratorSummaries,
         totals,
         auditCount: result.auditRows.length,
         saved: saveResult.saved,
@@ -149,6 +151,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': 'attachment; filename="comissoes_mensais.xlsx"',
         'X-Commission-Summary': encodeURIComponent(JSON.stringify(resumo)),
+        'X-Commission-Collaborators': encodeURIComponent(JSON.stringify(result.collaboratorSummaries)),
         'X-Audit-Count': String(result.auditRows.length),
         'X-Commission-Execution-Id': saveResult.executionId ?? '',
         'X-Commission-Saved': saveResult.saved ? 'true' : 'false',

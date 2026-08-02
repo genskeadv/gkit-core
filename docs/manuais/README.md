@@ -8,13 +8,16 @@ aprovar ou faturar informacoes.
 ## Modulos
 
 - [Core](./core.md): acesso, usuarios, perfis, permissoes, carteiras, times e auditoria.
+- [Painel](./painel.md): entrada unificada, atalhos por modulo e leitura executiva da suite.
 - [GKIT Ciclo](./gkit-ciclo.md): cadastro mestre de clientes, documentos, contratos, onboarding, alertas e rotina operacional.
 - [GKIT New](./gkit-new.md): fluxo comercial, clientes em prospeccao, contatos, oportunidades, workflow e tarefas.
 - [GKIT ATE](./gkit-ate.md): atendimentos consultivos, tarefas e importacoes historicas.
 - [GKIT DIR](./gkit-dir.md): consulta consolidada ao diretorio de clientes.
+- [GKIT Jur](./gkit-jur.md): inbox juridico, processos, publicacoes, pendencias, acordos, agente e auditoria.
 - [GKIT Performa](./gkit-performa.md): ranking operacional, analise de agenda e auditoria de dados.
 - [GKIT Flex](./gkit-flex.md): previsoes, receitas, pagamentos, comissoes, saneamento e cadastros financeiros.
 - [GKIT FAT](./gkit-fat.md): contratos de faturamento, ordens de servico, conferencia fiscal e preparo de NFS-e.
+- [GKIT Colab](./colab.md): portal individual do colaborador, pagamentos, comissoes, beneficios, documentos e perfil.
 
 ## Como usar estes manuais
 
@@ -30,3 +33,5 @@ aprovar ou faturar informacoes.
 - Usuarios, perfis, carteiras, times e permissoes sao mantidos no Core.
 - Clientes consolidados e suas classificacoes operacionais partem do GKIT Ciclo.
 - Os modulos financeiros e comerciais reutilizam clientes, carteiras e usuarios ja cadastrados.
+- O GKIT Jur usa o Core para acesso e pode vincular processos a clientes, carteiras e responsaveis da suite.
+- O Colab publica dados individuais derivados do cadastro financeiro do GKIT Flex.

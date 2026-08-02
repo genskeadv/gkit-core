@@ -2877,6 +2877,9 @@ function GkitJurProcessDashboard({
         <span>Classe: <strong>{processo.classeNome || resumo?.faseProcessual || '-'}</strong></span>
         <span>Órgão: <strong>{processo.orgaoJulgadorNome || '-'}</strong></span>
         <span>Sincronização: <strong>{formatDateTime(processo.ultimaSincronizacaoEm ?? resumo?.baseSincronizacaoEm ?? null)}</strong></span>
+        <span>Ultima tentativa: <strong>{formatDateTime(processo.ultimaTentativaSincronizacaoEm ?? null)}</strong></span>
+        <span>Proxima tentativa: <strong>{formatDateTime(processo.proximaTentativaSincronizacaoEm ?? null)}</strong></span>
+        <span>Ultimo status: <strong>{processo.ultimoStatusSincronizacao ?? '-'}</strong></span>
         <span>Resumo: <strong>{formatDateTime(updatedAt ?? null)}</strong></span>
         <span>Eventos considerados: <strong>{(resumo?.movimentacoesConsideradas ?? movimentacoes.length).toLocaleString('pt-BR')}</strong></span>
       </div>
@@ -5801,6 +5804,8 @@ export function GkitJurIntegracaoPage({
   const totalSincronizado = Math.max(0, data.metrics.totalAtivos - data.metrics.semSincronizacao)
   const prontidaoProgress = data.metrics.totalAtivos ? Math.round((data.prontidao.aceitaveis / data.metrics.totalAtivos) * 100) : 0
   const cards = [
+    { title: 'Em backoff', value: data.metrics.emBackoff.toLocaleString('pt-BR'), hint: 'aguardando nova janela do provedor' },
+    { title: 'Sem resultado', value: data.metrics.semResultadoRecente.toLocaleString('pt-BR'), hint: 'tentados sem atualizacao util' },
     { title: 'Processos ativos', value: data.metrics.totalAtivos.toLocaleString('pt-BR'), hint: 'base operacional monitorável' },
     { title: 'Prontos', value: data.prontidao.aceitaveis.toLocaleString('pt-BR'), hint: 'com resumo operacional aceitável' },
     { title: 'Não prontos', value: data.prontidao.naoProntos.toLocaleString('pt-BR'), hint: 'prioridade da fila automática' },

@@ -39,6 +39,18 @@ export type CommissionSummaryRow = {
   comissaoFinal: number;
 };
 
+export type CommissionCollaboratorSummaryRow = {
+  colaborador: string;
+  carteira: string;
+  categoria: string;
+  quantidadeLancamentos: number;
+  valorRecebido: number;
+  valorAposReducao: number;
+  comissaoCarteira: number;
+  percentualRateio: number;
+  comissaoFinal: number;
+};
+
 export type CommissionAuditRow = {
   linha: number;
   cliente: string;
@@ -52,5 +64,6 @@ export type CommissionAuditRow = {
 export type CommissionProcessResult = {
   enrichedRows: EnrichedReceivableRow[];
   summaries: CommissionSummaryRow[];
+  collaboratorSummaries: CommissionCollaboratorSummaryRow[];
   auditRows: CommissionAuditRow[];
 };

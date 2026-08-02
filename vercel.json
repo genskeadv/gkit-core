@@ -4,6 +4,10 @@
     {
       "path": "/api/gkit-jur/sincronizacao/cron",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/gkit-jur/sincronizacao/catchup/cron",
+      "schedule": "0 10 * * *"
     }
   ]
 }

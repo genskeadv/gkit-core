@@ -24,6 +24,7 @@ export type GkitJurSyncRunOptions = {
   maxDataJudBatches?: number
   processoId?: string
   provider?: GkitJurSyncProvider
+  syncedBefore?: string
   timeBudgetMs?: number
   tribunal?: string
 }
@@ -104,6 +105,7 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
         maxTransientErrors: dataJudMaxTransientErrors,
         processoId: options.processoId,
         shouldContinue: () => hasBudgetFor(startedAt, timeBudgetMs, DATAJUD_NEXT_PROCESS_RESERVE_MS),
+        syncedBefore: options.syncedBefore,
         tribunal: options.tribunal,
       })
 

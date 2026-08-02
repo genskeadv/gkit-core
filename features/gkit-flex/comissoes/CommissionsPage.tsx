@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '../audit';
 import { getMonthlyForecast } from '../previsoes/forecastPersistence';
+import { buildCollaboratorSummaries } from './commissionProcessor';
 import { getCommissionMonthStatus, sanitizeCompetencia } from './supabasePersistence';
 import { EmptyState, MetricCard, StatusBadge, formatMonthLabel } from '../ui/FlexUI';
 
@@ -9,7 +10,12 @@ type CommissionSummaryRow = {
   carteira: string;
   quantidade_lancamentos: number;
   valor_recebido: number;
+  reducao_percentual: number;
+  valor_reducao: number;
   valor_apos_reducao: number;
+  percentual_comissao: number;
+  comissao_total: number;
+  divisor: number;
   comissao_final: number;
 };
 
@@ -76,7 +82,7 @@ export async function CommissionsPage({ competencia }: { competencia?: string | 
 
       const { data: summaries, error: summaryError } = await supabase
         .from('comissao_resumos')
-        .select('id, categoria, carteira, quantidade_lancamentos, valor_recebido, valor_apos_reducao, comissao_final')
+        .select('id, categoria, carteira, quantidade_lancamentos, valor_recebido, reducao_percentual, valor_reducao, valor_apos_reducao, percentual_comissao, comissao_total, divisor, comissao_final')
         .eq('execucao_id', execution.id)
         .order('categoria', { ascending: true })
         .order('carteira', { ascending: true });
@@ -92,6 +98,19 @@ export async function CommissionsPage({ competencia }: { competencia?: string | 
   const displayedCommissionTotal = forecastCommissionTotal || calculatedCommissionTotal;
   const forecastAdjustment = forecastCommissionTotal ? forecastCommissionTotal - calculatedCommissionTotal : 0;
   const wallets = new Set(rows.map((row) => row.carteira).filter(Boolean));
+  const collaboratorRows = buildCollaboratorSummaries(rows.map((row) => ({
+    categoria: row.categoria,
+    carteira: row.carteira,
+    quantidadeLancamentos: Number(row.quantidade_lancamentos || 0),
+    valorRecebido: Number(row.valor_recebido || 0),
+    reducaoPercentual: Number(row.reducao_percentual || 0),
+    valorReducao: Number(row.valor_reducao || 0),
+    valorAposReducao: Number(row.valor_apos_reducao || 0),
+    percentualComissao: Number(row.percentual_comissao || 0),
+    comissaoTotal: Number(row.comissao_total || 0),
+    divisor: Number(row.divisor || 1),
+    comissaoFinal: Number(row.comissao_final || 0),
+  })));
 
   return (
     <main className="page-shell">
@@ -137,6 +156,44 @@ export async function CommissionsPage({ competencia }: { competencia?: string | 
           value={wallets.size}
           help={latestExecution ? `atualizado em ${formatDateTime(latestExecution.created_at)}` : 'sem apuracao'}
         />
+      </section>
+
+      <section className="card">
+        <div className="header-row compact-header">
+          <div>
+            <h2>Previsao por colaborador</h2>
+            <p className="muted small-text">Rateio 50/50 nas carteiras com dois nomes e 100% nas individuais.</p>
+          </div>
+        </div>
+
+        {collaboratorRows.length ? (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Colaborador</th>
+                  <th>Carteira</th>
+                  <th>Categoria</th>
+                  <th className="text-right">Rateio</th>
+                  <th className="text-right">Comissao prevista</th>
+                </tr>
+              </thead>
+              <tbody>
+                {collaboratorRows.map((row, index) => (
+                  <tr key={`${row.colaborador}-${row.carteira}-${row.categoria}-${index}`}>
+                    <td><strong>{row.colaborador}</strong></td>
+                    <td>{row.carteira}</td>
+                    <td>{row.categoria}</td>
+                    <td className="text-right">{Math.round(row.percentualRateio * 100)}%</td>
+                    <td className="text-right"><strong>{formatMoney(Number(row.comissaoFinal || 0))}</strong></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState title="Sem rateio por colaborador" description="Ainda nao ha apuracao salva para calcular o detalhamento." />
+        )}
       </section>
 
       <section className="card">

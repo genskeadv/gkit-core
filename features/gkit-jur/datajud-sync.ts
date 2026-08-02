@@ -56,6 +56,7 @@ const MOVEMENT_INSERT_CHUNK_SIZE = 25
 const MOVEMENT_LOOKUP_CHUNK_SIZE = 25
 const MOVEMENT_RETENTION_KEEP_RECENT = Number(process.env.GKIT_JUR_MOVEMENT_RETENTION_KEEP_RECENT ?? '30')
 const MOVEMENT_RETENTION_BATCH_SIZE = Number(process.env.GKIT_JUR_MOVEMENT_RETENTION_BATCH_SIZE ?? '1000')
+const SEM_RESULTADO_RETRY_DAYS = 7
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -88,6 +89,36 @@ function dateOrNull(value: unknown) {
   if (!value) return null
   const date = new Date(String(value))
   return Number.isFinite(date.getTime()) ? date.toISOString() : null
+}
+
+function addHours(date: Date, hours: number) {
+  return new Date(date.getTime() + hours * 60 * 60 * 1000).toISOString()
+}
+
+function addDays(date: Date, days: number) {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000).toISOString()
+}
+
+function transientBackoffHours(failures: number) {
+  if (failures <= 1) return 6
+  if (failures === 2) return 24
+  return 72
+}
+
+async function getSyncCounters(processoId: string) {
+  const { data, error } = await admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select('falhas_transientes_consecutivas,sem_resultado_consecutivos')
+    .eq('id', processoId)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+
+  return {
+    falhasTransientes: Number(data?.falhas_transientes_consecutivas ?? 0),
+    semResultado: Number(data?.sem_resultado_consecutivos ?? 0),
+  }
 }
 
 function normalizeForMatch(value: unknown) {
@@ -652,6 +683,7 @@ function processUpdatePayload(hit: Record<string, any>, movimentos: Array<{ data
   const sistema = source.sistema ?? {}
   const formato = source.formato ?? {}
   const orgao = source.orgaoJulgador ?? {}
+  const now = new Date().toISOString()
   const ultimaMovimentacao = movimentos
     .map((movimento) => movimento.data_hora)
     .filter(Boolean)
@@ -673,7 +705,7 @@ function processUpdatePayload(hit: Record<string, any>, movimentos: Array<{ data
     metadata_datajud: {
       '@timestamp': source['@timestamp'] ?? null,
       fonte: 'datajud',
-      ultima_consulta_em: new Date().toISOString(),
+      ultima_consulta_em: now,
     },
     nivel_sigilo: numberOrNull(source.nivelSigilo),
     orgao_julgador_codigo: numberOrNull(orgao.codigo),
@@ -682,8 +714,14 @@ function processUpdatePayload(hit: Record<string, any>, movimentos: Array<{ data
     sistema_codigo: numberOrNull(sistema.codigo),
     sistema_nome: text(sistema.nome) || null,
     status_monitoramento: 'monitorando',
-    ultima_sincronizacao_em: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    falhas_transientes_consecutivas: 0,
+    proxima_tentativa_sincronizacao_em: null,
+    sem_resultado_consecutivos: 0,
+    ultima_sincronizacao_com_resultado_em: now,
+    ultima_sincronizacao_em: now,
+    ultima_tentativa_sincronizacao_em: now,
+    ultimo_status_sincronizacao: 'sucesso',
+    updated_at: now,
   }
 
   if (ultimaMovimentacao) payload.ultima_movimentacao_em = ultimaMovimentacao
@@ -743,10 +781,16 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
     }
 
     if (!hit) {
-      const now = new Date().toISOString()
+      const current = new Date()
+      const now = current.toISOString()
+      const counters = await getSyncCounters(row.id)
       await admin().schema('gkit_jur').from('processos').update({
+        falhas_transientes_consecutivas: 0,
+        proxima_tentativa_sincronizacao_em: addDays(current, SEM_RESULTADO_RETRY_DAYS),
+        sem_resultado_consecutivos: counters.semResultado + 1,
         status_monitoramento: 'monitorando',
-        ultima_sincronizacao_em: now,
+        ultima_tentativa_sincronizacao_em: now,
+        ultimo_status_sincronizacao: 'sem_resultado',
         updated_at: now,
       }).eq('id', row.id)
       await insertSyncLog({
@@ -807,16 +851,23 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
 
     return { erroCodigo: null, httpStatus: response.status, status: 'sucesso', tarefasGeradas, transient: false, movimentosRecebidos: movimentos.length, movimentosNovos: novos.length }
   } catch (error) {
-    const finishedAt = new Date().toISOString()
+    const current = new Date()
+    const finishedAt = current.toISOString()
     const message = error instanceof Error ? error.message : 'Erro desconhecido na consulta DataJud.'
     const httpStatus = typeof (error as { httpStatus?: unknown }).httpStatus === 'number'
       ? (error as { httpStatus: number }).httpStatus
       : null
     const isTransient = isTransientDataJudError(message, httpStatus)
+    const counters = await getSyncCounters(row.id)
+    const transientFailures = isTransient ? counters.falhasTransientes + 1 : counters.falhasTransientes
 
     await admin().schema('gkit_jur').from('processos').update({
+      falhas_transientes_consecutivas: transientFailures,
+      proxima_tentativa_sincronizacao_em: isTransient ? addHours(current, transientBackoffHours(transientFailures)) : null,
+      sem_resultado_consecutivos: 0,
       status_monitoramento: isTransient ? 'monitorando' : 'erro',
-      ultima_sincronizacao_em: finishedAt,
+      ultima_tentativa_sincronizacao_em: finishedAt,
+      ultimo_status_sincronizacao: httpStatus === 408 || isTransient ? 'timeout' : 'erro',
       updated_at: finishedAt,
     }).eq('id', row.id)
 
@@ -873,20 +924,25 @@ export async function syncGkitJurDataJudBatch(options: {
       .select('id,numero_cnj,numero_cnj_limpo,tribunal_alias,carteira_id,responsavel_id')
       .eq('status', 'ativo')
       .not('tribunal_alias', 'is', null)
-      .order('ultima_sincronizacao_em', { ascending: true, nullsFirst: true })
-      .limit(limit)
 
     if (options.processoId) fallbackQuery = fallbackQuery.eq('id', options.processoId)
-    else fallbackQuery = fallbackQuery.eq('status_monitoramento', 'monitorando')
+    else {
+      fallbackQuery = fallbackQuery
+        .eq('status_monitoramento', 'monitorando')
+        .or(`proxima_tentativa_sincronizacao_em.is.null,proxima_tentativa_sincronizacao_em.lte.${new Date().toISOString()}`)
+    }
     if (options.tribunal) fallbackQuery = fallbackQuery.eq('tribunal_sigla', options.tribunal)
     if (!options.processoId && options.excludeProcessIds?.length) {
       fallbackQuery = fallbackQuery.not('id', 'in', `(${options.excludeProcessIds.join(',')})`)
     }
     if (!options.processoId && options.syncedBefore) {
-      fallbackQuery = fallbackQuery.or(`ultima_sincronizacao_em.is.null,ultima_sincronizacao_em.lt.${options.syncedBefore}`)
+      fallbackQuery = fallbackQuery.or(`ultima_sincronizacao_com_resultado_em.is.null,ultima_sincronizacao_com_resultado_em.lt.${options.syncedBefore}`)
     }
 
     candidateResult = await fallbackQuery
+      .order('ultima_sincronizacao_com_resultado_em', { ascending: true, nullsFirst: true })
+      .order('ultima_tentativa_sincronizacao_em', { ascending: true, nullsFirst: true })
+      .limit(limit)
   }
 
   const { data, error } = candidateResult

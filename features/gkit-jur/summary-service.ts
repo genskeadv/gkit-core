@@ -368,7 +368,7 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
   const processoResult = await admin()
     .schema('gkit_jur')
     .from('processos')
-    .select('id,numero_cnj,titulo,tribunal_sigla,classe_nome,orgao_julgador_nome,data_ajuizamento,ultima_sincronizacao_em,ultima_movimentacao_em,status_monitoramento,cliente_nome,carteira_id,responsavel_id')
+    .select('id,numero_cnj,titulo,tribunal_sigla,classe_nome,orgao_julgador_nome,data_ajuizamento,ultima_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultima_movimentacao_em,status_monitoramento,cliente_nome,carteira_id,responsavel_id')
     .eq('id', processoId)
     .single()
 
@@ -431,6 +431,7 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
     text(processo.classe_nome)
     || text(processo.orgao_julgador_nome)
     || text(processo.data_ajuizamento)
+    || text(processo.ultima_sincronizacao_com_resultado_em)
     || text(processo.ultima_sincronizacao_em),
   )
   const nivel = readinessLevel({
@@ -493,7 +494,7 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
   })
   const now = new Date().toISOString()
   const payload = {
-    base_sincronizacao_em: text(processo.ultima_sincronizacao_em) || null,
+    base_sincronizacao_em: text(processo.ultima_sincronizacao_com_resultado_em) || text(processo.ultima_sincronizacao_em) || null,
     criterio_prontidao: criterio,
     erro_mensagem: nivel === 'erro' ? 'Processo sem base operacional e com monitoramento em erro.' : null,
     fase_processual: text(processo.classe_nome) || null,

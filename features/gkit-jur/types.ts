@@ -119,6 +119,12 @@ export type GkitJurProcessListItem = {
   orgaoJulgadorNome: string | null;
   ultimaMovimentacaoEm: string | null;
   ultimaSincronizacaoEm: string | null;
+  ultimaTentativaSincronizacaoEm?: string | null;
+  ultimaSincronizacaoComResultadoEm?: string | null;
+  ultimoStatusSincronizacao?: string | null;
+  proximaTentativaSincronizacaoEm?: string | null;
+  falhasTransientesConsecutivas?: number;
+  semResultadoConsecutivos?: number;
   status: GkitJurProcessoStatus;
   statusMonitoramento: GkitJurMonitoramentoStatus;
   etiquetas: GkitJurEtiqueta[];
@@ -913,6 +919,8 @@ export type GkitJurIntegracaoTribunal = {
   pausado: number;
   semCarteira: number;
   semResponsavel: number;
+  emBackoff: number;
+  semResultadoRecente: number;
   saneamentoProcessos: number;
   semSincronizacao: number;
   status: string;
@@ -947,7 +955,9 @@ export type GkitJurIntegracaoData = {
     atrasados: number;
     configurados: number;
     criticos: number;
+    emBackoff: number;
     semMapeamento: number;
+    semResultadoRecente: number;
     semSincronizacao: number;
     totalAtivos: number;
   };

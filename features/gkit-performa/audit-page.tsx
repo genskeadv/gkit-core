@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { GKIT_PERFORMA_STORAGE_KEY } from './storage'
 
-type AuditTab = 'units' | 'duplicates' | 'excluded'
+type AuditTab = 'units' | 'duplicates' | 'attention' | 'excluded'
 
 type StoredImport = {
   duplicates?: Array<Record<string, any>>
@@ -44,6 +44,31 @@ export function GkitPerformaAuditPage() {
   const units = active?.units ?? []
   const duplicates = active?.duplicates ?? []
   const excluded = useMemo(() => rows.filter((row) => row.excluded), [rows])
+  const attention = useMemo(() => {
+    const unitRows = units
+      .filter((unit) => Array.isArray(unit.attentionReasons) && unit.attentionReasons.length)
+      .map((unit) => ({
+        origem: 'Unidade',
+        referencia: text(unit.id),
+        tipo: text(unit.tipoUnidade),
+        titulo: text(unit.titulo),
+        responsavel: text(unit.responsavel),
+        motivo: (unit.attentionReasons as unknown[]).map((reason) => text(reason)).filter(Boolean).join('; '),
+      }))
+
+    const sourceRows = rows
+      .filter((row) => row.attention && !row.excluded)
+      .map((row) => ({
+        origem: 'Linha',
+        referencia: text(row.linhaOriginal),
+        tipo: text(row.tipo),
+        titulo: text(row.tituloE || row.tituloF),
+        responsavel: text(row.responsavel),
+        motivo: text(row.attentionReason || row.reason),
+      }))
+
+    return [...unitRows, ...sourceRows]
+  }, [rows, units])
 
   if (!active) {
     return (
@@ -86,7 +111,12 @@ export function GkitPerformaAuditPage() {
             <span className="metric-hint">duplicidades ou coluna dupla</span>
           </article>
           <article className="metric-card">
-            <span className="metric-label">Excluidas</span>
+            <span className="metric-label">Alertas</span>
+            <strong className="metric-value">{attention.length}</strong>
+            <span className="metric-hint">conferir base/regra</span>
+          </article>
+          <article className="metric-card">
+            <span className="metric-label">Descartes</span>
             <strong className="metric-value">{excluded.length}</strong>
             <span className="metric-hint">fora do ranking</span>
           </article>
@@ -107,21 +137,24 @@ export function GkitPerformaAuditPage() {
           <div className="gkit-performa-tabs">
             <button className={tab === 'units' ? 'active' : ''} onClick={() => setTab('units')} type="button">Unidades</button>
             <button className={tab === 'duplicates' ? 'active' : ''} onClick={() => setTab('duplicates')} type="button">ATEs E/F</button>
-            <button className={tab === 'excluded' ? 'active' : ''} onClick={() => setTab('excluded')} type="button">Excluidas</button>
+            <button className={tab === 'attention' ? 'active' : ''} onClick={() => setTab('attention')} type="button">Alertas</button>
+            <button className={tab === 'excluded' ? 'active' : ''} onClick={() => setTab('excluded')} type="button">Descartes</button>
           </div>
         </div>
-        <AuditTable duplicates={duplicates} rows={excluded} tab={tab} units={units} />
+        <AuditTable attention={attention} duplicates={duplicates} rows={excluded} tab={tab} units={units} />
       </section>
     </div>
   )
 }
 
 function AuditTable({
+  attention,
   duplicates,
   rows,
   tab,
   units,
 }: {
+  attention: Array<Record<string, any>>
   duplicates: Array<Record<string, any>>
   rows: Array<Record<string, any>>
   tab: AuditTab
@@ -152,6 +185,31 @@ function AuditTable({
     )
   }
 
+  if (tab === 'attention') {
+    return (
+      <div className="gkit-performa-table-wrap">
+        <table className="gkit-performa-table">
+          <thead>
+            <tr><th>Origem</th><th>Referencia</th><th>Tipo</th><th>Titulo</th><th>Responsavel</th><th>Motivo</th></tr>
+          </thead>
+          <tbody>
+            {attention.slice(0, 500).map((item, index) => (
+              <tr key={`${text(item.origem)}-${text(item.referencia)}-${index}`}>
+                <td>{text(item.origem)}</td>
+                <td>{text(item.referencia)}</td>
+                <td>{text(item.tipo)}</td>
+                <td>{text(item.titulo)}</td>
+                <td>{text(item.responsavel)}</td>
+                <td>{text(item.motivo)}</td>
+              </tr>
+            ))}
+            {!attention.length ? <tr><td className="empty" colSpan={6}>Sem alertas de auditoria.</td></tr> : null}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
   if (tab === 'excluded') {
     return (
       <div className="gkit-performa-table-wrap">
@@ -170,7 +228,7 @@ function AuditTable({
                 <td>{text(row.reason)}</td>
               </tr>
             ))}
-            {!rows.length ? <tr><td className="empty" colSpan={6}>Sem exclusoes.</td></tr> : null}
+            {!rows.length ? <tr><td className="empty" colSpan={6}>Sem descartes.</td></tr> : null}
           </tbody>
         </table>
       </div>

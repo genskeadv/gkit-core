@@ -127,6 +127,12 @@ function todayIsoDate() {
   return new Date().toISOString().slice(0, 10)
 }
 
+function previousIsoDate(daysAgo: number) {
+  const date = new Date()
+  date.setUTCDate(date.getUTCDate() - daysAgo)
+  return date.toISOString().slice(0, 10)
+}
+
 async function fetchAaspPublications(options: { data?: string; diferencial?: boolean }) {
   const { baseUrl, chave, codigoPessoaAssociado, escopo } = aaspConfig()
   const scopePath = escopo === 'associado' ? 'Associado' : 'Empresa'
@@ -252,15 +258,44 @@ export async function syncGkitJurAaspBatch(options: {
 }): Promise<AaspSyncResult> {
   const startedAt = new Date().toISOString()
   let requestPayload: Record<string, any> = {}
+  const fallbackAttempts: Array<Record<string, unknown>> = []
   try {
-    const { requestPayload: payload, response, responseBody } = await fetchAaspPublications(options)
+    let { requestPayload: payload, response, responseBody } = await fetchAaspPublications(options)
     requestPayload = payload
     if (!response.ok) {
       const message = typeof responseBody === 'object' && responseBody ? text((responseBody as Record<string, any>).message, response.statusText) : response.statusText
       throw Object.assign(new Error(message), { httpStatus: response.status })
     }
 
-    const publications = normalizeAaspPublications(responseBody)
+    let publications = normalizeAaspPublications(responseBody)
+    if (!options.data && options.diferencial && publications.length === 0) {
+      for (const daysAgo of [1, 2]) {
+        try {
+          const fallback = await fetchAaspPublications({ data: previousIsoDate(daysAgo), diferencial: false })
+          const fallbackPublications = fallback.response.ok ? normalizeAaspPublications(fallback.responseBody) : []
+          fallbackAttempts.push({
+            data: fallback.requestPayload.data,
+            diferencial: fallback.requestPayload.diferencial,
+            httpStatus: fallback.response.status,
+            publicacoes: fallbackPublications.length,
+          })
+          if (fallback.response.ok && fallbackPublications.length > 0) {
+            payload = fallback.requestPayload
+            response = fallback.response
+            responseBody = fallback.responseBody
+            requestPayload = fallback.requestPayload
+            publications = fallbackPublications
+            break
+          }
+        } catch (error) {
+          fallbackAttempts.push({
+            data: previousIsoDate(daysAgo),
+            diferencial: false,
+            erro: error instanceof Error ? error.message : 'Erro desconhecido no fallback AASP.',
+          })
+        }
+      }
+    }
     const cnjs = [...new Set(publications.flatMap((item) => item.cnjs))]
     const processMap = await fetchActiveProcesses(cnjs)
     await insertPublicationInboxItemsBestEffort(publications.flatMap((publication) => publication.cnjs.map((cnj) => {
@@ -300,7 +335,7 @@ export async function syncGkitJurAaspBatch(options: {
         httpStatus: response.status,
         processo: null,
         requestPayload,
-        responseMetadata: { publicacoes: publications.length, cnjs: cnjs.length },
+        responseMetadata: { fallbackAttempts, publicacoes: publications.length, cnjs: cnjs.length },
         startedAt,
         status: 'sem_resultado',
         totalMovimentacoesNovas: 0,
@@ -339,7 +374,16 @@ export async function syncGkitJurAaspBatch(options: {
       const tarefasGeradas = await generateTasksFromMovements(processo, novos, { provider: 'aasp', providerLabel: 'AASP' })
       const latest = novos.map((item) => text(item.data_hora)).filter(Boolean).sort().at(-1)
       const now = new Date().toISOString()
-      const updatePayload: Record<string, any> = { ultima_sincronizacao_em: now, updated_at: now }
+      const updatePayload: Record<string, any> = {
+        falhas_transientes_consecutivas: 0,
+        proxima_tentativa_sincronizacao_em: null,
+        sem_resultado_consecutivos: 0,
+        ultima_sincronizacao_com_resultado_em: now,
+        ultima_sincronizacao_em: now,
+        ultima_tentativa_sincronizacao_em: now,
+        ultimo_status_sincronizacao: 'sucesso',
+        updated_at: now,
+      }
       if (latest) updatePayload.ultima_movimentacao_em = latest
       const updateResult = await admin().schema('gkit_jur').from('processos').update(updatePayload).eq('id', processo.id)
       if (updateResult.error) throw new Error(updateResult.error.message)
@@ -350,7 +394,7 @@ export async function syncGkitJurAaspBatch(options: {
         httpStatus: response.status,
         processo,
         requestPayload,
-        responseMetadata: { publicacoes: movimentos.length },
+        responseMetadata: { fallbackAttempts, publicacoes: movimentos.length },
         startedAt,
         status: 'sucesso',
         totalMovimentacoesNovas: novos.length,
