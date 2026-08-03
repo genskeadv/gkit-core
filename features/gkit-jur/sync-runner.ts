@@ -10,6 +10,7 @@ export type GkitJurSyncRunResult = {
   movimentosNovos: number
   movimentosRecebidos: number
   processos: number
+  processosCriados: number
   provider: GkitJurSyncProvider
   semResultado: number
   sucesso: number
@@ -63,6 +64,7 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
     movimentosNovos: 0,
     movimentosRecebidos: 0,
     processos: 0,
+    processosCriados: 0,
     provider,
     semResultado: 0,
     sucesso: 0,
@@ -84,6 +86,7 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
     result.movimentosNovos += aaspResult.movimentosNovos
     result.movimentosRecebidos += aaspResult.movimentosRecebidos
     result.processos += aaspResult.processos
+    result.processosCriados += aaspResult.processosCriados
     result.semResultado += aaspResult.semResultado
     result.sucesso += aaspResult.sucesso
     result.tarefasGeradas += aaspResult.tarefasGeradas

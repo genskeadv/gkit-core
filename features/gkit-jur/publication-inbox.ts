@@ -141,3 +141,39 @@ export async function insertPublicationInboxItemsBestEffort(inputs: PublicationI
     return { inserted: 0, skipped: rows.length }
   }
 }
+
+export async function linkPublicationInboxProcessesBestEffort(inputs: Array<{ fonte: string; numeroCnjLimpo: string; processoId: string }>) {
+  const rows = inputs
+    .map((input) => ({
+      fonte: text(input.fonte, 'integracao'),
+      numeroCnjLimpo: onlyDigits(input.numeroCnjLimpo),
+      processoId: text(input.processoId),
+    }))
+    .filter((row) => row.fonte && row.numeroCnjLimpo && row.processoId)
+
+  if (!rows.length) return { updated: 0, skipped: 0 }
+
+  try {
+    let updated = 0
+    for (const row of rows) {
+      const result = await admin()
+        .schema('gkit_jur')
+        .from('publicacoes_monitoradas')
+        .update({ processo_id: row.processoId, updated_at: new Date().toISOString() })
+        .eq('fonte', row.fonte)
+        .eq('numero_cnj_limpo', row.numeroCnjLimpo)
+        .is('processo_id', null)
+        .select('id')
+
+      if (result.error) {
+        if (missingTable(result.error)) return { updated, skipped: rows.length - updated }
+        throw new Error(result.error.message)
+      }
+      updated += result.data?.length ?? 0
+    }
+
+    return { updated, skipped: 0 }
+  } catch {
+    return { updated: 0, skipped: rows.length }
+  }
+}

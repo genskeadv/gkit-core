@@ -6,11 +6,13 @@ import {
   generateTasksFromMovements,
   type GkitJurSyncProcessRow,
 } from './datajud-sync'
-import { insertPublicationInboxItemsBestEffort } from './publication-inbox'
+import { formatCnj } from './normalizer'
+import { insertPublicationInboxItemsBestEffort, linkPublicationInboxProcessesBestEffort } from './publication-inbox'
 import { refreshGkitJurProcessSummary } from './summary-service'
 
 type AaspSyncResult = {
   processos: number
+  processosCriados: number
   sucesso: number
   semResultado: number
   erro: number
@@ -30,6 +32,35 @@ type AaspPublication = {
 
 const DEFAULT_AASP_BASE_URL = 'https://intimacaoapi.aasp.org.br'
 const CNJ_PATTERN = /\b\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4}\b/g
+const TJ_SIGLAS_BY_CNJ_SEGMENT: Record<string, string> = {
+  '801': 'TJAC',
+  '802': 'TJAL',
+  '803': 'TJAP',
+  '804': 'TJAM',
+  '805': 'TJBA',
+  '806': 'TJCE',
+  '807': 'TJDFT',
+  '808': 'TJES',
+  '809': 'TJGO',
+  '810': 'TJMA',
+  '811': 'TJMT',
+  '812': 'TJMS',
+  '813': 'TJMG',
+  '814': 'TJPA',
+  '815': 'TJPB',
+  '816': 'TJPR',
+  '817': 'TJPE',
+  '818': 'TJPI',
+  '819': 'TJRJ',
+  '820': 'TJRN',
+  '821': 'TJRS',
+  '822': 'TJRO',
+  '823': 'TJRR',
+  '824': 'TJSC',
+  '825': 'TJSE',
+  '826': 'TJSP',
+  '827': 'TJTO',
+}
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -58,6 +89,42 @@ function dateOrNull(value: unknown) {
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, '')
+}
+
+function mod97(value: string) {
+  let result = 0
+  for (const digit of value) result = (result * 10 + Number(digit)) % 97
+  return result
+}
+
+function isValidCnjNumber(value: string) {
+  const digits = onlyDigits(value)
+  if (digits.length !== 20) return false
+  const base = `${digits.slice(0, 7)}${digits.slice(9, 13)}${digits.slice(13, 14)}${digits.slice(14, 16)}${digits.slice(16)}`
+  const expected = String(98 - mod97(`${base}00`)).padStart(2, '0')
+  return digits.slice(7, 9) === expected
+}
+
+function tribunalFromCnj(numeroCnjLimpo: string) {
+  if (numeroCnjLimpo.length !== 20) return { alias: null, sigla: null }
+  const segment = numeroCnjLimpo.slice(13, 16)
+  const justice = segment.slice(0, 1)
+  const courtNumber = Number.parseInt(segment.slice(1), 10)
+
+  if (TJ_SIGLAS_BY_CNJ_SEGMENT[segment]) {
+    const sigla = TJ_SIGLAS_BY_CNJ_SEGMENT[segment]
+    return { alias: `api_publica_${sigla.toLowerCase()}`, sigla }
+  }
+  if (justice === '5' && Number.isFinite(courtNumber) && courtNumber > 0) {
+    const sigla = `TRT${courtNumber}`
+    return { alias: `api_publica_trt${courtNumber}`, sigla }
+  }
+  if (justice === '4' && Number.isFinite(courtNumber) && courtNumber > 0) {
+    const sigla = `TRF${courtNumber}`
+    return { alias: `api_publica_trf${courtNumber}`, sigla }
+  }
+  if (segment === '300') return { alias: 'api_publica_stj', sigla: 'STJ' }
+  return { alias: null, sigla: null }
 }
 
 function allStrings(value: unknown): string[] {
@@ -155,7 +222,7 @@ function normalizeAaspPublications(responseBody: unknown): AaspPublication[] {
 
   for (const row of rows) {
     const strings = allStrings(row).join('\n')
-    const cnjs = [...new Set((strings.match(CNJ_PATTERN) ?? []).map(onlyDigits).filter((item) => item.length === 20))]
+    const cnjs = [...new Set((strings.match(CNJ_PATTERN) ?? []).map(onlyDigits).filter(isValidCnjNumber))]
     if (!cnjs.length) continue
 
     const content = extractPublicationText(row)
@@ -189,6 +256,67 @@ async function fetchActiveProcesses(cnjs: string[]) {
     }
     return [processo.numero_cnj_limpo, processo]
   }))
+}
+
+function firstPublicationByCnj(publications: AaspPublication[]) {
+  const result = new Map<string, AaspPublication>()
+  for (const publication of publications) {
+    for (const cnj of publication.cnjs) {
+      if (!result.has(cnj)) result.set(cnj, publication)
+    }
+  }
+  return result
+}
+
+async function createDraftProcessesFromAaspPublications(cnjs: string[], publications: AaspPublication[]) {
+  if (!cnjs.length) return 0
+  const { data: existing, error: existingError } = await admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select('numero_cnj_limpo')
+    .in('numero_cnj_limpo', cnjs)
+
+  if (existingError) throw new Error(existingError.message)
+
+  const existingCnjs = new Set(((existing ?? []) as Array<Record<string, unknown>>).map((row) => text(row.numero_cnj_limpo)))
+  const missingCnjs = cnjs.filter((cnj) => !existingCnjs.has(cnj))
+  if (!missingCnjs.length) return 0
+
+  const publicationByCnj = firstPublicationByCnj(publications)
+  const now = new Date().toISOString()
+  const payload = missingCnjs.map((cnj) => {
+    const publication = publicationByCnj.get(cnj)
+    const tribunal = tribunalFromCnj(cnj)
+    const formatted = formatCnj(cnj)
+    return {
+      importado_de: 'AASP',
+      metadata_datajud: {
+        fonte: 'aasp',
+        origem: 'aasp_publicacao',
+        primeira_publicacao_em: publication?.dataHora ?? null,
+        publicacao_hash: publication?.hash ?? null,
+      },
+      numero_cnj: formatted,
+      numero_cnj_limpo: cnj,
+      observacoes: 'Processo criado automaticamente a partir de publicacao AASP sem vinculo.',
+      origem_modulo: 'aasp_publicacao',
+      status: 'ativo',
+      status_monitoramento: 'monitorando',
+      titulo: `Publicacao AASP - ${formatted}`,
+      tribunal_alias: tribunal.alias,
+      tribunal_sigla: tribunal.sigla,
+      updated_at: now,
+    }
+  })
+
+  const { data: inserted, error } = await admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .upsert(payload, { ignoreDuplicates: true, onConflict: 'numero_cnj_limpo' })
+    .select('id')
+
+  if (error) throw new Error(error.message)
+  return inserted?.length ?? 0
 }
 
 function rawText(row: Record<string, any>, keys: string[]) {
@@ -297,6 +425,7 @@ export async function syncGkitJurAaspBatch(options: {
       }
     }
     const cnjs = [...new Set(publications.flatMap((item) => item.cnjs))]
+    const processosCriados = await createDraftProcessesFromAaspPublications(cnjs, publications)
     const processMap = await fetchActiveProcesses(cnjs)
     await insertPublicationInboxItemsBestEffort(publications.flatMap((publication) => publication.cnjs.map((cnj) => {
       const processo = processMap.get(cnj)
@@ -315,6 +444,11 @@ export async function syncGkitJurAaspBatch(options: {
         termo: rawText(publication.raw, ['Termo', 'termo', 'tipo', 'Tipo']),
         texto: publication.text,
       }
+    })))
+    await linkPublicationInboxProcessesBestEffort([...processMap.values()].map((processo) => ({
+      fonte: 'aasp',
+      numeroCnjLimpo: processo.numero_cnj_limpo,
+      processoId: processo.id,
     })))
     const movimentosByProcess = new Map<string, { processo: GkitJurSyncProcessRow; movimentos: Array<Record<string, any>> }>()
 
@@ -342,7 +476,7 @@ export async function syncGkitJurAaspBatch(options: {
         totalMovimentacoesRecebidas: publications.length,
         totalResultados: publications.length,
       })
-      return { erro: 0, finalizado: true, movimentosNovos: 0, movimentosRecebidos: publications.length, processos: 0, semResultado: 1, sucesso: 0, tarefasGeradas: 0 }
+      return { erro: 0, finalizado: true, movimentosNovos: 0, movimentosRecebidos: publications.length, processos: 0, processosCriados, semResultado: 1, sucesso: 0, tarefasGeradas: 0 }
     }
 
     const result: AaspSyncResult = {
@@ -351,6 +485,7 @@ export async function syncGkitJurAaspBatch(options: {
       movimentosNovos: 0,
       movimentosRecebidos: publications.length,
       processos: 0,
+      processosCriados,
       semResultado: 0,
       sucesso: 0,
       tarefasGeradas: 0,
@@ -432,6 +567,6 @@ export async function syncGkitJurAaspBatch(options: {
       totalMovimentacoesRecebidas: 0,
       totalResultados: 0,
     })
-    return { erro: 1, finalizado: true, movimentosNovos: 0, movimentosRecebidos: 0, processos: 0, semResultado: 0, sucesso: 0, tarefasGeradas: 0 }
+    return { erro: 1, finalizado: true, movimentosNovos: 0, movimentosRecebidos: 0, processos: 0, processosCriados: 0, semResultado: 0, sucesso: 0, tarefasGeradas: 0 }
   }
 }
