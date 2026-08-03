@@ -20,6 +20,9 @@
 
 # production
 /build
+app.zip
+/outputs/
+/tmp/
 
 # misc
 .DS_Store

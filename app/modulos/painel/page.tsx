@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { BrandLogo } from '@/features/shared/brand-logo'
 import { canAccess } from '@/lib/auth/permissions'
 import { requirePlatformContext } from '@/lib/auth/platform'
+import { RETIRED_MODULE_CODES } from '@/lib/auth/retired-modules'
 
 const moduleArea: Record<string, string> = {
   core: 'Administracao',
@@ -73,11 +74,11 @@ const shortcutGroups = [
     description: 'App financeiro independente para comissões, contas a pagar, cadastros e auditoria.',
     links: [
       { href: '/modulos/gkit-flex', label: 'Abrir app' },
-      { href: '/modulos/gkit-flex', label: 'Comissões' },
-      { href: '/modulos/gkit-flex', label: 'Contas a pagar' },
+      { href: '/modulos/gkit-flex/comissoes', label: 'Comissões' },
+      { href: '/modulos/gkit-flex/pagamentos', label: 'Contas a pagar' },
       { href: '/modulos/gkit-flex/colaboradores', label: 'Colaboradores' },
-      { href: '/modulos/gkit-flex', label: 'Cadastros' },
-      { href: '/modulos/gkit-flex', label: 'Auditoria' },
+      { href: '/modulos/gkit-flex/cadastros', label: 'Cadastros' },
+      { href: '/modulos/gkit-flex/auditoria', label: 'Auditoria' },
     ],
     pending: [],
   },
@@ -141,7 +142,7 @@ const executiveFlow = [
   { codigo: 'colab', title: 'Publicar', description: 'Colab mostra pagamentos e comissões para cada colaborador.' },
 ]
 
-const legacyModuleCodes = new Set(['fix', 'intr', 'flex'])
+const legacyModuleCodes = new Set<string>(RETIRED_MODULE_CODES)
 
 export default async function PainelPage() {
   const context = await requirePlatformContext('/modulos/painel')
