@@ -238,7 +238,7 @@ function parseBankStatementRows(rows: unknown[][]): PayableImportRow[] | null {
   }).filter((row): row is PayableImportRow => Boolean(row?.descricao && row.valorPrevisto > 0));
 
   if (!parsed.length) {
-    throw new Error('O extrato bancario foi reconhecido, mas nao encontrei debitos para importar como pagamentos.');
+    throw new Error('O extrato bancário foi reconhecido, mas não encontrei débitos para importar como pagamentos.');
   }
 
   return parsed;
@@ -297,7 +297,7 @@ function parseOfxStatement(text: string): PayableImportRow[] | null {
   }).filter((row): row is PayableImportRow => Boolean(row?.descricao && row.valorPrevisto > 0));
 
   if (!parsed.length) {
-    throw new Error('O extrato OFX foi reconhecido, mas nao encontrei debitos para importar como pagamentos.');
+    throw new Error('O extrato OFX foi reconhecido, mas não encontrei débitos para importar como pagamentos.');
   }
 
   return parsed;
@@ -315,7 +315,7 @@ export async function parsePayablesWorkbook(file: File): Promise<PayableImportRo
   const rows = isDelimitedText ? parseDelimitedRows(text) : (() => {
     const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
     const sheetName = workbook.SheetNames[0];
-    if (!sheetName) throw new Error('A planilha nao tem abas para leitura.');
+    if (!sheetName) throw new Error('A planilha não tem abas para leitura.');
 
     const sheet = workbook.Sheets[sheetName];
     return XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false, defval: '' });
@@ -378,7 +378,7 @@ export async function parsePayablesWorkbook(file: File): Promise<PayableImportRo
 
 
 function formatPaid(value: boolean): string {
-  return value ? 'Sim' : 'Nao';
+  return value ? 'Sim' : 'Não';
 }
 
 export function buildPayablesExportWorkbook(params: {
@@ -404,7 +404,7 @@ export function buildPayablesExportWorkbook(params: {
     'Valor': 0,
     Categoria: '',
     Centro: '',
-    Pago: 'Nao',
+    Pago: 'Não',
     Origem: 'importacao',
   }]);
   importSheet['!cols'] = [

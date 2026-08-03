@@ -44,11 +44,11 @@ function persistCompetencia(value: string) {
 export function statusLabel(status: MonthStatus) {
   if (status === 'aberto') return 'Aberto';
   if (status === 'fechado') return 'Fechado';
-  if (status === 'indisponivel') return 'Indisponivel';
+  if (status === 'indisponivel') return 'Indisponível';
   if (status === 'ok') return 'OK';
   if (status === 'aviso') return 'Atencao';
   if (status === 'bloqueio') return 'Bloqueio';
-  return 'Nao aberto';
+  return 'Não aberto';
 }
 
 export function statusClass(status: MonthStatus) {

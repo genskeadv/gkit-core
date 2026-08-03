@@ -24,7 +24,7 @@ async function requireGkitJurWrite(permission = 'gkit_jur.processos.write') {
 async function requireGkitJurPublicationWrite() {
   const context = await requireModuleAccess('gkit-jur')
   if (!canAccess(context.permissions, 'gkit_jur.publicacoes.write') && !canAccess(context.permissions, 'gkit_jur.processos.write')) {
-    throw new Error('Usuario sem permissao para tratar publicacoes no GKIT Jur.')
+    throw new Error('Usuário sem permissão para tratar publicações no GKIT Jur.')
   }
   return context
 }
@@ -251,7 +251,7 @@ function reminderBody(input: {
     `Valor: R$ ${valor.replace('.', ',')}`,
     `Vencimento: ${input.vencimento.split('-').reverse().join('/')}`,
     '',
-    'Caso o pagamento ja tenha sido realizado, por favor desconsidere este lembrete.',
+    'Caso o pagamento já tenha sido realizado, por favor desconsidere este lembrete.',
   ].join('\n')
 }
 
@@ -494,7 +494,7 @@ function preJuridicoPayload(formData: FormData, usuarioId: string) {
     status,
     motivo_status: text(formData, 'motivo_status') || null,
     data_entrada: dataEntrada ? dateOnly(dataEntrada, 'Data de entrada') : new Date().toISOString().slice(0, 10),
-    prazo_analise: prazoAnalise ? dateOnly(prazoAnalise, 'Prazo de analise') : null,
+    prazo_analise: prazoAnalise ? dateOnly(prazoAnalise, 'Prazo de análise') : null,
     ...workflowPayload,
     administradora_email: optionalEmail(text(formData, 'administradora_email')),
     sindico_email: optionalEmail(text(formData, 'sindico_email')),
@@ -738,7 +738,7 @@ export async function updateGkitJurAcordoParcelaAction(formData: FormData) {
     .eq('id', parcelaId)
     .single()
 
-  if (parcelaResult.error || !parcelaResult.data) throw new Error(parcelaResult.error?.message ?? 'Parcela nao encontrada.')
+  if (parcelaResult.error || !parcelaResult.data) throw new Error(parcelaResult.error?.message ?? 'Parcela não encontrada.')
   const parcela = parcelaResult.data as Record<string, unknown>
   const acordoId = valueText(parcela.acordo_id)
 
@@ -749,7 +749,7 @@ export async function updateGkitJurAcordoParcelaAction(formData: FormData) {
     .eq('id', acordoId)
     .single()
 
-  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Acordo nao encontrado.')
+  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Acordo não encontrado.')
   const processoId = valueText((acordoResult.data as Record<string, unknown>).processo_id)
 
   const payload: Record<string, unknown> = {
@@ -806,7 +806,7 @@ export async function updateGkitJurAcordoStatusAction(formData: FormData) {
     .eq('id', acordoId)
     .single()
 
-  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Acordo nao encontrado.')
+  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Acordo não encontrado.')
   const processoId = valueText((acordoResult.data as Record<string, unknown>).processo_id)
   const now = new Date().toISOString()
   const payload: Record<string, unknown> = {
@@ -853,7 +853,7 @@ export async function updateGkitJurAcordoReguaEmailAction(formData: FormData) {
     .eq('id', acordoId)
     .single()
 
-  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Acordo nao encontrado.')
+  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Acordo não encontrado.')
   const acordo = acordoResult.data as Record<string, unknown>
   const processoId = valueText(acordo.processo_id)
   const processo = processoId ? await getActiveJurProcess(processoId) : null
@@ -913,7 +913,7 @@ export async function updateGkitJurAcordoLembreteEmailAction(formData: FormData)
     .eq('id', lembreteId)
     .single()
 
-  if (lembreteResult.error || !lembreteResult.data) throw new Error(lembreteResult.error?.message ?? 'Lembrete nao encontrado.')
+  if (lembreteResult.error || !lembreteResult.data) throw new Error(lembreteResult.error?.message ?? 'Lembrete não encontrado.')
   const acordoId = valueText((lembreteResult.data as Record<string, unknown>).acordo_id)
 
   const acordoResult = await admin()
@@ -923,7 +923,7 @@ export async function updateGkitJurAcordoLembreteEmailAction(formData: FormData)
     .eq('id', acordoId)
     .single()
 
-  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Acordo nao encontrado.')
+  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Acordo não encontrado.')
   const processoId = valueText((acordoResult.data as Record<string, unknown>).processo_id)
   const now = new Date().toISOString()
   const payload: Record<string, unknown> = {
@@ -1113,7 +1113,7 @@ export async function toggleGkitJurMovimentacaoTarefaRegraAction(formData: FormD
 
 export async function updateGkitJurPublicacaoTratamentoAction(formData: FormData) {
   const context = await requireGkitJurPublicationWrite()
-  const publicacaoId = requiredText(formData, 'publicacao_id', 'Publicacao')
+  const publicacaoId = requiredText(formData, 'publicacao_id', 'Publicação')
   const nextStatus = allowed(text(formData, 'status'), ['pendente', 'triada_ia', 'em_tratamento', 'tratada', 'dispensada', 'duplicada', 'erro'], 'em_tratamento')
   const decisao = allowed(text(formData, 'decisao_tratamento'), ['gerar_prazo', 'gerar_tarefa', 'registrar_ciencia', 'vincular_documento', 'atualizar_resumo', 'dispensar_sem_acao', 'marcar_duplicada', 'revisar_cadastro_processo', ''], '')
   const motivo = text(formData, 'motivo_tratamento')
@@ -1127,13 +1127,13 @@ export async function updateGkitJurPublicacaoTratamentoAction(formData: FormData
     .eq('id', publicacaoId)
     .single()
 
-  if (currentResult.error || !currentResult.data) throw new Error(currentResult.error?.message ?? 'Publicacao nao encontrada.')
+  if (currentResult.error || !currentResult.data) throw new Error(currentResult.error?.message ?? 'Publicação não encontrada.')
   const current = currentResult.data as Record<string, unknown>
   const processoId = valueText(current.processo_id)
   let tarefaId = valueText(current.tarefa_id) || null
 
   if (createTask && !tarefaId) {
-    if (!processoId) throw new Error('Vincule a publicacao a um processo antes de gerar tarefa.')
+    if (!processoId) throw new Error('Vincule a publicação a um processo antes de gerar tarefa.')
     const processo = await getActiveJurProcess(processoId)
     const tarefaPayload = {
       processo_id: processoId,
@@ -1142,7 +1142,7 @@ export async function updateGkitJurPublicacaoTratamentoAction(formData: FormData
       tipo: decisao === 'gerar_prazo' ? 'prazo' : 'publicacao',
       titulo: decisao === 'gerar_prazo' ? 'Analisar prazo de publicação' : 'Tratar publicação/intimação',
       descricao: [
-        `Publicacao capturada por ${valueText(current.fonte, 'fonte externa')}.`,
+        `Publicação capturada por ${valueText(current.fonte, 'fonte externa')}.`,
         `Processo ${formatCnjForAction(valueText(current.numero_cnj_limpo))}.`,
         valueText(current.texto_preview),
         motivo ? `Observacao: ${motivo}` : '',
@@ -1196,7 +1196,7 @@ export async function updateGkitJurPublicacaoTratamentoAction(formData: FormData
     entidade_tipo: 'publicacao_monitorada',
     entidade_id: publicacaoId,
     acao: 'publicacao_tratamento_atualizado',
-    descricao: `Publicacao marcada como ${nextStatus}.`,
+    descricao: `Publicação marcada como ${nextStatus}.`,
     payload: { decisao_tratamento: decisao || null, processo_id: processoId || null, tarefa_id: tarefaId },
   })
 

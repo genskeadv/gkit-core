@@ -119,7 +119,7 @@ export function AccountsPayablePage() {
 
   const centers = useMemo(() => {
     const set = new Set(items.map((item) => item.centro).filter(Boolean) as string[]);
-    ['Pessoal', 'Operacional', 'Estrutura', 'TI', 'Consumo', 'Comissoes', 'Impostos', 'Novos Negocios'].forEach((center) => set.add(center));
+    ['Pessoal', 'Operacional', 'Estrutura', 'TI', 'Consumo', 'Comissões', 'Impostos', 'Novos Negocios'].forEach((center) => set.add(center));
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }, [items]);
 
@@ -220,7 +220,7 @@ export function AccountsPayablePage() {
       setItems(payload.rows || []);
       setSummary(payload.summary || emptySummary);
       setForecastSummary(payload.forecastSummary || emptyForecastSummary);
-      setMessage(`Importacao concluida. ${payload.imported || 0} pagamento(s) gravado(s). Snapshot criado antes da atualizacao e auditoria gravada.`);
+      setMessage(`Importação concluída. ${payload.imported || 0} pagamento(s) gravado(s). Snapshot criado antes da atualização e auditoria gravada.`);
       setFile(null);
       setPreview(null);
     } catch (err) {
@@ -265,7 +265,7 @@ export function AccountsPayablePage() {
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error || 'Não foi possível salvar a linha.');
-      setMessage('Alteracao salva.');
+      setMessage('Alteração salva.');
       await loadMonth(competencia);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado ao salvar linha.');
@@ -338,7 +338,7 @@ export function AccountsPayablePage() {
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error || 'Não foi possível fechar o mês.');
-      setMessage(`Mes fechado. Proximo mes criado (${String(payload.nextCompetencia).slice(0, 7)}) com ${payload.copied} pagamento(s) previsto(s).`);
+      setMessage(`Mês fechado. Próximo mês criado (${String(payload.nextCompetencia).slice(0, 7)}) com ${payload.copied} pagamento(s) previsto(s).`);
       await loadMonth(competencia);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado ao fechar mês.');
@@ -366,7 +366,7 @@ export function AccountsPayablePage() {
 
         {monthStatus === 'nao_aberto' && <div className="warning">Abra o mês para importar o extrato realizado e comparar com a previsão.</div>}
         {monthStatus === 'fechado' && <div className="warning">Mês fechado. A lista está protegida contra alterações até reabrir.</div>}
-        {monthStatus === 'indisponivel' && <div className="warning">Supabase indisponivel. Confira o .env.local e execute o schema v6.</div>}
+        {monthStatus === 'indisponivel' && <div className="warning">Supabase indisponível. Confira o .env.local e execute o schema v6.</div>}
         {error && <div className="error">{error}</div>}
         {message && <div className="success">{message}</div>}
 
@@ -379,7 +379,7 @@ export function AccountsPayablePage() {
         <section className="payable-import-box">
           <div>
             <h2>Importar pagamentos efetuados no mês</h2>
-            <p className="muted small-text">A importação pode ser feita a qualquer momento do mês aberto. Ela aceita planilha ou extrato bancario CSV/OFX e permite comparar o realizado com a previsão.</p>
+            <p className="muted small-text">A importação pode ser feita a qualquer momento do mês aberto. Ela aceita planilha ou extrato bancário CSV/OFX e permite comparar o realizado com a previsão.</p>
           </div>
           <div className="import-actions">
             <button type="button" className="secondary-button" onClick={exportFile} disabled={loading || monthStatus === 'indisponivel'}>Exportar previsão do mês</button>
@@ -398,20 +398,20 @@ export function AccountsPayablePage() {
             <div className="header-row">
               <div>
                 <h2>Prévia dos pagamentos</h2>
-                <p className="muted small-text">Arquivo: {preview.arquivo}. A gravacao substitui os pagamentos efetuados do mês pelo extrato importado.</p>
+                <p className="muted small-text">Arquivo: {preview.arquivo}. A gravação substitui os pagamentos efetuados do mês pelo extrato importado.</p>
               </div>
               {preview.linhasComErro > 0 ? <span className="badge badge-danger">Bloqueada</span> : <span className="badge badge-paid">Pronta para confirmar</span>}
             </div>
             <div className="preview-impact">
-              <strong>A gravacao ira:</strong>
+              <strong>A gravação irá:</strong>
               <span>+ Criar {preview.itensNovos} pagamento(s) novo(s)</span>
               <span>~ Alterar {preview.itensAlterados} pagamento(s)</span>
               <span>- Remover {preview.itensRemovidos} pagamento(s) que não vieram no novo extrato</span>
             </div>
             <div className="grid-3">
               <MetricCard label="Linhas validas" value={preview.linhasValidas} help={`${preview.linhasComErro} linha(s) com erro`} tone={preview.linhasComErro > 0 ? 'danger' : 'good'} />
-              <MetricCard label="Novos / alterados" value={`${preview.itensNovos} / ${preview.itensAlterados}`} help="Impacto no extrato do mes" />
-              <MetricCard label="Removidos" value={preview.itensRemovidos} help="Nao vieram na nova planilha" tone={preview.itensRemovidos > 0 ? 'warning' : 'default'} />
+              <MetricCard label="Novos / alterados" value={`${preview.itensNovos} / ${preview.itensAlterados}`} help="Impacto no extrato do mês" />
+              <MetricCard label="Removidos" value={preview.itensRemovidos} help="Não vieram na nova planilha" tone={preview.itensRemovidos > 0 ? 'warning' : 'default'} />
             </div>
             <div className="grid-3">
               <MetricCard label="Extrato atual" value={formatCurrency(preview.valorAtualManual)} />
@@ -438,7 +438,7 @@ export function AccountsPayablePage() {
             <p className="muted small-text">{summary.quantidade} lançamentos, {summary.quantidadePaga} marcados como pagos.</p>
           </div>
           <button type="button" className="secondary-button" onClick={() => setShowManualForm((current) => !current)} disabled={!canEdit || loading}>
-            {showManualForm ? 'Cancelar inclusao' : 'Adicionar pagamento'}
+            {showManualForm ? 'Cancelar inclusão' : 'Adicionar pagamento'}
           </button>
         </div>
 

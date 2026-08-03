@@ -93,7 +93,7 @@ function naturezaBadgeStatus(value: CadastroNatureza | null | undefined) {
 
 function origemLabel(value: string) {
   if (value === 'contas_pagar') return 'Pagamentos';
-  if (value === 'comissoes') return 'Comissoes';
+  if (value === 'comissoes') return 'Comissões';
   if (value === 'mista') return 'Mista';
   return 'Manual';
 }
@@ -367,7 +367,7 @@ function CadastroTable({
                           disabled={savingRuleId === item.id || !onToggleForecastRule}
                           onChange={(event) => onToggleForecastRule?.(item, event.target.checked)}
                         />
-                        <span>{savingRuleId === item.id ? 'Salvando...' : 'Nao gerar automaticamente'}</span>
+                        <span>{savingRuleId === item.id ? 'Salvando...' : 'Não gerar automaticamente'}</span>
                       </label>
                     </td>
                   ) : null}
@@ -655,7 +655,7 @@ export function MasterDataPage() {
             <div className="month-context-main">
               <p className="platform-kicker eyebrow">GKIT Flex</p>
               <h1>Cadastros e normalizacao</h1>
-              <p className="muted">Controle nomes canonicos de categorias, centros e carteiras. Novos nomes continuam podendo nascer pela importação, mas agora podem ser fundidos com segurança.</p>
+              <p className="muted">Controle nomes canônicos de categorias, centros e carteiras. Novos nomes continuam podendo nascer pela importação, mas agora podem ser fundidos com segurança.</p>
             </div>
           </div>
         </div>
@@ -669,7 +669,7 @@ export function MasterDataPage() {
         <MetricCard label="Categorias" value={totals.categorias} help={plural(totals.categorias, 'nome canonico', 'nomes canonicos')} />
         <MetricCard label="Centros" value={totals.centros} help={plural(totals.centros, 'centro padronizado', 'centros padronizados')} />
         <MetricCard label="Carteiras" value={totals.carteiras} help={plural(totals.carteiras, 'carteira', 'carteiras')} />
-        <MetricCard label="Regras" value={totals.regrasComissao} help="categorias com comissao ativa" tone={totals.regrasComissao ? 'good' : 'default'} />
+        <MetricCard label="Regras" value={totals.regrasComissao} help="categorias com comissão ativa" tone={totals.regrasComissao ? 'good' : 'default'} />
       </section>
 
       <CommissionRulesTable categorias={data?.categorias || []} savingId={savingCommissionRuleId} onSave={saveCommissionRule} />

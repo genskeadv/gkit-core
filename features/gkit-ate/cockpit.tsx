@@ -31,7 +31,7 @@ const panels: Array<{
     id: 'tipo-atendimento',
     label: '3. Tipo',
     title: 'Tipo de atendimento',
-    description: 'Cadastre a classificacao.',
+    description: 'Cadastre a classificação.',
   },
   {
     id: 'tipo-tarefa',
@@ -153,7 +153,7 @@ export function GkitAteCockpit({
         <div className="suite-panel-heading">
           <div>
             <h2>{activePanel ? panelTitle(activePanel) : 'Atendimentos abertos'}</h2>
-            <p>{activePanel ? panelDescription(activePanel) : 'Atendimentos consultivos ainda nao encerrados.'}</p>
+            <p>{activePanel ? panelDescription(activePanel) : 'Atendimentos consultivos ainda não encerrados.'}</p>
           </div>
         </div>
 
@@ -179,7 +179,7 @@ export function GkitAteCockpit({
               </select>
             </label>
             <label>
-              <span>Classificacao avulsa</span>
+              <span>Classificação avulsa</span>
               <input name="tipo_atendimento" placeholder="Opcional" />
             </label>
             <label>

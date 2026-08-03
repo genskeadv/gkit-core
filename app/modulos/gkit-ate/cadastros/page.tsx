@@ -69,7 +69,7 @@ export default async function GkitAteCadastrosPage({
         />
         <GkitAteFilterBar
           fields={[
-            { label: 'Busca', name: 'q', placeholder: isAtendimentoTab ? 'Tipo ou tarefa padrao' : 'Tipo ou descricao padrao', value: filters.q },
+            { label: 'Busca', name: 'q', placeholder: isAtendimentoTab ? 'Tipo ou tarefa padrao' : 'Tipo ou descrição padrão', value: filters.q },
             {
               label: 'Status',
               name: 'ativo',

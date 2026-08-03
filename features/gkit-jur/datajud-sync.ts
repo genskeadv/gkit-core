@@ -66,7 +66,7 @@ async function refreshSummaryBestEffort(processoId: string) {
   try {
     await refreshGkitJurProcessSummary(processoId)
   } catch {
-    // O resumo operacional nao deve invalidar a sincronizacao de origem.
+    // O resumo operacional não deve invalidar a sincronização de origem.
   }
 }
 
@@ -313,7 +313,7 @@ export async function applyMovementRetentionBestEffort(processoId: string) {
         p_processo_id: processoId,
       })
   } catch {
-    // A retencao nao deve invalidar a sincronizacao do processo.
+    // A retenção não deve invalidar a sincronização do processo.
   }
 }
 

@@ -75,18 +75,18 @@ export function statusLabel(value: string) {
     cancelado: 'Cancelado',
     encerrado: 'Encerrado',
     rascunho: 'Rascunho',
-    em_conferencia: 'Em conferencia',
+    em_conferencia: 'Em conferência',
     pronta_para_faturar: 'Pronta',
     faturada: 'Faturada',
-    nao_configurada: 'Nao configurada',
-    nao_enviada: 'Nao enviada',
+    nao_configurada: 'Não configurada',
+    nao_enviada: 'Não enviada',
     validando: 'Validando',
     autorizada: 'Autorizada',
     rejeitada: 'Rejeitada',
     manual_pendente: 'Manual pendente',
     pre_nota: 'Pré-nota',
     observacao: 'Observação',
-    nao_gerar_financeiro: 'Nao gerar',
+    nao_gerar_financeiro: 'Não gerar',
     aguardando_fiscal: 'Aguardando fiscal',
     prevista: 'Prevista',
     gerada: 'Gerada',
@@ -193,7 +193,7 @@ async function mapCarteiras(ids: string[]) {
 }
 
 function clienteNome(row: Record<string, any> | undefined) {
-  if (!row) return 'Cliente nao informado'
+  if (!row) return 'Cliente não informado'
   return text(row.nome) || text(row.nome_fantasia) || text(row.razao_social) || 'Cliente sem nome'
 }
 
@@ -301,7 +301,7 @@ export function validateNfsePayload(ordem: Record<string, any>, empresa?: GkitFa
 
   if (!empresa) erros.push('Empresa emissora não configurada.')
   if (empresa && !empresaCnpj) erros.push('CNPJ da empresa emissora ausente.')
-  if (empresa && !empresa.inscricao_municipal) alertas.push('Inscricao municipal da empresa emissora nao preenchida.')
+  if (empresa && !empresa.inscricao_municipal) alertas.push('Inscrição municipal da empresa emissora não preenchida.')
   if (empresa && !empresa.municipio) erros.push('Município da empresa emissora ausente.')
   if (!tomadorDoc) erros.push('CPF/CNPJ do tomador ausente.')
   if (!text(tomador.razao_social) && !text(tomador.nome) && !text(tomador.nome_fantasia)) erros.push('Nome/razao social do tomador ausente.')

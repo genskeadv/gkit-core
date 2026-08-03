@@ -45,18 +45,18 @@ export async function ReceitasPage({ competencia }: { competencia?: string | nul
         <MetricCard
           label="Receita líquida"
           value={formatMoney(latestExecution?.total_valor_recebido || 0)}
-          help={latestExecution ? `Ultima apuracao em ${formatDateTime(latestExecution.created_at)}` : 'Sem apuracao salva'}
+          help={latestExecution ? `Última apuração em ${formatDateTime(latestExecution.created_at)}` : 'Sem apuração salva'}
           tone={latestExecution?.total_valor_recebido ? 'good' : 'default'}
         />
         <MetricCard
           label="Categorias"
           value={rows.length}
-          help="com receita no mes"
+          help="com receita no mês"
         />
         <MetricCard
           label="Comissões calculadas"
           value={formatMoney(latestExecution?.total_comissao || 0)}
-          help="referencia do fechamento"
+          help="referência do fechamento"
         />
       </section>
 
@@ -65,7 +65,7 @@ export async function ReceitasPage({ competencia }: { competencia?: string | nul
           <div>
             <h2>Receitas por categoria</h2>
             <p className="muted small-text">
-              Base: {latestExecution?.contas_file_name || 'nenhuma planilha importada para esta competencia'}.
+              Base: {latestExecution?.contas_file_name || 'nenhuma planilha importada para esta competência'}.
             </p>
           </div>
         </div>

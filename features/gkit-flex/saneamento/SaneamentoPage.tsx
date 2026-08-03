@@ -100,12 +100,12 @@ function reclassificationImpactRows(preview: ReclassPreview | null) {
   return [
     ['Pagamentos - categoria', preview.impacto.contasPagarCategoria || 0],
     ['Pagamentos - centro', preview.impacto.contasPagarCentro || 0],
-    ['Comissoes resumo - categoria', preview.impacto.comissaoResumoCategoria || 0],
-    ['Comissoes resumo - carteira', preview.impacto.comissaoResumoCarteira || 0],
+    ['Comissões resumo - categoria', preview.impacto.comissaoResumoCategoria || 0],
+    ['Comissões resumo - carteira', preview.impacto.comissaoResumoCarteira || 0],
     ['Lançamentos de comissões - categoria', preview.impacto.comissaoLancamentoCategoria || 0],
     ['Lançamentos de comissões - carteira', preview.impacto.comissaoLancamentoCarteira || 0],
-    ['Comissoes auditoria - categoria', preview.impacto.comissaoAuditoriaCategoria || 0],
-    ['Comissoes auditoria - carteira', preview.impacto.comissaoAuditoriaCarteira || 0],
+    ['Comissões auditoria - categoria', preview.impacto.comissaoAuditoriaCategoria || 0],
+    ['Comissões auditoria - carteira', preview.impacto.comissaoAuditoriaCarteira || 0],
   ].filter(([, value]) => Number(value) > 0);
 }
 
@@ -200,7 +200,7 @@ function ReclassificationPanel({ data, onDone }: { data: CadastroResumo | null; 
           </select>
         </label>
         <label className="field-label">
-          Origem - nome que sera fundido
+          Origem - nome que será fundido
           <select className="text-input" value={origemId} onChange={(event) => { setOrigemId(event.target.value); setPreview(null); }}>
             <option value="">Selecione a origem</option>
             {options.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
@@ -230,7 +230,7 @@ function ReclassificationPanel({ data, onDone }: { data: CadastroResumo | null; 
             <MetricCard label="Tipo" value={cadastroTipoLabel(preview.tipo)} help="Cadastro afetado" />
             <MetricCard label="Origem" value={preview.origem.nome} help={`${preview.origem.aliases.length} alias(es)`} tone="warning" />
             <MetricCard label="Destino" value={preview.destino.nome} help="Nome canonico final" tone="good" />
-            <MetricCard label="Impacto" value={preview.impacto.total} help="Registros que serao atualizados" tone={preview.impacto.total ? 'warning' : 'default'} />
+            <MetricCard label="Impacto" value={preview.impacto.total} help="Registros que serão atualizados" tone={preview.impacto.total ? 'warning' : 'default'} />
           </div>
 
           {preview.bloqueios.length ? <div className="error">Bloqueios: {preview.bloqueios.join(' ')}</div> : null}
@@ -400,7 +400,7 @@ export function SaneamentoPage() {
         <MetricCard label="Selecionados" value={selectedIds.length} help={formatMoney(selectedTotal)} tone={selectedIds.length ? 'warning' : 'default'} />
         <MetricCard label="Modo" value={field === 'categoria' ? 'Categoria' : 'Centro'} help={`${visibleRows.length} pendente(s)`} />
         <MetricCard label="Destino" value={newValue.trim() || selectedValue || '-'} help="destino do lote" />
-        <MetricCard label="Status" value={data?.canEdit ? 'Editavel' : 'Bloqueado'} help="competencia" tone={data?.canEdit ? 'good' : 'danger'} />
+        <MetricCard label="Status" value={data?.canEdit ? 'Editável' : 'Bloqueado'} help="competência" tone={data?.canEdit ? 'good' : 'danger'} />
         <MetricCard label="Sugestões" value={suggestionCount} help="categoria pela previsão" tone={suggestionCount ? 'good' : 'default'} />
       </section>
 
@@ -409,7 +409,7 @@ export function SaneamentoPage() {
       <section className="card flex-saneamento-actions">
         <div className="header-row compact-header">
           <div>
-            <p className="eyebrow">Classificacao</p>
+            <p className="eyebrow">Classificação</p>
             <h2>Aplicar {fieldLabel}</h2>
             <p className="muted small-text">{selectedIds.length ? `${selectedIds.length} pagamento(s) selecionado(s).` : 'Nenhum pagamento selecionado.'}</p>
           </div>

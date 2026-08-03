@@ -210,7 +210,7 @@ export function GkitJurLabShell({
         <span>Inteligência, visão e controle para o jurídico</span>
         <h1>Legal Command Center</h1>
         <p>
-          Visao estrategica e operacional do contencioso, com prioridades reais antes de qualquer cadastro.
+          Visão estratégica e operacional do contencioso, com prioridades reais antes de qualquer cadastro.
         </p>
       </section>
 
@@ -1749,7 +1749,7 @@ export function GkitJurProcessesPage({
     <>
       <GkitJurProcessCommandCenter data={data} />
 
-      <GkitJurSection title="Consulta operacional" description="Use filtros apenas quando precisar investigar ou abrir um processo especifico.">
+      <GkitJurSection title="Consulta operacional" description="Use filtros apenas quando precisar investigar ou abrir um processo específico.">
         <div className="gkit-jur-list-note">
           <span>Padrão: processos ativos</span>
           <small>Encerrados aparecem apenas quando o status for selecionado no filtro.</small>
@@ -2913,7 +2913,7 @@ function GkitJurProcessDetailEtiquetas({
           <input name="return_to" type="hidden" value={returnTo} />
           <input name="mode" type="hidden" value="add" />
           <select name="etiqueta_id" required defaultValue="">
-            <option value="">{availableTags.length ? 'Adicionar etiqueta' : 'Todas as etiquetas ativas ja aplicadas'}</option>
+            <option value="">{availableTags.length ? 'Adicionar etiqueta' : 'Todas as etiquetas ativas já aplicadas'}</option>
             {availableTags.map((tag) => (
               <option key={tag.id} value={tag.id}>{tag.nome}</option>
             ))}
@@ -3235,7 +3235,7 @@ function GkitJurProcessAcordosSection({
       className="gkit-jur-agreement-panel"
       id="acordos"
       title="Acordo judicial"
-      description="Controle as condicoes pactuadas, parcelas, pagamentos e quebras do acordo."
+      description="Controle as condições pactuadas, parcelas, pagamentos e quebras do acordo."
     >
       {hasActiveAgreement ? <div className="suite-alert success">Processo marcado como em acordo.</div> : null}
       <GkitJurAcordoForm action={createAcordoAction} canWrite={canWrite} processoId={processoId} />
@@ -3359,7 +3359,7 @@ export function GkitJurAcordosCockpitPage({ data }: { data: GkitJurAcordosData }
         <div>
           <span>Acompanhamento financeiro</span>
           <h2>{ativos.length.toLocaleString('pt-BR')} acordo(s) em acompanhamento</h2>
-          <p>{atrasados.length.toLocaleString('pt-BR')} acordo(s) com atraso e {vencem30.length.toLocaleString('pt-BR')} com vencimento nos proximos 30 dias.</p>
+          <p>{atrasados.length.toLocaleString('pt-BR')} acordo(s) com atraso e {vencem30.length.toLocaleString('pt-BR')} com vencimento nos próximos 30 dias.</p>
         </div>
         <div>
           <strong>{formatMoney(valorAberto)}</strong>
@@ -3553,7 +3553,7 @@ export function GkitJurAcordosPage({
         </GkitJurSection>
       ) : null}
 
-      <GkitJurSection title="Controle de acordos" description="Acompanhe parcelas, proximos vencimentos e status dos acordos cadastrados nos processos.">
+      <GkitJurSection title="Controle de acordos" description="Acompanhe parcelas, próximos vencimentos e status dos acordos cadastrados nos processos.">
         {data.acordos.length ? (
           <div className="gkit-jur-agreement-list" role="list">
             {data.acordos.map((acordo) => (
@@ -4281,7 +4281,7 @@ function publicacaoPeopleLine(item: GkitJurPublicacao) {
     item.clienteNome || item.processoTitulo,
     item.responsavelNome ? `Resp. ${item.responsavelNome}` : null,
     cleanPublicacaoLabel(item.carteiraNome),
-  ].filter(Boolean).join(' - ') || 'Sem vinculo operacional completo'
+  ].filter(Boolean).join(' - ') || 'Sem vínculo operacional completo'
 }
 
 function publicacaoMetaLine(item: GkitJurPublicacao) {
@@ -4345,7 +4345,7 @@ function GkitJurPublicacaoCommandStrip({ data }: { data: GkitJurPublicacoesData 
     },
     {
       count: data.metrics.naoLocalizadas,
-      href: '/modulos/gkit-jur/publicacoes/lista?q=Nao%20localizado',
+      href: '/modulos/gkit-jur/publicacoes/lista?q=Não%20localizado',
       label: 'Não localizadas',
       note: 'exigem cadastro',
       tone: 'danger',
@@ -5326,7 +5326,7 @@ export function GkitJurEmailsPage({ data }: { data: GkitJurEmailsData }) {
         <article className="metric-card">
           <span className="metric-label">Registros</span>
           <strong className="metric-value">{data.metrics.total.toLocaleString('pt-BR')}</strong>
-          <span className="metric-hint">ultimos acompanhamentos</span>
+          <span className="metric-hint">últimos acompanhamentos</span>
         </article>
         <article className="metric-card">
           <span className="metric-label">Pendentes</span>
@@ -5391,7 +5391,7 @@ function GkitJurEtiquetaForm({
       {etiqueta ? <input name="id" type="hidden" value={etiqueta.id} /> : null}
       <label>
         Nome da etiqueta
-        <input disabled={!canWrite} name="nome" required defaultValue={etiqueta?.nome ?? ''} placeholder="Ex.: Acordo, Estrategico, Revisar" />
+        <input disabled={!canWrite} name="nome" required defaultValue={etiqueta?.nome ?? ''} placeholder="Ex.: Acordo, Estratégico, Revisar" />
       </label>
       <label>
         Cor
@@ -5447,7 +5447,7 @@ export function GkitJurEtiquetasPage({
               <article key={etiqueta.id} role="listitem">
                 <div>
                   <GkitJurEtiquetaPills tags={[etiqueta]} />
-                  <p>{etiqueta.ativo ? 'Disponivel para novos vinculos.' : 'Inativa para novos vinculos.'}</p>
+                  <p>{etiqueta.ativo ? 'Disponível para novos vínculos.' : 'Inativa para novos vínculos.'}</p>
                 </div>
                 <span className={`suite-pill ${etiqueta.ativo ? 'success' : 'muted'}`}>{etiqueta.ativo ? 'Ativa' : 'Inativa'}</span>
                 <small>{etiqueta.updatedAt ? formatDate(etiqueta.updatedAt) : 'Sem atualização'}</small>

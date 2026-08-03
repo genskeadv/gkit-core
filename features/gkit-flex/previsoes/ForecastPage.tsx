@@ -145,7 +145,7 @@ export function ForecastPage() {
 
   async function generateBase(tipo: 'receitas' | 'pagamentos') {
     const hasRows = tipo === 'receitas' ? receitas.length > 0 : pagamentos.length > 0;
-    const overwrite = hasRows ? window.confirm('Ja existe previsao nesta aba. Substituir pela base do mes anterior?') : false;
+    const overwrite = hasRows ? window.confirm('Já existe previsão nesta aba. Substituir pela base do mês anterior?') : false;
     if (hasRows && !overwrite) return;
 
     setLoading(true);
@@ -218,14 +218,14 @@ export function ForecastPage() {
   return (
     <main className="page-shell wide-shell forecast-page">
       <MonthContextHeader
-        title="Previsoes mensais"
+        title="Previsões mensais"
         description="Monte a previsão de receitas por tipo e a previsão de pagamentos do mês, usando o fechamento anterior como base editável."
         competencia={competencia}
         onCompetenciaChange={setCompetencia}
         primaryStatus={{ label: 'Origem', status: data?.configured ? 'ok' : 'indisponivel' }}
         secondaryStatus={{ label: 'Mês anterior', status: data?.origemCompetencia ? 'ok' : 'nao_aberto' }}
       >
-        <button className="primary-button" onClick={saveForecast} disabled={saving || loading || !data?.configured}>{saving ? 'Salvando...' : 'Salvar previsao'}</button>
+        <button className="primary-button" onClick={saveForecast} disabled={saving || loading || !data?.configured}>{saving ? 'Salvando...' : 'Salvar previsão'}</button>
       </MonthContextHeader>
 
       {error ? <div className="error">{error}</div> : null}
@@ -305,13 +305,13 @@ export function ForecastPage() {
                 title="Receitas por tipo"
                 description={`Previsto ${formatCurrency(data?.comparativo?.resumo.totalReceitasPrevistas || 0)} / realizado ${formatCurrency(data?.comparativo?.resumo.totalReceitasRealizadas || 0)}`}
                 rows={data?.comparativo?.receitasPorTipo || []}
-                empty="Sem previsao ou realizado de receitas para comparar."
+                empty="Sem previsão ou realizado de receitas para comparar."
               />
               <ComparisonPanel
                 title="Pagamentos por categoria"
                 description={`Previsto ${formatCurrency(data?.comparativo?.resumo.totalPagamentosPrevistos || 0)} / realizado ${formatCurrency(data?.comparativo?.resumo.totalPagamentosRealizados || 0)}`}
                 rows={data?.comparativo?.pagamentosPorCategoria || []}
-                empty="Sem previsao ou realizado de pagamentos para comparar."
+                empty="Sem previsão ou realizado de pagamentos para comparar."
               />
             </section>
           </section>

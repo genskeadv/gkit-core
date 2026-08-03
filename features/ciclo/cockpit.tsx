@@ -141,7 +141,7 @@ export function CicloCockpit({
       <section className="suite-panel ciclo-cockpit-form-panel">
         <div className="suite-panel-heading">
           <div>
-            <h2>{activePanel ? panelTitle(activePanel) : 'Clientes com documentacao pendente'}</h2>
+            <h2>{activePanel ? panelTitle(activePanel) : 'Clientes com documentação pendente'}</h2>
             <p>{activePanel ? panelDescription(activePanel) : 'Clientes com checklist documental pendente ou vencido.'}</p>
           </div>
         </div>

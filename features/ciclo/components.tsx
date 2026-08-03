@@ -40,12 +40,12 @@ import {
 
 const cicloDocumentoTipos = [
   ['contrato', 'Contrato'],
-  ['cartao_cnpj', 'Cartao CNPJ'],
-  ['ata_eleicao', 'Ata eleicao'],
-  ['ata_previsao_orcamentaria', 'Ata previsao orcamentaria'],
-  ['cpf_sindico', 'CPF sindico'],
-  ['cnpj_empresa_sindico', 'CNPJ empresa sindico'],
-  ['convencao', 'Convencao'],
+  ['cartao_cnpj', 'Cartão CNPJ'],
+  ['ata_eleicao', 'Ata eleição'],
+  ['ata_previsao_orcamentaria', 'Ata previsão orçamentária'],
+  ['cpf_sindico', 'CPF síndico'],
+  ['cnpj_empresa_sindico', 'CNPJ empresa síndico'],
+  ['convencao', 'Convenção'],
   ['regulamento', 'Regulamento'],
   ['cadastro_unidade', 'Cadastro de unidade'],
 ]
@@ -71,9 +71,9 @@ function tipoClienteLabel(value: string) {
 }
 
 function tipoPessoaLabel(value: string) {
-  if (value === 'pessoa_fisica') return 'Pessoa fisica'
-  if (value === 'pessoa_juridica') return 'Pessoa juridica'
-  return 'Condominio'
+  if (value === 'pessoa_fisica') return 'Pessoa física'
+  if (value === 'pessoa_juridica') return 'Pessoa jurídica'
+  return 'Condomínio'
 }
 import type { PlatformUsuario } from '@/lib/auth/platform'
 
@@ -550,7 +550,7 @@ export function CicloOnboardingOverview({ rows }: { rows: CicloListRow[] }) {
           <small>sem documentos iniciados</small>
         </article>
         <article>
-          <span>Progresso medio</span>
+          <span>Progresso médio</span>
           <strong>{progressoMedio}%</strong>
           <small>documental</small>
         </article>
@@ -831,9 +831,9 @@ export function CicloClienteForm({
       <div>
         <label className="label" htmlFor="tipo_pessoa">Natureza</label>
         <select className="select" id="tipo_pessoa" name="tipo_pessoa" defaultValue={cliente?.tipo_pessoa ?? 'condominio'}>
-          <option value="condominio">Condominio</option>
+          <option value="condominio">Condomínio</option>
           <option value="pessoa_juridica">Pessoa jurídica</option>
-          <option value="pessoa_fisica">Pessoa fisica</option>
+          <option value="pessoa_fisica">Pessoa física</option>
         </select>
       </div>
 
@@ -1360,8 +1360,8 @@ export function CicloAtaForm({
       <div>
         <label className="label" htmlFor="tipo">Tipo</label>
         <select className="select" id="tipo" name="tipo" required defaultValue={ata?.tipo ?? 'ata_eleicao'}>
-          <option value="ata_eleicao">Ata eleicao</option>
-          <option value="ata_previsao_orcamentaria">Ata previsão orcamentaria</option>
+          <option value="ata_eleicao">Ata eleição</option>
+          <option value="ata_previsao_orcamentaria">Ata previsão orçamentária</option>
           <option value="assembleia_ordinaria">Assembleia ordinaria</option>
           <option value="assembleia_extraordinaria">Assembleia extraordinaria</option>
           <option value="outra">Outra</option>

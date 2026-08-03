@@ -27,7 +27,7 @@ export default async function CicloDocumentosPage() {
       <CicloSection
         eyebrow="Matriz"
         title="Documentos operacionais"
-        description="Contrato, cartao CNPJ, atas, documentos do sindico, convencao, regulamento e cadastro de unidade."
+        description="Contrato, cartão CNPJ, atas, documentos do síndico, convenção, regulamento e cadastro de unidade."
       >
         <CicloDocumentoList canWrite={canWrite} documentos={data.documentos} />
       </CicloSection>

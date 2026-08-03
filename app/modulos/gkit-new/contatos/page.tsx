@@ -20,7 +20,7 @@ export default async function GkitNewContatosPage({
     <GkitNewShell
       active="contatos"
       title="Contatos"
-      description="Pessoas de relacionamento comercial vinculaveis a varios clientes."
+      description="Pessoas de relacionamento comercial vinculáveis a vários clientes."
       usuario={context.usuario}
       actions={canWrite ? <Link className="button" href="/modulos/gkit-new/contatos/novo">Novo contato</Link> : null}
     >
@@ -30,7 +30,7 @@ export default async function GkitNewContatosPage({
           fields={[
             { label: 'Busca', name: 'q', placeholder: 'Nome, e-mail, celular ou descrição', value: filters.q },
             {
-              label: 'Vinculo',
+              label: 'Vínculo',
               name: 'vinculo',
               options: [
                 { label: 'Com clientes', value: 'com_clientes' },

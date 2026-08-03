@@ -59,7 +59,7 @@ function statusLabel(status: Status | string) {
   if (status === 'bloqueio') return 'Bloqueio';
   if (status === 'aberto') return 'Aberto';
   if (status === 'fechado') return 'Fechado';
-  return 'Nao aberto';
+  return 'Não aberto';
 }
 
 function statusClass(status: Status | string) {
@@ -190,7 +190,7 @@ export function AuditPage() {
       </section>
 
       <section className="card">
-        <p className="eyebrow">Versoes</p>
+        <p className="eyebrow">Versões</p>
         <h2>Histórico de processamento</h2>
         <div className="table-wrap">
           <table className="periods-table">

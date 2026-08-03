@@ -112,7 +112,7 @@ async function latestExecutionForMonth(supabase: SupabaseClient, competencia: st
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (error) throw new Error(`Erro ao consultar execucao de ${competencia}: ${error.message}`);
+  if (error) throw new Error(`Erro ao consultar execução de ${competencia}: ${error.message}`);
   return data as null | { id: string; total_valor_recebido: number; total_comissao: number; created_at: string };
 }
 
@@ -205,7 +205,7 @@ async function walletDashboard(supabase: SupabaseClient, competencia: string): P
       .eq('execucao_id', execution.id),
   ]);
   if (launchResult.error) throw new Error(`Erro ao consultar carteiras: ${launchResult.error.message}`);
-  if (summaryResult.error) throw new Error(`Erro ao consultar comissoes por carteira: ${summaryResult.error.message}`);
+  if (summaryResult.error) throw new Error(`Erro ao consultar comissões por carteira: ${summaryResult.error.message}`);
 
   const map = new Map<string, WalletDashboardRow>();
   let totalRecebido = 0;
@@ -287,7 +287,7 @@ function buildAlerts(atual: MonthNumbers, projection: MonthNumbers, categorias: 
   }
 
   if (projection.itensPagar > 0) {
-    alerts.push({ severidade: 'info', titulo: 'Próximo mês projetado', detalhe: `A proxima competencia ja tem ${projection.itensPagar} item(ns) previstos em pagamentos.`, valor: projection.pagar });
+    alerts.push({ severidade: 'info', titulo: 'Próximo mês projetado', detalhe: `A próxima competência ja tem ${projection.itensPagar} item(ns) previstos em pagamentos.`, valor: projection.pagar });
   }
 
   return alerts.slice(0, 8);
@@ -312,7 +312,7 @@ export async function getDashboardIntelligence(competenciaInput?: string | null)
       contasEmAberto: 0,
       comissoesPrevistas: 0,
       itensPrevistos: 0,
-      observacoes: ['Supabase nao configurado.'],
+      observacoes: ['Supabase não configurado.'],
     },
     alertas: [],
     carteiras: [],
@@ -345,7 +345,7 @@ export async function getDashboardIntelligence(competenciaInput?: string | null)
       comissoesPrevistas: proximo.comissoes,
       itensPrevistos: proximo.itensPagar,
       observacoes: [
-        proximo.itensPagar ? 'Projecao baseada nos pagamentos ja criados para a proxima competencia.' : 'Ainda nao ha pagamentos criados para a proxima competencia.',
+        proximo.itensPagar ? 'Projeção baseada nos pagamentos já criados para a próxima competência.' : 'Ainda não há pagamentos criados para a próxima competência.',
         'Comissões do próximo mês só entram após novo cálculo da competência.',
       ],
     },

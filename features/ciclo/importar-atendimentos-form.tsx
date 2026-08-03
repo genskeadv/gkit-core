@@ -115,7 +115,7 @@ export function ImportarAtendimentosAstreaForm() {
                   </div>
                   <span className={`ciclo-pill ${item.status === 'aberto' ? 'warning' : 'success'}`}>{item.status}</span>
                   <strong>{item.acao}</strong>
-                  <small>{item.vinculado ? item.responsavel ?? 'Sem responsavel' : 'Cliente sem vinculo'}</small>
+                  <small>{item.vinculado ? item.responsavel ?? 'Sem responsável' : 'Cliente sem vínculo'}</small>
                 </article>
               ))}
             </div>
@@ -123,7 +123,7 @@ export function ImportarAtendimentosAstreaForm() {
 
           {preview.ignorados.length ? (
             <div className="suite-empty-block warning">
-              <strong>Linhas que serao ignoradas</strong>
+              <strong>Linhas que serão ignoradas</strong>
               <ul>
                 {preview.ignorados.slice(0, 12).map((item) => <li key={item}>{item}</li>)}
               </ul>

@@ -122,7 +122,7 @@ export function ImportarGkitAteAstreaForm() {
 
           {preview.ignorados.length ? (
             <div className="suite-empty-block warning">
-              <strong>Linhas que serao ignoradas</strong>
+              <strong>Linhas que serão ignoradas</strong>
               <ul>
                 {preview.ignorados.slice(0, 12).map((item) => <li key={item}>{item}</li>)}
               </ul>

@@ -266,7 +266,7 @@ async function generateOpenAiResumoInteligente(input: {
 
   const payload = await response.json()
   const outputText = extractResponseText(payload)
-  if (!outputText) throw new Error('OpenAI nao retornou texto para o resumo inteligente.')
+  if (!outputText) throw new Error('OpenAI não retornou texto para o resumo inteligente.')
   return sanitizeResumoInteligente(JSON.parse(outputText))
 }
 

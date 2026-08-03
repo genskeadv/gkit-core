@@ -169,8 +169,8 @@ export function GkitNewCockpit({
       <section className="suite-panel gkit-new-cockpit-form-panel">
         <div className="suite-panel-heading">
           <div>
-            <h2>{activePanel ? panelTitle(activePanel) : 'Ultimas propostas em aberto'}</h2>
-            <p>{activePanel ? panelDescription(activePanel) : 'Propostas criadas recentemente e ainda nao finalizadas.'}</p>
+            <h2>{activePanel ? panelTitle(activePanel) : 'Últimas propostas em aberto'}</h2>
+            <p>{activePanel ? panelDescription(activePanel) : 'Propostas criadas recentemente e ainda não finalizadas.'}</p>
           </div>
         </div>
 

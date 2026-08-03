@@ -36,7 +36,7 @@ export default async function CicloImportacoesPage({
           eyebrow="Entrada"
           title={tab === 'clientes' ? 'Clientes' : 'Atendimentos'}
           description={tab === 'clientes'
-            ? 'Importe a base de clientes do Ciclo. O CNPJ e a chave de atualizacao.'
+            ? 'Importe a base de clientes do Ciclo. O CNPJ é a chave de atualização.'
             : 'Importe os atendimentos consultivos exportados do ASTREA.'}
           action={(
             <nav className="suite-tabs flex-import-tabs ciclo-import-tabs" aria-label="Tipo de importação">

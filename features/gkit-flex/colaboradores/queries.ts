@@ -73,7 +73,7 @@ function mapColaborador(
     observacoes: text(row.observacoes, '') || null,
     created_at: text(row.created_at),
     updated_at: text(row.updated_at),
-    usuario_nome: text(usuario.nome, 'Usuario sem nome'),
+    usuario_nome: text(usuario.nome, 'Usuário sem nome'),
     usuario_email: text(usuario.email, ''),
     carteira_nome: carteira ? text(carteira.nome, '') || null : null,
     gestor_nome: gestor ? text(gestor.nome, '') || null : null,

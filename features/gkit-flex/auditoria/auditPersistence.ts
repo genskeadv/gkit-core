@@ -19,7 +19,7 @@ function monthLabel(competencia: string): string {
   return competencia.slice(0, 7);
 }
 
-function countBy<T extends Record<string, any>>(rows: T[], key: keyof T, fallback = 'Nao informado') {
+function countBy<T extends Record<string, any>>(rows: T[], key: keyof T, fallback = 'Não informado') {
   const map = new Map<string, number>();
   for (const row of rows) {
     const label = String(row[key] || fallback);
@@ -50,8 +50,8 @@ export async function getMonthlyAudit(competenciaInput?: string | null) {
     supabase.from('comissao_competencias').select('id, competencia, status, opened_at, closed_at, reopened_at, created_at').eq('competencia', competencia).maybeSingle(),
     supabase.from('contas_pagar_competencias').select('id, competencia, status, opened_at, closed_at, reopened_at, created_at').eq('competencia', competencia).maybeSingle(),
   ]);
-  if (cmError) throw new Error(`Erro ao consultar competencia de comissoes: ${cmError.message}`);
-  if (pmError) throw new Error(`Erro ao consultar competencia de pagamentos: ${pmError.message}`);
+  if (cmError) throw new Error(`Erro ao consultar competência de comissões: ${cmError.message}`);
+  if (pmError) throw new Error(`Erro ao consultar competência de pagamentos: ${pmError.message}`);
 
   const { data: executions, error: execError } = await supabase
     .from('comissao_execucoes')
@@ -135,13 +135,13 @@ export async function getMonthlyAudit(competenciaInput?: string | null) {
       id: 'comissoes_mes_aberto_ou_fechado',
       titulo: 'Competência de comissões existe',
       status: commissionMonth ? 'ok' : 'bloqueio',
-      detalhe: commissionMonth ? `Status: ${commissionMonth.status}` : 'Abra o mes antes de calcular ou fechar comissoes.',
+      detalhe: commissionMonth ? `Status: ${commissionMonth.status}` : 'Abra o mês antes de calcular ou fechar comissões.',
     },
     {
       id: 'comissoes_processadas',
       titulo: 'Comissões processadas',
       status: latestExecution ? 'ok' : 'bloqueio',
-      detalhe: latestExecution ? `Ultima execucao em ${latestExecution.created_at}` : 'Ainda nao ha calculo de comissoes processado para esta competencia.',
+      detalhe: latestExecution ? `Última execução em ${latestExecution.created_at}` : 'Ainda não há cálculo de comissões processado para esta competência.',
     },
     {
       id: 'auditoria_comissoes',
@@ -153,13 +153,13 @@ export async function getMonthlyAudit(competenciaInput?: string | null) {
       id: 'contas_pagar_mes_aberto_ou_fechado',
       titulo: 'Competência de pagamentos existe',
       status: payableMonth ? 'ok' : 'bloqueio',
-      detalhe: payableMonth ? `Status: ${payableMonth.status}` : 'Abra o mes antes de importar ou fechar pagamentos.',
+      detalhe: payableMonth ? `Status: ${payableMonth.status}` : 'Abra o mês antes de importar ou fechar pagamentos.',
     },
     {
       id: 'contas_pagar_importadas',
       titulo: 'Pagamentos importados/cadastrados',
       status: payables.length ? 'ok' : 'bloqueio',
-      detalhe: payables.length ? `${payables.length} item(ns), total ${payableTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.` : 'Nenhum pagamento cadastrado para o mes.',
+      detalhe: payables.length ? `${payables.length} item(ns), total ${payableTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.` : 'Nenhum pagamento cadastrado para o mês.',
     },
     {
       id: 'qualidade_contas_pagar',
@@ -176,7 +176,7 @@ export async function getMonthlyAudit(competenciaInput?: string | null) {
     competencia,
     status: {
       geral,
-      texto: geral === 'ok' ? 'Pronto para fechamento' : geral === 'aviso' ? 'Fechavel com ressalvas' : 'Pendencias bloqueantes',
+      texto: geral === 'ok' ? 'Pronto para fechamento' : geral === 'aviso' ? 'Fechável com ressalvas' : 'Pendências bloqueantes',
     },
     checklist,
     comissoes: {
@@ -221,7 +221,7 @@ export async function getMonthlyAudit(competenciaInput?: string | null) {
 
 export async function buildMonthlyClosingWorkbook(competenciaInput?: string | null): Promise<{ competencia: string; filename: string; buffer: Buffer }> {
   const data = await getMonthlyAudit(competenciaInput);
-  if (!data.configured) throw new Error('Supabase nao configurado.');
+  if (!data.configured) throw new Error('Supabase não configurado.');
 
   const workbook = XLSX.utils.book_new();
 
@@ -239,11 +239,11 @@ export async function buildMonthlyClosingWorkbook(competenciaInput?: string | nu
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(resumo), 'Resumo');
 
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data.checklist), 'Checklist');
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data.comissoes?.resumos || []), 'Comissoes');
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data.comissoes?.resumos || []), 'Comissões');
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data.contasPagar?.porCategoria || []), 'Pagar por categoria');
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data.auditoria.amostras || []), 'Auditoria');
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data.versoes.comissoes || []), 'Versoes comissoes');
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data.versoes.importacoes || []), 'Importacoes pagar');
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data.versoes.comissoes || []), 'Versões comissões');
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data.versoes.importacoes || []), 'Importações pagar');
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data.versoes.snapshots || []), 'Snapshots');
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data.eventos || []), 'Eventos');
 

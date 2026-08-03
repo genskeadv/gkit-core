@@ -137,7 +137,7 @@ export async function CommissionsPage({ competencia }: { competencia?: string | 
         <MetricCard
           label="Comissões previstas"
           value={formatMoney(displayedCommissionTotal)}
-          help={forecastCommissionRows.length ? `${forecastCommissionRows.length} linha(s) na previsao mensal` : 'ultima apuracao do mes'}
+          help={forecastCommissionRows.length ? `${forecastCommissionRows.length} linha(s) na previsao mensal` : 'última apuração do mês'}
           tone={displayedCommissionTotal ? 'good' : 'default'}
         />
         <MetricCard
@@ -154,7 +154,7 @@ export async function CommissionsPage({ competencia }: { competencia?: string | 
         <MetricCard
           label="Carteiras"
           value={wallets.size}
-          help={latestExecution ? `atualizado em ${formatDateTime(latestExecution.created_at)}` : 'sem apuracao'}
+          help={latestExecution ? `atualizado em ${formatDateTime(latestExecution.created_at)}` : 'sem apuração'}
         />
       </section>
 
@@ -201,7 +201,7 @@ export async function CommissionsPage({ competencia }: { competencia?: string | 
           <div>
             <h2>Previsão por categoria e carteira</h2>
             <p className="muted small-text">
-              Base: {latestExecution?.contas_file_name || 'nenhuma apuracao salva para esta competencia'}.
+              Base: {latestExecution?.contas_file_name || 'nenhuma apuração salva para esta competência'}.
             </p>
           </div>
         </div>

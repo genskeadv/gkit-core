@@ -99,8 +99,8 @@ export function GkitFlexColaboradoresPage({
 
       <section className="grid-4">
         <MetricCard label="Colaboradores" value={data.resumo.total} help="com complemento Flex" />
-        <MetricCard label="Ativos" value={data.resumo.ativos} help="aptos para operacao" tone={data.resumo.ativos ? 'good' : 'warning'} />
-        <MetricCard label="Recebem comissão" value={data.resumo.recebemComissao} help="marcados para apuracao" />
+        <MetricCard label="Ativos" value={data.resumo.ativos} help="aptos para operação" tone={data.resumo.ativos ? 'good' : 'warning'} />
+        <MetricCard label="Recebem comissão" value={data.resumo.recebemComissao} help="marcados para apuração" />
         <MetricCard label="Custo mensal" value={formatMoney(data.resumo.custoMensal)} help="salario, beneficios e extras" />
       </section>
 
@@ -162,7 +162,7 @@ export function GkitFlexColaboradoresPage({
                         row.recebe_pro_labore ? 'Pro-labore' : '',
                         row.recebe_beneficios ? 'Beneficios' : '',
                         row.recebe_outros ? 'Outros' : '',
-                        row.recebe_comissoes ? 'Comissoes' : '',
+                        row.recebe_comissoes ? 'Comissões' : '',
                       ].filter(Boolean).join(', ') || '-'}
                     </td>
                     <td className="text-right">

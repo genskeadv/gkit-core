@@ -187,7 +187,7 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
           status: 'em_conferencia',
           title: 'Comissões em acompanhamento',
           value: currency(data.summary.openCommissions),
-          detail: 'calculadas, em conferencia ou aprovadas',
+          detail: 'calculadas, em conferência ou aprovadas',
         }
       : null,
     data.documents.filter((item) => item.status === 'disponivel').length
@@ -254,7 +254,7 @@ export function ColabModuleMap({ data }: { data: ColabData }) {
       href: '/modulos/colab/comissoes',
       status: data.summary.openCommissions ? 'em_conferencia' : 'sincronizado',
       title: 'Comissões',
-      description: 'Valores variaveis por competência',
+      description: 'Valores variáveis por competência',
       value: currency(data.summary.openCommissions + data.summary.paidCommissions),
     },
     {
@@ -323,7 +323,7 @@ export function ColabCommissions({ data }: { data: ColabData }) {
       <div className="suite-panel-heading">
         <div>
           <h2>Comissões</h2>
-          <p>Valores variaveis vinculados ao cadastro do colaborador.</p>
+          <p>Valores variáveis vinculados ao cadastro do colaborador.</p>
         </div>
       </div>
       <div className="suite-table-list colab-record-list">
@@ -373,7 +373,7 @@ export function ColabDocuments({ data }: { data: ColabData }) {
           <p className="metric-hint">documentos gerados</p>
         </article>
         <article className="card metric-card">
-          <p className="metric-label">Disponiveis</p>
+          <p className="metric-label">Disponíveis</p>
           <p className="metric-value">{String(available)}</p>
           <p className="metric-hint">prontos para consulta</p>
         </article>

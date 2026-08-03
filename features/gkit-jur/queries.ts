@@ -1313,7 +1313,7 @@ function processSearchResult(row: GkitJurProcessListItem): GkitJurGlobalSearchRe
     type: 'processo',
     title: row.numeroCnj,
     subtitle: row.clienteNome || row.titulo || row.pasta || 'Processo ativo sem cliente vinculado',
-    meta: [row.tribunalSigla, row.carteiraNome, row.responsavelNome].filter(Boolean).join(' | ') || 'Sem vinculos completos',
+    meta: [row.tribunalSigla, row.carteiraNome, row.responsavelNome].filter(Boolean).join(' | ') || 'Sem vínculos completos',
     href: `/modulos/gkit-jur/processos/${row.id}`,
   }
 }
@@ -2224,7 +2224,7 @@ export async function getGkitJurEmailsData(): Promise<GkitJurEmailsData> {
       items.push({
         id: `pre-adm-${String(row.id)}`,
         origem: 'pre_juridico',
-        tipo: 'Pedido de debitos a administradora',
+        tipo: 'Pedido de débitos à administradora',
         destinatario: text(row.administradora_email) || null,
         assunto: 'Solicitacao de planilha atualizada',
         status: 'registrado',
@@ -2365,7 +2365,7 @@ async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData>
   return {
     action: 'Carteira processual',
     count,
-    description: 'Processos ativos da carteira, com dono, prontidao e movimento.',
+    description: 'Processos ativos da carteira, com dono, prontidão e movimento.',
     filters: ['Sem dono', 'Sem movimento', 'Alta exposição', 'Prontos'],
     bars: cockpitBars([
       { label: 'Pronto', count: readinessValues.pronto, tone: 'green' },
@@ -2515,7 +2515,7 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
   if (rowsResult.error) {
     if (['42P01', 'PGRST205'].includes(text(rowsResult.error.code))) {
       return {
-        action: 'Inbox de publicacoes',
+        action: 'Inbox de publicações',
         count: 0,
         description: 'Publicações dos processos da carteira.',
         filters: ['Não tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
@@ -2560,7 +2560,7 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
   const total = rowsResult.count ?? rows.length
 
   return {
-    action: 'Inbox de publicacoes',
+    action: 'Inbox de publicações',
     count: total,
     description: 'Publicações dos processos da carteira, agrupadas para tratamento.',
     filters: ['Não tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
@@ -2574,7 +2574,7 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
     rows: publicacoes.map((item) => ({
       id: item.numeroCnj || item.id,
       title: item.termo || item.sugestaoIa || item.textoPreview || 'Publicação recebida',
-      subtitle: item.textoPreview || [item.fonte, item.jornal, item.origemOrgao].filter(Boolean).join(' | ') || 'Sem resumo de publicacao',
+      subtitle: item.textoPreview || [item.fonte, item.jornal, item.origemOrgao].filter(Boolean).join(' | ') || 'Sem resumo de publicação',
       owner: cockpitOwner(item.responsavelNome, item.carteiraNome, item.clienteNome),
       status: item.status,
       due: cockpitDate(item.dataDisponibilizacao || item.dataPublicacao || item.createdAt),
@@ -2703,7 +2703,7 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
         row: {
           id: evento.id,
           title: evento.titulo,
-          subtitle: processo ? `${processo.numeroCnj} - ${processo.clienteNome || processo.titulo || 'Processo ativo'}` : evento.descricao || 'Evento vinculado ao juridico',
+          subtitle: processo ? `${processo.numeroCnj} - ${processo.clienteNome || processo.titulo || 'Processo ativo'}` : evento.descricao || 'Evento vinculado ao jurídico',
           owner: cockpitOwner(evento.responsavelNome, evento.carteiraNome),
           status: evento.tipo,
           due: cockpitDate(evento.dataEvento),

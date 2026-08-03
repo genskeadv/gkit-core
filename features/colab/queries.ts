@@ -28,7 +28,7 @@ function dateValue(...values: unknown[]) {
 }
 
 function competenceLabel(value: unknown) {
-  if (!value) return 'Sem competencia'
+  if (!value) return 'Sem competência'
   const date = new Date(String(value))
   if (Number.isNaN(date.getTime())) return String(value)
   return new Intl.DateTimeFormat('pt-BR', { month: 'long', timeZone: 'UTC', year: 'numeric' }).format(date)
@@ -39,7 +39,7 @@ function mapCollaborator(row: Record<string, unknown>): ColabCollaborator {
     id: text(row.id),
     name: text(row.nome, 'Colaborador'),
     email: text(row.email),
-    phone: text(row.telefone, 'Nao informado'),
+    phone: text(row.telefone, 'Não informado'),
     role: text(row.cargo, 'Colaborador'),
     department: text(row.time_nome, 'Sem time'),
     manager: text(row.gestor_nome, 'Sem gestor'),
@@ -241,7 +241,7 @@ export async function getColabData(userEmail: string): Promise<ColabData> {
       !flexProfileResult.error,
       flexProfileResult.error
         ? 'Não foi possível consultar o cadastro de colaboradores.'
-        : 'O e-mail do usuario ainda nao esta vinculado a um colaborador ativo no GKIT Flex.',
+        : 'O e-mail do usuário ainda não está vinculado a um colaborador ativo no GKIT Flex.',
     )
   }
 

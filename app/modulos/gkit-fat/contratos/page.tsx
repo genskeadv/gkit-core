@@ -23,7 +23,7 @@ export default async function GkitFatContratosPage() {
       usuario={context.usuario}
     >
       <GkitFatHealthNotice health={health} />
-      <GkitFatSection title="Contratos" description="Cliente e categoria vem do Ciclo; aqui fica a regra de faturamento.">
+      <GkitFatSection title="Contratos" description="Cliente e categoria vêm do Ciclo; aqui fica a regra de faturamento.">
         <GkitFatContratosList canWrite={canWrite} contratos={contratos} empty="Nenhum contrato cadastrado." />
       </GkitFatSection>
     </GkitFatShell>

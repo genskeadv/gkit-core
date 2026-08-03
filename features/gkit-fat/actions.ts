@@ -289,7 +289,7 @@ export async function prepareGkitFatNfseAction(formData: FormData) {
   const id = required(text(formData, 'id'), 'OS')
   const empresaId = text(formData, 'empresa_emissora_id') || null
   const { data: ordem, error } = await admin().schema('gkit_fat').from('ordens_servico').select('*').eq('id', id).single()
-  if (error || !ordem) throw new Error(error?.message ?? 'OS nao encontrada.')
+  if (error || !ordem) throw new Error(error?.message ?? 'OS não encontrada.')
   const empresa = await getActiveEmpresaEmissora(empresaId)
   const payload = buildNfsePayload(ordem as Record<string, any>, empresa)
   const validacao = {
@@ -344,7 +344,7 @@ export async function registerGkitFatNfseManualAction(formData: FormData) {
   const id = required(text(formData, 'id'), 'OS')
   const resultado = text(formData, 'resultado') === 'rejeitada' ? 'rejeitada' : 'autorizada'
   const { data: ordem, error } = await admin().schema('gkit_fat').from('ordens_servico').select('*').eq('id', id).single()
-  if (error || !ordem) throw new Error(error?.message ?? 'OS nao encontrada.')
+  if (error || !ordem) throw new Error(error?.message ?? 'OS não encontrada.')
 
   const payload = resultado === 'autorizada'
     ? {

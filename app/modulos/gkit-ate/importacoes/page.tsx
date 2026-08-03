@@ -22,7 +22,7 @@ export default async function GkitAteImportacoesPage() {
         </GkitAteSection>
       ) : null}
 
-      <GkitAteSection title="Historico" description="Ultimas cargas processadas.">
+      <GkitAteSection title="Historico" description="Últimas cargas processadas.">
         <GkitAteList empty="Nenhuma importacao registrada." rows={importacaoRows(importacoes)} />
       </GkitAteSection>
     </GkitAteShell>

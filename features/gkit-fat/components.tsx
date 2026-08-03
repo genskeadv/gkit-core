@@ -173,7 +173,7 @@ export function GkitFatOrdensList({
           </div>
           <span className={`suite-pill ${tone(ordem.situacao_operacional)}`}>{statusLabel(ordem.situacao_operacional)}</span>
           <strong>{ordem.valor_label}</strong>
-          <small>{ordem.numero_nfse ? `NFS-e ${ordem.numero_nfse}` : `${ordem.competencia ?? 'Sem competencia'} - ${statusLabel(ordem.situacao_fiscal)}`}</small>
+          <small>{ordem.numero_nfse ? `NFS-e ${ordem.numero_nfse}` : `${ordem.competencia ?? 'Sem competência'} - ${statusLabel(ordem.situacao_fiscal)}`}</small>
           <Link className="button secondary" href={`/modulos/gkit-fat/faturas/${ordem.id}`}>Detalhes</Link>
         </article>
       ))}
@@ -186,9 +186,9 @@ function optionLabel(tipo: string) {
     mensal: 'Mensal',
     pontual: 'Pontual',
     cobranca: 'Cobranca',
-    pessoa_fisica: 'Pessoa fisica',
-    pessoa_juridica: 'Pessoa juridica',
-    condominio: 'Condominio',
+    pessoa_fisica: 'Pessoa física',
+    pessoa_juridica: 'Pessoa jurídica',
+    condominio: 'Condomínio',
   }
   return labels[tipo] ?? tipo
 }
@@ -566,7 +566,7 @@ export function GkitFatNfseWorkbench({
         </form> : <div className="suite-empty-block">Você não tem permissão para registrar retorno fiscal.</div>}
       </section>
 
-      <GkitFatSection title="Payload fiscal" description="Base que sera enviada ao conector quando a integração automática entrar.">
+      <GkitFatSection title="Payload fiscal" description="Base que será enviada ao conector quando a integração automática entrar.">
         <pre className="suite-empty-block">{JSON.stringify(ordem.nfse_payload, null, 2)}</pre>
       </GkitFatSection>
 

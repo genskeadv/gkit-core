@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (ranking.length > MAX_RANKING_ITEMS) {
-      return NextResponse.json({ error: `Ranking limitado a ${MAX_RANKING_ITEMS} itens por gravacao.` }, { status: 400 })
+      return NextResponse.json({ error: `Ranking limitado a ${MAX_RANKING_ITEMS} itens por gravação.` }, { status: 400 })
     }
 
     const rankingTipo = payload?.rankingTipo === 'executor' ? 'executor' : 'responsavel'

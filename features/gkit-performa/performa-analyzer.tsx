@@ -306,7 +306,7 @@ function mapRows(jsonRows: Array<Record<string, unknown>>, headers: string[]) {
       executor: asText(raw[cols.executor]) || '(sem identificacao)',
       linhaOriginal: index + 2,
       prioridade: asText(raw[cols.prioridade]),
-      responsavel: asText(raw[cols.responsavel]) || '(sem responsavel)',
+      responsavel: asText(raw[cols.responsavel]) || '(sem responsável)',
       status: asText(raw[cols.status]),
       tipo: asText(raw[cols.tipo]),
       tituloE: asText(raw[cols.tituloE]),
@@ -316,7 +316,7 @@ function mapRows(jsonRows: Array<Record<string, unknown>>, headers: string[]) {
     const classified = classifyRow(base)
     const attentionReasons = [
       classified.attention ? `${classified.reason}; consolidado pelo ATE` : '',
-      isConcludedStatus(base.status) && !base.conclusao ? 'Concluido sem data de conclusao' : '',
+      isConcludedStatus(base.status) && !base.conclusao ? 'Concluído sem data de conclusão' : '',
       isCanceledStatus(base.status) ? 'Linha cancelada' : '',
     ].filter(Boolean)
 
@@ -368,9 +368,9 @@ function makeUnitFromRows(id: string, tipoUnidade: WorkUnit['tipoUnidade'], rows
   const noPrazo = Boolean(concluida && dataPrazo && dataConclusao && new Date(dataConclusao) <= new Date(dataPrazo))
   const responsaveis = [...new Set(rows.map((row) => row.responsavel).filter(Boolean))]
   const attentionReasons = [
-    rows.some((row) => isCanceledStatus(row.status)) ? 'ATE contem linha cancelada' : '',
-    responsaveis.length > 1 ? 'ATE com responsaveis diferentes' : '',
-    concluida && !dataConclusao ? 'Unidade concluida sem data de conclusao' : '',
+    rows.some((row) => isCanceledStatus(row.status)) ? 'ATE contém linha cancelada' : '',
+    responsaveis.length > 1 ? 'ATE com responsáveis diferentes' : '',
+    concluida && !dataConclusao ? 'Unidade concluída sem data de conclusão' : '',
   ].filter(Boolean)
 
   return {
@@ -388,7 +388,7 @@ function makeUnitFromRows(id: string, tipoUnidade: WorkUnit['tipoUnidade'], rows
     linhasOrigem: rows.map((row) => row.linhaOriginal),
     noPrazo,
     qtdLinhasOrigem: rows.length,
-    responsavel: mode(rows.map((row) => row.responsavel), '(sem responsavel)'),
+    responsavel: mode(rows.map((row) => row.responsavel), '(sem responsável)'),
     status: cancelada ? 'Cancelado' : concluida ? 'Concluido' : 'Aberto',
     tipoUnidade,
     titulo: mode(rows.map((row) => row.tituloE || row.tituloF), id),
@@ -445,7 +445,7 @@ function buildRanking(units: WorkUnit[], type: RankingType): RankingItem[] {
   const groups = new Map<string, WorkUnit[]>()
 
   for (const unit of units) {
-    const key = unit[field] || (type === 'executor' ? '(sem identificacao)' : '(sem responsavel)')
+    const key = unit[field] || (type === 'executor' ? '(sem identificacao)' : '(sem responsável)')
     const group = groups.get(key) ?? []
     group.push(unit)
     groups.set(key, group)
@@ -865,7 +865,7 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
         <section className="suite-panel gkit-performa-audit-callout">
           <div>
             <h2>Auditoria</h2>
-            <p>A lista completa de unidades, ATEs E/F e linhas excluidas fica em uma pagina própria.</p>
+            <p>A lista completa de unidades, ATEs E/F e linhas excluídas fica em uma pagina própria.</p>
           </div>
           <a className="button secondary" href="/modulos/gkit-performa/auditoria">Abrir auditoria</a>
         </section>

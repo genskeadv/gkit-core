@@ -304,7 +304,7 @@ function excelDateOnly(value: unknown, XLSX: any) {
 async function requireGkitAteWrite(permission = 'gkit_ate.importacoes.write') {
   const context = await requireModuleAccess('gkit-ate')
   if (!canAccess(context.permissions, permission)) {
-    throw new Error('Usuario sem permissao para gravar no GKIT ATE.')
+    throw new Error('Usuário sem permissão para gravar no GKIT ATE.')
   }
   return context
 }
@@ -319,7 +319,7 @@ async function resolveTarefaTipo(formData: FormData, usuarioId: string, fallback
       .eq('id', tarefaTipoId)
       .single()
 
-    if (error || !data) throw new Error(error?.message ?? 'Tipo de tarefa nao encontrado.')
+    if (error || !data) throw new Error(error?.message ?? 'Tipo de tarefa não encontrado.')
     return {
       id: String(data.id),
       descricao: String(data.descricao_padrao ?? fallbackDescricao),
@@ -683,7 +683,7 @@ export async function createGkitAteAtendimentoAction(formData: FormData) {
       .eq('id', atendimentoTipoId)
       .single()
 
-    if (error || !data) throw new Error(error?.message ?? 'Tipo de atendimento nao encontrado.')
+    if (error || !data) throw new Error(error?.message ?? 'Tipo de atendimento não encontrado.')
     atendimentoTipoNome = String(data.nome ?? atendimentoTipoNome ?? '')
   }
 
@@ -868,7 +868,7 @@ export async function completeGkitAteTarefaAction(formData: FormData) {
     .eq('id', id)
     .single()
 
-  if (current.error || !current.data) throw new Error(current.error?.message ?? 'Tarefa nao encontrada.')
+  if (current.error || !current.data) throw new Error(current.error?.message ?? 'Tarefa não encontrada.')
 
   const atendimentoId = String(current.data.atendimento_id)
   const abertas = await admin()
@@ -882,7 +882,7 @@ export async function completeGkitAteTarefaAction(formData: FormData) {
   const outrasAbertas = ((abertas.data ?? []) as Array<Record<string, any>>).filter((row) => String(row.id) !== id).length
 
   if (outrasAbertas === 0 && resolucao !== 'encerrar_atendimento' && resolucao !== 'adicionar_tarefa') {
-    throw new Error('Esta e a ultima tarefa aberta. Escolha encerrar o atendimento ou adicionar uma nova tarefa.')
+    throw new Error('Esta é a última tarefa aberta. Escolha encerrar o atendimento ou adicionar uma nova tarefa.')
   }
 
   if (outrasAbertas === 0 && resolucao === 'encerrar_atendimento') {

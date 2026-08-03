@@ -82,7 +82,7 @@ export function GkitPerformaAuditPage() {
         </div>
         <div className="suite-empty-block">
           <strong>Sem dados de auditoria</strong>
-          <span>Carregue uma agenda na pagina de Performance para consultar unidades, duplicidades e descartes.</span>
+          <span>Carregue uma agenda na página de Performance para consultar unidades, duplicidades e descartes.</span>
         </div>
       </section>
     )
@@ -172,8 +172,8 @@ function AuditTable({
               <tr key={text(item.ate)}>
                 <td>{text(item.ate)}</td>
                 <td>{text(item.linhas)}</td>
-                <td>{item.apareceE ? 'Sim' : 'Nao'}</td>
-                <td>{item.apareceF ? 'Sim' : 'Nao'}</td>
+                <td>{item.apareceE ? 'Sim' : 'Não'}</td>
+                <td>{item.apareceF ? 'Sim' : 'Não'}</td>
                 <td>{text(item.responsaveis)}</td>
                 <td>{text(item.executores)}</td>
               </tr>

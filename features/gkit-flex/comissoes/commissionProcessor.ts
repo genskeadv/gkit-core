@@ -359,7 +359,7 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
           ? 'nome_cliente'
           : 'nao_encontrado';
       observacao = criterioMatch === 'nao_encontrado'
-        ? 'Carteira preenchida pela coluna Vendedor da planilha de receitas; cliente nao encontrado na base de clientes ativos.'
+        ? 'Carteira preenchida pela coluna Vendedor da planilha de receitas; cliente não encontrado na base de clientes ativos.'
         : '';
     } else if (documento && clientMaps.byDocument.has(documento)) {
       vendedor = clientMaps.byDocument.get(documento) || 'Sem vendedor';
@@ -369,9 +369,9 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
       if (normalizedCliente && clientMaps.byName.has(normalizedCliente)) {
         vendedor = clientMaps.byName.get(normalizedCliente) || 'Sem vendedor';
         criterioMatch = 'nome_cliente';
-        observacao = 'Cruzamento feito por nome porque CNPJ/CPF nao bateu.';
+        observacao = 'Cruzamento feito por nome porque CNPJ/CPF não bateu.';
       } else {
-        observacao = 'Cliente nao encontrado na base de clientes ativos.';
+        observacao = 'Cliente não encontrado na base de clientes ativos.';
       }
     }
 
@@ -535,7 +535,7 @@ export function buildCommissionWorkbook(result: CommissionProcessResult): Buffer
     Problema: row.problema,
   }));
 
-  makeSheet(workbook, 'Resumo Comissoes', resumo);
+  makeSheet(workbook, 'Resumo Comissões', resumo);
   makeSheet(workbook, 'Acordos Judiciais', acordos);
   makeSheet(workbook, 'Mensalidade Assessoria', mensalidade);
   makeSheet(workbook, 'Comissao Colaboradores', colaboradores);

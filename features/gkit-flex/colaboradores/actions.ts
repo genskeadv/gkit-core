@@ -61,7 +61,7 @@ function hasValue(value: number) {
 async function requireWrite() {
   const context = await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/colaboradores');
   if (!canAccess(context.permissions, 'gkit_flex.colaboradores.write')) {
-    throw new Error('Voce nao tem permissao para gerenciar colaboradores do GKIT Flex.');
+    throw new Error('Você não tem permissão para gerenciar colaboradores do GKIT Flex.');
   }
   return context;
 }
@@ -75,7 +75,7 @@ function payload(formData: FormData) {
   const beneficioValor = money(formData, 'beneficio_valor');
 
   return {
-    usuario_id: uuid(required(text(formData, 'usuario_id'), 'Usuario'), 'Usuario'),
+    usuario_id: uuid(required(text(formData, 'usuario_id'), 'Usuário'), 'Usuário'),
     carteira_id: nullableUuid(formData, 'carteira_id', 'Carteira'),
     gestor_usuario_id: nullableUuid(formData, 'gestor_usuario_id', 'Gestor'),
     cargo_operacional: nullableText(formData, 'cargo_operacional'),

@@ -9,7 +9,7 @@ export default async function ColabComissoesPage() {
     <ColabShell
       active="comissoes"
       title="Comissões"
-      description="Resumo de comissões e valores variaveis vinculados ao Intr."
+      description="Resumo de comissões e valores variáveis vinculados ao Intr."
       usuario={context.usuario}
     >
       <ColabIntegrationStatus data={data} />

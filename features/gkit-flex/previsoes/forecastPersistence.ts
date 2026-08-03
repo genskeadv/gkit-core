@@ -148,7 +148,7 @@ function buildComparisonRows(
 }
 
 async function listForecastRows(supabase: ReturnType<typeof getSupabaseAdmin>, competencia: string) {
-  if (!supabase) throw new Error('Supabase nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+  if (!supabase) throw new Error('Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
 
   const [receitasResult, pagamentosResult] = await Promise.all([
     supabase
@@ -504,7 +504,7 @@ async function buildAutomaticPaymentForecast(
 
 export async function seedMonthlyForecast(competenciaInput: string, tipo: 'receitas' | 'pagamentos' | 'tudo', overwrite = false) {
   const supabase = getSupabaseAdmin();
-  if (!supabase) throw new Error('Supabase nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+  if (!supabase) throw new Error('Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
 
   const competencia = sanitizeCompetencia(competenciaInput);
   const origemCompetencia = previousCompetencia(competencia);
@@ -523,7 +523,7 @@ export async function seedMonthlyForecast(competenciaInput: string, tipo: 'recei
 
 export async function saveMonthlyForecast(competenciaInput: string, payload: ForecastPayload) {
   const supabase = getSupabaseAdmin();
-  if (!supabase) throw new Error('Supabase nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+  if (!supabase) throw new Error('Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
 
   const competencia = sanitizeCompetencia(competenciaInput);
   const receitas = (payload.receitas || [])

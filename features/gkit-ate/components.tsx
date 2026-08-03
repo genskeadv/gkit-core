@@ -281,7 +281,7 @@ export function GkitAteAtendimentoDetailView({
         />
 
         <div className="suite-empty-block">
-          <strong>{atendimento.objeto ?? 'Objeto nao informado'}</strong>
+          <strong>{atendimento.objeto ?? 'Objeto não informado'}</strong>
           <span>{atendimento.ultimo_historico ?? atendimento.observacoes ?? 'Sem histórico textual no arquivo importado.'}</span>
           {atendimento.url_processo ? <a href={atendimento.url_processo} target="_blank" rel="noreferrer">Abrir no ASTREA</a> : null}
         </div>
@@ -302,7 +302,7 @@ export function GkitAteAtendimentoDetailView({
         <div className="suite-panel-heading">
           <div>
             <h2>Tarefas vinculadas</h2>
-            <p>Um atendimento pode ter varias tarefas operacionais.</p>
+            <p>Um atendimento pode ter várias tarefas operacionais.</p>
           </div>
         </div>
 
@@ -311,7 +311,7 @@ export function GkitAteAtendimentoDetailView({
           rows={atendimento.tarefas.map((tarefa) => ({
             id: tarefa.id,
             title: tarefa.descricao,
-            subtitle: `${tarefa.tipo_nome ?? 'Tarefa'} - ${tarefa.responsavel ?? 'Sem responsavel'}`,
+            subtitle: `${tarefa.tipo_nome ?? 'Tarefa'} - ${tarefa.responsavel ?? 'Sem responsável'}`,
             status: tarefa.status,
             value: tarefa.data_prevista ?? 'Sem prazo',
             meta: tarefa.origem,
@@ -371,7 +371,7 @@ export function GkitAteTarefaDetail({
           </div>
           <span className={`suite-pill ${tarefa.status === 'concluida' ? 'success' : tarefa.status === 'cancelada' ? 'danger' : 'warning'}`}>{tarefa.status}</span>
           <strong>{tarefa.data_prevista ?? 'Sem prazo'}</strong>
-          <small>{tarefa.tipo_nome ?? tarefa.responsavel ?? 'Sem responsavel'}</small>
+          <small>{tarefa.tipo_nome ?? tarefa.responsavel ?? 'Sem responsável'}</small>
         </article>
       </div>
 

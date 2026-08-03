@@ -317,7 +317,7 @@ function rowValue(row: Record<string, string>, ...keys: string[]) {
 async function requireCicloWrite(carteiraId: string | null) {
   const context = await requireModuleAccess('ciclo')
   if (!canAccess(context.permissions, 'ciclo.clientes.write')) {
-    throw new Error('Usuario sem permissao para gerenciar clientes do Ciclo.')
+    throw new Error('Usuário sem permissão para gerenciar clientes do Ciclo.')
   }
 
   if (context.usuario.tipo === 'admin_global' || !carteiraId) return context
@@ -331,7 +331,7 @@ async function requireCicloWrite(carteiraId: string | null) {
     .eq('ativo', true)
     .maybeSingle()
 
-  if (error || !data) throw new Error('Usuario sem acesso a carteira selecionada.')
+  if (error || !data) throw new Error('Usuário sem acesso à carteira selecionada.')
 
   return context
 }
@@ -339,7 +339,7 @@ async function requireCicloWrite(carteiraId: string | null) {
 async function requireCicloDocumentWrite(carteiraId: string | null) {
   const context = await requireModuleAccess('ciclo')
   if (!canAccess(context.permissions, 'ciclo.documentos.write')) {
-    throw new Error('Usuario sem permissao para gerenciar documentos do Ciclo.')
+    throw new Error('Usuário sem permissão para gerenciar documentos do Ciclo.')
   }
 
   if (context.usuario.tipo === 'admin_global' || !carteiraId) return context
@@ -353,7 +353,7 @@ async function requireCicloDocumentWrite(carteiraId: string | null) {
     .eq('ativo', true)
     .maybeSingle()
 
-  if (error || !data) throw new Error('Usuario sem acesso a carteira selecionada.')
+  if (error || !data) throw new Error('Usuário sem acesso à carteira selecionada.')
 
   return context
 }
@@ -503,7 +503,7 @@ async function logTimeline(clienteId: string, carteiraId: string | null, usuario
       descricao,
     })
   } catch {
-    // Evento auxiliar; nao deve impedir a gravacao principal.
+    // Evento auxiliar; não deve impedir a gravação principal.
   }
 }
 
@@ -850,7 +850,7 @@ async function prepararImportacaoClientes(formData: FormData) {
     const carteiraRaw = rowValue(row, 'carteira', 'carteira_id')
     const carteira = carteiraRaw ? carteiras.get(carteiraRaw) ?? carteiras.get(normalizeText(carteiraRaw)) : null
     if (!carteira) {
-      ignorados.push(`Linha ${linha}: carteira nao encontrada ou sem acesso.`)
+      ignorados.push(`Linha ${linha}: carteira não encontrada ou sem acesso.`)
       continue
     }
 
@@ -1045,18 +1045,18 @@ async function runOptionalRpc(name: string, clienteId: string) {
   try {
     await admin().schema('ciclo').rpc(name, { p_cliente_id: clienteId })
   } catch {
-    // Rotinas auxiliares podem nao existir em ambientes sem a migracao completa.
+    // Rotinas auxiliares podem não existir em ambientes sem a migração completa.
   }
 }
 
 const onboardingDocumentos = [
   { tipo_documento: 'contrato', titulo: 'Contrato' },
-  { tipo_documento: 'cartao_cnpj', titulo: 'Cartao CNPJ' },
-  { tipo_documento: 'ata_eleicao', titulo: 'Ata eleicao' },
-  { tipo_documento: 'ata_previsao_orcamentaria', titulo: 'Ata previsão orcamentaria' },
-  { tipo_documento: 'cpf_sindico', titulo: 'CPF sindico' },
-  { tipo_documento: 'cnpj_empresa_sindico', titulo: 'CNPJ empresa sindico' },
-  { tipo_documento: 'convencao', titulo: 'Convencao' },
+  { tipo_documento: 'cartao_cnpj', titulo: 'Cartão CNPJ' },
+  { tipo_documento: 'ata_eleicao', titulo: 'Ata eleição' },
+  { tipo_documento: 'ata_previsao_orcamentaria', titulo: 'Ata previsão orçamentária' },
+  { tipo_documento: 'cpf_sindico', titulo: 'CPF síndico' },
+  { tipo_documento: 'cnpj_empresa_sindico', titulo: 'CNPJ empresa síndico' },
+  { tipo_documento: 'convencao', titulo: 'Convenção' },
   { tipo_documento: 'regulamento', titulo: 'Regulamento' },
   { tipo_documento: 'cadastro_unidade', titulo: 'Cadastro de unidade' },
 ]
@@ -1069,14 +1069,14 @@ async function getClienteAccess(clienteId: string) {
     .eq('id', clienteId)
     .single()
 
-  if (error || !data) throw new Error(error?.message ?? 'Cliente nao encontrado.')
+  if (error || !data) throw new Error(error?.message ?? 'Cliente não encontrado.')
   return data as { id: string; carteira_id: string | null; nome: string; status_operacional: string }
 }
 
 async function requireCicloAlertWrite(carteiraId: string | null) {
   const context = await requireModuleAccess('ciclo')
   if (!canAccess(context.permissions, 'ciclo.alertas.write')) {
-    throw new Error('Usuario sem permissao para gerenciar alertas do Ciclo.')
+    throw new Error('Usuário sem permissão para gerenciar alertas do Ciclo.')
   }
 
   if (context.usuario.tipo === 'admin_global' || !carteiraId) return context
@@ -1090,7 +1090,7 @@ async function requireCicloAlertWrite(carteiraId: string | null) {
     .eq('ativo', true)
     .maybeSingle()
 
-  if (error || !data) throw new Error('Usuario sem acesso a carteira selecionada.')
+  if (error || !data) throw new Error('Usuário sem acesso à carteira selecionada.')
 
   return context
 }

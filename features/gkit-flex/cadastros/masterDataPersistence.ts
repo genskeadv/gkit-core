@@ -69,7 +69,7 @@ type CoreCarteiraRow = {
 };
 
 function assertConfigured(supabase: SupabaseClient | null): asserts supabase is SupabaseClient {
-  if (!supabase) throw new Error('Supabase nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+  if (!supabase) throw new Error('Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
 }
 
 async function upsertCadastro(supabase: SupabaseClient, item: DiscoveredValue) {
@@ -462,7 +462,7 @@ export async function saveCadastroItem(input: CadastroSaveInput) {
       .eq('tipo', 'centro')
       .maybeSingle();
     if (centroError) throw new Error(`Erro ao validar centro associado: ${centroError.message}`);
-    if (!centro?.id) throw new Error('Centro associado nao encontrado.');
+    if (!centro?.id) throw new Error('Centro associado não encontrado.');
   }
 
   if (input.id) {
@@ -472,8 +472,8 @@ export async function saveCadastroItem(input: CadastroSaveInput) {
       .eq('id', input.id)
       .maybeSingle();
     if (existingError) throw new Error(`Erro ao consultar cadastro: ${existingError.message}`);
-    if (!existing?.id) throw new Error('Cadastro nao encontrado.');
-    if (existing.tipo !== tipo) throw new Error('Tipo do cadastro nao pode ser alterado.');
+    if (!existing?.id) throw new Error('Cadastro não encontrado.');
+    if (existing.tipo !== tipo) throw new Error('Tipo do cadastro não pode ser alterado.');
 
     const metadata = withCentroAssociado(withNatureza(asRecord(existing.metadata), natureza), tipo === 'categoria' ? centroId : null);
     const { error } = await supabase
@@ -531,8 +531,8 @@ export async function updateCategoriaCommissionRule(input: CommissionRuleSaveInp
     .eq('id', input.cadastroId)
     .maybeSingle();
   if (cadastroError) throw new Error(`Erro ao consultar categoria: ${cadastroError.message}`);
-  if (!cadastro?.id) throw new Error('Categoria nao encontrada.');
-  if (cadastro.tipo !== 'categoria') throw new Error('Regra de comissao so pode ser vinculada a categoria.');
+  if (!cadastro?.id) throw new Error('Categoria não encontrada.');
+  if (cadastro.tipo !== 'categoria') throw new Error('Regra de comissão só pode ser vinculada a categoria.');
 
   const matchers = uniqText(input.matchers);
   if (input.ativa && !matchers.length) throw new Error('Informe pelo menos um termo de correspondencia.');
@@ -669,8 +669,8 @@ export async function updateCategoriaForecastAutomationRule(cadastroId: string, 
     .eq('id', cadastroId)
     .maybeSingle();
   if (cadastroError) throw new Error(`Erro ao consultar categoria: ${cadastroError.message}`);
-  if (!cadastro?.id) throw new Error('Categoria nao encontrada.');
-  if (cadastro.tipo !== 'categoria') throw new Error('Essa regra so pode ser aplicada a categorias.');
+  if (!cadastro?.id) throw new Error('Categoria não encontrada.');
+  if (cadastro.tipo !== 'categoria') throw new Error('Essa regra só pode ser aplicada a categorias.');
 
   const metadata = ((cadastro.metadata || {}) as Record<string, unknown>);
   const previsoes = ((metadata.gkit_flex_previsoes || {}) as Record<string, unknown>);

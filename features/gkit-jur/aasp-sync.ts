@@ -70,7 +70,7 @@ async function refreshSummaryBestEffort(processoId: string) {
   try {
     await refreshGkitJurProcessSummary(processoId)
   } catch {
-    // A atualizacao de resumo nao deve invalidar a coleta da AASP.
+    // A atualização de resumo não deve invalidar a coleta da AASP.
   }
 }
 
@@ -298,11 +298,11 @@ async function createDraftProcessesFromAaspPublications(cnjs: string[], publicat
       },
       numero_cnj: formatted,
       numero_cnj_limpo: cnj,
-      observacoes: 'Processo criado automaticamente a partir de publicacao AASP sem vinculo.',
+      observacoes: 'Processo criado automaticamente a partir de publicação AASP sem vínculo.',
       origem_modulo: 'aasp_publicacao',
       status: 'ativo',
       status_monitoramento: 'monitorando',
-      titulo: `Publicacao AASP - ${formatted}`,
+      titulo: `Publicação AASP - ${formatted}`,
       tribunal_alias: tribunal.alias,
       tribunal_sigla: tribunal.sigla,
       updated_at: now,

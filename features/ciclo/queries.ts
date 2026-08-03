@@ -39,12 +39,12 @@ import type {
 
 const cicloDocumentoPadrao = [
   { tipoDocumento: 'contrato', titulo: 'Contrato' },
-  { tipoDocumento: 'cartao_cnpj', titulo: 'Cartao CNPJ' },
-  { tipoDocumento: 'ata_eleicao', titulo: 'Ata eleicao' },
-  { tipoDocumento: 'ata_previsao_orcamentaria', titulo: 'Ata previsão orcamentaria' },
-  { tipoDocumento: 'cpf_sindico', titulo: 'CPF sindico' },
-  { tipoDocumento: 'cnpj_empresa_sindico', titulo: 'CNPJ empresa sindico' },
-  { tipoDocumento: 'convencao', titulo: 'Convencao' },
+  { tipoDocumento: 'cartao_cnpj', titulo: 'Cartão CNPJ' },
+  { tipoDocumento: 'ata_eleicao', titulo: 'Ata eleição' },
+  { tipoDocumento: 'ata_previsao_orcamentaria', titulo: 'Ata previsão orçamentária' },
+  { tipoDocumento: 'cpf_sindico', titulo: 'CPF síndico' },
+  { tipoDocumento: 'cnpj_empresa_sindico', titulo: 'CNPJ empresa síndico' },
+  { tipoDocumento: 'convencao', titulo: 'Convenção' },
   { tipoDocumento: 'regulamento', titulo: 'Regulamento' },
   { tipoDocumento: 'cadastro_unidade', titulo: 'Cadastro de unidade' },
 ]
@@ -451,7 +451,7 @@ export async function getCicloAtendimentoDashboard(context: CicloContext, filter
     source_key: text(row.source_key),
     astrea_codigo: text(row.astrea_codigo) || null,
     titulo: text(row.titulo, 'Atendimento sem titulo'),
-    cliente_nome: text(row.cliente_nome, 'Cliente nao informado'),
+    cliente_nome: text(row.cliente_nome, 'Cliente não informado'),
     cliente_id: text(row.cliente_id) || null,
     carteira_id: text(row.carteira_id) || null,
     carteira_nome: text(carteiraMap.get(text(row.carteira_id)), 'Sem carteira'),
@@ -564,7 +564,7 @@ export async function listCicloImportacaoRows(context: CicloContext): Promise<Ci
     const status = text(row.status, 'processada')
     return {
       id: text(row.id),
-      title: text(row.arquivo_nome ?? row.nome_arquivo, 'Importação XLSX'),
+      title: text(row.arquivo_nome ?? row.nome_arquivo, 'Importacao XLSX'),
       subtitle: text(row.descricao ?? row.observacao, 'Carga de dados do Ciclo'),
       status,
       value: `${numberValue(row.total_linhas ?? row.linhas_processadas).toLocaleString('pt-BR')} linhas`,
@@ -637,7 +637,7 @@ export async function listCicloOnboardingRows(): Promise<CicloListRow[]> {
       return {
       id: cliente.id,
       title: cliente.nome,
-      subtitle: item.total ? `${item.concluidos}/${item.total} documentos validados` : `${cliente.documento} - checklist nao iniciado`,
+      subtitle: item.total ? `${item.concluidos}/${item.total} documentos validados` : `${cliente.documento} - checklist não iniciado`,
       status: cliente.status,
       value: `${percentual}%`,
       meta: `${cliente.carteira} - risco ${cliente.risco}`,
@@ -713,7 +713,7 @@ export async function listCicloOcorrenciaRows(context: CicloContext): Promise<Ci
       subtitle: text(row.descricao, 'Sem descricao'),
       status: text(metadata.status, tipo),
       value: dateLabel(row.data_ocorrencia ?? row.created_at),
-      meta: `${text(metadata.responsavel, 'Sem responsavel')} - impacto ${text(row.impacto, 'medio')}`,
+      meta: `${text(metadata.responsavel, 'Sem responsável')} - impacto ${text(row.impacto, 'medio')}`,
       tone: listTone(text(row.impacto, tipo)),
     }
   })
@@ -811,7 +811,7 @@ export async function getCicloCliente(id: string, context: CicloContext): Promis
     .eq('id', id)
     .single()
 
-  if (error || !data) throw new Error(error?.message ?? 'Cliente nao encontrado.')
+  if (error || !data) throw new Error(error?.message ?? 'Cliente não encontrado.')
 
   const row = data as Record<string, any>
   const formData = await getCicloClienteFormData(context)
@@ -1125,7 +1125,7 @@ export async function getCicloDocumento(id: string, context: CicloContext): Prom
     .eq('id', id)
     .single()
 
-  if (error || !data) throw new Error(error?.message ?? 'Documento nao encontrado.')
+  if (error || !data) throw new Error(error?.message ?? 'Documento não encontrado.')
 
   const row = data as Record<string, any>
   const formData = await getCicloClienteFormData(context)
@@ -1162,7 +1162,7 @@ export async function getCicloAlerta(id: string, context: CicloContext): Promise
     .eq('id', id)
     .single()
 
-  if (error || !data) throw new Error(error?.message ?? 'Alerta nao encontrado.')
+  if (error || !data) throw new Error(error?.message ?? 'Alerta não encontrado.')
 
   const row = data as Record<string, any>
   const formData = await getCicloClienteFormData(context)
@@ -1196,7 +1196,7 @@ export async function getCicloOcorrencia(id: string, context: CicloContext): Pro
     .eq('id', id)
     .single()
 
-  if (error || !data) throw new Error(error?.message ?? 'Ocorrencia nao encontrada.')
+  if (error || !data) throw new Error(error?.message ?? 'Ocorrência não encontrada.')
 
   const row = data as Record<string, any>
   const metadata = (row.metadata ?? {}) as Record<string, any>
@@ -1233,7 +1233,7 @@ export async function getCicloContrato(id: string, context: CicloContext): Promi
     .eq('id', id)
     .single()
 
-  if (error || !data) throw new Error(error?.message ?? 'Contrato nao encontrado.')
+  if (error || !data) throw new Error(error?.message ?? 'Contrato não encontrado.')
 
   const row = data as Record<string, any>
   const formData = await getCicloClienteFormData(context)
@@ -1269,7 +1269,7 @@ export async function getCicloAta(id: string, context: CicloContext): Promise<Ci
     .eq('id', id)
     .single()
 
-  if (error || !data) throw new Error(error?.message ?? 'Ata nao encontrada.')
+  if (error || !data) throw new Error(error?.message ?? 'Ata não encontrada.')
 
   const row = data as Record<string, any>
   const formData = await getCicloClienteFormData(context)
@@ -1301,7 +1301,7 @@ export async function getCicloAdministradora(id: string): Promise<CicloAdministr
     .eq('id', id)
     .single()
 
-  if (error || !data) throw new Error(error?.message ?? 'Administradora nao encontrada.')
+  if (error || !data) throw new Error(error?.message ?? 'Administradora não encontrada.')
 
   const row = data as Record<string, any>
   return {

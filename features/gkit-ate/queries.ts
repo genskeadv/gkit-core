@@ -161,7 +161,7 @@ function mapAtendimento(row: Record<string, any>, counts: Record<string, { total
     atendimento_tipo_id: text(row.atendimento_tipo_id) || null,
     tipo: text(row.tipo) || null,
     titulo: text(row.titulo, 'Atendimento'),
-    cliente_nome: text(row.cliente_nome, 'Cliente nao informado'),
+    cliente_nome: text(row.cliente_nome, 'Cliente não informado'),
     outros_envolvidos: text(row.outros_envolvidos) || null,
     objeto: text(row.objeto) || null,
     observacoes: text(row.observacoes) || null,
@@ -246,7 +246,7 @@ export function atendimentoRows(atendimentos: GkitAteAtendimento[]): GkitAteList
     title: item.titulo,
     subtitle: `${item.codigo_publico} - ${item.cliente_nome}`,
     status: statusLabel(item.status),
-    value: item.responsavel ?? 'Sem responsavel',
+    value: item.responsavel ?? 'Sem responsável',
     meta: `${item.tarefas_pendentes}/${item.tarefas_total} tarefa(s) pendente(s)`,
     detailHref: `/modulos/gkit-ate/atendimentos/${item.id}`,
     tone: tone(item.status),
@@ -260,7 +260,7 @@ export function tarefaRows(tarefas: GkitAteTarefa[]): GkitAteListRow[] {
     subtitle: `${item.cliente_nome} - ${item.atendimento_titulo}`,
     status: statusLabel(item.status),
     value: dateLabel(item.data_prevista),
-    meta: item.tipo_nome ?? item.responsavel ?? 'Sem responsavel',
+    meta: item.tipo_nome ?? item.responsavel ?? 'Sem responsável',
     detailHref: `/modulos/gkit-ate/tarefas/${item.id}`,
     tone: tone(item.status),
   }))
@@ -277,7 +277,7 @@ export async function getGkitAteDashboardData(): Promise<GkitAteDashboardData> {
   const encerrados = atendimentos.filter((item) => item.status === 'encerrado')
   const pendentes = tarefas.filter((item) => item.status === 'pendente' || item.status === 'em_andamento')
   const responsavelMap = atendimentos.reduce<Record<string, { total: number; abertos: number }>>((acc, item) => {
-    const key = item.responsavel ?? 'Sem responsavel'
+    const key = item.responsavel ?? 'Sem responsável'
     acc[key] = acc[key] ?? { total: 0, abertos: 0 }
     acc[key].total += 1
     if (item.status === 'aberto') acc[key].abertos += 1
@@ -289,7 +289,7 @@ export async function getGkitAteDashboardData(): Promise<GkitAteDashboardData> {
       { label: 'Atendimentos', value: String(atendimentos.length), hint: `${abertos.length} aberto(s)` },
       { label: 'Encerrados', value: String(encerrados.length), hint: 'histórico importado' },
       { label: 'Clientes', value: String(new Set(atendimentos.map((item) => item.cliente_nome)).size), hint: 'base ASTREA' },
-      { label: 'Responsáveis', value: String(new Set(atendimentos.map((item) => item.responsavel ?? 'Sem responsavel')).size), hint: 'operação consultiva' },
+      { label: 'Responsáveis', value: String(new Set(atendimentos.map((item) => item.responsavel ?? 'Sem responsável')).size), hint: 'operação consultiva' },
       { label: 'Tarefas', value: String(pendentes.length), hint: `${tarefas.length} total` },
     ],
     atendimentos: atendimentoRows(atendimentos.slice(0, 8)),
@@ -317,7 +317,7 @@ export async function getGkitAteAtendimento(id: string): Promise<GkitAteAtendime
     supabase.schema('gkit_ate').from('tarefas').select('*').eq('atendimento_id', id).order('data_prevista', { ascending: true }),
   ])
 
-  if (atendimento.error || !atendimento.data) throw new Error(atendimento.error?.message ?? 'Atendimento nao encontrado.')
+  if (atendimento.error || !atendimento.data) throw new Error(atendimento.error?.message ?? 'Atendimento não encontrado.')
   if (tarefas.error) throw new Error(tarefas.error.message)
 
   const row = atendimento.data as Record<string, any>
@@ -370,7 +370,7 @@ export async function getGkitAteAtendimento(id: string): Promise<GkitAteAtendime
 export async function getGkitAteTarefa(id: string): Promise<GkitAteTarefa> {
   const supabase = admin()
   const { data, error } = await supabase.schema('gkit_ate').from('tarefas').select('*').eq('id', id).single()
-  if (error || !data) throw new Error(error?.message ?? 'Tarefa nao encontrada.')
+  if (error || !data) throw new Error(error?.message ?? 'Tarefa não encontrada.')
 
   const row = data as Record<string, any>
   const atendimentoId = text(row.atendimento_id)

@@ -82,11 +82,11 @@ export function CommissionUploader() {
 
   async function handleMonthAction(action: 'abrir' | 'fechar' | 'reabrir') {
     if (action === 'fechar') {
-      const confirmed = window.confirm('Fechar esta competencia de comissoes? Novos calculos serao bloqueados ate reabrir.');
+      const confirmed = window.confirm('Fechar esta competência de comissões? Novos cálculos serão bloqueados até reabrir.');
       if (!confirmed) return;
     }
     if (action === 'reabrir') {
-      const confirmed = window.confirm('Reabrir esta competencia de comissoes para correcao?');
+      const confirmed = window.confirm('Reabrir esta competência de comissões para correção?');
       if (!confirmed) return;
     }
     try {
@@ -103,10 +103,10 @@ export function CommissionUploader() {
       setMonthStatus((payload.status || 'nao_aberto') as MonthStatus);
       setSaveStatus(
         action === 'abrir'
-          ? 'Mes aberto para processamento.'
+          ? 'Mês aberto para processamento.'
           : action === 'fechar'
-            ? 'Mes fechado. Novas importacoes ficam bloqueadas ate reabrir.'
-            : 'Mes reaberto para correcoes.',
+            ? 'Mês fechado. Novas importações ficam bloqueadas até reabrir.'
+            : 'Mês reaberto para correções.',
       );
       await loadExecutions();
     } catch (err) {
@@ -163,10 +163,10 @@ export function CommissionUploader() {
       };
 
   const metricsHelp = summary.length
-    ? 'Total considerado na apuracao atual'
+    ? 'Total considerado na apuração atual'
     : latestExecutionForCompetencia
-      ? `Ultima execucao salva: ${latestExecutionForCompetencia.contas_file_name}`
-      : 'Nenhuma execucao salva para esta competencia';
+      ? `Última execução salva: ${latestExecutionForCompetencia.contas_file_name}`
+      : 'Nenhuma execução salva para esta competência';
 
   async function handleSubmit() {
     if (!contasReceber) return;
@@ -263,13 +263,13 @@ export function CommissionUploader() {
         </div>
 
         {monthStatus === 'fechado' && (
-          <div className="warning">Está competência está fechada. Para corrigir ou reprocessar, reabra o mês.</div>
+          <div className="warning">Esta competência está fechada. Para corrigir ou reprocessar, reabra o mês.</div>
         )}
         {monthStatus === 'nao_aberto' && (
-          <div className="warning">Está competência ainda não foi aberta. Clique em "Abrir mês" antes de calcular.</div>
+          <div className="warning">Esta competência ainda não foi aberta. Clique em "Abrir mês" antes de calcular.</div>
         )}
         {monthStatus === 'indisponivel' && (
-          <div className="warning">Controle de mês indisponivel. Confira as variaveis do Supabase e execute o schema v4.</div>
+          <div className="warning">Controle de mês indisponível. Confira as variáveis do Supabase e execute o schema v4.</div>
         )}
 
         <div className="grid-2">
@@ -305,7 +305,7 @@ export function CommissionUploader() {
 
       <section className="grid-3">
         <MetricCard label="Valor líquido" value={formatCurrency(displayTotals.valorRecebido)} help={metricsHelp} />
-        <MetricCard label="Base após redutores" value={formatCurrency(displayTotals.valorAposReducao)} help="Apos 15% em acordos e 14% em mensalidade" />
+        <MetricCard label="Base após redutores" value={formatCurrency(displayTotals.valorAposReducao)} help="Após 15% em acordos e 14% em mensalidade" />
         <MetricCard label="Comissão final" value={formatCurrency(displayTotals.comissaoFinal)} help="Valor final por regra de categoria" tone={displayTotals.comissaoFinal > 0 ? 'good' : 'default'} />
       </section>
 
@@ -349,7 +349,7 @@ export function CommissionUploader() {
         <div className="header-row">
           <div>
             <h2>Histórico salvo</h2>
-            <p className="muted">Ultimas execuções gravadas no Supabase.</p>
+            <p className="muted">Últimas execuções gravadas no Supabase.</p>
           </div>
           <button type="button" onClick={loadExecutions} className="secondary-button">Atualizar</button>
         </div>
