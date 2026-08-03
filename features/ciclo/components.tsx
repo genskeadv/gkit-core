@@ -532,7 +532,7 @@ export function CicloOnboardingOverview({ rows }: { rows: CicloListRow[] }) {
         <article>
           <span>Novos</span>
           <strong>{novos}</strong>
-          <small>aguardando inicio</small>
+          <small>aguardando início</small>
         </article>
         <article>
           <span>Em implantacao</span>
@@ -564,7 +564,7 @@ export function CicloOnboardingOverview({ rows }: { rows: CicloListRow[] }) {
               <span>Etapa</span>
               <span>Progresso</span>
               <span>Carteira</span>
-              <span>Acoes</span>
+              <span>Ações</span>
             </div>
             {rows.map((row) => {
               const progress = onboardingPercent(row.value)
@@ -790,7 +790,7 @@ export function CicloClienteForm({
       </div>
 
       <div>
-        <label className="label" htmlFor="razao_social">Razao social</label>
+        <label className="label" htmlFor="razao_social">Razão social</label>
         <input className="input" id="razao_social" name="razao_social" defaultValue={cliente?.razao_social ?? ''} />
       </div>
 
@@ -832,7 +832,7 @@ export function CicloClienteForm({
         <label className="label" htmlFor="tipo_pessoa">Natureza</label>
         <select className="select" id="tipo_pessoa" name="tipo_pessoa" defaultValue={cliente?.tipo_pessoa ?? 'condominio'}>
           <option value="condominio">Condominio</option>
-          <option value="pessoa_juridica">Pessoa juridica</option>
+          <option value="pessoa_juridica">Pessoa jurídica</option>
           <option value="pessoa_fisica">Pessoa fisica</option>
         </select>
       </div>
@@ -1003,7 +1003,7 @@ export function CicloDocumentoForm({
       </div>
 
       <div>
-        <label className="label" htmlFor="titulo">Titulo</label>
+        <label className="label" htmlFor="titulo">Título</label>
         <input className="input" id="titulo" name="titulo" defaultValue={documento?.titulo ?? ''} />
       </div>
 
@@ -1045,7 +1045,7 @@ export function CicloDocumentoForm({
 
       <label className="checkbox-row">
         <input name="obrigatorio" type="checkbox" value="on" defaultChecked={documento?.obrigatorio ?? true} />
-        <span>Obrigatorio</span>
+        <span>Obrigatório</span>
       </label>
 
       <label className="checkbox-row">
@@ -1126,7 +1126,7 @@ export function CicloAlertaForm({
       </div>
 
       <div className="module-form-wide">
-        <label className="label" htmlFor="titulo">Titulo</label>
+        <label className="label" htmlFor="titulo">Título</label>
         <input className="input" id="titulo" name="titulo" required defaultValue={alerta?.titulo ?? ''} />
       </div>
 
@@ -1223,7 +1223,7 @@ export function CicloOcorrenciaForm({
       </div>
 
       <div className="module-form-wide">
-        <label className="label" htmlFor="titulo">Titulo</label>
+        <label className="label" htmlFor="titulo">Título</label>
         <input className="input" id="titulo" name="titulo" required defaultValue={ocorrencia?.titulo ?? ''} />
       </div>
 
@@ -1271,7 +1271,7 @@ export function CicloContratoForm({
       </div>
 
       <div>
-        <label className="label" htmlFor="numero_contrato">Numero</label>
+        <label className="label" htmlFor="numero_contrato">Número</label>
         <input className="input" id="numero_contrato" name="numero_contrato" defaultValue={contrato?.numero_contrato ?? ''} />
       </div>
 
@@ -1292,7 +1292,7 @@ export function CicloContratoForm({
       </div>
 
       <div>
-        <label className="label" htmlFor="data_inicio">Inicio</label>
+        <label className="label" htmlFor="data_inicio">Início</label>
         <input className="input" id="data_inicio" name="data_inicio" type="date" defaultValue={contrato?.data_inicio ?? ''} />
       </div>
 
@@ -1312,7 +1312,7 @@ export function CicloContratoForm({
       </div>
 
       <div>
-        <label className="label" htmlFor="proximo_reajuste">Proximo reajuste</label>
+        <label className="label" htmlFor="proximo_reajuste">Próximo reajuste</label>
         <input className="input" id="proximo_reajuste" name="proximo_reajuste" type="date" defaultValue={contrato?.proximo_reajuste ?? ''} />
       </div>
 
@@ -1361,7 +1361,7 @@ export function CicloAtaForm({
         <label className="label" htmlFor="tipo">Tipo</label>
         <select className="select" id="tipo" name="tipo" required defaultValue={ata?.tipo ?? 'ata_eleicao'}>
           <option value="ata_eleicao">Ata eleicao</option>
-          <option value="ata_previsao_orcamentaria">Ata previsao orcamentaria</option>
+          <option value="ata_previsao_orcamentaria">Ata previsão orcamentaria</option>
           <option value="assembleia_ordinaria">Assembleia ordinaria</option>
           <option value="assembleia_extraordinaria">Assembleia extraordinaria</option>
           <option value="outra">Outra</option>
@@ -1444,7 +1444,7 @@ export function CicloClienteIntegralCockpit({ detail }: { detail: CicloClienteIn
         <section className="card ciclo-panel">
           <div className="ciclo-panel-heading">
             <div>
-              <h2>Pendencias acionaveis</h2>
+              <h2>Pendências acionaveis</h2>
               <p>Itens que pedem acompanhamento imediato.</p>
             </div>
           </div>
@@ -1474,7 +1474,7 @@ export function CicloClienteIntegralCockpit({ detail }: { detail: CicloClienteIn
               ))}
             </div>
           ) : (
-            <EmptyBlock label="Nenhuma pendencia aberta para este cliente." />
+            <EmptyBlock label="Nenhuma pendência aberta para este cliente." />
           )}
         </section>
 
@@ -1528,7 +1528,7 @@ export function CicloClienteIntegralCockpit({ detail }: { detail: CicloClienteIn
             tone: impactoTone(ocorrencia.impacto),
             value: formatDate(ocorrencia.data_ocorrencia),
           }))}
-          title="Ocorrencias"
+          title="Ocorrências"
         />
       </section>
     </>
@@ -1580,7 +1580,7 @@ export function CicloOnboardingWorkflowConfig({ atividades }: { atividades: Cicl
         <div className="ciclo-panel-heading">
           <div>
             <h2>Nova atividade</h2>
-            <p>Cadastre a etapa padrao do fluxo de recepcao.</p>
+            <p>Cadastre a etapa padrão do fluxo de recepcao.</p>
           </div>
         </div>
         <form action={createCicloOnboardingWorkflowAtividadeAction} className="ciclo-workflow-config-form">
@@ -1589,16 +1589,16 @@ export function CicloOnboardingWorkflowConfig({ atividades }: { atividades: Cicl
             <input className="input" min="1" name="ordem" required type="number" />
           </label>
           <label>
-            <span>Descricao</span>
+            <span>Descrição</span>
             <input className="input" name="descricao" required />
           </label>
           <label>
-            <span>Responsavel padrao</span>
-            <input className="input" name="responsavel_padrao" placeholder="Nome ou area" />
+            <span>Responsável padrão</span>
+            <input className="input" name="responsavel_padrao" placeholder="Nome ou área" />
           </label>
           <label className="checkbox-row ciclo-workflow-check">
             <input name="obrigatoria" type="checkbox" value="on" defaultChecked />
-            <span>Obrigatoria</span>
+            <span>Obrigatória</span>
           </label>
           <CicloSubmitButton>Criar atividade</CicloSubmitButton>
         </form>
@@ -1608,7 +1608,7 @@ export function CicloOnboardingWorkflowConfig({ atividades }: { atividades: Cicl
         <div className="ciclo-panel-heading">
           <div>
             <h2>Atividades do workflow</h2>
-            <p>Ordem, descricao e responsavel usados ao iniciar o onboarding.</p>
+            <p>Ordem, descrição e responsável usados ao iniciar o onboarding.</p>
           </div>
           <Link className="button secondary" href="/modulos/gkit-ciclo/onboarding">Voltar</Link>
         </div>
@@ -1623,16 +1623,16 @@ export function CicloOnboardingWorkflowConfig({ atividades }: { atividades: Cicl
                   <input className="input" name="ordem" type="number" defaultValue={atividade.ordem} />
                 </label>
                 <label>
-                  <span>Descricao</span>
+                  <span>Descrição</span>
                   <input className="input" name="descricao" defaultValue={atividade.descricao} required />
                 </label>
                 <label>
-                  <span>Responsavel</span>
+                  <span>Responsável</span>
                   <input className="input" name="responsavel_padrao" defaultValue={atividade.responsavel_padrao ?? ''} />
                 </label>
                 <label className="checkbox-row">
                   <input name="obrigatoria" type="checkbox" value="on" defaultChecked={atividade.obrigatoria} />
-                  <span>Obrigatoria</span>
+                  <span>Obrigatória</span>
                 </label>
                 <label className="checkbox-row">
                   <input name="ativo" type="checkbox" value="on" defaultChecked={atividade.ativo} />
@@ -1675,12 +1675,12 @@ export function CicloOnboardingDetalhe({ detail }: { detail: CicloOnboardingDeta
         <article>
           <span>Pend. docs</span>
           <strong>{progresso.pendentes}</strong>
-          <small>documentos obrigatorios</small>
+          <small>documentos obrigatórios</small>
         </article>
         <article>
           <span>Pend. fluxo</span>
           <strong>{workflow.pendentes}</strong>
-          <small>atividades obrigatorias</small>
+          <small>atividades obrigatórias</small>
         </article>
         <article>
           <span>Risco</span>
@@ -1693,7 +1693,7 @@ export function CicloOnboardingDetalhe({ detail }: { detail: CicloOnboardingDeta
         <div className="ciclo-panel-heading">
           <div>
             <h2>Workflow de recepcao</h2>
-            <p>Atividades operacionais com responsavel e status.</p>
+            <p>Atividades operacionais com responsável e status.</p>
           </div>
           <div className="form-actions">
             <form action={startCicloOnboardingAction}>
@@ -1717,7 +1717,7 @@ export function CicloOnboardingDetalhe({ detail }: { detail: CicloOnboardingDeta
                 <div className="ciclo-workflow-main">
                   <span className={`ciclo-pill ${workflowTone(atividade.status)}`}>{workflowStatusLabel(atividade.status)}</span>
                   <h3>{atividade.descricao}</h3>
-                  <p>{atividade.obrigatoria ? 'Obrigatoria' : 'Opcional'}</p>
+                  <p>{atividade.obrigatoria ? 'Obrigatória' : 'Opcional'}</p>
                 </div>
                 <label>
                   <span>Status</span>
@@ -1729,11 +1729,11 @@ export function CicloOnboardingDetalhe({ detail }: { detail: CicloOnboardingDeta
                   </select>
                 </label>
                 <label>
-                  <span>Responsavel</span>
+                  <span>Responsável</span>
                   <input className="input" name="responsavel" defaultValue={atividade.responsavel ?? ''} />
                 </label>
                 <label>
-                  <span>Observacoes</span>
+                  <span>Observações</span>
                   <input className="input" name="observacoes" defaultValue={atividade.observacoes ?? ''} />
                 </label>
                 <button className="button secondary" type="submit">Atualizar</button>
@@ -1741,7 +1741,7 @@ export function CicloOnboardingDetalhe({ detail }: { detail: CicloOnboardingDeta
             ))}
           </div>
         ) : (
-          <EmptyBlock label="Workflow ainda nao iniciado." />
+          <EmptyBlock label="Workflow ainda não iniciado." />
         )}
       </section>
 
@@ -1782,7 +1782,7 @@ export function CicloOnboardingDetalhe({ detail }: { detail: CicloOnboardingDeta
             ))}
           </div>
         ) : (
-          <EmptyBlock label="Checklist ainda nao iniciado." />
+          <EmptyBlock label="Checklist ainda não iniciado." />
         )}
       </section>
 

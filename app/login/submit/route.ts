@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
   try {
     supabaseEnv = getSupabasePublicEnv()
   } catch {
-    const response = redirectTo(request, loginUrl(request, next, 'Configuracao de login ausente no servidor.').toString(), { status: 303 })
+    const response = redirectTo(request, loginUrl(request, next, 'Configuração de login ausente no servidor.').toString(), { status: 303 })
     setLoginAttemptCookie(response, request, 'missing_env')
     return response
   }
@@ -73,8 +73,8 @@ export async function POST(request: NextRequest) {
 
   if (error || !data.session) {
     const message = error?.message.toLowerCase().includes('fetch failed')
-      ? 'Nao foi possivel conectar ao servico de login. Tente novamente em instantes.'
-      : 'E-mail, senha ou sessao invalidos.'
+      ? 'Não foi possível conectar ao serviço de login. Tente novamente em instantes.'
+      : 'E-mail, senha ou sessão inválidos.'
 
     const response = redirectTo(request, loginUrl(request, next, message).toString(), { status: 303 })
     setLoginAttemptCookie(response, request, error ? 'auth_error' : 'missing_session')

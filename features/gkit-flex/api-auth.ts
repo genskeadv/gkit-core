@@ -15,7 +15,7 @@ export async function requireGkitFlexApiAccess() {
   } = await supabase.auth.getUser()
 
   if (userError || !user) {
-    return NextResponse.json({ error: 'Sessao expirada ou nao autenticada.' }, { status: 401 })
+    return NextResponse.json({ error: 'Sessão expirada ou não autenticada.' }, { status: 401 })
   }
 
   const { data: usuario, error: usuarioError } = await admin()
@@ -26,7 +26,7 @@ export async function requireGkitFlexApiAccess() {
     .single()
 
   if (usuarioError || !usuario || usuario.status !== 'ativo') {
-    return NextResponse.json({ error: 'Usuario sem acesso ativo.' }, { status: 403 })
+    return NextResponse.json({ error: 'Usuário sem acesso ativo.' }, { status: 403 })
   }
 
   const permissions = await getUsuarioPermissionCodes(usuario)
@@ -51,7 +51,7 @@ export async function requireGkitFlexApiAccess() {
 
   const appIds = (apps ?? []).map((app: { id: string }) => app.id)
   if (!appIds.length) {
-    return NextResponse.json({ error: 'Modulo GKIT Flex nao cadastrado no Core.' }, { status: 403 })
+    return NextResponse.json({ error: 'Módulo GKIT Flex não cadastrado no Core.' }, { status: 403 })
   }
 
   const { data: accessRows, error: accessError } = await admin()
@@ -67,5 +67,5 @@ export async function requireGkitFlexApiAccess() {
     return NextResponse.json({ error: accessError.message }, { status: 500 })
   }
 
-  return accessRows?.length ? null : NextResponse.json({ error: 'Sem acesso ao modulo GKIT Flex.' }, { status: 403 })
+  return accessRows?.length ? null : NextResponse.json({ error: 'Sem acesso ao módulo GKIT Flex.' }, { status: 403 })
 }

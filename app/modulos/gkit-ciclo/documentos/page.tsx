@@ -13,14 +13,14 @@ export default async function CicloDocumentosPage() {
       active="documentos"
       eyebrow="Documentos"
       title="Documentos"
-      description="Matriz documental unica por cliente, com status, obrigatoriedade e vencimentos."
+      description="Matriz documental única por cliente, com status, obrigatoriedade e vencimentos."
       usuario={context.usuario}
       actions={canWrite ? <Link className="button" href="/modulos/gkit-ciclo/documentos/novo">Novo documento</Link> : null}
     >
       <CicloSection
         eyebrow="Resumo"
         title="Sinal documental"
-        description="Pendencias, obrigatorios e documentos validados na base."
+        description="Pendências, obrigatórios e documentos validados na base."
       >
         <CicloDocumentSignal documentos={data.documentos} />
       </CicloSection>

@@ -14,8 +14,8 @@ export default async function GkitFatPage() {
   return (
     <GkitFatShell
       active="cockpit"
-      description="Contratos, OS e preparo de NFS-e para servicos advocaticios 03220."
-      title="Faturamento de servicos"
+      description="Contratos, OS e preparo de NFS-e para serviços advocatícios 03220."
+      title="Faturamento de serviços"
       usuario={context.usuario}
     >
       <GkitFatHealthNotice health={health} />

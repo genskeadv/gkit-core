@@ -25,7 +25,7 @@ const panels: Array<{
     id: 'tarefa',
     label: '2. Tarefa',
     title: 'Adicionar tarefa',
-    description: 'Inclua a proxima pendencia.',
+    description: 'Inclua a próxima pendência.',
   },
   {
     id: 'tipo-atendimento',
@@ -35,8 +35,8 @@ const panels: Array<{
   },
   {
     id: 'tipo-tarefa',
-    label: '4. Tarefa padrao',
-    title: 'Criar tarefa padrao',
+    label: '4. Tarefa padrão',
+    title: 'Criar tarefa padrão',
     description: 'Cadastre o modelo do fluxo.',
   },
 ]
@@ -95,7 +95,7 @@ function OpenAtendimentoList({ rows }: { rows: GkitAteListRow[] }) {
               Anterior
             </button>
             <button disabled={safePage === totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} type="button">
-              Proxima
+              Próxima
             </button>
           </div>
         </div>
@@ -129,7 +129,7 @@ export function GkitAteCockpit({
         <div className="suite-panel-heading">
           <div>
             <h2>Ordem do fluxo</h2>
-            <p>Escolha uma etapa para abrir o formulario; por padrao, o cockpit mostra os atendimentos abertos.</p>
+            <p>Escolha uma etapa para abrir o formulario; por padrão, o cockpit mostra os atendimentos abertos.</p>
           </div>
         </div>
 
@@ -162,7 +162,7 @@ export function GkitAteCockpit({
         {activePanel === 'atendimento' ? (
           <form action={createAtendimentoAction} className="card module-form module-form-grid">
             <label>
-              <span>Titulo</span>
+              <span>Título</span>
               <input name="titulo" required />
             </label>
             <label>
@@ -183,7 +183,7 @@ export function GkitAteCockpit({
               <input name="tipo_atendimento" placeholder="Opcional" />
             </label>
             <label>
-              <span>Responsavel</span>
+              <span>Responsável</span>
               <input name="responsavel" />
             </label>
             <label>
@@ -206,7 +206,7 @@ export function GkitAteCockpit({
               </select>
             </label>
             <label>
-              <span>Nova tarefa padrao</span>
+              <span>Nova tarefa padrão</span>
               <input name="tipo_tarefa" placeholder="Opcional" />
             </label>
             <label className="module-form-wide">
@@ -214,7 +214,7 @@ export function GkitAteCockpit({
               <input name="descricao_tarefa" required />
             </label>
             <label>
-              <span>Responsavel da tarefa</span>
+              <span>Responsável da tarefa</span>
               <input name="responsavel_tarefa" />
             </label>
             <label>
@@ -223,7 +223,7 @@ export function GkitAteCockpit({
             </label>
             <div className="module-form-wide">
               <label>
-                <span>Observacoes</span>
+                <span>Observações</span>
                 <textarea name="observacoes" />
               </label>
             </div>
@@ -257,15 +257,15 @@ export function GkitAteCockpit({
               </select>
             </label>
             <label>
-              <span>Nova tarefa padrao</span>
+              <span>Nova tarefa padrão</span>
               <input name="tipo_tarefa" placeholder="Opcional" />
             </label>
             <label className="module-form-wide">
-              <span>Descricao</span>
+              <span>Descrição</span>
               <input name="descricao" required />
             </label>
             <label>
-              <span>Responsavel</span>
+              <span>Responsável</span>
               <input name="responsavel" />
             </label>
             <label>
@@ -285,9 +285,9 @@ export function GkitAteCockpit({
               <input name="nome" required />
             </label>
             <label>
-              <span>Tarefa padrao</span>
+              <span>Tarefa padrão</span>
               <select name="tarefa_tipo_id" defaultValue="">
-                <option value="">Sem tarefa padrao</option>
+                <option value="">Sem tarefa padrão</option>
                 {formData.tarefaTipos.map((tipo) => (
                   <option key={tipo.id} value={tipo.id}>{tipo.label}</option>
                 ))}
@@ -307,7 +307,7 @@ export function GkitAteCockpit({
             </label>
             <div className="module-form-wide">
               <label>
-                <span>Descricao padrao</span>
+                <span>Descrição padrão</span>
                 <textarea name="descricao_padrao" />
               </label>
             </div>

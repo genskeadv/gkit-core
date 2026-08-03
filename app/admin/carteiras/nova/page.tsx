@@ -10,11 +10,11 @@ export default async function NovaCarteiraPage() {
 
   return (
     <>
-      <PageHeader title="Nova carteira" subtitle="Grupo de clientes, receita e colaboradores responsaveis." />
+      <PageHeader title="Nova carteira" subtitle="Grupo de clientes, receita e colaboradores responsáveis." />
 
       <form action={createCarteiraAction} className="card grid">
         <Field label="Nome" name="nome" required />
-        <Field label="Descricao" name="descricao" />
+        <Field label="Descrição" name="descricao" />
         <Field label="Cor primaria" name="cor_primaria" defaultValue="#351B40" />
         <Field label="Logo URL" name="logo_url" />
 

@@ -28,10 +28,10 @@ const adminModule: ModuleCard = {
   id: 'admin-core',
   codigo: 'core',
   nome: 'GKIT Core',
-  descricao: 'Usuarios, carteiras, perfis, modulos e auditoria.',
+  descricao: 'Usuários, carteiras, perfis, módulos e auditoria.',
   status: 'ativo',
   href: '/admin',
-  area: 'Administracao',
+  area: 'Administração',
 }
 
 const moduleArea: Record<string, string> = {
@@ -77,26 +77,26 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
   },
   'gkit-dir': {
     nome: 'GKIT DIR',
-    descricao: 'Diretorio de clientes com dados cadastrais vindos do Ciclo.',
-    area: 'Diretorio',
+    descricao: 'Diretório de clientes com dados cadastrais vindos do Ciclo.',
+    area: 'Diretório',
     href: '/modulos/gkit-dir',
   },
   'gkit-fat': {
     nome: 'GKIT FAT',
-    descricao: 'Faturamento de servicos advocaticios 03220 com contratos e OS.',
+    descricao: 'Faturamento de serviços advocatícios 03220 com contratos e OS.',
     area: 'Faturamento',
     href: '/modulos/gkit-fat',
   },
   'gkit-flex': {
     nome: 'GKIT Flex',
-    descricao: 'Comissoes, contas a pagar, cadastros financeiros e auditoria mensal.',
+    descricao: 'Comissões, contas a pagar, cadastros financeiros e auditoria mensal.',
     area: 'Financial Xperience',
     href: '/modulos/gkit-flex',
   },
   'gkit-jur': {
     nome: 'GKIT Jur',
-    descricao: 'Operacao juridica integrada: processos, prazos, agenda e documentos.',
-    area: 'Juridico',
+    descricao: 'Operação jurídica integrada: processos, prazos, agenda e documentos.',
+    area: 'Jurídico',
     href: '/modulos/gkit-jur/inbox',
   },
   'gkit-performa': {
@@ -107,7 +107,7 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
   },
   colab: {
     nome: 'GKIT Colab',
-    descricao: 'Portal individual de colaboradores, pagamentos, comissoes e documentos.',
+    descricao: 'Portal individual de colaboradores, pagamentos, comissões e documentos.',
     area: 'Portal do colaborador',
     href: '/modulos/colab',
   },
@@ -228,7 +228,7 @@ export default async function PlataformaPage() {
           </div>
 
           <div className="platform-user-panel">
-            <span className="platform-user-status">Sessao ativa</span>
+            <span className="platform-user-status">Sessão ativa</span>
             <span className="platform-user-name">{usuario.nome}</span>
             <span>{usuario.email}</span>
             <a className="button secondary" href="/logout">Sair</a>
@@ -244,14 +244,14 @@ export default async function PlataformaPage() {
             </h1>
             <div className="platform-rule" />
             <p className="platform-hero-copy">
-              Acesso centralizado aos modulos integrados da GKIT, com controle unico de usuarios, perfis e permissoes.
+              Acesso centralizado aos módulos integrados da GKIT, com controle único de usuários, perfis e permissões.
             </p>
           </div>
         </section>
 
         <section className="platform-modules-section">
           <div className="platform-section-heading">
-            <h2>Sistemas disponiveis</h2>
+            <h2>Sistemas disponíveis</h2>
             <p>Selecione o sistema desejado para acessar.</p>
           </div>
 

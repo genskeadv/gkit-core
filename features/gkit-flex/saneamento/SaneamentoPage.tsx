@@ -102,8 +102,8 @@ function reclassificationImpactRows(preview: ReclassPreview | null) {
     ['Pagamentos - centro', preview.impacto.contasPagarCentro || 0],
     ['Comissoes resumo - categoria', preview.impacto.comissaoResumoCategoria || 0],
     ['Comissoes resumo - carteira', preview.impacto.comissaoResumoCarteira || 0],
-    ['Comissoes lancamentos - categoria', preview.impacto.comissaoLancamentoCategoria || 0],
-    ['Comissoes lancamentos - carteira', preview.impacto.comissaoLancamentoCarteira || 0],
+    ['Lançamentos de comissões - categoria', preview.impacto.comissaoLancamentoCategoria || 0],
+    ['Lançamentos de comissões - carteira', preview.impacto.comissaoLancamentoCarteira || 0],
     ['Comissoes auditoria - categoria', preview.impacto.comissaoAuditoriaCategoria || 0],
     ['Comissoes auditoria - carteira', preview.impacto.comissaoAuditoriaCarteira || 0],
   ].filter(([, value]) => Number(value) > 0);
@@ -141,11 +141,11 @@ function ReclassificationPanel({ data, onDone }: { data: CadastroResumo | null; 
         body: JSON.stringify({ tipo, origemCadastroId: origemId, destinoCadastroId: destinoId, motivo }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Erro ao gerar previa.');
+      if (!response.ok) throw new Error(payload.error || 'Erro ao gerar prévia.');
       setPreview(payload);
-      setMessage('Previa gerada. Confira o impacto antes de confirmar.');
+      setMessage('Prévia gerada. Confira o impacto antes de confirmar.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao gerar previa.');
+      setError(err instanceof Error ? err.message : 'Erro ao gerar prévia.');
     } finally {
       setLoading(false);
     }
@@ -153,7 +153,7 @@ function ReclassificationPanel({ data, onDone }: { data: CadastroResumo | null; 
 
   async function confirm() {
     if (!preview) return;
-    const ok = window.confirm(`Confirmar reclassificacao de "${preview.origem.nome}" para "${preview.destino.nome}"? Essa acao atualiza ${preview.impacto.total} registro(s), inativa a origem e grava log.`);
+    const ok = window.confirm(`Confirmar reclassificação de "${preview.origem.nome}" para "${preview.destino.nome}"? Essa ação atualiza ${preview.impacto.total} registro(s), inativa a origem e grava log.`);
     if (!ok) return;
     setLoading(true);
     setError('');
@@ -165,12 +165,12 @@ function ReclassificationPanel({ data, onDone }: { data: CadastroResumo | null; 
         body: JSON.stringify({ tipo, origemCadastroId: origemId, destinoCadastroId: destinoId, motivo }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Erro ao confirmar reclassificacao.');
+      if (!response.ok) throw new Error(payload.error || 'Erro ao confirmar reclassificação.');
       setPreview(payload);
       setMessage(`Reclassificacao confirmada: ${payload.totalAtualizado ?? payload.impacto?.total ?? 0} registro(s) atualizado(s).`);
       await onDone();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao confirmar reclassificacao.');
+      setError(err instanceof Error ? err.message : 'Erro ao confirmar reclassificação.');
     } finally {
       setLoading(false);
     }
@@ -181,10 +181,10 @@ function ReclassificationPanel({ data, onDone }: { data: CadastroResumo | null; 
       <div className="header-row compact-header">
         <div>
           <p className="eyebrow">v14</p>
-          <h2>Fusao e reclassificacao segura</h2>
-          <p className="muted small-text">Una nomes duplicados e reclassifique dados historicos com previa, confirmacao, aliases e log. Use quando houver categorias, centros ou carteiras repetidas por grafia.</p>
+          <h2>Fusão e reclassificação segura</h2>
+          <p className="muted small-text">Una nomes duplicados e reclassifique dados históricos com prévia, confirmação, aliases e log. Use quando houver categorias, centros ou carteiras repetidas por grafia.</p>
         </div>
-        <StatusBadge status="aviso" label="Acao critica" />
+        <StatusBadge status="aviso" label="Ação crítica" />
       </div>
 
       {error ? <div className="error">{error}</div> : null}
@@ -214,14 +214,14 @@ function ReclassificationPanel({ data, onDone }: { data: CadastroResumo | null; 
           </select>
         </label>
         <label className="field-label">
-          Motivo da reclassificacao
+          Motivo da reclassificação
           <input className="text-input" value={motivo} onChange={(event) => setMotivo(event.target.value)} placeholder="Ex.: padronizar categoria duplicada" />
         </label>
       </div>
 
       <div className="action-row">
-        <button className="secondary-button" onClick={runPreview} disabled={loading || !origemId || !destinoId || origemId === destinoId}>{loading ? 'Processando...' : 'Gerar previa'}</button>
-        <button className="primary-button" onClick={confirm} disabled={loading || !preview || preview.bloqueios.length > 0}>Confirmar reclassificacao</button>
+        <button className="secondary-button" onClick={runPreview} disabled={loading || !origemId || !destinoId || origemId === destinoId}>{loading ? 'Processando...' : 'Gerar prévia'}</button>
+        <button className="primary-button" onClick={confirm} disabled={loading || !preview || preview.bloqueios.length > 0}>Confirmar reclassificação</button>
       </div>
 
       {preview ? (
@@ -239,12 +239,12 @@ function ReclassificationPanel({ data, onDone }: { data: CadastroResumo | null; 
           <div className="table-wrap">
             <table className="periods-table">
               <thead>
-                <tr><th>Area impactada</th><th className="text-right">Registros</th></tr>
+                <tr><th>Área impactada</th><th className="text-right">Registros</th></tr>
               </thead>
               <tbody>
                 {reclassificationImpactRows(preview).length ? reclassificationImpactRows(preview).map(([label, value]) => (
                   <tr key={label}><td>{label}</td><td className="text-right"><strong>{value}</strong></td></tr>
-                )) : <tr><td colSpan={2}>Nenhum registro historico sera alterado. A fusao ainda pode ser util para alias/cadastro.</td></tr>}
+                )) : <tr><td colSpan={2}>Nenhum registro histórico será alterado. A fusão ainda pode ser útil para alias/cadastro.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -375,7 +375,7 @@ export function SaneamentoPage() {
     <main className="page-shell wide-shell flex-saneamento-page">
       <MonthContextHeader
         title="Saneamento de extrato"
-        description="Classifique pagamentos importados que ainda estao sem categoria ou sem centro."
+        description="Classifique pagamentos importados que ainda estão sem categoria ou sem centro."
         competencia={competencia}
         onCompetenciaChange={setCompetencia}
         primaryStatus={{ label: 'Pagamentos', status: data?.status || 'nao_aberto' }}
@@ -386,11 +386,11 @@ export function SaneamentoPage() {
 
       {error ? <div className="error">{error}</div> : null}
       {message ? <div className="success">{message}</div> : null}
-      {!data?.configured ? <div className="warning">Supabase nao configurado para carregar os pagamentos.</div> : null}
-      {data && !data.canEdit ? <div className="warning">A competencia precisa estar aberta para classificar pagamentos.</div> : null}
+      {!data?.configured ? <div className="warning">Supabase não configurado para carregar os pagamentos.</div> : null}
+      {data && !data.canEdit ? <div className="warning">A competência precisa estar aberta para classificar pagamentos.</div> : null}
 
       <section className="grid-4 dashboard-metrics">
-        <MetricCard label="Pendentes" value={data?.summary.pendentes || 0} help="Total com pendencia" tone={rows.length ? 'warning' : 'good'} />
+        <MetricCard label="Pendentes" value={data?.summary.pendentes || 0} help="Total com pendência" tone={rows.length ? 'warning' : 'good'} />
         <MetricCard label="Sem categoria" value={data?.summary.semCategoria || 0} tone={(data?.summary.semCategoria || 0) ? 'warning' : 'good'} />
         <MetricCard label="Sem centro" value={data?.summary.semCentro || 0} tone={(data?.summary.semCentro || 0) ? 'warning' : 'good'} />
         <MetricCard label="Valor pendente" value={formatMoney(data?.summary.totalPendente || 0)} />
@@ -401,7 +401,7 @@ export function SaneamentoPage() {
         <MetricCard label="Modo" value={field === 'categoria' ? 'Categoria' : 'Centro'} help={`${visibleRows.length} pendente(s)`} />
         <MetricCard label="Destino" value={newValue.trim() || selectedValue || '-'} help="destino do lote" />
         <MetricCard label="Status" value={data?.canEdit ? 'Editavel' : 'Bloqueado'} help="competencia" tone={data?.canEdit ? 'good' : 'danger'} />
-        <MetricCard label="Sugestoes" value={suggestionCount} help="categoria pela previsao" tone={suggestionCount ? 'good' : 'default'} />
+        <MetricCard label="Sugestões" value={suggestionCount} help="categoria pela previsão" tone={suggestionCount ? 'good' : 'default'} />
       </section>
 
       <ReclassificationPanel data={cadastros} onDone={loadCadastros} />
@@ -418,7 +418,7 @@ export function SaneamentoPage() {
 
         <div className="form-grid">
           <label className="field-label">
-            Pendencia
+            Pendência
             <select className="text-input" value={field} onChange={(event) => { setField(event.target.value as 'categoria' | 'centro'); setSelectedIds([]); setSelectedValue(''); setNewValue(''); setRowValues({}); }}>
               <option value="categoria">Categoria</option>
               <option value="centro">Centro</option>
@@ -437,7 +437,7 @@ export function SaneamentoPage() {
           </label>
           <div className="module-inline-actions">
             <button className="secondary-button" onClick={selectAll} disabled={!visibleRows.length || !data?.canEdit}>Selecionar todos</button>
-            <button className="secondary-button" onClick={() => setSelectedIds([])} disabled={!selectedIds.length}>Limpar selecao</button>
+            <button className="secondary-button" onClick={() => setSelectedIds([])} disabled={!selectedIds.length}>Limpar seleção</button>
             <button className="primary-button" onClick={() => applyValue()} disabled={!canApply}>{saving ? 'Classificando...' : `Aplicar ${fieldLabel}`}</button>
           </div>
         </div>
@@ -449,7 +449,7 @@ export function SaneamentoPage() {
       <section className="card">
         <div className="header-row compact-header">
           <div>
-            <p className="eyebrow">Pendencias</p>
+            <p className="eyebrow">Pendências</p>
             <h2>Pagamentos sem {fieldLabel}</h2>
           </div>
         </div>
@@ -481,7 +481,7 @@ export function SaneamentoPage() {
                           </p>
                         </div>
                         <div className="module-inline-actions flex-saneamento-row-actions">
-                          {field === 'categoria' && row.sugestao ? <SuggestionPill suggestion={row.sugestao} /> : <span className="muted small-text">{field === 'categoria' ? 'Sem sugestao da previsao' : 'Defina o centro'}</span>}
+                          {field === 'categoria' && row.sugestao ? <SuggestionPill suggestion={row.sugestao} /> : <span className="muted small-text">{field === 'categoria' ? 'Sem sugestão da previsão' : 'Defina o centro'}</span>}
                           <input
                             className="inline-input"
                             list="saneamento-opcoes"
@@ -501,7 +501,7 @@ export function SaneamentoPage() {
             </table>
           </div>
         ) : (
-          <EmptyState title={`Nenhuma pendencia de ${fieldLabel}`} description="Os pagamentos desta competencia ja estao classificados neste criterio." />
+          <EmptyState title={`Nenhuma pendência de ${fieldLabel}`} description="Os pagamentos desta competência já estão classificados neste critério." />
         )}
       </section>
     </main>

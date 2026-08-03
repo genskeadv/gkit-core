@@ -27,7 +27,7 @@ export default async function AdminPage() {
       </div>
 
       <section className="card">
-        <h2 className="section-title">Seguranca</h2>
+        <h2 className="section-title">Segurança</h2>
         <p className="page-subtitle">
           Exportacao completa dos dados operacionais, catalogo do schema e migrations aplicadas para contingencia.
         </p>

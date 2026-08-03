@@ -67,7 +67,7 @@ export function CommissionUploader() {
       setMonthLoading(true);
       const response = await fetch(`/api/gkit-flex/comissoes/competencia?competencia=${selectedCompetencia}`, { cache: 'no-store' });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Nao foi possivel consultar a competencia.');
+      if (!response.ok) throw new Error(payload?.error || 'Não foi possível consultar a competência.');
       if (!payload.configured) {
         setMonthStatus('indisponivel');
         return;
@@ -99,7 +99,7 @@ export function CommissionUploader() {
         body: JSON.stringify({ competencia, action }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Nao foi possivel atualizar a competencia.');
+      if (!response.ok) throw new Error(payload?.error || 'Não foi possível atualizar a competência.');
       setMonthStatus((payload.status || 'nao_aberto') as MonthStatus);
       setSaveStatus(
         action === 'abrir'
@@ -110,7 +110,7 @@ export function CommissionUploader() {
       );
       await loadExecutions();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado ao atualizar mes.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao atualizar mês.');
     } finally {
       setMonthLoading(false);
     }
@@ -120,7 +120,7 @@ export function CommissionUploader() {
     try {
       const response = await fetch('/api/gkit-flex/comissoes/execucoes', { cache: 'no-store' });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Nao foi possivel carregar historico.');
+      if (!response.ok) throw new Error(payload?.error || 'Não foi possível carregar histórico.');
       setHistoryConfigured(Boolean(payload.configured));
       setExecutions((payload.rows || []) as ExecutionRow[]);
     } catch {
@@ -190,7 +190,7 @@ export function CommissionUploader() {
 
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
-        throw new Error(payload?.error || 'Nao foi possivel calcular as comissoes.');
+        throw new Error(payload?.error || 'Não foi possível calcular as comissões.');
       }
 
       const encodedSummary = response.headers.get('X-Commission-Summary');
@@ -227,7 +227,7 @@ export function CommissionUploader() {
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado ao calcular comissoes.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao calcular comissões.');
     } finally {
       setLoading(false);
     }
@@ -236,7 +236,7 @@ export function CommissionUploader() {
   return (
     <main className="page-shell">
       <MonthContextHeader
-        title="Contas a receber + comissoes"
+        title="Contas a receber + comissões"
         description="Envie a planilha de contas a receber; clientes e carteiras sao lidos do Ciclo e do Core."
         competencia={competencia}
         onCompetenciaChange={setCompetencia}
@@ -244,37 +244,37 @@ export function CommissionUploader() {
       >
         <a className="secondary-button" href="/">Home</a>
         {monthStatus === 'nao_aberto' && (
-          <button type="button" onClick={() => handleMonthAction('abrir')} className="secondary-button" disabled={monthLoading}>Abrir mes</button>
+          <button type="button" onClick={() => handleMonthAction('abrir')} className="secondary-button" disabled={monthLoading}>Abrir mês</button>
         )}
         {monthStatus === 'aberto' && (
-          <button type="button" onClick={() => handleMonthAction('fechar')} className="danger-button" disabled={monthLoading}>Fechar mes</button>
+          <button type="button" onClick={() => handleMonthAction('fechar')} className="danger-button" disabled={monthLoading}>Fechar mês</button>
         )}
         {monthStatus === 'fechado' && (
-          <button type="button" onClick={() => handleMonthAction('reabrir')} className="secondary-button" disabled={monthLoading}>Reabrir mes</button>
+          <button type="button" onClick={() => handleMonthAction('reabrir')} className="secondary-button" disabled={monthLoading}>Reabrir mês</button>
         )}
       </MonthContextHeader>
 
       <section className="card">
         <div className="process-steps">
-          <span className={monthStatus === 'aberto' ? 'step step-ok' : 'step'}>1. Abrir mes</span>
+          <span className={monthStatus === 'aberto' ? 'step step-ok' : 'step'}>1. Abrir mês</span>
           <span className={contasReceber ? 'step step-ok' : 'step'}>2. Contas a receber</span>
           <span className="step step-ok">3. Clientes do Ciclo</span>
           <span className={summary.length ? 'step step-ok' : 'step'}>4. Calcular e baixar</span>
         </div>
 
         {monthStatus === 'fechado' && (
-          <div className="warning">Esta competencia esta fechada. Para corrigir ou reprocessar, reabra o mes.</div>
+          <div className="warning">Está competência está fechada. Para corrigir ou reprocessar, reabra o mês.</div>
         )}
         {monthStatus === 'nao_aberto' && (
-          <div className="warning">Esta competencia ainda nao foi aberta. Clique em "Abrir mes" antes de calcular.</div>
+          <div className="warning">Está competência ainda não foi aberta. Clique em "Abrir mês" antes de calcular.</div>
         )}
         {monthStatus === 'indisponivel' && (
-          <div className="warning">Controle de mes indisponivel. Confira as variaveis do Supabase e execute o schema v4.</div>
+          <div className="warning">Controle de mês indisponivel. Confira as variaveis do Supabase e execute o schema v4.</div>
         )}
 
         <div className="grid-2">
           <label className="upload-box">
-            <span className="upload-title">1. Contas a receber do mes</span>
+            <span className="upload-title">1. Contas a receber do mês</span>
             <span className="upload-help">Arquivo financeiro mensal exportado do sistema.</span>
             <input
               type="file"
@@ -296,7 +296,7 @@ export function CommissionUploader() {
           <button type="button" disabled={!canSubmit} onClick={handleSubmit} className="primary-button">
             {loading ? 'Calculando...' : 'Calcular, salvar e baixar planilha'}
           </button>
-          <p className="muted">Saida: Resumo, Acordos Judiciais, Mensalidade, Contas com Carteira e Auditoria.</p>
+          <p className="muted">Saída: Resumo, Acordos Judiciais, Mensalidade, Contas com Carteira e Auditoria.</p>
         </div>
 
         {error && <div className="error">{error}</div>}
@@ -304,9 +304,9 @@ export function CommissionUploader() {
       </section>
 
       <section className="grid-3">
-        <MetricCard label="Valor liquido" value={formatCurrency(displayTotals.valorRecebido)} help={metricsHelp} />
-        <MetricCard label="Base apos redutores" value={formatCurrency(displayTotals.valorAposReducao)} help="Apos 15% em acordos e 14% em mensalidade" />
-        <MetricCard label="Comissao final" value={formatCurrency(displayTotals.comissaoFinal)} help="Valor final por regra de categoria" tone={displayTotals.comissaoFinal > 0 ? 'good' : 'default'} />
+        <MetricCard label="Valor líquido" value={formatCurrency(displayTotals.valorRecebido)} help={metricsHelp} />
+        <MetricCard label="Base após redutores" value={formatCurrency(displayTotals.valorAposReducao)} help="Apos 15% em acordos e 14% em mensalidade" />
+        <MetricCard label="Comissão final" value={formatCurrency(displayTotals.comissaoFinal)} help="Valor final por regra de categoria" tone={displayTotals.comissaoFinal > 0 ? 'good' : 'default'} />
       </section>
 
       {collaboratorSummary.length > 0 && (
@@ -326,7 +326,7 @@ export function CommissionUploader() {
                   <th>Carteira</th>
                   <th>Categoria</th>
                   <th className="text-right">Rateio</th>
-                  <th className="text-right">Comissao colaborador</th>
+                  <th className="text-right">Comissão colaborador</th>
                 </tr>
               </thead>
               <tbody>
@@ -348,28 +348,28 @@ export function CommissionUploader() {
       <section className="card">
         <div className="header-row">
           <div>
-            <h2>Historico salvo</h2>
-            <p className="muted">Ultimas execucoes gravadas no Supabase.</p>
+            <h2>Histórico salvo</h2>
+            <p className="muted">Ultimas execuções gravadas no Supabase.</p>
           </div>
           <button type="button" onClick={loadExecutions} className="secondary-button">Atualizar</button>
         </div>
 
         {historyConfigured === false && (
-          <div className="warning">Supabase ainda nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no arquivo .env.local.</div>
+          <div className="warning">Supabase ainda não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no arquivo .env.local.</div>
         )}
 
-        {historyConfigured && executions.length === 0 && <EmptyState title="Nenhuma execucao salva" description="Calcule uma competencia aberta para criar o primeiro historico de comissoes." />}
+        {historyConfigured && executions.length === 0 && <EmptyState title="Nenhuma execução salva" description="Calcule uma competência aberta para criar o primeiro histórico de comissões." />}
 
         {executions.length > 0 && (
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Competencia</th>
+                  <th>Competência</th>
                   <th>Arquivo contas</th>
                   <th className="text-right">Recebido</th>
                   <th className="text-right">Base reduzida</th>
-                  <th className="text-right">Comissao</th>
+                  <th className="text-right">Comissão</th>
                   <th className="text-right">Auditoria</th>
                 </tr>
               </thead>
@@ -395,7 +395,7 @@ export function CommissionUploader() {
           <div className="header-row">
             <div>
               <h2>Resumo por carteira</h2>
-              <p className="muted">Conferencia rapida antes de usar a planilha baixada.</p>
+              <p className="muted">Conferência rápida antes de usar a planilha baixada.</p>
             </div>
             {auditCount !== null && <span className="badge">{auditCount} item(ns) na auditoria</span>}
           </div>
@@ -406,10 +406,10 @@ export function CommissionUploader() {
                 <tr>
                   <th>Categoria</th>
                   <th>Carteira</th>
-                  <th className="text-right">Lancamentos</th>
-                  <th className="text-right">Valor liquido</th>
-                  <th className="text-right">Apos reducao</th>
-                  <th className="text-right">Comissao final</th>
+                  <th className="text-right">Lançamentos</th>
+                  <th className="text-right">Valor líquido</th>
+                  <th className="text-right">Após redução</th>
+                  <th className="text-right">Comissão final</th>
                 </tr>
               </thead>
               <tbody>

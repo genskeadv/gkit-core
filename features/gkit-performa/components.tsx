@@ -21,7 +21,7 @@ export function GkitPerformaShell({
     <ModuleShell
       activeHref={active === 'auditoria' ? '/modulos/gkit-performa/auditoria' : '/modulos/gkit-performa'}
       brand="Performance"
-      description="Ranking operacional a partir da agenda, consolidando ATEs e prazos juridicos reais."
+      description="Ranking operacional a partir da agenda, consolidando ATEs e prazos jurídicos reais."
       eyebrow="GKIT Performa"
       navGroups={navGroups}
       product="GKIT Performa"

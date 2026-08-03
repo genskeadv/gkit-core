@@ -186,7 +186,7 @@ function aaspConfig() {
   const chave = text(process.env.AASP_API_CHAVE)
   const escopo = text(process.env.AASP_API_ESCOPO, 'empresa').toLowerCase() === 'associado' ? 'associado' : 'empresa'
   const codigoPessoaAssociado = text(process.env.AASP_CODIGO_PESSOA_ASSOCIADO)
-  if (!chave) throw new Error('AASP_API_CHAVE nao configurada no ambiente.')
+  if (!chave) throw new Error('AASP_API_CHAVE não configurada no ambiente.')
   return { baseUrl, chave, codigoPessoaAssociado, escopo }
 }
 

@@ -46,7 +46,7 @@ export default async function CarteirasPage({ searchParams }: CarteirasPageProps
               <th>Status</th>
               <th>Cor</th>
               <th>Colaboradores</th>
-              <th>Permissoes</th>
+              <th>Permissões</th>
               {canWrite ? <th></th> : null}
             </tr>
           </thead>

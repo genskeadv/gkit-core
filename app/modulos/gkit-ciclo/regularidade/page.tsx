@@ -16,7 +16,7 @@ export default async function CicloRegularidadePage() {
       <CicloSection
         eyebrow="Resumo"
         title="Conformidade operacional"
-        description="Distribuicao da regularidade por cliente, risco e acompanhamento."
+        description="Distribuição da regularidade por cliente, risco e acompanhamento."
       >
         <CicloListKpis rows={rows} secondaryLabel="Saudaveis" />
       </CicloSection>

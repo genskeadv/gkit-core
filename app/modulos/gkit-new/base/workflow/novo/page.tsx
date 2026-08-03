@@ -13,10 +13,10 @@ export default async function NovoGkitNewWorkflowPage() {
     <GkitNewShell
       active="workflow"
       title="Novo modelo"
-      description="Configure tarefa automatica para oportunidades futuras."
+      description="Configure tarefa automática para oportunidades futuras."
       usuario={context.usuario}
     >
-      <GkitNewSection title="Modelo de tarefa" description="A data prevista usa a criacao da oportunidade mais o numero de dias.">
+      <GkitNewSection title="Modelo de tarefa" description="A data prevista usa a criacao da oportunidade mais o número de dias.">
         <GkitNewWorkflowForm action={createGkitNewWorkflowAction} formData={formData} />
       </GkitNewSection>
     </GkitNewShell>

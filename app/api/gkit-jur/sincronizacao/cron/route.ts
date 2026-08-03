@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     if (!acquired) {
       return NextResponse.json(
         {
-          message: 'Sincronizacao do GKIT Jur ja esta em andamento.',
+          message: 'Sincronização do GKIT Jur já está em andamento.',
           status: 'running',
           success: false,
         },
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
       success: true,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erro inesperado na sincronizacao agendada.'
+    const message = error instanceof Error ? error.message : 'Erro inesperado na sincronização agendada.'
 
     try {
       await releaseLock(token, null, message)

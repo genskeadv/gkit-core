@@ -26,7 +26,7 @@ export default async function EditarGkitFatContratoPage({
   return (
     <GkitFatShell
       active="contratos"
-      description="Edite a regra futura sem alterar OS ja geradas."
+      description="Edite a regra futura sem alterar OS já geradas."
       title={contrato.numero}
       usuario={context.usuario}
     >

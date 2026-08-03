@@ -23,7 +23,7 @@ function required(value: string, label: string) {
 function optionalDate(formData: FormData, key: string) {
   const value = text(formData, key)
   if (!value) return null
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('Data invalida.')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('Data inválida.')
   return value
 }
 
@@ -209,7 +209,7 @@ export async function createGkitFatOrdemServicoAction(formData: FormData) {
 
   const clienteId = contrato ? String(contrato.cliente_id) : required(text(formData, 'cliente_id'), 'Cliente')
   const cliente = await clienteSnapshot(clienteId)
-  const descricao = text(formData, 'descricao_servico') || String(contrato?.descricao_servico ?? 'Servicos advocaticios')
+  const descricao = text(formData, 'descricao_servico') || String(contrato?.descricao_servico ?? 'Serviços advocatícios')
   const valor = money(formData, 'valor_unitario') || Number(contrato?.valor_padrao ?? 0)
 
   const payload = {
@@ -298,9 +298,9 @@ export async function prepareGkitFatNfseAction(formData: FormData) {
     alertas: [] as string[],
   }
   const tomador = recordValue((ordem as Record<string, any>).tomador_snapshot)
-  if (!empresa) validacao.erros.push('Empresa emissora nao configurada.')
+  if (!empresa) validacao.erros.push('Empresa emissora não configurada.')
   if (!empresa?.cnpj) validacao.erros.push('CNPJ da empresa emissora ausente.')
-  if (!empresa?.municipio) validacao.erros.push('Municipio da empresa emissora ausente.')
+  if (!empresa?.municipio) validacao.erros.push('Município da empresa emissora ausente.')
   if (!String(tomador.documento ?? '').trim()) validacao.erros.push('CPF/CNPJ do tomador ausente.')
   if (Number((ordem as Record<string, any>).valor_total ?? 0) <= 0) validacao.erros.push('Valor da OS precisa ser maior que zero.')
   if (!String(tomador.email ?? '').trim()) validacao.alertas.push('E-mail fiscal do tomador ausente.')
@@ -329,7 +329,7 @@ export async function prepareGkitFatNfseAction(formData: FormData) {
     status_fiscal_anterior: (ordem as Record<string, any>).situacao_fiscal,
     status_fiscal_novo: statusNovo,
     payload: { nfse_payload: payload, validacao },
-    observacoes: validacao.ok ? 'Pre-nota conferida e pronta para emissao manual.' : 'Pre-nota possui pendencias de configuracao fiscal.',
+    observacoes: validacao.ok ? 'Pré-nota conferida e pronta para emissão manual.' : 'Pré-nota possui pendências de configuração fiscal.',
     criado_por: context.usuario.id,
   })
 

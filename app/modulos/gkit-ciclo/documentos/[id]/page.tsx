@@ -21,7 +21,7 @@ export default async function EditarDocumentoPage({ params }: { params: Promise<
       <CicloSection
         eyebrow="Edição"
         title="Dados do documento"
-        description="Atualize status, vencimento, validacao e vinculo documental."
+        description="Atualize status, vencimento, validação e vínculo documental."
       >
         <CicloDocumentoForm action={updateCicloDocumentoAction} documento={documento} formData={formData} />
       </CicloSection>

@@ -23,14 +23,14 @@ export default async function GkitAteAtendimentosPage({
     <GkitAteShell
       active="atendimentos"
       title="Atendimentos"
-      description="Base importada do ASTREA com status, cliente, responsavel e tarefas vinculadas."
+      description="Base importada do ASTREA com status, cliente, responsável e tarefas vinculadas."
       usuario={context.usuario}
     >
       <GkitAteHealthNotice health={health} />
-      <GkitAteSection title="Lista de atendimentos" description="Consulte atendimentos por status, tipo, responsavel e texto livre.">
+      <GkitAteSection title="Lista de atendimentos" description="Consulte atendimentos por status, tipo, responsável e texto livre.">
         <GkitAteFilterBar
           fields={[
-            { label: 'Busca', name: 'q', placeholder: 'Codigo, cliente, titulo, objeto ou responsavel', value: filters.q },
+            { label: 'Busca', name: 'q', placeholder: 'Código, cliente, título, objeto ou responsável', value: filters.q },
             {
               label: 'Status',
               name: 'status',
@@ -51,7 +51,7 @@ export default async function GkitAteAtendimentosPage({
               value: filters.tipo,
             },
             {
-              label: 'Responsavel',
+              label: 'Responsável',
               name: 'responsavel',
               options: responsavelOptions,
               placeholder: 'Todos',
@@ -67,7 +67,7 @@ export default async function GkitAteAtendimentosPage({
               { label: 'Data de criacao', value: 'data' },
               { label: 'Status', value: 'status' },
               { label: 'Cliente', value: 'cliente' },
-              { label: 'Responsavel', value: 'responsavel' },
+              { label: 'Responsável', value: 'responsavel' },
               { label: 'Tarefas pendentes', value: 'tarefas' },
             ],
             value: filters.sort,

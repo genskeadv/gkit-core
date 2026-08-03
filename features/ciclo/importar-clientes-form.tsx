@@ -40,7 +40,7 @@ export function ImportarClientesForm() {
         setPreview(await previewImportacaoClientesXlsx(formData))
         setPreviewedFile(fileKey)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Nao foi possivel pre-visualizar o arquivo.')
+        setError(err instanceof Error ? err.message : 'Não foi possível pré-visualizar o arquivo.')
       }
     })
   }
@@ -58,7 +58,7 @@ export function ImportarClientesForm() {
         }
         setResult(await importarClientesXlsx(formData))
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Nao foi possivel importar o arquivo.')
+        setError(err instanceof Error ? err.message : 'Não foi possível importar o arquivo.')
       }
     })
   }

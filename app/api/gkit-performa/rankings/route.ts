@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const ranking = Array.isArray(payload?.ranking) ? payload.ranking : []
 
     if (!ranking.length) {
-      return NextResponse.json({ error: 'Nao ha ranking para gravar.' }, { status: 400 })
+      return NextResponse.json({ error: 'Não há ranking para gravar.' }, { status: 400 })
     }
 
     if (ranking.length > MAX_RANKING_ITEMS) {
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (loteError || !lote) {
-      return NextResponse.json({ error: loteError?.message ?? 'Nao foi possivel gravar o ranking.' }, { status: 500 })
+      return NextResponse.json({ error: loteError?.message ?? 'Não foi possível gravar o ranking.' }, { status: 500 })
     }
 
     const itens = ranking.map((item: Record<string, unknown>, index: number) => ({

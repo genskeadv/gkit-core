@@ -28,7 +28,7 @@ export default async function GkitNewClientesPage({
       <GkitNewSection title="Base de clientes" description="Status derivado automaticamente por oportunidade aprovada.">
         <GkitNewFilterBar
           fields={[
-            { label: 'Busca', name: 'q', placeholder: 'Nome, documento ou observacao', value: filters.q },
+            { label: 'Busca', name: 'q', placeholder: 'Nome, documento ou observação', value: filters.q },
             {
               label: 'Status',
               name: 'status',

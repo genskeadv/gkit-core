@@ -112,7 +112,7 @@ export function AuditPage() {
     <main className="page-shell audit-page">
       <MonthContextHeader
         title="Auditoria mensal"
-        description="Checklist, versoes, importacoes, snapshots e eventos para conferir o mes antes de fechar."
+        description="Checklist, versoes, importações, snapshots e eventos para conferir o mês antes de fechar."
         competencia={competencia}
         onCompetenciaChange={setCompetencia}
         primaryStatus={{ label: 'Status geral', status: data?.status.geral || 'bloqueio' }}
@@ -122,7 +122,7 @@ export function AuditPage() {
       </MonthContextHeader>
 
       {error ? <div className="error">{error}</div> : null}
-      {!data?.configured ? <div className="warning">Supabase ainda nao configurado. Defina o `.env.local` para acessar a auditoria.</div> : null}
+      {!data?.configured ? <div className="warning">Supabase ainda não configurado. Defina o `.env.local` para acessar a auditoria.</div> : null}
 
       <section className="grid-3 dashboard-metrics">
         <div className="metric">
@@ -133,9 +133,9 @@ export function AuditPage() {
           <p className="small-text muted">{loading ? 'Atualizando...' : data?.status.texto || '-'}</p>
         </div>
         <div className="metric">
-          <p className="metric-label">Recebido / comissao</p>
+          <p className="metric-label">Recebido / comissão</p>
           <p className="metric-value">{formatMoney(data?.comissoes?.totalRecebido || 0)}</p>
-          <p className="small-text muted">Comissoes: {formatMoney(data?.comissoes?.totalComissao || 0)}</p>
+          <p className="small-text muted">Comissões: {formatMoney(data?.comissoes?.totalComissao || 0)}</p>
         </div>
         <div className="metric">
           <p className="metric-label">Pagamentos</p>
@@ -148,7 +148,7 @@ export function AuditPage() {
         <div className="header-row">
           <div>
             <p className="eyebrow">Checklist</p>
-            <h2>Conferencia antes do fechamento</h2>
+            <h2>Conferência antes do fechamento</h2>
           </div>
           <button className="secondary-button" onClick={loadAudit} disabled={loading}>{loading ? 'Atualizando...' : 'Atualizar'}</button>
         </div>
@@ -167,8 +167,8 @@ export function AuditPage() {
         <div className="card">
           <h2>Pontos de auditoria</h2>
           <div className="mini-kpis">
-            <div><span>Comissoes com apontamento</span><strong>{data?.auditoria.total || 0}</strong></div>
-            <div><span>Lancamentos sem vendedor</span><strong>{data?.comissoes?.semVendedor || 0}</strong></div>
+            <div><span>Comissões com apontamento</span><strong>{data?.auditoria.total || 0}</strong></div>
+            <div><span>Lançamentos sem vendedor</span><strong>{data?.comissoes?.semVendedor || 0}</strong></div>
             <div><span>Despesas sem categoria</span><strong>{data?.contasPagar?.semCategoria || 0}</strong></div>
             <div><span>Valores zerados</span><strong>{data?.contasPagar?.valorZerado || 0}</strong></div>
           </div>
@@ -176,7 +176,7 @@ export function AuditPage() {
             <div className="category-list audit-problems">
               {data.auditoria.porProblema.map((row) => <div className="category-row" key={row.nome}><span>{row.nome}</span><strong>{row.quantidade}</strong></div>)}
             </div>
-          ) : <p className="muted">Nenhum problema de comissao agrupado.</p>}
+          ) : <p className="muted">Nenhum problema de comissão agrupado.</p>}
         </div>
 
         <div className="card">
@@ -185,22 +185,22 @@ export function AuditPage() {
             <div className="category-list">
               {data.contasPagar.porCategoria.slice(0, 12).map((row) => <div className="category-row" key={row.categoria}><span>{row.categoria}</span><strong>{formatMoney(row.valor)}</strong></div>)}
             </div>
-          ) : <p className="muted">Nenhuma despesa cadastrada para esta competencia.</p>}
+          ) : <p className="muted">Nenhuma despesa cadastrada para esta competência.</p>}
         </div>
       </section>
 
       <section className="card">
         <p className="eyebrow">Versoes</p>
-        <h2>Historico de processamento</h2>
+        <h2>Histórico de processamento</h2>
         <div className="table-wrap">
           <table className="periods-table">
             <thead>
-              <tr><th>Tipo</th><th>Data</th><th>Arquivo / motivo</th><th className="text-right">Total</th><th className="text-right">Pendencias</th></tr>
+              <tr><th>Tipo</th><th>Data</th><th>Arquivo / motivo</th><th className="text-right">Total</th><th className="text-right">Pendências</th></tr>
             </thead>
             <tbody>
               {(data?.versoes.comissoes || []).map((row) => (
                 <tr key={`c-${row.id}`}>
-                  <td>Comissoes v{row.versao}</td>
+                  <td>Comissões v{row.versao}</td>
                   <td>{formatDate(row.created_at)}</td>
                   <td>{row.contas_file_name || '-'} / {row.clientes_file_name || '-'}</td>
                   <td className="text-right">{formatMoney(Number(row.total_comissao || 0))}</td>
@@ -209,9 +209,9 @@ export function AuditPage() {
               ))}
               {(data?.versoes.importacoes || []).map((row) => (
                 <tr key={`i-${row.id}`}>
-                  <td>Importacao pagar</td>
+                  <td>Importação pagar</td>
                   <td>{formatDate(row.created_at)}</td>
-                  <td>{row.arquivo_nome} Â· {row.modo}</td>
+                  <td>{row.arquivo_nome} · {row.modo}</td>
                   <td className="text-right">{formatMoney(Number(row.valor_importado_manual || 0))}</td>
                   <td className="text-right">{row.linhas_com_erro || 0}</td>
                 </tr>
@@ -232,11 +232,11 @@ export function AuditPage() {
 
       <section className="card">
         <p className="eyebrow">Eventos</p>
-        <h2>Log operacional do mes</h2>
+        <h2>Log operacional do mês</h2>
         {(data?.eventos || []).length ? (
           <div className="table-wrap">
             <table className="periods-table">
-              <thead><tr><th>Data</th><th>Modulo</th><th>Acao</th><th>Entidade</th></tr></thead>
+              <thead><tr><th>Data</th><th>Módulo</th><th>Ação</th><th>Entidade</th></tr></thead>
               <tbody>
                 {(data?.eventos || []).map((event) => (
                   <tr key={event.id}>
@@ -249,12 +249,12 @@ export function AuditPage() {
               </tbody>
             </table>
           </div>
-        ) : <p className="muted">Nenhum evento registrado para esta competencia ainda.</p>}
+        ) : <p className="muted">Nenhum evento registrado para esta competência ainda.</p>}
       </section>
 
       <section className="card">
         <p className="eyebrow">Amostras</p>
-        <h2>Principais apontamentos de comissao</h2>
+        <h2>Principais apontamentos de comissão</h2>
         {(data?.auditoria.amostras || []).length ? (
           <div className="table-wrap">
             <table className="periods-table">
@@ -272,7 +272,7 @@ export function AuditPage() {
               </tbody>
             </table>
           </div>
-        ) : <p className="muted">Nenhum apontamento amostral disponivel.</p>}
+        ) : <p className="muted">Nenhum apontamento amostral disponível.</p>}
       </section>
     </main>
   );

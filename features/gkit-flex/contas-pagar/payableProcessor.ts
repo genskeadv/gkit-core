@@ -144,7 +144,7 @@ function findHeaderRow(rows: unknown[][]): number {
   });
 
   if (bestScore < 5 || bestIndex < 0) {
-    throw new Error('Nao encontrei a linha de cabecalho. A planilha precisa ter colunas como Descricao, Vencimento, Valor, Categoria e Centro.');
+    throw new Error('Não encontrei a linha de cabeçalho. A planilha precisa ter colunas como Descrição, Vencimento, Valor, Categoria e Centro.');
   }
 
   return bestIndex;
@@ -259,7 +259,7 @@ function parseOfxStatement(text: string): PayableImportRow[] | null {
   if (!/<OFX[\s>]/i.test(text)) return null;
 
   const blocks = Array.from(text.matchAll(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi)).map((match) => match[1]);
-  if (!blocks.length) throw new Error('Nao encontrei lancamentos STMTTRN no arquivo OFX.');
+  if (!blocks.length) throw new Error('Não encontrei lançamentos STMTTRN no arquivo OFX.');
 
   const parsed = blocks.map((block, index): PayableImportRow | null => {
     const amount = parseOfxMoney(tagValue(block, 'TRNAMT'));
@@ -342,7 +342,7 @@ export async function parsePayablesWorkbook(file: File): Promise<PayableImportRo
   if (categoriaIndex < 0) missing.push('Categoria');
 
   if (missing.length) {
-    throw new Error(`Colunas obrigatorias nao encontradas: ${missing.join(', ')}.`);
+    throw new Error(`Colunas obrigatórias não encontradas: ${missing.join(', ')}.`);
   }
 
   const dataRows = rows.slice(headerIndex + 1);
@@ -370,7 +370,7 @@ export async function parsePayablesWorkbook(file: File): Promise<PayableImportRo
   });
 
   if (!parsed.length) {
-    throw new Error('Nao encontrei pagamentos validos na planilha.');
+    throw new Error('Não encontrei pagamentos válidos na planilha.');
   }
 
   return parsed;
@@ -419,13 +419,13 @@ export function buildPayablesExportWorkbook(params: {
   XLSX.utils.book_append_sheet(workbook, importSheet, 'Pagamentos');
 
   const summarySheet = XLSX.utils.json_to_sheet([
-    { Indicador: 'Competencia', Valor: params.competencia.slice(0, 7) },
-    { Indicador: 'Previsao do mes', Valor: params.summary.total },
+    { Indicador: 'Competência', Valor: params.competencia.slice(0, 7) },
+    { Indicador: 'Previsão do mês', Valor: params.summary.total },
     { Indicador: 'Pagamentos efetuados', Valor: params.summary.totalPago },
-    { Indicador: 'Diferenca', Valor: params.summary.totalAberto },
-    { Indicador: 'Quantidade de lancamentos', Valor: params.summary.quantidade },
+    { Indicador: 'Diferença', Valor: params.summary.totalAberto },
+    { Indicador: 'Quantidade de lançamentos', Valor: params.summary.quantidade },
     { Indicador: 'Quantidade paga', Valor: params.summary.quantidadePaga },
-    { Indicador: 'Observacao', Valor: 'A primeira aba serve como modelo de importacao do extrato realizado. Colaboradores e comissoes tambem devem constar nessa aba quando tiverem sido pagos.' },
+    { Indicador: 'Observação', Valor: 'A primeira aba serve como modelo de importação do extrato realizado. Colaboradores e comissões também devem constar nessa aba quando tiverem sido pagos.' },
   ]);
   summarySheet['!cols'] = [{ wch: 28 }, { wch: 90 }];
   XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumo');

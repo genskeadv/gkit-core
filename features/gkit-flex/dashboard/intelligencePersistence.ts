@@ -184,7 +184,7 @@ function buildComparativo(atual: MonthNumbers, anterior: MonthNumbers): Intellig
     { key: 'pagar', label: 'Pagamentos', ...variation(atual.pagar, anterior.pagar) },
     { key: 'pago', label: 'Total pago', ...variation(atual.pago, anterior.pago) },
     { key: 'aberto', label: 'Em aberto', ...variation(atual.aberto, anterior.aberto) },
-    { key: 'comissoes', label: 'Comissoes calculadas', ...variation(atual.comissoes, anterior.comissoes) },
+    { key: 'comissoes', label: 'Comissões calculadas', ...variation(atual.comissoes, anterior.comissoes) },
     { key: 'saldo', label: 'Saldo operacional', ...variation(atual.saldo, anterior.saldo) },
   ];
 }
@@ -266,10 +266,10 @@ async function expenseDashboard(supabase: SupabaseClient, competencia: string, f
 function buildAlerts(atual: MonthNumbers, projection: MonthNumbers, categorias: ExpenseDashboardRow[], centros: ExpenseDashboardRow[]): FinancialAlert[] {
   const alerts: FinancialAlert[] = [];
   if (atual.saldo < 0) {
-    alerts.push({ severidade: 'bloqueio', titulo: 'Saldo operacional negativo', detalhe: 'O total de pagamentos supera o total recebido nesta competencia.', valor: atual.saldo });
+    alerts.push({ severidade: 'bloqueio', titulo: 'Saldo operacional negativo', detalhe: 'O total de pagamentos supera o total recebido nesta competência.', valor: atual.saldo });
   }
   if (atual.semCategoria > 0) {
-    alerts.push({ severidade: 'aviso', titulo: 'Despesas sem categoria', detalhe: `${atual.semCategoria} item(ns) dos pagamentos estao sem categoria.` });
+    alerts.push({ severidade: 'aviso', titulo: 'Despesas sem categoria', detalhe: `${atual.semCategoria} item(ns) dos pagamentos estão sem categoria.` });
   }
   const biggestDue = Array.from(atual.vencimentos.entries()).sort((a, b) => b[1] - a[1])[0];
   if (biggestDue && atual.pagar > 0 && biggestDue[1] / atual.pagar >= 0.3) {
@@ -287,7 +287,7 @@ function buildAlerts(atual: MonthNumbers, projection: MonthNumbers, categorias: 
   }
 
   if (projection.itensPagar > 0) {
-    alerts.push({ severidade: 'info', titulo: 'Proximo mes projetado', detalhe: `A proxima competencia ja tem ${projection.itensPagar} item(ns) previstos em pagamentos.`, valor: projection.pagar });
+    alerts.push({ severidade: 'info', titulo: 'Próximo mês projetado', detalhe: `A proxima competencia ja tem ${projection.itensPagar} item(ns) previstos em pagamentos.`, valor: projection.pagar });
   }
 
   return alerts.slice(0, 8);
@@ -346,7 +346,7 @@ export async function getDashboardIntelligence(competenciaInput?: string | null)
       itensPrevistos: proximo.itensPagar,
       observacoes: [
         proximo.itensPagar ? 'Projecao baseada nos pagamentos ja criados para a proxima competencia.' : 'Ainda nao ha pagamentos criados para a proxima competencia.',
-        'Comissoes do proximo mes so entram apos novo calculo da competencia.',
+        'Comissões do próximo mês só entram após novo cálculo da competência.',
       ],
     },
     alertas: buildAlerts(atual, proximo, categorias, centros),

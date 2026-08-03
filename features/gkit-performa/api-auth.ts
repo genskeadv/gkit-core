@@ -17,7 +17,7 @@ export async function requireGkitPerformaApiAccess(permission: GkitPerformaApiPe
   } = await supabase.auth.getUser()
 
   if (userError || !user) {
-    return { error: NextResponse.json({ error: 'Sessao expirada ou nao autenticada.' }, { status: 401 }) }
+    return { error: NextResponse.json({ error: 'Sessão expirada ou não autenticada.' }, { status: 401 }) }
   }
 
   const { data: usuario, error: usuarioError } = await admin()
@@ -28,11 +28,11 @@ export async function requireGkitPerformaApiAccess(permission: GkitPerformaApiPe
     .single()
 
   if (usuarioError || !usuario || usuario.status !== 'ativo') {
-    return { error: NextResponse.json({ error: 'Usuario sem acesso ativo.' }, { status: 403 }) }
+    return { error: NextResponse.json({ error: 'Usuário sem acesso ativo.' }, { status: 403 }) }
   }
 
   const permissions = await getUsuarioPermissionCodes(usuario)
   if (canAccess(permissions, permission)) return { usuario }
 
-  return { error: NextResponse.json({ error: 'Sem permissao para executar esta acao.' }, { status: 403 }) }
+  return { error: NextResponse.json({ error: 'Sem permissão para executar esta ação.' }, { status: 403 }) }
 }

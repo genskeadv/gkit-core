@@ -22,7 +22,7 @@ export default async function CicloImportacaoDetalhePage({ params }: { params: P
     >
       <CicloSection
         eyebrow="Carga"
-        title="Detalhe da importacao"
+        title="Detalhe da importação"
         description="Resultado do lote, linhas processadas, clientes criados e erros de carga."
       >
         <CicloImportacaoDetalhe itens={itens} lote={lote} />

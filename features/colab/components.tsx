@@ -7,10 +7,10 @@ import type { PlatformUsuario } from '@/lib/auth/platform'
 type ColabTab = 'dashboard' | 'pagamentos' | 'comissoes' | 'beneficios' | 'documentos' | 'perfil'
 
 const tabs: Array<{ id: ColabTab; href: string; label: string }> = [
-  { id: 'dashboard', href: '/modulos/colab', label: 'Inicio' },
+  { id: 'dashboard', href: '/modulos/colab', label: 'Início' },
   { id: 'pagamentos', href: '/modulos/colab/pagamentos', label: 'Pagamentos' },
-  { id: 'comissoes', href: '/modulos/colab/comissoes', label: 'Comissoes' },
-  { id: 'beneficios', href: '/modulos/colab/beneficios', label: 'Beneficios' },
+  { id: 'comissoes', href: '/modulos/colab/comissoes', label: 'Comissões' },
+  { id: 'beneficios', href: '/modulos/colab/beneficios', label: 'Benefícios' },
   { id: 'documentos', href: '/modulos/colab/documentos', label: 'Documentos' },
   { id: 'perfil', href: '/modulos/colab/perfil', label: 'Perfil' },
 ]
@@ -62,7 +62,7 @@ export function ColabShell({
 
         {children}
 
-        <nav className="colab-mobile-dock" aria-label="Navegacao rapida do colaborador">
+        <nav className="colab-mobile-dock" aria-label="Navegacao rápida do colaborador">
           {tabs.map((tab) => (
             <Link className={tab.id === active ? 'active' : ''} href={tab.href} key={tab.id}>
               {tab.label}
@@ -78,8 +78,8 @@ export function ColabProfile({ data }: { data: ColabData }) {
   if (!data.collaborator) {
     return (
       <section className="suite-empty-card">
-        <strong>Colaborador nao localizado</strong>
-        <span>O acesso ao Colab esta liberado no Core, mas o e-mail do usuario ainda nao tem cadastro ativo no GKIT Flex.</span>
+        <strong>Colaborador não localizado</strong>
+        <span>O acesso ao Colab está liberado no Core, mas o e-mail do usuário ainda não tem cadastro ativo no GKIT Flex.</span>
       </section>
     )
   }
@@ -97,17 +97,17 @@ export function ColabProfile({ data }: { data: ColabData }) {
         <p className="metric-hint">Gestor: {data.collaborator.manager}</p>
       </article>
       <article className="card metric-card">
-        <p className="metric-label">Ultimo pagamento</p>
+        <p className="metric-label">Último pagamento</p>
         <p className="metric-value">{currency(data.summary.latestPayment)}</p>
         <p className="metric-hint">{data.payments[0]?.competence ?? 'Sem demonstrativo'}</p>
       </article>
       <article className="card metric-card">
-        <p className="metric-label">Comissoes abertas</p>
+        <p className="metric-label">Comissões abertas</p>
         <p className="metric-value">{currency(data.summary.openCommissions)}</p>
-        <p className="metric-hint">calculadas e em conferencia</p>
+        <p className="metric-hint">calculadas e em conferência</p>
       </article>
       <article className="card metric-card">
-        <p className="metric-label">Beneficios</p>
+        <p className="metric-label">Benefícios</p>
         <p className="metric-value">{String(data.benefits.length)}</p>
         <p className="metric-hint">ativos no cadastro</p>
       </article>
@@ -135,14 +135,14 @@ export function ColabFinancialSummary({ data }: { data: ColabData }) {
   return (
     <section className="suite-kpi-grid compact colab-financial-grid">
       <article className="card metric-card">
-        <p className="metric-label">Comissoes aprovadas</p>
+        <p className="metric-label">Comissões aprovadas</p>
         <p className="metric-value">{currency(data.summary.approvedCommissions)}</p>
         <p className="metric-hint">aguardando pagamento</p>
       </article>
       <article className="card metric-card">
-        <p className="metric-label">Comissoes pagas</p>
+        <p className="metric-label">Comissões pagas</p>
         <p className="metric-value">{currency(data.summary.paidCommissions)}</p>
-        <p className="metric-hint">historico publicado</p>
+        <p className="metric-hint">histórico publicado</p>
       </article>
       <article className="card metric-card">
         <p className="metric-label">Pagamentos pendentes</p>
@@ -159,13 +159,13 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
       <section className="card suite-panel">
         <div className="suite-panel-heading">
           <div>
-            <h2>Pendencias</h2>
-          <p>Vinculo do colaborador no GKIT Flex.</p>
+            <h2>Pendências</h2>
+          <p>Vínculo do colaborador no GKIT Flex.</p>
           </div>
         </div>
         <div className="suite-empty-block warning">
-          <strong>Cadastro nao localizado</strong>
-          <span>Seu acesso ao Colab esta ativo, mas o cadastro de colaborador ainda nao foi encontrado no GKIT Flex.</span>
+          <strong>Cadastro não localizado</strong>
+          <span>Seu acesso ao Colab está ativo, mas o cadastro de colaborador ainda não foi encontrado no GKIT Flex.</span>
         </div>
       </section>
     )
@@ -185,7 +185,7 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
       ? {
           href: '/modulos/colab/comissoes',
           status: 'em_conferencia',
-          title: 'Comissoes em acompanhamento',
+          title: 'Comissões em acompanhamento',
           value: currency(data.summary.openCommissions),
           detail: 'calculadas, em conferencia ou aprovadas',
         }
@@ -194,7 +194,7 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
       ? {
           href: '/modulos/colab/documentos',
           status: 'disponivel',
-          title: 'Documentos disponiveis',
+          title: 'Documentos disponíveis',
           value: String(data.documents.filter((item) => item.status === 'disponivel').length),
           detail: 'demonstrativos e resumos publicados',
         }
@@ -205,7 +205,7 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
     <section className="card suite-panel">
       <div className="suite-panel-heading">
         <div>
-          <h2>Pendencias</h2>
+          <h2>Pendências</h2>
           <p>Itens publicados pelo GKIT Flex para acompanhamento individual.</p>
         </div>
       </div>
@@ -226,7 +226,7 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
       ) : (
         <div className="suite-empty-block success">
           <strong>Tudo em dia</strong>
-          <span>Nenhuma pendencia financeira publicada para este colaborador.</span>
+          <span>Nenhuma pendência financeira publicada para este colaborador.</span>
         </div>
       )}
     </section>
@@ -253,22 +253,22 @@ export function ColabModuleMap({ data }: { data: ColabData }) {
     {
       href: '/modulos/colab/comissoes',
       status: data.summary.openCommissions ? 'em_conferencia' : 'sincronizado',
-      title: 'Comissoes',
-      description: 'Valores variaveis por competencia',
+      title: 'Comissões',
+      description: 'Valores variaveis por competência',
       value: currency(data.summary.openCommissions + data.summary.paidCommissions),
     },
     {
       href: '/modulos/colab/beneficios',
       status: data.benefits.length ? 'ativo' : 'pendente',
-      title: 'Beneficios',
-      description: 'Beneficios cadastrados no GKIT Flex',
+      title: 'Benefícios',
+      description: 'Benefícios cadastrados no GKIT Flex',
       value: String(data.benefits.length),
     },
     {
       href: '/modulos/colab/documentos',
       status: availableDocuments ? 'disponivel' : 'pendente',
       title: 'Documentos',
-      description: 'Demonstrativos gerados por pagamentos e comissoes',
+      description: 'Demonstrativos gerados por pagamentos e comissões',
       value: String(data.documents.length),
     },
   ]
@@ -322,7 +322,7 @@ export function ColabCommissions({ data }: { data: ColabData }) {
     <section className="card suite-panel">
       <div className="suite-panel-heading">
         <div>
-          <h2>Comissoes</h2>
+          <h2>Comissões</h2>
           <p>Valores variaveis vinculados ao cadastro do colaborador.</p>
         </div>
       </div>
@@ -338,7 +338,7 @@ export function ColabCommissions({ data }: { data: ColabData }) {
             <small>{commission.percentage}% sobre {currency(commission.baseAmount)}</small>
           </article>
         ))}
-        {!data.commissions.length ? <EmptyBlock label="Nenhuma comissao encontrada." /> : null}
+        {!data.commissions.length ? <EmptyBlock label="Nenhuma comissão encontrada." /> : null}
       </div>
     </section>
   )
@@ -355,7 +355,7 @@ export function ColabBenefits({ data }: { data: ColabData }) {
           <strong>{benefit.monthlyValue ? currency(benefit.monthlyValue) : benefit.provider}</strong>
         </article>
       ))}
-      {!data.benefits.length ? <EmptyBlock label="Nenhum beneficio cadastrado no GKIT Flex." /> : null}
+      {!data.benefits.length ? <EmptyBlock label="Nenhum benefício cadastrado no GKIT Flex." /> : null}
     </section>
   )
 }
@@ -388,7 +388,7 @@ export function ColabDocuments({ data }: { data: ColabData }) {
         <div className="suite-panel-heading">
           <div>
             <h2>Documentos</h2>
-            <p>Demonstrativos e resumos derivados de pagamentos e comissoes.</p>
+            <p>Demonstrativos e resumos derivados de pagamentos e comissões.</p>
           </div>
         </div>
         <div className="suite-table-list">
@@ -402,7 +402,7 @@ export function ColabDocuments({ data }: { data: ColabData }) {
               <strong>{new Date(document.updatedAt).toLocaleDateString('pt-BR')}</strong>
             </article>
           ))}
-          {!data.documents.length ? <EmptyBlock label="Nenhum documento disponivel." /> : null}
+          {!data.documents.length ? <EmptyBlock label="Nenhum documento disponível." /> : null}
         </div>
       </section>
     </>
@@ -415,8 +415,8 @@ export function ColabProfileDetails({ data }: { data: ColabData }) {
   if (!collaborator) {
     return (
       <section className="suite-empty-card">
-        <strong>Perfil nao localizado</strong>
-        <span>O e-mail do usuario ainda nao tem cadastro ativo no GKIT Flex.</span>
+        <strong>Perfil não localizado</strong>
+        <span>O e-mail do usuário ainda não tem cadastro ativo no GKIT Flex.</span>
       </section>
     )
   }
@@ -436,7 +436,7 @@ export function ColabProfileDetails({ data }: { data: ColabData }) {
       <div className="suite-panel-heading">
         <div>
           <h2>Dados profissionais</h2>
-          <p>Informacoes sincronizadas a partir do cadastro administrativo.</p>
+          <p>Informações sincronizadas a partir do cadastro administrativo.</p>
         </div>
       </div>
       <div className="suite-table-list compact">

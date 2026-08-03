@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'GKIT Suite',
-  description: 'Login central e modulos do ecossistema GKIT',
+  description: 'Login central e módulos do ecossistema GKIT',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },

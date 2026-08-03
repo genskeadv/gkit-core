@@ -595,7 +595,7 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
       setSaveStatus('')
       setSelectedName('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Nao foi possivel processar a planilha.')
+      setError(err instanceof Error ? err.message : 'Não foi possível processar a planilha.')
     } finally {
       setLoading(false)
       event.target.value = ''
@@ -652,14 +652,14 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result?.error || 'Nao foi possivel gravar o ranking.')
+        throw new Error(result?.error || 'Não foi possível gravar o ranking.')
       }
 
       setSaveStatus('success')
       setSaveMessage(`Ranking gravado com ${result.total} item(ns).`)
     } catch (err) {
       setSaveStatus('error')
-      setSaveMessage(err instanceof Error ? err.message : 'Nao foi possivel gravar o ranking.')
+      setSaveMessage(err instanceof Error ? err.message : 'Não foi possível gravar o ranking.')
     } finally {
       setSaving(false)
     }
@@ -706,15 +706,15 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
       {hasImport ? <section className="suite-panel gkit-performa-filters">
           <div className="gkit-performa-filter-grid">
             <label>
-              <span>Periodo inicial</span>
+              <span>Período inicial</span>
               <input onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
             </label>
             <label>
-              <span>Periodo final</span>
+              <span>Período final</span>
               <input onChange={(event) => setEndDate(event.target.value)} type="date" value={endDate} />
             </label>
             <label>
-              <span>Responsavel</span>
+              <span>Responsável</span>
               <select onChange={(event) => setResponsavel(event.target.value)} value={responsavel}>
                 <option value="">Todos</option>
                 {responsaveis.map((name) => <option key={name} value={name}>{name}</option>)}
@@ -723,7 +723,7 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
             <label>
               <span>Ranking</span>
               <select onChange={(event) => setRankingType(event.target.value as RankingType)} value={rankingType}>
-                <option value="responsavel">Responsavel</option>
+                <option value="responsavel">Responsável</option>
                 <option value="executor">Executor / envolvido</option>
               </select>
             </label>
@@ -758,7 +758,7 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
           <div className="suite-panel-heading">
             <div>
               <h2>Ranking</h2>
-              <p>Score ponderado por volume, conclusao, prazo, velocidade e abertas atrasadas.</p>
+              <p>Score ponderado por volume, conclusão, prazo, velocidade e abertas atrasadas.</p>
             </div>
             <div className="gkit-performa-ranking-actions">
               {canSave ? (
@@ -794,7 +794,7 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
                   <th>Concl.</th>
                   <th>% concl.</th>
                   <th>% prazo</th>
-                  <th>Atras.</th>
+                  <th>Atrás.</th>
                   <th>Media</th>
                   <th>Score</th>
                 </tr>
@@ -837,7 +837,7 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
             <>
               <div className="gkit-performa-detail-grid">
                 <span><strong>{selected.unidades}</strong> unidades</span>
-                <span><strong>{pct(selected.percentualConclusao)}</strong> conclusao</span>
+                <span><strong>{pct(selected.percentualConclusao)}</strong> conclusão</span>
                 <span><strong>{pct(selected.percentualNoPrazo)}</strong> no prazo</span>
                 <span><strong>{round(selected.score)}</strong> score</span>
               </div>
@@ -856,7 +856,7 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
               </div>
             </>
           ) : (
-            <div className="suite-empty-block">Sem responsavel selecionado.</div>
+            <div className="suite-empty-block">Sem responsável selecionado.</div>
           )}
         </aside>
       </section> : null}
@@ -865,7 +865,7 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
         <section className="suite-panel gkit-performa-audit-callout">
           <div>
             <h2>Auditoria</h2>
-            <p>A lista completa de unidades, ATEs E/F e linhas excluidas fica em uma pagina propria.</p>
+            <p>A lista completa de unidades, ATEs E/F e linhas excluidas fica em uma pagina própria.</p>
           </div>
           <a className="button secondary" href="/modulos/gkit-performa/auditoria">Abrir auditoria</a>
         </section>

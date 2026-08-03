@@ -17,7 +17,7 @@ export default async function GkitAteTarefaDetailPage({
     <GkitAteShell
       active="tarefas"
       title="Detalhe da tarefa"
-      description="Acompanhamento de pendencia vinculada ao atendimento."
+      description="Acompanhamento de pendência vinculada ao atendimento."
       usuario={context.usuario}
     >
       <GkitAteHealthNotice health={health} />

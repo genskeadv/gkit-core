@@ -486,7 +486,7 @@ async function buildAutomaticPaymentForecast(
   const commissionRows = latestExecution?.id && commissionTotal > 0
     ? [{
         competencia,
-        descricao: 'Comissoes calculadas do mes anterior',
+        descricao: 'Comissões calculadas do mês anterior',
         vencimento_dia: 25,
         vencimento_texto: '25',
         valor_previsto: commissionTotal,

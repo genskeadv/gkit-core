@@ -640,7 +640,7 @@ export async function updateGkitNewAcompanhamentoAction(formData: FormData) {
   }
 
   if (status !== 'proposta_enviada' && !descricao) {
-    throw new Error('Descricao e obrigatoria ao alterar o status da proposta.')
+    throw new Error('Descrição é obrigatória ao alterar o status da proposta.')
   }
 
   const updates: Record<string, unknown> = {

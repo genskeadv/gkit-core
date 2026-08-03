@@ -14,6 +14,6 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao salvar previsao.' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao salvar previsão.' }, { status: 500 });
   }
 }

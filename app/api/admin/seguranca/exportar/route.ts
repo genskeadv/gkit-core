@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     console.error('[admin/seguranca/exportar][GET]', error)
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Erro ao exportar backup de seguranca.',
+        error: error instanceof Error ? error.message : 'Erro ao exportar backup de segurança.',
       },
       { status: 500 },
     )

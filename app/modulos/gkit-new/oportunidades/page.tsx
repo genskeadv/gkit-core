@@ -29,7 +29,7 @@ export default async function GkitNewOportunidadesPage({
     <GkitNewShell
       active="oportunidades"
       title="Oportunidades"
-      description="Negociacoes comerciais com workflow automatico de tarefas."
+      description="Negociacoes comerciais com workflow automático de tarefas."
       usuario={context.usuario}
       actions={canWrite ? <Link className="button" href="/modulos/gkit-new/oportunidades/novo">Nova oportunidade</Link> : null}
     >
@@ -37,7 +37,7 @@ export default async function GkitNewOportunidadesPage({
       <GkitNewSection title="Pipeline operacional" description="Aprovada ativa o cliente; encerrada finaliza a negociacao.">
         <GkitNewFilterBar
           fields={[
-            { label: 'Busca', name: 'q', placeholder: 'Descricao, cliente, contato ou escopo', value: filters.q },
+            { label: 'Busca', name: 'q', placeholder: 'Descrição, cliente, contato ou escopo', value: filters.q },
             {
               label: 'Status',
               name: 'status',
@@ -66,7 +66,7 @@ export default async function GkitNewOportunidadesPage({
               value: filters.tipo,
             },
             {
-              label: 'Responsavel',
+              label: 'Responsável',
               name: 'responsavel',
               options: responsavelOptions,
               placeholder: 'Todos',

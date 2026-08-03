@@ -19,7 +19,7 @@ const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-ate', title: 'Cockpit' },
   { href: '/modulos/gkit-ate/atendimentos', title: 'Atendimentos' },
   { href: '/modulos/gkit-ate/tarefas', title: 'Tarefas' },
-  { href: '/modulos/gkit-ate/importacoes', title: 'Importacoes' },
+  { href: '/modulos/gkit-ate/importacoes', title: 'Importações' },
   { href: '/modulos/gkit-ate/cadastros', title: 'Cadastros' },
 ]
 
@@ -268,13 +268,13 @@ export function GkitAteAtendimentoDetailView({
 
         <InfoGrid
           items={[
-            { label: 'Codigo ATE', value: atendimento.codigo_publico },
-            { label: 'Codigo ASTREA', value: atendimento.astrea_codigo },
+            { label: 'Código ATE', value: atendimento.codigo_publico },
+            { label: 'Código ASTREA', value: atendimento.astrea_codigo },
             { label: 'Tipo', value: atendimento.tipo },
-            { label: 'Responsavel', value: atendimento.responsavel },
+            { label: 'Responsável', value: atendimento.responsavel },
             { label: 'Criacao', value: atendimento.data_criacao },
             { label: 'Prazo', value: atendimento.prazo_finalizacao },
-            { label: 'Ultimo historico', value: atendimento.data_ultimo_historico },
+            { label: 'Último histórico', value: atendimento.data_ultimo_historico },
             { label: 'Encerramento', value: atendimento.data_encerramento },
             { label: 'Acesso', value: atendimento.acesso },
           ]}
@@ -282,7 +282,7 @@ export function GkitAteAtendimentoDetailView({
 
         <div className="suite-empty-block">
           <strong>{atendimento.objeto ?? 'Objeto nao informado'}</strong>
-          <span>{atendimento.ultimo_historico ?? atendimento.observacoes ?? 'Sem historico textual no arquivo importado.'}</span>
+          <span>{atendimento.ultimo_historico ?? atendimento.observacoes ?? 'Sem histórico textual no arquivo importado.'}</span>
           {atendimento.url_processo ? <a href={atendimento.url_processo} target="_blank" rel="noreferrer">Abrir no ASTREA</a> : null}
         </div>
 
@@ -324,7 +324,7 @@ export function GkitAteAtendimentoDetailView({
           <form action={action} className="module-form-grid">
             <input type="hidden" name="atendimento_id" value={atendimento.id} />
             <label className="module-form-wide">
-              <span>Descricao</span>
+              <span>Descrição</span>
               <input name="descricao" required />
             </label>
             <label>
@@ -332,7 +332,7 @@ export function GkitAteAtendimentoDetailView({
               <input name="tipo_tarefa" placeholder="Ex.: Analisar contrato" />
             </label>
             <label>
-              <span>Responsavel</span>
+              <span>Responsável</span>
               <input name="responsavel" defaultValue={atendimento.responsavel ?? ''} />
             </label>
             <label>
@@ -377,7 +377,7 @@ export function GkitAteTarefaDetail({
 
       {canWrite && isOpenTask && isLastOpenTask ? (
         <div className="suite-empty-block warning">
-          <strong>Ultima tarefa aberta deste atendimento</strong>
+          <strong>Última tarefa aberta deste atendimento</strong>
           <span>Para concluir, escolha se o atendimento deve ser encerrado ou se uma nova tarefa deve ser aberta.</span>
         </div>
       ) : null}
@@ -409,11 +409,11 @@ export function GkitAteTarefaDetail({
             <input name="novo_tipo_tarefa" placeholder="Ex.: Elaborar parecer" />
           </label>
           <label className="module-form-wide">
-            <span>Descricao da nova tarefa</span>
+            <span>Descrição da nova tarefa</span>
             <input name="nova_descricao" required />
           </label>
           <label>
-            <span>Responsavel</span>
+            <span>Responsável</span>
             <input name="novo_responsavel" defaultValue={tarefa.responsavel ?? ''} />
           </label>
           <label>

@@ -90,7 +90,7 @@ export default async function GkitAteCadastrosPage({
             options: [
               { label: 'Nome', value: 'nome' },
               { label: 'Criacao', value: 'criado' },
-              ...(isAtendimentoTab ? [{ label: 'Tarefa padrao', value: 'tarefa' }] : []),
+              ...(isAtendimentoTab ? [{ label: 'Tarefa padrão', value: 'tarefa' }] : []),
             ],
             value: filters.sort,
           }}

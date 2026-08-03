@@ -145,7 +145,7 @@ export default async function ManualPage({
           </div>
           <div className="manual-actions">
             <Link className="module-action secondary" href="/plataforma">Plataforma</Link>
-            <Link className="module-action primary" href={source.moduleHref}>Abrir modulo</Link>
+            <Link className="module-action primary" href={source.moduleHref}>Abrir módulo</Link>
           </div>
         </header>
         <article className="manual-article">

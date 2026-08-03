@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
     if (!acquired) {
       return NextResponse.json(
         {
-          message: 'Catch-up DataJud do GKIT Jur ja esta em andamento.',
+          message: 'Catch-up DataJud do GKIT Jur já está em andamento.',
           status: 'running',
           success: false,
         },

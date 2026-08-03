@@ -2413,10 +2413,10 @@ async function getGkitJurCockpitPreJuridicoArea(): Promise<GkitJurCockpitAreaDat
   return {
     action: 'Triagem antes do processo',
     count: ativos,
-    description: 'Casos pre-juridicos em triagem, documentos e decisao de ajuizamento.',
+    description: 'Casos pré-jurídicos em triagem, documentos e decisão de ajuizamento.',
     filters: ['Em análise', 'Documentos', 'Alta prioridade', 'Aprovados'],
     bars: cockpitBars([
-      { label: 'Analise', count: metrics.emAnalise, tone: 'blue' },
+      { label: 'Análise', count: metrics.emAnalise, tone: 'blue' },
       { label: 'Docs', count: metrics.aguardandoDocumentos, tone: 'yellow' },
       { label: 'Aprovado', count: metrics.aprovados, tone: 'green' },
       { label: 'Convertido', count: metrics.convertidos, tone: 'red' },
@@ -2472,7 +2472,7 @@ async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
     description: 'Tarefas abertas da carteira, priorizadas por vencimento e severidade.',
     filters: ['Críticas', 'Hoje', 'Sem responsável', 'Automação'],
     bars: cockpitBars([
-      { label: 'Critica', count: criticaCount, tone: 'red' },
+      { label: 'Crítica', count: criticaCount, tone: 'red' },
       { label: 'Alta', count: altaCount, tone: 'yellow' },
       { label: 'Media', count: mediaCount, tone: 'blue' },
       { label: 'Baixa', count: baixaCount, tone: 'green' },
@@ -2517,7 +2517,7 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
       return {
         action: 'Inbox de publicacoes',
         count: 0,
-        description: 'Publicacoes dos processos da carteira.',
+        description: 'Publicações dos processos da carteira.',
         filters: ['Não tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
         bars: cockpitBars([]),
         trend: cockpitTrend([0]),
@@ -2562,7 +2562,7 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
   return {
     action: 'Inbox de publicacoes',
     count: total,
-    description: 'Publicacoes dos processos da carteira, agrupadas para tratamento.',
+    description: 'Publicações dos processos da carteira, agrupadas para tratamento.',
     filters: ['Não tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
     bars: cockpitBars([
       { label: 'Pendente', count: pendentesCount, tone: 'red' },
@@ -2573,7 +2573,7 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
     trend: cockpitTrend([pendentesCount, triadasCount, emTratamentoCount, tratadasCount, total]),
     rows: publicacoes.map((item) => ({
       id: item.numeroCnj || item.id,
-      title: item.termo || item.sugestaoIa || item.textoPreview || 'Publicacao recebida',
+      title: item.termo || item.sugestaoIa || item.textoPreview || 'Publicação recebida',
       subtitle: item.textoPreview || [item.fonte, item.jornal, item.origemOrgao].filter(Boolean).join(' | ') || 'Sem resumo de publicacao',
       owner: cockpitOwner(item.responsavelNome, item.carteiraNome, item.clienteNome),
       status: item.status,
@@ -2593,7 +2593,7 @@ async function getGkitJurCockpitAcordosArea(): Promise<GkitJurCockpitAreaData> {
   return {
     action: 'Carteira de acordos',
     count: data.metrics.total,
-    description: 'Acordos judiciais em negociacao, execucao ou risco.',
+    description: 'Acordos judiciais em negociacao, execução ou risco.',
     filters: ['Ativos', 'Atrasados', 'Quebrados', 'Cumpridos'],
     bars: cockpitBars([
       { label: 'Ativo', count: ativos.length, tone: 'blue' },
@@ -2717,7 +2717,7 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
   return {
     action: 'Vencimentos e prazos',
     count: total,
-    description: 'Vencimentos de tarefas, prazos juridicos e compromissos que exigem acompanhamento.',
+    description: 'Vencimentos de tarefas, prazos jurídicos e compromissos que exigem acompanhamento.',
     filters: ['Vencidas', 'Hoje', 'Semana', 'Eventos'],
     bars: cockpitBars([
       { label: 'Vencidas', count: tarefasVencidasCount, tone: 'red' },
@@ -3698,16 +3698,16 @@ export async function getGkitJurInbox(params?: ModuleSearchParams | null): Promi
   const actionPriorityWeight: Record<GkitJurInboxPrioridade, number> = { critica: 4, alta: 3, media: 2, baixa: 1 }
   const proximasAcoes = [
     {
-      title: 'Tratar publicacoes',
-      description: 'Publicacoes e intimacoes ficam em uma caixa propria: IA sugere, humano confirma e registra a decisao.',
+      title: 'Tratar publicações',
+      description: 'Publicações e intimacoes ficam em uma caixa própria: IA sugere, humano confirma e registra a decisão.',
       href: '/modulos/gkit-jur/publicacoes',
-      label: 'Abrir publicacoes',
+      label: 'Abrir publicações',
       priority: (publicacoesPendentes >= 100 ? 'critica' : publicacoesPendentes ? 'alta' : 'baixa') as GkitJurInboxPrioridade,
       count: publicacoesPendentes,
     },
     {
       title: 'Executar tarefas abertas',
-      description: 'Prazos juridicos e providencias ja viraram tarefa operacional. Comece pelas vencidas ou criticas.',
+      description: 'Prazos jurídicos e providencias já viraram tarefa operacional. Comece pelas vencidas ou criticas.',
       href: '/modulos/gkit-jur/inbox?fila=tarefas',
       label: 'Abrir tarefas',
       priority: (tarefas.some((item) => item.prioridade === 'critica') ? 'critica' : tarefas.length ? 'alta' : 'baixa') as GkitJurInboxPrioridade,
@@ -3715,7 +3715,7 @@ export async function getGkitJurInbox(params?: ModuleSearchParams | null): Promi
     },
     {
       title: 'Sanear processos sem dono',
-      description: 'Corrija cliente, carteira e responsavel antes de ligar prazo, publicacao ou automacao ao processo.',
+      description: 'Corrija cliente, carteira e responsável antes de ligar prazo, publicação ou automação ao processo.',
       href: '/modulos/gkit-jur/pendencias',
       label: 'Abrir saneamento',
       priority: (pendencias.some((item) => item.prioridade === 'critica' || item.prioridade === 'alta') ? 'alta' : pendencias.length ? 'media' : 'baixa') as GkitJurInboxPrioridade,
@@ -3723,15 +3723,15 @@ export async function getGkitJurInbox(params?: ModuleSearchParams | null): Promi
     },
     {
       title: 'Revisar automacoes pendentes',
-      description: 'Falhas, validacoes e execucoes paradas entram aqui para intervencao humana.',
+      description: 'Falhas, validacoes e execuções paradas entram aqui para intervencao humana.',
       href: '/modulos/gkit-jur/agente',
       label: 'Abrir agente',
       priority: (automacao.some((item) => item.prioridade === 'critica') ? 'critica' : automacao.length ? 'alta' : 'baixa') as GkitJurInboxPrioridade,
       count: automacao.length,
     },
     {
-      title: 'Acompanhar processos sem movimentacao',
-      description: 'Use quando nao houver tarefa ou publicacao mais urgente; e um recorte de monitoramento.',
+      title: 'Acompanhar processos sem movimentação',
+      description: 'Use quando não houver tarefa ou publicação mais urgente; e um recorte de monitoramento.',
       href: '/modulos/gkit-jur/processos?sort=ultima_movimentacao_em&dir=asc',
       label: 'Ver processos',
       priority: (semRetorno.some((item) => item.score >= 75) ? 'media' : semRetorno.length ? 'baixa' : 'baixa') as GkitJurInboxPrioridade,
@@ -4414,7 +4414,7 @@ export const gkitJurPublicacaoDecisaoOptions: GkitJurSelectOption[] = [
   { label: 'Registrar ciencia', value: 'registrar_ciencia' },
   { label: 'Vincular documento', value: 'vincular_documento' },
   { label: 'Atualizar resumo', value: 'atualizar_resumo' },
-  { label: 'Dispensar sem acao', value: 'dispensar_sem_acao' },
+  { label: 'Dispensar sem ação', value: 'dispensar_sem_acao' },
   { label: 'Marcar duplicada', value: 'marcar_duplicada' },
   { label: 'Revisar cadastro do processo', value: 'revisar_cadastro_processo' },
 ]

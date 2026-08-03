@@ -8,8 +8,8 @@ export default async function ColabBeneficiosPage() {
   return (
     <ColabShell
       active="beneficios"
-      title="Beneficios"
-      description="Beneficios vinculados ao colaborador logado, com status, provedor e valor de referencia."
+      title="Benefícios"
+      description="Benefícios vinculados ao colaborador logado, com status, provedor e valor de referência."
       usuario={context.usuario}
     >
       <ColabIntegrationStatus data={data} />

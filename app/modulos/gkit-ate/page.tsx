@@ -35,7 +35,7 @@ export default async function GkitAtePage({
     <GkitAteShell
       active="cockpit"
       title="Fluxo de atendimento"
-      description="Execucao diaria do GKIT ATE, organizada na ordem natural do atendimento consultivo."
+      description="Execução diária do GKIT ATE, organizada na ordem natural do atendimento consultivo."
       usuario={context.usuario}
     >
       <GkitAteHealthNotice health={health} />

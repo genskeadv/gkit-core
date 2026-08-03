@@ -18,7 +18,7 @@ const shortcutGroups = [
   {
     codigo: 'core',
     title: 'Core',
-    description: 'Administracao e seguranca central.',
+    description: 'Administração e segurança central.',
     links: [
       { href: '/admin', label: 'Visao geral' },
       { href: '/admin/usuarios', label: 'Usuarios' },
@@ -41,7 +41,7 @@ const shortcutGroups = [
       { href: '/modulos/gkit-new/oportunidades', label: 'Oportunidades' },
       { href: '/modulos/gkit-new/base/workflow', label: 'Workflow' },
       { href: '/modulos/gkit-new/tarefas', label: 'Tarefas' },
-      { href: '/modulos/gkit-new/gestao', label: 'Gestao' },
+      { href: '/modulos/gkit-new/gestao', label: 'Gestão' },
     ],
     pending: [],
   },
@@ -53,7 +53,7 @@ const shortcutGroups = [
       { href: '/modulos/gkit-ate', label: 'Cockpit' },
       { href: '/modulos/gkit-ate/atendimentos', label: 'Atendimentos' },
       { href: '/modulos/gkit-ate/tarefas', label: 'Tarefas' },
-      { href: '/modulos/gkit-ate/importacoes', label: 'Importacoes' },
+      { href: '/modulos/gkit-ate/importacoes', label: 'Importações' },
       { href: '/modulos/gkit-ate/cadastros', label: 'Cadastros' },
     ],
     pending: [],
@@ -61,19 +61,19 @@ const shortcutGroups = [
   {
     codigo: 'gkit-dir',
     title: 'GKIT DIR',
-    description: 'Diretorio de clientes com dados cadastrais vindos do Ciclo.',
+    description: 'Diretório de clientes com dados cadastrais vindos do Ciclo.',
     links: [
-      { href: '/modulos/gkit-dir', label: 'Diretorio' },
+      { href: '/modulos/gkit-dir', label: 'Diretório' },
     ],
     pending: [],
   },
   {
     codigo: 'gkit-flex',
     title: 'GKIT Flex',
-    description: 'App financeiro independente para comissoes, contas a pagar, cadastros e auditoria.',
+    description: 'App financeiro independente para comissões, contas a pagar, cadastros e auditoria.',
     links: [
       { href: '/modulos/gkit-flex', label: 'Abrir app' },
-      { href: '/modulos/gkit-flex', label: 'Comissoes' },
+      { href: '/modulos/gkit-flex', label: 'Comissões' },
       { href: '/modulos/gkit-flex', label: 'Contas a pagar' },
       { href: '/modulos/gkit-flex/colaboradores', label: 'Colaboradores' },
       { href: '/modulos/gkit-flex', label: 'Cadastros' },
@@ -84,10 +84,10 @@ const shortcutGroups = [
   {
     codigo: 'gkit-jur',
     title: 'GKIT Jur',
-    description: 'Modulo juridico com inbox, processos, agente, pendencias e auditoria.',
+    description: 'Módulo jurídico com inbox, processos, agente, pendências e auditoria.',
     links: [
       { href: '/modulos/gkit-jur/inbox', label: 'Inbox' },
-      { href: '/modulos/gkit-jur/publicacoes', label: 'Publicacoes' },
+      { href: '/modulos/gkit-jur/publicacoes', label: 'Publicações' },
       { href: '/modulos/gkit-jur/processos', label: 'Processos' },
       { href: '/modulos/gkit-jur/pendencias', label: 'Pendencias' },
       { href: '/modulos/gkit-jur/movimentacoes', label: 'Movimentacoes' },
@@ -100,7 +100,7 @@ const shortcutGroups = [
   {
     codigo: 'ciclo',
     title: 'GKIT Ciclo',
-    description: 'Funcionalidades operacionais ja publicadas no app unificado.',
+    description: 'Funcionalidades operacionais já publicadas no app unificado.',
     links: [
       { href: '/modulos/gkit-ciclo', label: 'Cockpit' },
       { href: '/modulos/gkit-ciclo/clientes', label: 'Clientes' },
@@ -110,8 +110,8 @@ const shortcutGroups = [
       { href: '/modulos/gkit-ciclo/onboarding', label: 'Onboarding' },
       { href: '/modulos/gkit-ciclo/regularidade', label: 'Regularidade' },
       { href: '/modulos/gkit-ciclo/timeline', label: 'Timeline' },
-      { href: '/modulos/gkit-ciclo/ocorrencias', label: 'Ocorrencias' },
-      { href: '/modulos/gkit-ciclo/dashboard', label: 'Gestao' },
+      { href: '/modulos/gkit-ciclo/ocorrencias', label: 'Ocorrências' },
+      { href: '/modulos/gkit-ciclo/dashboard', label: 'Gestão' },
     ],
     pending: [],
   },
@@ -120,10 +120,10 @@ const shortcutGroups = [
     title: 'Colab',
     description: 'Portal individual sem menu lateral.',
     links: [
-      { href: '/modulos/colab', label: 'Inicio' },
+      { href: '/modulos/colab', label: 'Início' },
       { href: '/modulos/colab/pagamentos', label: 'Pagamentos' },
-      { href: '/modulos/colab/comissoes', label: 'Comissoes' },
-      { href: '/modulos/colab/beneficios', label: 'Beneficios' },
+      { href: '/modulos/colab/comissoes', label: 'Comissões' },
+      { href: '/modulos/colab/beneficios', label: 'Benefícios' },
       { href: '/modulos/colab/documentos', label: 'Documentos' },
       { href: '/modulos/colab/perfil', label: 'Perfil' },
     ],
@@ -134,11 +134,11 @@ const shortcutGroups = [
 const executiveFlow = [
   { codigo: 'gkit-new', title: 'Conquistar 2.0', description: 'GKIT New registra clientes, contatos, oportunidades e workflow.' },
   { codigo: 'gkit-ate', title: 'Atender', description: 'GKIT ATE organiza atendimentos consultivos e tarefas operacionais.' },
-  { codigo: 'gkit-dir', title: 'Consultar', description: 'GKIT DIR consulta o diretorio de clientes do Ciclo.' },
-  { codigo: 'gkit-jur', title: 'Executar', description: 'GKIT Jur organiza processos, prazos e documentos juridicos.' },
-  { codigo: 'ciclo', title: 'Acompanhar', description: 'GKIT Ciclo assume onboarding e vida diaria do cliente.' },
-  { codigo: 'gkit-flex', title: 'Comissionar', description: 'GKIT Flex calcula comissoes, contas a pagar e auditoria financeira.' },
-  { codigo: 'colab', title: 'Publicar', description: 'Colab mostra pagamentos e comissoes para cada colaborador.' },
+  { codigo: 'gkit-dir', title: 'Consultar', description: 'GKIT DIR consulta o diretório de clientes do Ciclo.' },
+  { codigo: 'gkit-jur', title: 'Executar', description: 'GKIT Jur organiza processos, prazos e documentos jurídicos.' },
+  { codigo: 'ciclo', title: 'Acompanhar', description: 'GKIT Ciclo assume onboarding e vida diária do cliente.' },
+  { codigo: 'gkit-flex', title: 'Comissionar', description: 'GKIT Flex calcula comissões, contas a pagar e auditoria financeira.' },
+  { codigo: 'colab', title: 'Publicar', description: 'Colab mostra pagamentos e comissões para cada colaborador.' },
 ]
 
 const legacyModuleCodes = new Set(['fix', 'intr', 'flex'])
@@ -157,7 +157,7 @@ export default async function PainelPage() {
   ))
   const modules = [
     ...(hasAdmin
-      ? [{ codigo: 'core', nome: 'GKIT Core', descricao: 'Usuarios, perfis, carteiras e permissoes.', href: '/admin' }]
+      ? [{ codigo: 'core', nome: 'GKIT Core', descricao: 'Usuários, perfis, carteiras e permissões.', href: '/admin' }]
       : []),
     ...context.modules.filter((modulo) => !legacyModuleCodes.has(modulo.codigo)),
   ]
@@ -175,7 +175,7 @@ export default async function PainelPage() {
             <div>
               <p className="platform-kicker">Painel</p>
               <h1>Suite GKIT</h1>
-              <p>Entrada unificada para os modulos internos, com sessao unica e acesso determinado pelo Core.</p>
+              <p>Entrada unificada para os módulos internos, com sessão única e acesso determinado pelo Core.</p>
             </div>
           </div>
         </section>
@@ -183,18 +183,18 @@ export default async function PainelPage() {
         <section className="suite-executive-grid">
           <article className="suite-executive-card featured">
             <span>Fluxo operacional</span>
-            <h2>{operationalModules.length} de {executiveFlow.length} modulos ativos</h2>
-            <p>Leitura executiva da esteira: venda, onboarding, comissionamento e publicacao ao colaborador.</p>
+            <h2>{operationalModules.length} de {executiveFlow.length} módulos ativos</h2>
+            <p>Leitura executiva da esteira: venda, onboarding, comissionamento e publicação ao colaborador.</p>
           </article>
           <article className="suite-executive-card">
             <span>Atalhos publicados</span>
             <h2>{publishedShortcutCount}</h2>
-            <p>Acessos principais visiveis conforme permissoes do Core.</p>
+            <p>Acessos principais visíveis conforme permissões do Core.</p>
           </article>
           <article className="suite-executive-card">
-            <span>Pontos de atencao</span>
+            <span>Pontos de atenção</span>
             <h2>{pendingCount}</h2>
-            <p>Itens mapeados para evolucao, sem bloquear o uso atual.</p>
+            <p>Itens mapeados para evolução, sem bloquear o uso atual.</p>
           </article>
         </section>
 

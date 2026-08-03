@@ -18,17 +18,17 @@ export default async function GkitFatFaturasPage() {
   return (
     <GkitFatShell
       active="faturas"
-      description="Cada OS e uma fotografia do contrato/cliente naquela competencia."
+      description="Cada OS é uma fotografia do contrato/cliente naquela competência."
       title="OS e faturas"
       usuario={context.usuario}
     >
       <GkitFatHealthNotice health={health} />
       {canWrite ? (
-        <GkitFatSection title="Gerar OS" description="A emissao fiscal fica preparada para conector futuro de NFS-e.">
+        <GkitFatSection title="Gerar OS" description="A emissão fiscal fica preparada para conector futuro de NFS-e.">
           <GkitFatOrdemForm action={createGkitFatOrdemServicoAction} formData={formData} />
         </GkitFatSection>
       ) : null}
-      <GkitFatSection title="Ordens de servico" description="Situacoes operacional, fiscal e financeira sao controladas separadamente.">
+      <GkitFatSection title="Ordens de serviço" description="Situações operacional, fiscal e financeira sao controladas separadamente.">
         <GkitFatOrdensList empty="Nenhuma OS gerada." ordens={ordens} />
       </GkitFatSection>
     </GkitFatShell>

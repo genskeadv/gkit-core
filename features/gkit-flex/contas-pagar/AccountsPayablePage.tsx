@@ -129,13 +129,13 @@ export function AccountsPayablePage() {
       setError(null);
       const statusResponse = await fetch(`/api/gkit-flex/contas-pagar/competencia?competencia=${selectedCompetencia}`, { cache: 'no-store' });
       const statusPayload = await statusResponse.json();
-      if (!statusResponse.ok) throw new Error(statusPayload?.error || 'Nao foi possivel consultar o mes.');
+      if (!statusResponse.ok) throw new Error(statusPayload?.error || 'Não foi possível consultar o mês.');
 
       setMonthStatus(statusPayload.configured ? (statusPayload.status || 'nao_aberto') : 'indisponivel');
 
       const itemsResponse = await fetch(`/api/gkit-flex/contas-pagar/itens?competencia=${selectedCompetencia}`, { cache: 'no-store' });
       const itemsPayload = await itemsResponse.json();
-      if (!itemsResponse.ok) throw new Error(itemsPayload?.error || 'Nao foi possivel carregar pagamentos.');
+      if (!itemsResponse.ok) throw new Error(itemsPayload?.error || 'Não foi possível carregar pagamentos.');
 
       setItems(itemsPayload.rows || []);
       setSummary(itemsPayload.summary || emptySummary);
@@ -166,11 +166,11 @@ export function AccountsPayablePage() {
         body: JSON.stringify({ competencia, action }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Nao foi possivel abrir/reabrir o mes.');
-      setMessage(action === 'abrir' ? 'Mes aberto para importacao e edicao.' : 'Mes reaberto para ajustes.');
+      if (!response.ok) throw new Error(payload?.error || 'Não foi possível abrir/reabrir o mês.');
+      setMessage(action === 'abrir' ? 'Mês aberto para importação e edicao.' : 'Mês reaberto para ajustes.');
       await loadMonth(competencia);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado ao abrir/reabrir mes.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao abrir/reabrir mês.');
     } finally {
       setLoading(false);
     }
@@ -190,13 +190,13 @@ export function AccountsPayablePage() {
 
       const response = await fetch('/api/gkit-flex/contas-pagar/preview', { method: 'POST', body: formData });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Nao foi possivel gerar a previa da importacao.');
+      if (!response.ok) throw new Error(payload?.error || 'Não foi possível gerar a prévia da importação.');
 
       setPreview(payload.preview || null);
-      setMessage('Previa gerada. Revise os impactos antes de confirmar a sobrescrita do mes aberto.');
+      setMessage('Prévia gerada. Revise os impactos antes de confirmar a sobrescrita do mês aberto.');
     } catch (err) {
       setPreview(null);
-      setError(err instanceof Error ? err.message : 'Erro inesperado ao gerar previa.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao gerar prévia.');
     } finally {
       setLoading(false);
     }
@@ -215,7 +215,7 @@ export function AccountsPayablePage() {
 
       const response = await fetch('/api/gkit-flex/contas-pagar/importar', { method: 'POST', body: formData });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Nao foi possivel importar pagamentos.');
+      if (!response.ok) throw new Error(payload?.error || 'Não foi possível importar pagamentos.');
 
       setItems(payload.rows || []);
       setSummary(payload.summary || emptySummary);
@@ -264,7 +264,7 @@ export function AccountsPayablePage() {
         body: JSON.stringify(patch),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Nao foi possivel salvar a linha.');
+      if (!response.ok) throw new Error(payload?.error || 'Não foi possível salvar a linha.');
       setMessage('Alteracao salva.');
       await loadMonth(competencia);
     } catch (err) {
@@ -308,7 +308,7 @@ export function AccountsPayablePage() {
         }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Nao foi possivel criar o pagamento manual.');
+      if (!response.ok) throw new Error(payload?.error || 'Não foi possível criar o pagamento manual.');
 
       setItems(payload.rows || []);
       setSummary(payload.summary || emptySummary);
@@ -325,7 +325,7 @@ export function AccountsPayablePage() {
 
   async function closeMonth() {
     try {
-      const confirmed = window.confirm('Fechar este mes? Isso bloqueara alteracoes e criara a previsao de pagamentos do proximo mes a partir da lista atual.');
+      const confirmed = window.confirm('Fechar este mês? Isso bloqueará alterações e criará a previsão de pagamentos do próximo mês a partir da lista atual.');
       if (!confirmed) return;
 
       setLoading(true);
@@ -337,11 +337,11 @@ export function AccountsPayablePage() {
         body: JSON.stringify({ competencia }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Nao foi possivel fechar o mes.');
+      if (!response.ok) throw new Error(payload?.error || 'Não foi possível fechar o mês.');
       setMessage(`Mes fechado. Proximo mes criado (${String(payload.nextCompetencia).slice(0, 7)}) com ${payload.copied} pagamento(s) previsto(s).`);
       await loadMonth(competencia);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado ao fechar mes.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao fechar mês.');
     } finally {
       setLoading(false);
     }
@@ -351,41 +351,41 @@ export function AccountsPayablePage() {
     <main className="page-shell wide-shell">
       <MonthContextHeader
         title="Pagamentos efetuados"
-        description="Importe os pagamentos efetuados no mes e compare o realizado com a previsao aberta."
+        description="Importe os pagamentos efetuados no mês e compare o realizado com a previsão aberta."
         competencia={competencia}
         onCompetenciaChange={setCompetencia}
         primaryStatus={{ label: 'Status', status: monthStatus }}
       >
         <a className="secondary-button" href="/">Home</a>
-        {monthStatus === 'nao_aberto' && <button type="button" className="secondary-button" onClick={() => openMonth('abrir')} disabled={loading}>Abrir mes</button>}
-        {monthStatus === 'aberto' && <button type="button" className="danger-button" onClick={closeMonth} disabled={loading}>Fechar mes</button>}
-        {monthStatus === 'fechado' && <button type="button" className="secondary-button" onClick={() => openMonth('reabrir')} disabled={loading}>Reabrir mes</button>}
+        {monthStatus === 'nao_aberto' && <button type="button" className="secondary-button" onClick={() => openMonth('abrir')} disabled={loading}>Abrir mês</button>}
+        {monthStatus === 'aberto' && <button type="button" className="danger-button" onClick={closeMonth} disabled={loading}>Fechar mês</button>}
+        {monthStatus === 'fechado' && <button type="button" className="secondary-button" onClick={() => openMonth('reabrir')} disabled={loading}>Reabrir mês</button>}
       </MonthContextHeader>
 
       <section className="card">
 
-        {monthStatus === 'nao_aberto' && <div className="warning">Abra o mes para importar o extrato realizado e comparar com a previsao.</div>}
-        {monthStatus === 'fechado' && <div className="warning">Mes fechado. A lista esta protegida contra alteracoes ate reabrir.</div>}
+        {monthStatus === 'nao_aberto' && <div className="warning">Abra o mês para importar o extrato realizado e comparar com a previsão.</div>}
+        {monthStatus === 'fechado' && <div className="warning">Mês fechado. A lista está protegida contra alterações até reabrir.</div>}
         {monthStatus === 'indisponivel' && <div className="warning">Supabase indisponivel. Confira o .env.local e execute o schema v6.</div>}
         {error && <div className="error">{error}</div>}
         {message && <div className="success">{message}</div>}
 
         <div className="grid-3">
-          <MetricCard label="Previsao do mes" value={formatCurrency(forecastTotal)} help={`${forecastSummary.pagamentosCount || 0} linha(s) previstas`} />
+          <MetricCard label="Previsão do mês" value={formatCurrency(forecastTotal)} help={`${forecastSummary.pagamentosCount || 0} linha(s) previstas`} />
           <MetricCard label="Pagamentos efetuados" value={formatCurrency(actualTotal)} help={`${summary.quantidadePaga} pagamento(s) no extrato`} tone="good" />
-          <MetricCard label="Diferenca" value={formatCurrency(forecastDifference)} help="Previsto menos realizado" tone={forecastDifference > 0 ? 'warning' : 'good'} />
+          <MetricCard label="Diferença" value={formatCurrency(forecastDifference)} help="Previsto menos realizado" tone={forecastDifference > 0 ? 'warning' : 'good'} />
         </div>
 
         <section className="payable-import-box">
           <div>
-            <h2>Importar pagamentos efetuados no mes</h2>
-            <p className="muted small-text">A importacao pode ser feita a qualquer momento do mes aberto. Ela aceita planilha ou extrato bancario CSV/OFX e permite comparar o realizado com a previsao.</p>
+            <h2>Importar pagamentos efetuados no mês</h2>
+            <p className="muted small-text">A importação pode ser feita a qualquer momento do mês aberto. Ela aceita planilha ou extrato bancario CSV/OFX e permite comparar o realizado com a previsão.</p>
           </div>
           <div className="import-actions">
-            <button type="button" className="secondary-button" onClick={exportFile} disabled={loading || monthStatus === 'indisponivel'}>Exportar previsao do mes</button>
+            <button type="button" className="secondary-button" onClick={exportFile} disabled={loading || monthStatus === 'indisponivel'}>Exportar previsão do mês</button>
             <input type="file" accept=".xlsx,.xls,.csv,.ofx" onChange={(event) => { setFile(event.target.files?.[0] || null); setPreview(null); }} disabled={!canEdit || loading} />
             <button type="button" className="secondary-button" onClick={generatePreview} disabled={!file || !canEdit || loading}>
-              Gerar previa
+              Gerar prévia
             </button>
             <button type="button" className="primary-button" onClick={importFile} disabled={!file || !preview || !canEdit || loading || preview.linhasComErro > 0}>
               Gravar pagamentos
@@ -397,8 +397,8 @@ export function AccountsPayablePage() {
           <section className="preview-box">
             <div className="header-row">
               <div>
-                <h2>Previa dos pagamentos</h2>
-                <p className="muted small-text">Arquivo: {preview.arquivo}. A gravacao substitui os pagamentos efetuados do mes pelo extrato importado.</p>
+                <h2>Prévia dos pagamentos</h2>
+                <p className="muted small-text">Arquivo: {preview.arquivo}. A gravacao substitui os pagamentos efetuados do mês pelo extrato importado.</p>
               </div>
               {preview.linhasComErro > 0 ? <span className="badge badge-danger">Bloqueada</span> : <span className="badge badge-paid">Pronta para confirmar</span>}
             </div>
@@ -406,7 +406,7 @@ export function AccountsPayablePage() {
               <strong>A gravacao ira:</strong>
               <span>+ Criar {preview.itensNovos} pagamento(s) novo(s)</span>
               <span>~ Alterar {preview.itensAlterados} pagamento(s)</span>
-              <span>- Remover {preview.itensRemovidos} pagamento(s) que nao vieram no novo extrato</span>
+              <span>- Remover {preview.itensRemovidos} pagamento(s) que não vieram no novo extrato</span>
             </div>
             <div className="grid-3">
               <MetricCard label="Linhas validas" value={preview.linhasValidas} help={`${preview.linhasComErro} linha(s) com erro`} tone={preview.linhasComErro > 0 ? 'danger' : 'good'} />
@@ -416,7 +416,7 @@ export function AccountsPayablePage() {
             <div className="grid-3">
               <MetricCard label="Extrato atual" value={formatCurrency(preview.valorAtualManual)} />
               <MetricCard label="Realizado importado" value={formatCurrency(preview.valorImportadoManual)} />
-              <MetricCard label="Diferenca" value={formatCurrency(preview.diferencaValorManual)} tone={preview.diferencaValorManual === 0 ? 'default' : 'warning'} />
+              <MetricCard label="Diferença" value={formatCurrency(preview.diferencaValorManual)} tone={preview.diferencaValorManual === 0 ? 'default' : 'warning'} />
             </div>
             {!!preview.issues?.length && (
               <div className="audit-list">
@@ -426,7 +426,7 @@ export function AccountsPayablePage() {
                     Linha {issue.linha}: {issue.campo ? `${issue.campo} - ` : ''}{issue.mensagem}
                   </div>
                 ))}
-                {preview.issues.length > 12 && <p className="muted small-text">Mais {preview.issues.length - 12} ocorrencia(s) registradas na auditoria.</p>}
+                {preview.issues.length > 12 && <p className="muted small-text">Mais {preview.issues.length - 12} ocorrência(s) registradas na auditoria.</p>}
               </div>
             )}
           </section>
@@ -434,8 +434,8 @@ export function AccountsPayablePage() {
 
         <div className="header-row payable-header-row">
           <div>
-            <h2>Pagamentos do mes</h2>
-            <p className="muted small-text">{summary.quantidade} lancamentos, {summary.quantidadePaga} marcados como pagos.</p>
+            <h2>Pagamentos do mês</h2>
+            <p className="muted small-text">{summary.quantidade} lançamentos, {summary.quantidadePaga} marcados como pagos.</p>
           </div>
           <button type="button" className="secondary-button" onClick={() => setShowManualForm((current) => !current)} disabled={!canEdit || loading}>
             {showManualForm ? 'Cancelar inclusao' : 'Adicionar pagamento'}
@@ -447,12 +447,12 @@ export function AccountsPayablePage() {
             <div className="header-row">
               <div>
                 <h2>Novo pagamento manual</h2>
-                <p className="muted small-text">Lancamento avulso da competencia aberta.</p>
+                <p className="muted small-text">Lançamento avulso da competência aberta.</p>
               </div>
             </div>
             <div className="grid-3">
               <label className="field-label">
-                Descricao
+                Descrição
                 <input className="text-input" value={manualForm.descricao} onChange={(event) => updateManualForm({ descricao: event.target.value })} required />
               </label>
               <label className="field-label">
@@ -495,7 +495,7 @@ export function AccountsPayablePage() {
               <tr>
                 <th>Pago</th>
                 <th>Venc.</th>
-                <th>Descricao</th>
+                <th>Descrição</th>
                 <th>Categoria</th>
                 <th>Centro</th>
                 <th className="text-right">Valor</th>
@@ -548,7 +548,7 @@ export function AccountsPayablePage() {
               ))}
               {!items.length && (
                 <tr>
-                  <td colSpan={7}><EmptyState title="Nenhum pagamento neste mes" description="Abra o mes e importe o extrato realizado, ou feche o mes anterior para criar a proxima competencia automaticamente." /></td>
+                  <td colSpan={7}><EmptyState title="Nenhum pagamento neste mês" description="Abra o mês e importe o extrato realizado, ou feche o mês anterior para criar a próxima competência automaticamente." /></td>
                 </tr>
               )}
             </tbody>

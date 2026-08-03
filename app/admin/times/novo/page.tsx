@@ -15,7 +15,7 @@ export default async function NovoTimePage() {
       <form action={createTimeAction} className="card grid">
         <Field label="Nome" name="nome" required />
         <Field label="Area" name="area" />
-        <Field label="Descricao" name="descricao" />
+        <Field label="Descrição" name="descricao" />
 
         <SelectField label="Status" name="status" defaultValue="ativo">
           <option value="ativo">Ativo</option>

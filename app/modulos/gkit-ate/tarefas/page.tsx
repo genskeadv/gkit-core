@@ -27,10 +27,10 @@ export default async function GkitAteTarefasPage({
       usuario={context.usuario}
     >
       <GkitAteHealthNotice health={health} />
-      <GkitAteSection title="Lista de tarefas" description="Consulte tarefas por status, tipo, responsavel e atendimento.">
+      <GkitAteSection title="Lista de tarefas" description="Consulte tarefas por status, tipo, responsável e atendimento.">
         <GkitAteFilterBar
           fields={[
-            { label: 'Busca', name: 'q', placeholder: 'Tarefa, cliente, atendimento ou responsavel', value: filters.q },
+            { label: 'Busca', name: 'q', placeholder: 'Tarefa, cliente, atendimento ou responsável', value: filters.q },
             {
               label: 'Status',
               name: 'status',
@@ -53,7 +53,7 @@ export default async function GkitAteTarefasPage({
               value: filters.tipo,
             },
             {
-              label: 'Responsavel',
+              label: 'Responsável',
               name: 'responsavel',
               options: responsavelOptions,
               placeholder: 'Todos',
@@ -68,7 +68,7 @@ export default async function GkitAteTarefasPage({
             options: [
               { label: 'Data prevista', value: 'data' },
               { label: 'Status', value: 'status' },
-              { label: 'Responsavel', value: 'responsavel' },
+              { label: 'Responsável', value: 'responsavel' },
               { label: 'Atendimento', value: 'atendimento' },
             ],
             value: filters.sort,

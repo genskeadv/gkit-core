@@ -11,7 +11,7 @@ const FLEX_COMPETENCIA_EVENT = 'gkit-flex:competencia-change';
 
 const navItems = [
   { href: '/modulos/gkit-flex', label: 'Cockpit' },
-  { href: '/modulos/gkit-flex/previsoes', label: 'Previsoes' },
+  { href: '/modulos/gkit-flex/previsoes', label: 'Previsões' },
   { href: '/modulos/gkit-flex/receitas', label: 'Receitas' },
   { href: '/modulos/gkit-flex/pagamentos', label: 'Pagamentos' },
   { href: '/modulos/gkit-flex/saneamento', label: 'Saneamento' },
@@ -60,10 +60,10 @@ export function AppFrame({ children, usuario }: { children: ReactNode; usuario: 
     <main className="module-shell gkit-flex-shell gkit-flex-operational-shell">
       <aside className="module-sidebar gkit-flex-sidebar">
         <Link className="module-sidebar-header gkit-flex-sidebar-header" href={withCompetencia('/modulos/gkit-flex', competencia)}>
-          <BrandLogo className="module-sidebar-mark gkit-flex-sidebar-mark" label="Gestao mensal" />
+          <BrandLogo className="module-sidebar-mark gkit-flex-sidebar-mark" label="Gestão mensal" />
           <div>
             <strong>GKIT Flex</strong>
-            <small>Gestao mensal</small>
+            <small>Gestão mensal</small>
           </div>
         </Link>
 

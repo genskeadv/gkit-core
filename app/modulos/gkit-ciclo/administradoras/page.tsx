@@ -27,11 +27,11 @@ export default async function CicloAdministradorasPage() {
       <CicloSection
         eyebrow="Cadastro"
         title="Lista de administradoras"
-        description="Administradoras disponiveis para vinculo no cadastro mestre."
+        description="Administradoras disponíveis para vínculo no cadastro mestre."
       >
         <CicloGenericList
           title="Lista de administradoras"
-          description="Administradoras disponiveis no schema Ciclo."
+          description="Administradoras disponíveis no schema Ciclo."
           detailHrefBase="/modulos/gkit-ciclo/administradoras"
           emptyLabel="Nenhuma administradora encontrada."
           rows={rows}

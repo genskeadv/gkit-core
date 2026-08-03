@@ -20,8 +20,8 @@ export default async function GkitFatConfiguracoesPage() {
   return (
     <GkitFatShell
       active="configuracoes"
-      description="Parametros fiscais usados na conferencia e preparo da NFS-e."
-      title="Configuracoes fiscais"
+      description="Parametros fiscais usados na conferência e preparo da NFS-e."
+      title="Configurações fiscais"
       usuario={context.usuario}
     >
       <GkitFatHealthNotice health={health} />
@@ -29,7 +29,7 @@ export default async function GkitFatConfiguracoesPage() {
         {canWrite ? (
           <GkitFatEmpresaEmissoraForm action={saveGkitFatEmpresaEmissoraAction} empresa={empresa} />
         ) : (
-          <div className="suite-empty-block">Voce nao tem permissao para alterar configuracoes fiscais.</div>
+          <div className="suite-empty-block">Você não tem permissão para alterar configurações fiscais.</div>
         )}
       </GkitFatSection>
     </GkitFatShell>

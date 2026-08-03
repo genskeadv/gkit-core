@@ -40,7 +40,7 @@ export default async function GkitNewPage({
     <GkitNewShell
       active="cockpit"
       title="Fluxo comercial"
-      description="Execucao diaria do GKIT New, organizada na ordem natural do trabalho comercial."
+      description="Execução diária do GKIT New, organizada na ordem natural do trabalho comercial."
       usuario={context.usuario}
     >
       <GkitNewHealthNotice health={health} />

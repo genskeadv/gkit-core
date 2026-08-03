@@ -407,20 +407,20 @@ export async function updateDashboardMonth(competenciaInput: string, action: 'ab
     return { ok: true, action, competencia, comissoes, contasPagar };
   }
 
-  // Fechamento operacional: fecha comissoes e pagamentos. A rotina cria o proximo mes
+  // Fechamento operacional: fecha comissões e pagamentos. A rotina cria o próximo mês
   // com base nos itens recorrentes/importados e sem copiar as comissoes.
   const results: Record<string, unknown> = { ok: true, action, competencia };
 
   try {
     results.comissoes = await closeCommissionMonth(competencia);
   } catch (error) {
-    results.comissoesWarning = error instanceof Error ? error.message : 'Nao foi possivel fechar comissoes.';
+    results.comissoesWarning = error instanceof Error ? error.message : 'Não foi possível fechar comissões.';
   }
 
   try {
     results.contasPagar = await closePayableMonthAndCreateNext(competencia);
   } catch (error) {
-    results.contasPagarWarning = error instanceof Error ? error.message : 'Nao foi possivel fechar pagamentos.';
+    results.contasPagarWarning = error instanceof Error ? error.message : 'Não foi possível fechar pagamentos.';
   }
 
   return results;

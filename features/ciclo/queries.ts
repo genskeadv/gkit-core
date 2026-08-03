@@ -41,7 +41,7 @@ const cicloDocumentoPadrao = [
   { tipoDocumento: 'contrato', titulo: 'Contrato' },
   { tipoDocumento: 'cartao_cnpj', titulo: 'Cartao CNPJ' },
   { tipoDocumento: 'ata_eleicao', titulo: 'Ata eleicao' },
-  { tipoDocumento: 'ata_previsao_orcamentaria', titulo: 'Ata previsao orcamentaria' },
+  { tipoDocumento: 'ata_previsao_orcamentaria', titulo: 'Ata previsão orcamentaria' },
   { tipoDocumento: 'cpf_sindico', titulo: 'CPF sindico' },
   { tipoDocumento: 'cnpj_empresa_sindico', titulo: 'CNPJ empresa sindico' },
   { tipoDocumento: 'convencao', titulo: 'Convencao' },

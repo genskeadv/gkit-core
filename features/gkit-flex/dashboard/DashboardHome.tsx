@@ -191,10 +191,10 @@ export function DashboardHome() {
     try {
       const response = await fetch(`/api/gkit-flex/dashboard/resumo?competencia=${encodeURIComponent(competenciaParam)}`);
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Nao foi possivel carregar o resumo do mes.');
+      if (!response.ok) throw new Error(payload.error || 'Não foi possível carregar o resumo do mês.');
       setData(payload);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Nao foi possivel carregar o resumo do mes.');
+      setError(err instanceof Error ? err.message : 'Não foi possível carregar o resumo do mês.');
     } finally {
       setLoading(false);
     }
@@ -220,14 +220,14 @@ export function DashboardHome() {
         body: JSON.stringify({ competencia: competenciaParam, action }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Nao foi possivel atualizar o mes.');
+      if (!response.ok) throw new Error(payload.error || 'Não foi possível atualizar o mês.');
 
       const actionLabel = action === 'abrir' ? 'aberto' : action === 'fechar' ? 'fechado' : 'reaberto';
       const warnings = [payload.comissoesWarning, payload.contasPagarWarning].filter(Boolean).join(' | ');
       setSuccess(warnings ? `Mes ${actionLabel}, com aviso: ${warnings}` : `Mes ${actionLabel} com sucesso.`);
       await loadSummary();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Nao foi possivel atualizar o mes.');
+      setError(err instanceof Error ? err.message : 'Não foi possível atualizar o mês.');
     } finally {
       setActionLoading('');
     }
@@ -246,11 +246,11 @@ export function DashboardHome() {
       formData.append('action', 'preview');
       const response = await fetch('/api/gkit-flex/comissoes/calcular', { method: 'POST', body: formData });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Nao foi possivel gerar a previa de receitas.');
+      if (!response.ok) throw new Error(payload.error || 'Não foi possível gerar a prévia de receitas.');
       setReceivablePreview(payload);
       setSuccess('Previa de receitas gerada. Revise o resumo antes de gravar.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao gerar previa de receitas.');
+      setError(err instanceof Error ? err.message : 'Erro ao gerar prévia de receitas.');
     } finally {
       setActionLoading('');
     }
@@ -268,7 +268,7 @@ export function DashboardHome() {
       formData.append('action', 'save');
       const response = await fetch('/api/gkit-flex/comissoes/calcular', { method: 'POST', body: formData });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Nao foi possivel gravar a receita.');
+      if (!response.ok) throw new Error(payload.error || 'Não foi possível gravar a receita.');
       setReceivablePreview(payload);
       setSuccess(payload.warning || 'Receita gravada e comissoes recalculadas para a competencia.');
       await loadSummary();
@@ -291,11 +291,11 @@ export function DashboardHome() {
       formData.append('competencia', competenciaParam);
       const response = await fetch('/api/gkit-flex/contas-pagar/preview', { method: 'POST', body: formData });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Nao foi possivel gerar a previa de pagamentos.');
+      if (!response.ok) throw new Error(payload.error || 'Não foi possível gerar a prévia de pagamentos.');
       setPayablePreview(payload.preview);
       setSuccess('Previa de pagamentos gerada. Confira o realizado do mes por categoria.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao gerar previa de pagamentos.');
+      setError(err instanceof Error ? err.message : 'Erro ao gerar prévia de pagamentos.');
     } finally {
       setActionLoading('');
     }
@@ -312,7 +312,7 @@ export function DashboardHome() {
       formData.append('competencia', competenciaParam);
       const response = await fetch('/api/gkit-flex/contas-pagar/importar', { method: 'POST', body: formData });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Nao foi possivel gravar pagamentos.');
+      if (!response.ok) throw new Error(payload.error || 'Não foi possível gravar pagamentos.');
       setSuccess(`Pagamentos gravados. ${payload.imported || 0} linha(s) importada(s).`);
       setPayableFile(null);
       setPayablePreview(null);
@@ -343,26 +343,26 @@ export function DashboardHome() {
     <main className="page-shell dashboard-page flex-cockpit-page">
       <MonthContextHeader
         title="Cockpit Flex"
-        description="Central de execucao mensal: importar receitas, gravar pagamentos efetuados, conferir comissoes e pagamentos por colaborador."
+        description="Central de execução mensal: importar receitas, gravar pagamentos efetuados, conferir comissões e pagamentos por colaborador."
         competencia={competencia}
         onCompetenciaChange={setCompetencia}
         primaryStatus={{ label: 'Receitas', status: data?.comissoes.status || 'nao_aberto' }}
         secondaryStatus={{ label: 'Pagamentos', status: data?.contasPagar.status || 'nao_aberto' }}
       >
-        {monthNotOpened ? <button className="secondary-button" disabled={Boolean(actionLoading)} onClick={() => updateMonth('abrir')}>Abrir mes</button> : null}
-        {monthIsClosed ? <button className="secondary-button" disabled={Boolean(actionLoading)} onClick={() => updateMonth('reabrir')}>Reabrir mes</button> : null}
-        {monthIsOpen ? <button className="primary-button" disabled={Boolean(actionLoading)} onClick={() => updateMonth('fechar')}>Fechar mes</button> : null}
+        {monthNotOpened ? <button className="secondary-button" disabled={Boolean(actionLoading)} onClick={() => updateMonth('abrir')}>Abrir mês</button> : null}
+        {monthIsClosed ? <button className="secondary-button" disabled={Boolean(actionLoading)} onClick={() => updateMonth('reabrir')}>Reabrir mês</button> : null}
+        {monthIsOpen ? <button className="primary-button" disabled={Boolean(actionLoading)} onClick={() => updateMonth('fechar')}>Fechar mês</button> : null}
       </MonthContextHeader>
 
       {error ? <div className="error">{error}</div> : null}
       {success ? <div className="success">{success}</div> : null}
-      {!data?.configured ? <div className="warning">Supabase nao configurado. Configure as variaveis antes de usar o cockpit.</div> : null}
+      {!data?.configured ? <div className="warning">Supabase não configurado. Configure as variaveis antes de usar o cockpit.</div> : null}
 
       <section className="flex-cockpit-grid">
-        <ActionCard active={active === 'receitas'} eyebrow="Importacao" title="Contas a receber" value={formatMoney(recebido)} helper="Previa da receita e gravacao" onClick={() => setActive('receitas')} />
+        <ActionCard active={active === 'receitas'} eyebrow="Importacao" title="Contas a receber" value={formatMoney(recebido)} helper="Prévia da receita e gravacao" onClick={() => setActive('receitas')} />
         <ActionCard active={active === 'pagar'} eyebrow="Importacao" title="Pagamentos efetuados" value={formatMoney(pagamentosEfetuadosTotal)} helper={`${data?.contasPagar.quantidadePaga || 0} realizado(s)`} onClick={() => setActive('pagar')} />
         <ActionCard active={active === 'comparativo'} eyebrow="Fechamento" title="Comparativo" value={formatMoney(comparativoSaldo)} helper="previsto x realizado" onClick={() => setActive('comparativo')} />
-        <ActionCard active={active === 'colaboradores'} eyebrow="Equipe" title="Colaboradores" value={formatMoney(colaboradoresTotal)} helper="pagamentos e comissoes" onClick={() => setActive('colaboradores')} />
+        <ActionCard active={active === 'colaboradores'} eyebrow="Equipe" title="Colaboradores" value={formatMoney(colaboradoresTotal)} helper="pagamentos e comissões" onClick={() => setActive('colaboradores')} />
       </section>
 
       <section className="card flex-cockpit-panel">
@@ -371,14 +371,14 @@ export function DashboardHome() {
             <div className="header-row compact-header">
               <div>
                 <p className="eyebrow">Contas a receber</p>
-                <h2>Importar receita do mes</h2>
-                <p className="muted small-text">Envie a planilha de receitas para gerar a previa. A gravacao acontece somente no botao Gravar receita.</p>
+                <h2>Importar receita do mês</h2>
+                <p className="muted small-text">Envie a planilha de receitas para gerar a prévia. A gravacao acontece somente no botao Gravar receita.</p>
               </div>
               <StatusBadge status={data?.comissoes.status || 'nao_aberto'} label={data?.comissoes.canProcess ? 'Aberto' : 'Bloqueado'} />
             </div>
             <div className="flex-cockpit-import-row">
               <input type="file" accept=".xlsx,.xls" onChange={(event) => { setReceivableFile(event.target.files?.[0] || null); setReceivablePreview(null); }} />
-              <button className="secondary-button" disabled={!receivableFile || !data?.comissoes.canProcess || actionLoading === 'preview-receitas'} onClick={previewReceitas}>Gerar previa</button>
+              <button className="secondary-button" disabled={!receivableFile || !data?.comissoes.canProcess || actionLoading === 'preview-receitas'} onClick={previewReceitas}>Gerar prévia</button>
               <button className="primary-button" disabled={!receivablePreview || !data?.comissoes.canProcess || actionLoading === 'save-receitas'} onClick={saveReceitas}>Gravar receita</button>
             </div>
             {receivablePreview ? (
@@ -386,12 +386,12 @@ export function DashboardHome() {
                 <section className="grid-3 dashboard-metrics">
                   <MetricCard label="Receita" value={formatMoney(receivablePreview.totals.valorRecebido)} help={receivablePreview.arquivo} tone="good" />
                   <MetricCard label="Base comissionavel" value={formatMoney(receivablePreview.totals.valorAposReducao)} help="apos redutores" />
-                  <MetricCard label="Comissoes" value={formatMoney(receivablePreview.totals.comissaoFinal)} help={`${receivablePreview.auditCount} apontamento(s)`} />
+                  <MetricCard label="Comissões" value={formatMoney(receivablePreview.totals.comissaoFinal)} help={`${receivablePreview.auditCount} apontamento(s)`} />
                 </section>
                 <PreviewTable rows={receivablePreview.resumo} />
               </>
             ) : (
-              <EmptyState title="Nenhuma previa gerada" description="Selecione a planilha de contas a receber e clique em Gerar previa." />
+              <EmptyState title="Nenhuma prévia gerada" description="Selecione a planilha de contas a receber e clique em Gerar prévia." />
             )}
           </>
         ) : null}
@@ -401,14 +401,14 @@ export function DashboardHome() {
             <div className="header-row compact-header">
               <div>
                 <p className="eyebrow">Pagamentos</p>
-                <h2>Importar pagamentos efetuados no mes</h2>
-                <p className="muted small-text">A previa compara a planilha ou o extrato bancario CSV/OFX com a previsao atual antes da gravacao.</p>
+                <h2>Importar pagamentos efetuados no mês</h2>
+                <p className="muted small-text">A prévia compara a planilha ou o extrato bancario CSV/OFX com a previsão atual antes da gravacao.</p>
               </div>
               <StatusBadge status={data?.contasPagar.status || 'nao_aberto'} label={data?.contasPagar.canEdit ? 'Aberto' : 'Bloqueado'} />
             </div>
             <div className="flex-cockpit-import-row">
               <input type="file" accept=".xlsx,.xls,.csv,.ofx" onChange={(event) => { setPayableFile(event.target.files?.[0] || null); setPayablePreview(null); }} />
-              <button className="secondary-button" disabled={!payableFile || !data?.contasPagar.canEdit || actionLoading === 'preview-pagar'} onClick={previewContasPagar}>Gerar previa</button>
+              <button className="secondary-button" disabled={!payableFile || !data?.contasPagar.canEdit || actionLoading === 'preview-pagar'} onClick={previewContasPagar}>Gerar prévia</button>
               <button className="primary-button" disabled={!payablePreview || payablePreview.linhasComErro > 0 || !data?.contasPagar.canEdit || actionLoading === 'save-pagar'} onClick={saveContasPagar}>Gravar pagamentos</button>
             </div>
             {payablePreview ? (
@@ -416,7 +416,7 @@ export function DashboardHome() {
                 <section className="grid-4 dashboard-metrics">
                   <MetricCard label="Realizado importado" value={formatMoney(payablePreview.valorImportadoManual)} help={payablePreview.arquivo} />
                   <MetricCard label="Novos" value={payablePreview.itensNovos} help="pagamentos novos" />
-                  <MetricCard label="Alterados" value={payablePreview.itensAlterados} help="lancamentos existentes" />
+                  <MetricCard label="Alterados" value={payablePreview.itensAlterados} help="lançamentos existentes" />
                   <MetricCard label="Erros" value={payablePreview.linhasComErro} help={`${payablePreview.linhasValidas} linha(s) validas`} tone={payablePreview.linhasComErro ? 'danger' : 'good'} />
                 </section>
                 <CategoryTable rows={payablePreviewByCategory} valueLabel="Realizado preview" />
@@ -433,14 +433,14 @@ export function DashboardHome() {
               <div>
                 <p className="eyebrow">Comparativo</p>
                 <h2>Previsto x realizado por categoria</h2>
-                <p className="muted small-text">Leitura do mes aberto, comparando a previsao mensal com as receitas e pagamentos ja importados.</p>
+                <p className="muted small-text">Leitura do mês aberto, comparando a previsão mensal com as receitas e pagamentos já importados.</p>
               </div>
-              <a className="secondary-button" href={`/modulos/gkit-flex/previsoes?competencia=${competenciaParam}`}>Abrir previsoes</a>
+              <a className="secondary-button" href={`/modulos/gkit-flex/previsoes?competencia=${competenciaParam}`}>Abrir previsões</a>
             </div>
             <section className="grid-3 dashboard-metrics">
               <MetricCard label="Saldo previsto" value={formatMoney(data?.comparativo.resumo.saldoPrevisto || 0)} />
               <MetricCard label="Saldo realizado" value={formatMoney(data?.comparativo.resumo.saldoRealizado || 0)} tone={(data?.comparativo.resumo.saldoRealizado || 0) < 0 ? 'warning' : 'good'} />
-              <MetricCard label="Diferenca" value={formatMoney(comparativoSaldo)} tone={comparativoSaldo < 0 ? 'warning' : 'good'} />
+              <MetricCard label="Diferença" value={formatMoney(comparativoSaldo)} tone={comparativoSaldo < 0 ? 'warning' : 'good'} />
             </section>
             <div className="forecast-comparison-grid">
               <ComparisonTable title="Receitas por categoria" rows={data?.comparativo.receitasPorTipo || []} empty="Sem previsao ou receita realizada para comparar." />
@@ -455,12 +455,12 @@ export function DashboardHome() {
               <div>
                 <p className="eyebrow">Colaboradores</p>
                 <h2>Receitas e pagamentos por colaborador</h2>
-                <p className="muted small-text">Linha por colaborador com receita do mes, comissoes calculadas e pagamento mensal estimado.</p>
+                <p className="muted small-text">Linha por colaborador com receita do mês, comissões calculadas e pagamento mensal estimado.</p>
               </div>
               <a className="secondary-button" href="/modulos/gkit-flex/colaboradores">Abrir colaboradores</a>
             </div>
             <section className="grid-3 dashboard-metrics">
-              <MetricCard label="Pagamentos + comissoes" value={formatMoney(colaboradoresTotal)} tone={colaboradoresTotal ? 'good' : 'default'} />
+              <MetricCard label="Pagamentos + comissões" value={formatMoney(colaboradoresTotal)} tone={colaboradoresTotal ? 'good' : 'default'} />
               <MetricCard label="Colaboradores" value={data?.colaboradores.total || 0} help={`${data?.colaboradores.ativos || 0} ativo(s)`} />
               <MetricCard label="Com movimento" value={data?.colaboradores.pagamentos.length || 0} help="exibidos no resumo" />
             </section>
@@ -488,7 +488,7 @@ function ComparisonTable({ title, rows, empty }: { title: string; rows: Comparis
               <th>Categoria</th>
               <th className="text-right">Previsto</th>
               <th className="text-right">Realizado</th>
-              <th className="text-right">Diferenca</th>
+              <th className="text-right">Diferença</th>
               <th className="text-right">Var.</th>
             </tr>
           </thead>
@@ -510,7 +510,7 @@ function ComparisonTable({ title, rows, empty }: { title: string; rows: Comparis
 }
 
 function PreviewTable({ rows }: { rows: SummaryRow[] }) {
-  if (!rows.length) return <EmptyState title="Sem linhas para exibir" description="A previa nao retornou receitas elegiveis." />;
+  if (!rows.length) return <EmptyState title="Sem linhas para exibir" description="A prévia não retornou receitas elegiveis." />;
   return (
     <div className="table-wrap">
       <table>
@@ -518,9 +518,9 @@ function PreviewTable({ rows }: { rows: SummaryRow[] }) {
           <tr>
             <th>Categoria</th>
             <th>Carteira</th>
-            <th className="text-right">Lancamentos</th>
+            <th className="text-right">Lançamentos</th>
             <th className="text-right">Receita</th>
-            <th className="text-right">Comissao</th>
+            <th className="text-right">Comissão</th>
           </tr>
         </thead>
         <tbody>
@@ -586,8 +586,8 @@ function CollaboratorTable({
           <tr>
             <th>Colaborador</th>
             <th>Carteira</th>
-            <th className="text-right">Receita no mes</th>
-            <th className="text-right">Comissoes</th>
+            <th className="text-right">Receita no mês</th>
+            <th className="text-right">Comissões</th>
             <th className="text-right">Pagamento base</th>
             <th className="text-right">Total</th>
           </tr>

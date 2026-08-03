@@ -18,7 +18,7 @@ export default async function NovoGkitFatContratoPage() {
   return (
     <GkitFatShell
       active="contratos"
-      description="Crie a matriz de faturamento que depois gera OS por competencia."
+      description="Crie a matriz de faturamento que depois gera OS por competência."
       title="Novo contrato"
       usuario={context.usuario}
     >

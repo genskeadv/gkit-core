@@ -34,10 +34,10 @@ export default async function GkitNewWorkflowPage({
       actions={canWrite ? <Link className="button" href="/modulos/gkit-new/base/workflow/novo">Novo modelo</Link> : null}
     >
       <GkitNewHealthNotice health={health} />
-      <GkitNewSection title="Modelos de tarefa" description="Cada modelo define descricao, dias e responsavel padrao.">
+      <GkitNewSection title="Modelos de tarefa" description="Cada modelo define descrição, dias e responsável padrão.">
         <GkitNewFilterBar
           fields={[
-            { label: 'Busca', name: 'q', placeholder: 'Descricao ou responsavel', value: filters.q },
+            { label: 'Busca', name: 'q', placeholder: 'Descrição ou responsável', value: filters.q },
             {
               label: 'Status',
               name: 'ativo',
@@ -50,7 +50,7 @@ export default async function GkitNewWorkflowPage({
               value: filters.ativo,
             },
             {
-              label: 'Responsavel',
+              label: 'Responsável',
               name: 'responsavel',
               options: responsavelOptions,
               placeholder: 'Todos',
@@ -65,8 +65,8 @@ export default async function GkitNewWorkflowPage({
             options: [
               { label: 'Ordem', value: 'ordem' },
               { label: 'Dias', value: 'dias' },
-              { label: 'Responsavel', value: 'responsavel' },
-              { label: 'Descricao', value: 'descricao' },
+              { label: 'Responsável', value: 'responsavel' },
+              { label: 'Descrição', value: 'descricao' },
             ],
             value: filters.sort,
           }}

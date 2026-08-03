@@ -11,13 +11,13 @@ export default async function GkitAteImportacoesPage() {
   return (
     <GkitAteShell
       active="importacoes"
-      title="Importacoes"
+      title="Importações"
       description="Carga de atendimentos exportados do ASTREA."
       usuario={context.usuario}
     >
       <GkitAteHealthNotice health={health} />
       {canWrite ? (
-        <GkitAteSection title="Importar ASTREA" description="Use a planilha de processos/atendimentos exportada do ASTREA. Esta carga nao contem tarefas vinculadas.">
+        <GkitAteSection title="Importar ASTREA" description="Use a planilha de processos/atendimentos exportada do ASTREA. Está carga não contem tarefas vinculadas.">
           <ImportarGkitAteAstreaForm />
         </GkitAteSection>
       ) : null}

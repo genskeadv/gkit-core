@@ -17,10 +17,10 @@ export default async function EditarGkitNewContatoPage({ params }: { params: Pro
     <GkitNewShell
       active="contatos"
       title="Editar contato"
-      description="Atualize dados e vinculos do contato com clientes."
+      description="Atualize dados e vínculos do contato com clientes."
       usuario={context.usuario}
     >
-      <GkitNewSection title="Dados do contato" description="Os vinculos podem ser alterados sem duplicar o contato.">
+      <GkitNewSection title="Dados do contato" description="Os vínculos podem ser alterados sem duplicar o contato.">
         <GkitNewContatoForm action={updateGkitNewContatoAction} clientes={formData.clientes} contato={contato} />
       </GkitNewSection>
     </GkitNewShell>

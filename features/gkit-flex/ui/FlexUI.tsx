@@ -132,7 +132,7 @@ export function MonthContextHeader({
         </div>
         <div className="month-context-side">
           <label className="field-label dashboard-month">
-            Competencia
+            Competência
             {onCompetenciaChange ? (
               <select
                 className="text-input"

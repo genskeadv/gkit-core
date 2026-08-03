@@ -40,7 +40,7 @@ export function ImportarAtendimentosAstreaForm() {
         setPreview(await previewImportacaoAtendimentosAstreaXlsx(formData))
         setPreviewedFile(fileKey)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Nao foi possivel pre-visualizar o arquivo.')
+        setError(err instanceof Error ? err.message : 'Não foi possível pré-visualizar o arquivo.')
       }
     })
   }
@@ -58,7 +58,7 @@ export function ImportarAtendimentosAstreaForm() {
         }
         setResult(await importarAtendimentosAstreaXlsx(formData))
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Nao foi possivel importar o arquivo.')
+        setError(err instanceof Error ? err.message : 'Não foi possível importar o arquivo.')
       }
     })
   }
@@ -90,7 +90,7 @@ export function ImportarAtendimentosAstreaForm() {
           <div className="ciclo-panel-heading">
             <div>
               <h2>Preview dos atendimentos</h2>
-              <p>Confira volume, status e vinculos com clientes antes de gravar.</p>
+              <p>Confira volume, status e vínculos com clientes antes de gravar.</p>
             </div>
           </div>
 
@@ -102,7 +102,7 @@ export function ImportarAtendimentosAstreaForm() {
             <span>Abertos <strong>{preview.abertos}</strong></span>
             <span>Encerrados <strong>{preview.encerrados}</strong></span>
             <span>Vinculados <strong>{preview.vinculados}</strong></span>
-            <span>Sem vinculo <strong>{preview.semVinculoCliente}</strong></span>
+            <span>Sem vínculo <strong>{preview.semVinculoCliente}</strong></span>
           </div>
 
           {preview.amostras.length ? (

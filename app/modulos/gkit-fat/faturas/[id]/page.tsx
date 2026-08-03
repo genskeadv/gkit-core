@@ -27,7 +27,7 @@ export default async function GkitFatFaturaDetailPage({
   return (
     <GkitFatShell
       active="faturas"
-      description="Conferencia fiscal, pre-nota e retorno manual da NFS-e."
+      description="Conferência fiscal, pre-nota e retorno manual da NFS-e."
       title={`NFS-e ${ordem.numero}`}
       usuario={context.usuario}
     >

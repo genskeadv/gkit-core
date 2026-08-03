@@ -11,7 +11,7 @@ export default async function NovoAlertaPage() {
       active="alertas"
       eyebrow="Fila operacional"
       title="Novo alerta"
-      description="Ponto de atencao com severidade, prazo e cliente vinculado."
+      description="Ponto de atenção com severidade, prazo e cliente vinculado."
       usuario={context.usuario}
     >
       <CicloSection

@@ -538,7 +538,7 @@ export async function generateTasksFromMovements(
         origemOrgao: text(movimento.orgao_nome) || null,
         processoId: row.id,
         rawPayload: movimento.raw_movimento && typeof movimento.raw_movimento === 'object' ? movimento.raw_movimento as Record<string, unknown> : movimento,
-        sugestaoIa: `Regra "${group.rule.nome}" sugere tratamento como publicacao/intimacao.`,
+        sugestaoIa: `Regra "${group.rule.nome}" sugere tratamento como publicação/intimação.`,
         texto: text(movimento.nome, 'Movimentacao DataJud'),
       }))))
   }
@@ -709,7 +709,7 @@ function processUpdatePayload(hit: Record<string, any>, movimentos: Array<{ data
     },
     nivel_sigilo: numberOrNull(source.nivelSigilo),
     orgao_julgador_codigo: numberOrNull(orgao.codigo),
-    orgao_julgador_codigo_municipio_ibge: numberOrNull(orgao.codigoMunicipioIBGE),
+    orgao_julgador_codigo_municipio_ibge: numberOrNull(orgao.codigoMunicípioIBGE),
     orgao_julgador_nome: text(orgao.nome) || null,
     sistema_codigo: numberOrNull(sistema.codigo),
     sistema_nome: text(sistema.nome) || null,

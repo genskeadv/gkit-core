@@ -35,7 +35,7 @@ export async function ReceitasPage({ competencia }: { competencia?: string | nul
         </div>
         <div className="month-context-side">
           <label className="field-label dashboard-month">
-            Competencia
+            Competência
             <input className="text-input" value={formatMonthLabel(competenciaInput)} disabled readOnly />
           </label>
         </div>
@@ -43,7 +43,7 @@ export async function ReceitasPage({ competencia }: { competencia?: string | nul
 
       <section className="grid-3 dashboard-metrics">
         <MetricCard
-          label="Receita liquida"
+          label="Receita líquida"
           value={formatMoney(latestExecution?.total_valor_recebido || 0)}
           help={latestExecution ? `Ultima apuracao em ${formatDateTime(latestExecution.created_at)}` : 'Sem apuracao salva'}
           tone={latestExecution?.total_valor_recebido ? 'good' : 'default'}
@@ -54,7 +54,7 @@ export async function ReceitasPage({ competencia }: { competencia?: string | nul
           help="com receita no mes"
         />
         <MetricCard
-          label="Comissoes calculadas"
+          label="Comissões calculadas"
           value={formatMoney(latestExecution?.total_comissao || 0)}
           help="referencia do fechamento"
         />
@@ -76,8 +76,8 @@ export async function ReceitasPage({ competencia }: { competencia?: string | nul
               <thead>
                 <tr>
                   <th>Categoria</th>
-                  <th className="text-right">Receita liquida</th>
-                  <th className="text-right">Comissao</th>
+                  <th className="text-right">Receita líquida</th>
+                  <th className="text-right">Comissão</th>
                 </tr>
               </thead>
               <tbody>
@@ -92,7 +92,7 @@ export async function ReceitasPage({ competencia }: { competencia?: string | nul
             </table>
           </div>
         ) : (
-          <EmptyState title="Sem receitas" description="Ainda nao ha apuracao salva para esta competencia." />
+          <EmptyState title="Sem receitas" description="Ainda não há apuração salva para esta competência." />
         )}
       </section>
     </main>

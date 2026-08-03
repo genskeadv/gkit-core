@@ -28,7 +28,7 @@ export default async function GkitNewContatosPage({
       <GkitNewSection title="Base de contatos" description="Contato x cliente em relacao N para N.">
         <GkitNewFilterBar
           fields={[
-            { label: 'Busca', name: 'q', placeholder: 'Nome, e-mail, celular ou descricao', value: filters.q },
+            { label: 'Busca', name: 'q', placeholder: 'Nome, e-mail, celular ou descrição', value: filters.q },
             {
               label: 'Vinculo',
               name: 'vinculo',

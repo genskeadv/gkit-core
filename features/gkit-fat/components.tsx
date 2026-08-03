@@ -99,7 +99,7 @@ export function GkitFatDashboard({ data }: { data: GkitFatDashboardData }) {
     <>
       <GkitFatSection
         className="gkit-fat-command-panel"
-        description="Escolha a etapa para operar contratos, OS, conferencia fiscal e emissao."
+        description="Escolha a etapa para operar contratos, OS, conferência fiscal e emissão."
         title="Ordem do fluxo"
       >
         <div className="gkit-fat-command-grid">
@@ -109,14 +109,14 @@ export function GkitFatDashboard({ data }: { data: GkitFatDashboardData }) {
       </GkitFatSection>
       <GkitFatSection
         action={<Link className="button secondary" href="/modulos/gkit-fat/contratos">Ver contratos</Link>}
-        description="Base de faturamento para mensalidade, pontual e cobranca."
+        description="Base de faturamento para mensalidade, pontual e cobrança."
         title="Contratos recentes"
       >
         <GkitFatContratosList canWrite={false} contratos={data.contratosRecentes} empty="Nenhum contrato cadastrado ainda." />
       </GkitFatSection>
       <GkitFatSection
         action={<Link className="button secondary" href="/modulos/gkit-fat/faturas">Ver OS</Link>}
-        description="Ordens de servico geradas com snapshot para NFS-e 03220."
+        description="Ordens de serviço geradas com snapshot para NFS-e 03220."
         title="OS recentes"
       >
         <GkitFatOrdensList empty="Nenhuma OS gerada ainda." ordens={data.ordensRecentes} />
@@ -220,7 +220,7 @@ export function GkitFatContratoForm({
       </label>
       {!contrato ? (
         <label>
-          <span>Numero</span>
+          <span>Número</span>
           <input name="numero" placeholder="Automatico" />
         </label>
       ) : null}
@@ -229,7 +229,7 @@ export function GkitFatContratoForm({
         <select name="tipo_faturamento" defaultValue={contrato?.tipo_faturamento ?? 'mensal'}>
           <option value="mensal">Mensal</option>
           <option value="pontual">Pontual</option>
-          <option value="cobranca">Cobranca</option>
+          <option value="cobranca">Cobrança</option>
         </select>
       </label>
       <label>
@@ -243,7 +243,7 @@ export function GkitFatContratoForm({
         </select>
       </label>
       <label>
-        <span>Valor padrao</span>
+        <span>Valor padrão</span>
         <input name="valor_padrao" inputMode="decimal" required defaultValue={contrato?.valor_padrao ?? 0} />
       </label>
       <label>
@@ -259,7 +259,7 @@ export function GkitFatContratoForm({
         <input name="dia_vencimento" min={1} max={31} type="number" defaultValue={contrato?.dia_vencimento ?? ''} />
       </label>
       <label>
-        <span>Inicio vigencia</span>
+        <span>Início vigencia</span>
         <input name="inicio_vigencia" type="date" defaultValue={contrato?.inicio_vigencia ?? ''} />
       </label>
       <label>
@@ -267,7 +267,7 @@ export function GkitFatContratoForm({
         <input name="fim_vigencia" type="date" defaultValue={contrato?.fim_vigencia ?? ''} />
       </label>
       <label className="module-form-wide">
-        <span>Descricao fiscal/servico</span>
+        <span>Descrição fiscal/serviço</span>
         <input name="descricao_servico" defaultValue={contrato?.descricao_servico ?? 'Servicos advocaticios'} />
       </label>
       <label>
@@ -275,17 +275,17 @@ export function GkitFatContratoForm({
         <input name="iss_retido" type="checkbox" defaultChecked={contrato?.iss_retido ?? false} />
       </label>
       <label>
-        <span>Nao gerar financeiro</span>
+        <span>Não gerar financeiro</span>
         <input name="nao_gerar_financeiro" type="checkbox" defaultChecked={contrato ? !contrato.gerar_financeiro : false} />
       </label>
       {contrato ? (
         <label className="module-form-wide">
           <span>Motivo status</span>
-          <input name="motivo_status" placeholder="Obrigatorio quando suspender/cancelar no processo interno" />
+          <input name="motivo_status" placeholder="Obrigatório quando suspender/cancelar no processo interno" />
         </label>
       ) : null}
       <label className="module-form-wide">
-        <span>Observacoes</span>
+        <span>Observações</span>
         <textarea name="observacoes" defaultValue={contrato?.observacoes ?? ''} rows={4} />
       </label>
       <div className="form-actions module-form-wide">
@@ -324,7 +324,7 @@ export function GkitFatOrdemForm({
         </select>
       </label>
       <label>
-        <span>Competencia</span>
+        <span>Competência</span>
         <input name="competencia" type="date" />
       </label>
       <label>
@@ -332,15 +332,15 @@ export function GkitFatOrdemForm({
         <input name="data_vencimento" type="date" />
       </label>
       <label>
-        <span>Periodo inicio</span>
+        <span>Período início</span>
         <input name="periodo_inicio" type="date" />
       </label>
       <label>
-        <span>Periodo fim</span>
+        <span>Período fim</span>
         <input name="periodo_fim" type="date" />
       </label>
       <label>
-        <span>Previsao faturamento</span>
+        <span>Previsão faturamento</span>
         <input name="data_prevista_faturamento" type="date" />
       </label>
       <label>
@@ -348,16 +348,16 @@ export function GkitFatOrdemForm({
         <input name="valor_unitario" inputMode="decimal" placeholder="Usar valor do contrato" />
       </label>
       <label>
-        <span>Situacao</span>
+        <span>Situação</span>
         <select name="situacao_operacional" defaultValue="rascunho">
           <option value="rascunho">Rascunho</option>
-          <option value="em_conferencia">Em conferencia</option>
+          <option value="em_conferencia">Em conferência</option>
           <option value="pronta_para_faturar">Pronta para faturar</option>
         </select>
       </label>
       <label className="module-form-wide">
-        <span>Descricao fiscal/servico</span>
-        <input name="descricao_servico" placeholder="Usar descricao do contrato" />
+        <span>Descrição fiscal/serviço</span>
+        <input name="descricao_servico" placeholder="Usar descrição do contrato" />
       </label>
       <div className="form-actions module-form-wide">
         <button className="button" type="submit">Gerar OS</button>
@@ -381,7 +381,7 @@ export function GkitFatEmpresaEmissoraForm({
         <input name="nome" required defaultValue={empresa?.nome ?? 'Genske Advogados'} />
       </label>
       <label>
-        <span>Razao social</span>
+        <span>Razão social</span>
         <input name="razao_social" defaultValue={empresa?.razao_social ?? ''} />
       </label>
       <label>
@@ -393,15 +393,15 @@ export function GkitFatEmpresaEmissoraForm({
         <input name="inscricao_municipal" defaultValue={empresa?.inscricao_municipal ?? ''} />
       </label>
       <label>
-        <span>Municipio</span>
+        <span>Município</span>
         <input name="municipio" defaultValue={empresa?.municipio ?? ''} />
       </label>
       <label>
-        <span>Codigo IBGE</span>
+        <span>Código IBGE</span>
         <input name="codigo_municipio_ibge" defaultValue={empresa?.codigo_municipio_ibge ?? ''} />
       </label>
       <label>
-        <span>Regime tributario</span>
+        <span>Regime tributário</span>
         <input name="regime_tributario" placeholder="Ex.: Simples Nacional" defaultValue={empresa?.regime_tributario ?? ''} />
       </label>
       <label>
@@ -420,7 +420,7 @@ export function GkitFatEmpresaEmissoraForm({
         <input name="serie_rps" defaultValue={empresa?.serie_rps ?? ''} />
       </label>
       <label>
-        <span>Proximo RPS</span>
+        <span>Próximo RPS</span>
         <input name="proximo_numero_rps" min={1} type="number" defaultValue={empresa?.proximo_numero_rps ?? ''} />
       </label>
       <label>
@@ -436,7 +436,7 @@ export function GkitFatEmpresaEmissoraForm({
         <input name="certificado_validade" type="date" defaultValue={empresa?.certificado_validade ?? ''} />
       </label>
       <label>
-        <span>ISS retido padrao</span>
+        <span>ISS retido padrão</span>
         <input name="iss_retido_padrao" type="checkbox" defaultChecked={empresa?.iss_retido_padrao ?? false} />
       </label>
       <label>
@@ -444,11 +444,11 @@ export function GkitFatEmpresaEmissoraForm({
         <input name="ativo" type="checkbox" defaultChecked={empresa?.ativo ?? true} />
       </label>
       <label className="module-form-wide">
-        <span>Observacoes</span>
+        <span>Observações</span>
         <textarea name="observacoes" rows={4} defaultValue={empresa?.observacoes ?? ''} />
       </label>
       <div className="form-actions module-form-wide">
-        <button className="button" type="submit">Salvar configuracao fiscal</button>
+        <button className="button" type="submit">Salvar configuração fiscal</button>
       </div>
     </form>
   )
@@ -486,10 +486,10 @@ export function GkitFatNfseWorkbench({
         </div>
 
         <div className={ordem.validacao_fiscal.ok ? 'suite-empty-block success' : 'suite-empty-block warning'}>
-          <strong>{ordem.validacao_fiscal.ok ? 'Pre-nota pronta' : 'Conferencia fiscal pendente'}</strong>
+          <strong>{ordem.validacao_fiscal.ok ? 'Pré-nota pronta' : 'Conferência fiscal pendente'}</strong>
           {ordem.validacao_fiscal.erros.length ? <span>{ordem.validacao_fiscal.erros.join(' | ')}</span> : null}
           {ordem.validacao_fiscal.alertas.length ? <small>{ordem.validacao_fiscal.alertas.join(' | ')}</small> : null}
-          {!ordem.validacao_fiscal.erros.length && !ordem.validacao_fiscal.alertas.length ? <span>Dados minimos conferidos para emissao manual.</span> : null}
+          {!ordem.validacao_fiscal.erros.length && !ordem.validacao_fiscal.alertas.length ? <span>Dados mínimos conferidos para emissão manual.</span> : null}
         </div>
 
         {canWrite ? (
@@ -519,8 +519,8 @@ export function GkitFatNfseWorkbench({
       <section className="card module-form module-form-wide">
         <div className="suite-panel-heading">
           <div>
-            <h2>Retorno da emissao</h2>
-            <p>Registro manual enquanto o conector automatico nao estiver ativo.</p>
+            <h2>Retorno da emissão</h2>
+            <p>Registro manual enquanto o conector automático não estiver ativo.</p>
           </div>
         </div>
         {canWrite ? <form action={registerAction} className="module-form-grid">
@@ -533,11 +533,11 @@ export function GkitFatNfseWorkbench({
             </select>
           </label>
           <label>
-            <span>Numero NFS-e</span>
+            <span>Número NFS-e</span>
             <input name="numero_nfse" defaultValue={ordem.numero_nfse ?? ''} />
           </label>
           <label>
-            <span>Codigo verificacao</span>
+            <span>Código verificacao</span>
             <input name="codigo_verificacao" defaultValue={ordem.codigo_verificacao ?? ''} />
           </label>
           <label>
@@ -557,20 +557,20 @@ export function GkitFatNfseWorkbench({
             <input name="motivo_rejeicao" defaultValue={ordem.motivo_rejeicao ?? ''} />
           </label>
           <label className="module-form-wide">
-            <span>Observacoes</span>
+            <span>Observações</span>
             <textarea name="observacoes" rows={3} />
           </label>
           <div className="form-actions module-form-wide">
             <button className="button" type="submit">Registrar retorno</button>
           </div>
-        </form> : <div className="suite-empty-block">Voce nao tem permissao para registrar retorno fiscal.</div>}
+        </form> : <div className="suite-empty-block">Você não tem permissão para registrar retorno fiscal.</div>}
       </section>
 
-      <GkitFatSection title="Payload fiscal" description="Base que sera enviada ao conector quando a integracao automatica entrar.">
+      <GkitFatSection title="Payload fiscal" description="Base que sera enviada ao conector quando a integração automática entrar.">
         <pre className="suite-empty-block">{JSON.stringify(ordem.nfse_payload, null, 2)}</pre>
       </GkitFatSection>
 
-      <GkitFatSection title="Historico NFS-e">
+      <GkitFatSection title="Histórico NFS-e">
         {ordem.eventos.length ? (
           <div className="suite-table-list compact">
             {ordem.eventos.map((evento) => (

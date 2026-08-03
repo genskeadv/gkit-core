@@ -203,7 +203,7 @@ export function GkitJurLabShell({
         <a href="#risco">Risco</a>
         <a href="#prontuario">Prontuário</a>
         <a href="#advogados">Advogados</a>
-        <Link href="/modulos/gkit-jur/inbox">GKIT Jur classico</Link>
+        <Link href="/modulos/gkit-jur/inbox">GKIT Jur clássico</Link>
       </nav>
 
       <section className="gkit-jur-lab-shell-intro">
@@ -847,7 +847,7 @@ function labReadinessEntries(data: GkitJurLabData) {
   return [
     { label: 'Prontos', value: data.readiness.pronto, tone: 'success' },
     { label: 'Parciais', value: data.readiness.parcial, tone: 'warning' },
-    { label: 'So capa', value: data.readiness.capa, tone: 'warning' },
+    { label: 'Só capa', value: data.readiness.capa, tone: 'warning' },
     { label: 'Sem base', value: data.readiness.sem_base, tone: 'muted' },
     { label: 'Erro', value: data.readiness.erro + data.readiness.desatualizado, tone: 'danger' },
   ]
@@ -1061,7 +1061,7 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
               Teste com advogados: eles entendem a prioridade sem explicar a tela? Eles confiam na sugestão?
               Eles sabem qual ação tomar em menos de um minuto?
             </p>
-            <Link className="button secondary" href={experiment.href}>Abrir referencia atual</Link>
+            <Link className="button secondary" href={experiment.href}>Abrir referência atual</Link>
           </article>
         ))}
       </section>
@@ -1432,7 +1432,7 @@ function GkitJurProcessCommandCenter({ data }: { data: GkitJurProcessListData })
       href: processHref({ saneamento: 'sem_responsavel' }),
       label: 'Resolver donos',
       tone: metrics.semResponsavel > 0 ? 'warning' : 'muted',
-      title: 'Responsavel pendente',
+      title: 'Responsável pendente',
     },
     {
       count: metrics.semCliente,
@@ -2342,7 +2342,7 @@ function GkitJurProcessTagEditor({
             </select>
             <button className="button secondary" type="submit">Adicionar</button>
           </form>
-        ) : <small>Todas as etiquetas ativas ja estao no processo.</small>}
+        ) : <small>Todas as etiquetas ativas já estão no processo.</small>}
         {processo.etiquetas.length ? (
           <div className="gkit-jur-process-tag-remove">
             {processo.etiquetas.map((tag) => (
@@ -2877,9 +2877,9 @@ function GkitJurProcessDashboard({
         <span>Classe: <strong>{processo.classeNome || resumo?.faseProcessual || '-'}</strong></span>
         <span>Órgão: <strong>{processo.orgaoJulgadorNome || '-'}</strong></span>
         <span>Sincronização: <strong>{formatDateTime(processo.ultimaSincronizacaoEm ?? resumo?.baseSincronizacaoEm ?? null)}</strong></span>
-        <span>Ultima tentativa: <strong>{formatDateTime(processo.ultimaTentativaSincronizacaoEm ?? null)}</strong></span>
-        <span>Proxima tentativa: <strong>{formatDateTime(processo.proximaTentativaSincronizacaoEm ?? null)}</strong></span>
-        <span>Ultimo status: <strong>{processo.ultimoStatusSincronizacao ?? '-'}</strong></span>
+        <span>Última tentativa: <strong>{formatDateTime(processo.ultimaTentativaSincronizacaoEm ?? null)}</strong></span>
+        <span>Próxima tentativa: <strong>{formatDateTime(processo.proximaTentativaSincronizacaoEm ?? null)}</strong></span>
+        <span>Último status: <strong>{processo.ultimoStatusSincronizacao ?? '-'}</strong></span>
         <span>Resumo: <strong>{formatDateTime(updatedAt ?? null)}</strong></span>
         <span>Eventos considerados: <strong>{(resumo?.movimentacoesConsideradas ?? movimentacoes.length).toLocaleString('pt-BR')}</strong></span>
       </div>
@@ -2983,7 +2983,7 @@ function GkitJurAcordoForm({
         <span>Ativar lembretes de pagamento</span>
       </label>
       <div className="module-form-wide">
-        <Field label="Condicoes / observacoes">
+        <Field label="Condições / observações">
           <textarea name="observacoes" rows={3} placeholder="Resumo do acordo, multa, cláusulas sensíveis ou origem da homologação." />
         </Field>
       </div>
@@ -3174,7 +3174,7 @@ function GkitJurAcordoCard({
       </div>
       <div className="gkit-jur-agreement-summary">
         <span><strong>Aberto</strong>{formatMoney(acordo.valorPendente)}</span>
-        <span><strong>Proximo vencimento</strong>{formatDate(acordo.proximoVencimento)}</span>
+        <span><strong>Próximo vencimento</strong>{formatDate(acordo.proximoVencimento)}</span>
         <span><strong>Dia mensal</strong>{acordo.diaVencimento}</span>
         <span><strong>Atrasadas</strong>{acordo.parcelasAtrasadas.toLocaleString('pt-BR')}</span>
       </div>
@@ -3620,7 +3620,7 @@ export function GkitJurProcessDetailPage({
   const encerramentoObservacoes = [
     processo.observacoes,
     statusSuggestion
-      ? `Sugestao aplicada pelo GKIT Jur: ${statusSuggestion.motivo}`
+      ? `Sugestão aplicada pelo GKIT Jur: ${statusSuggestion.motivo}`
       : null,
   ].filter(Boolean).join('\n\n')
 
@@ -3670,7 +3670,7 @@ export function GkitJurProcessDetailPage({
       <GkitJurCollapsibleSection
         id="ajustes-operacionais"
         title="Ajustes operacionais"
-        description="Corrija os vinculos usados por inbox, filtros e futuras rotinas."
+        description="Corrija os vínculos usados por inbox, filtros e futuras rotinas."
       >
         <GkitJurProcessDetailEtiquetas
           action={updateEtiquetaAction}
@@ -4748,7 +4748,7 @@ function GkitJurPublicacaoCard({
                   <option value="erro">Erro</option>
                 </select>
               </Field>
-              <Field label="Decisao">
+              <Field label="Decisão">
                 <select name="decisao_tratamento" defaultValue={item.decisaoTratamento ?? ''}>
                   <option value="">Sem decisão</option>
                   {gkitJurPublicacaoDecisaoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -5260,7 +5260,7 @@ const gkitJurConfiguracoesItems = [
   },
   {
     title: 'E-mails',
-    description: 'Fila, historico e registros manuais de e-mails do juridico.',
+    description: 'Fila, histórico e registros manuais de e-mails do jurídico.',
     href: '/modulos/gkit-jur/configuracoes/emails',
     label: 'Acompanhar envios',
   },
@@ -5331,7 +5331,7 @@ export function GkitJurEmailsPage({ data }: { data: GkitJurEmailsData }) {
         <article className="metric-card">
           <span className="metric-label">Pendentes</span>
           <strong className="metric-value">{data.metrics.pendentes.toLocaleString('pt-BR')}</strong>
-          <span className="metric-hint">fila aguardando acao</span>
+          <span className="metric-hint">fila aguardando ação</span>
         </article>
         <article className="metric-card">
           <span className="metric-label">Enviados</span>
@@ -5341,7 +5341,7 @@ export function GkitJurEmailsPage({ data }: { data: GkitJurEmailsData }) {
         <article className="metric-card">
           <span className="metric-label">Manuais</span>
           <strong className="metric-value">{data.metrics.manuais.toLocaleString('pt-BR')}</strong>
-          <span className="metric-hint">pre-juridico registrado</span>
+          <span className="metric-hint">pré-jurídico registrado</span>
         </article>
         <article className="metric-card">
           <span className="metric-label">Erros</span>
@@ -5350,7 +5350,7 @@ export function GkitJurEmailsPage({ data }: { data: GkitJurEmailsData }) {
         </article>
       </section>
 
-      <GkitJurSection title="Acompanhamento de e-mails" description="Fila de lembretes e registros manuais de envios do pre-juridico.">
+      <GkitJurSection title="Acompanhamento de e-mails" description="Fila de lembretes e registros manuais de envios do pré-jurídico.">
         {data.items.length ? (
           <div className="suite-table-list compact" role="list">
             {data.items.map((item) => (
@@ -5370,7 +5370,7 @@ export function GkitJurEmailsPage({ data }: { data: GkitJurEmailsData }) {
             ))}
           </div>
         ) : (
-          <div className="suite-empty-block">Ainda nao existem e-mails enviados, pendentes ou registrados.</div>
+          <div className="suite-empty-block">Ainda não existem e-mails enviados, pendentes ou registrados.</div>
         )}
       </GkitJurSection>
     </>
@@ -5419,13 +5419,13 @@ export function GkitJurEtiquetasPage({
 }) {
   const cards = [
     { title: 'Etiquetas', value: data.metrics.total.toLocaleString('pt-BR'), hint: 'cadastros existentes' },
-    { title: 'Ativas', value: data.metrics.ativas.toLocaleString('pt-BR'), hint: 'disponiveis para processos' },
-    { title: 'Inativas', value: data.metrics.inativas.toLocaleString('pt-BR'), hint: 'preservadas no historico' },
+    { title: 'Ativas', value: data.metrics.ativas.toLocaleString('pt-BR'), hint: 'disponíveis para processos' },
+    { title: 'Inativas', value: data.metrics.inativas.toLocaleString('pt-BR'), hint: 'preservadas no histórico' },
   ]
 
   return (
     <>
-      {saved ? <div className="suite-alert success">Etiqueta salva. Ela ja pode ser usada nos processos.</div> : null}
+      {saved ? <div className="suite-alert success">Etiqueta salva. Ela já pode ser usada nos processos.</div> : null}
       <section className="suite-kpi-grid compact">
         {cards.map((card) => (
           <article className="metric-card" key={card.title}>
@@ -5440,7 +5440,7 @@ export function GkitJurEtiquetasPage({
         <GkitJurEtiquetaForm action={saveAction} canWrite={canWrite} />
       </GkitJurSection>
 
-      <GkitJurSection title="Etiquetas cadastradas" description="Edite nomes, cores e disponibilidade sem remover etiquetas ja aplicadas.">
+      <GkitJurSection title="Etiquetas cadastradas" description="Edite nomes, cores e disponibilidade sem remover etiquetas já aplicadas.">
         {data.etiquetas.length ? (
           <div className="suite-table-list compact gkit-jur-tag-list" role="list">
             {data.etiquetas.map((etiqueta) => (
@@ -5805,7 +5805,7 @@ export function GkitJurIntegracaoPage({
   const prontidaoProgress = data.metrics.totalAtivos ? Math.round((data.prontidao.aceitaveis / data.metrics.totalAtivos) * 100) : 0
   const cards = [
     { title: 'Em backoff', value: data.metrics.emBackoff.toLocaleString('pt-BR'), hint: 'aguardando nova janela do provedor' },
-    { title: 'Sem resultado', value: data.metrics.semResultadoRecente.toLocaleString('pt-BR'), hint: 'tentados sem atualizacao util' },
+    { title: 'Sem resultado', value: data.metrics.semResultadoRecente.toLocaleString('pt-BR'), hint: 'tentados sem atualização útil' },
     { title: 'Processos ativos', value: data.metrics.totalAtivos.toLocaleString('pt-BR'), hint: 'base operacional monitorável' },
     { title: 'Prontos', value: data.prontidao.aceitaveis.toLocaleString('pt-BR'), hint: 'com resumo operacional aceitável' },
     { title: 'Não prontos', value: data.prontidao.naoProntos.toLocaleString('pt-BR'), hint: 'prioridade da fila automática' },

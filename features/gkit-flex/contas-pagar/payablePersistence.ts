@@ -118,10 +118,10 @@ function validatePayableRows(rows: PayableImportRow[]): PayableImportIssue[] {
 
   for (const row of rows) {
     if (!row.descricao.trim()) {
-      issues.push({ linha: row.linha, severidade: 'erro', campo: 'Descricao', mensagem: 'Descricao vazia.' });
+      issues.push({ linha: row.linha, severidade: 'erro', campo: 'Descricao', mensagem: 'Descrição vazia.' });
     }
     if (!row.vencimentoDia) {
-      issues.push({ linha: row.linha, severidade: 'aviso', campo: 'Vencimento', mensagem: 'Vencimento sem dia valido entre 1 e 31. O texto original sera preservado.' });
+      issues.push({ linha: row.linha, severidade: 'aviso', campo: 'Vencimento', mensagem: 'Vencimento sem dia válido entre 1 e 31. O texto original sera preservado.' });
     }
     if (!Number.isFinite(Number(row.valorPrevisto)) || Number(row.valorPrevisto) < 0) {
       issues.push({ linha: row.linha, severidade: 'erro', campo: 'Valor', mensagem: 'Valor invalido ou negativo.' });
@@ -132,7 +132,7 @@ function validatePayableRows(rows: PayableImportRow[]): PayableImportIssue[] {
 
     const key = importDuplicateKey(row);
     if (seen.has(key)) {
-      issues.push({ linha: row.linha, severidade: 'aviso', mensagem: 'Possivel despesa duplicada na planilha importada.' });
+      issues.push({ linha: row.linha, severidade: 'aviso', mensagem: 'Possível despesa duplicada na planilha importada.' });
     }
     seen.add(key);
   }
@@ -940,7 +940,7 @@ export async function createManualPayableItem(input: CreatePayableItemInput) {
   const valorPrevisto = roundMoney(Number(input.valorPrevisto || 0));
   const vencimentoDia = input.vencimentoDia === null || input.vencimentoDia === undefined ? null : Number(input.vencimentoDia);
 
-  if (!descricao) throw new Error('Descricao do pagamento e obrigatoria.');
+  if (!descricao) throw new Error('Descrição do pagamento é obrigatória.');
   if (!Number.isFinite(valorPrevisto) || valorPrevisto <= 0) throw new Error('Valor do pagamento deve ser maior que zero.');
   if (vencimentoDia !== null && (!Number.isInteger(vencimentoDia) || vencimentoDia < 1 || vencimentoDia > 31)) {
     throw new Error('Dia de vencimento deve ficar entre 1 e 31.');
@@ -1012,16 +1012,16 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
       })
       .select('id, competencia, status, opened_at, closed_at, created_at')
       .single();
-    if (error) throw new Error(`Erro ao criar pagamentos do proximo mes: ${error.message}`);
+    if (error) throw new Error(`Erro ao criar pagamentos do próximo mês: ${error.message}`);
     nextRow = data;
   } else if (nextRow.status === 'fechado') {
-    throw new Error('O proximo mes ja existe e esta fechado. Nao vou sobrescrever historico fechado.');
+    throw new Error('O próximo mês já existe e está fechado. Não vou sobrescrever histórico fechado.');
   } else {
     const { error: deleteNextError } = await supabase
       .from('contas_pagar_itens')
       .delete()
       .eq('competencia_id', nextRow.id);
-    if (deleteNextError) throw new Error(`Erro ao substituir pagamentos previstos do proximo mes: ${deleteNextError.message}`);
+    if (deleteNextError) throw new Error(`Erro ao substituir pagamentos previstos do próximo mês: ${deleteNextError.message}`);
   }
 
   const itemsToCopy = currentItems || [];
@@ -1041,7 +1041,7 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
       origem_item_id: item.id,
       raw: item.raw || {},
     })));
-    if (copyError) throw new Error(`Erro ao copiar pagamentos previstos para o proximo mes: ${copyError.message}`);
+    if (copyError) throw new Error(`Erro ao copiar pagamentos previstos para o próximo mês: ${copyError.message}`);
   }
 
   await createPayableSnapshot(supabase, current.row.id as string, 'antes_fechamento_contas_pagar', { proximo_mes: next, itens_copiados: itemsToCopy.length });

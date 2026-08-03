@@ -107,7 +107,7 @@ function OpenProposalList({ rows }: { rows: GkitNewListRow[] }) {
               Anterior
             </button>
             <button disabled={safePage === totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} type="button">
-              Proxima
+              Próxima
             </button>
           </div>
         </div>
@@ -146,7 +146,7 @@ export function GkitNewCockpit({
         <div className="suite-panel-heading">
           <div>
             <h2>Ordem do fluxo</h2>
-            <p>Escolha uma etapa para abrir o formulario; por padrao, o cockpit mostra as propostas em aberto.</p>
+            <p>Escolha uma etapa para abrir o formulario; por padrão, o cockpit mostra as propostas em aberto.</p>
           </div>
         </div>
 
@@ -192,7 +192,7 @@ export function GkitNewCockpit({
             </label>
             <div className="module-form-wide">
               <label>
-                <span>Descricao</span>
+                <span>Descrição</span>
                 <textarea name="descricao" />
               </label>
             </div>
@@ -214,7 +214,7 @@ export function GkitNewCockpit({
             </label>
             <div className="module-form-wide">
               <label>
-                <span>Observacoes</span>
+                <span>Observações</span>
                 <textarea name="observacoes" />
               </label>
             </div>
@@ -299,10 +299,10 @@ export function GkitNewCockpit({
             </fieldset>
             <div className="module-form-wide">
               <label>
-                <span>Descricao{requiresDescription ? ' obrigatoria' : ''}</span>
+                <span>Descrição{requiresDescription ? ' obrigatória' : ''}</span>
                 <textarea
                   name="descricao"
-                  placeholder={requiresDescription ? 'Explique a alteracao de status.' : 'Opcional enquanto a proposta estiver enviada.'}
+                  placeholder={requiresDescription ? 'Explique a alteração de status.' : 'Opcional enquanto a proposta estiver enviada.'}
                   required={requiresDescription}
                 />
               </label>

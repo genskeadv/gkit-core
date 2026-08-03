@@ -240,7 +240,7 @@ export async function getColabData(userEmail: string): Promise<ColabData> {
     return emptyData(
       !flexProfileResult.error,
       flexProfileResult.error
-        ? 'Nao foi possivel consultar o cadastro de colaboradores.'
+        ? 'Não foi possível consultar o cadastro de colaboradores.'
         : 'O e-mail do usuario ainda nao esta vinculado a um colaborador ativo no GKIT Flex.',
     )
   }

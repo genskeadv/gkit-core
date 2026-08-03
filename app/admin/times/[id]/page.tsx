@@ -21,7 +21,7 @@ export default async function EditarTimePage({ params }: { params: Promise<{ id:
         <input type="hidden" name="id" value={time.id} />
         <Field label="Nome" name="nome" defaultValue={time.nome} required />
         <Field label="Area" name="area" defaultValue={time.area} />
-        <Field label="Descricao" name="descricao" defaultValue={time.descricao} />
+        <Field label="Descrição" name="descricao" defaultValue={time.descricao} />
 
         <SelectField label="Status" name="status" defaultValue={time.status}>
           <option value="ativo">Ativo</option>

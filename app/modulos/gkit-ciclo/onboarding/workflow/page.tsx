@@ -10,7 +10,7 @@ export default async function CicloOnboardingWorkflowPage() {
       active="onboarding"
       eyebrow="Operacao"
       title="Workflow de onboarding"
-      description="Cadastro das atividades de recepcao de clientes, com ordem, descricao e responsavel padrao."
+      description="Cadastro das atividades de recepcao de clientes, com ordem, descrição e responsável padrão."
       usuario={context.usuario}
     >
       <CicloOnboardingWorkflowConfig atividades={atividades} />

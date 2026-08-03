@@ -87,7 +87,7 @@ export async function previewReclassification(input: ReclassificationRequest): P
 
   if (origem.tipo !== destino.tipo) bloqueios.push('Origem e destino precisam ser do mesmo tipo.');
   if (origem.tipo !== input.tipo) bloqueios.push('O tipo informado nao confere com o cadastro de origem.');
-  if (destino.status !== 'ativo') avisos.push('O destino esta inativo. A reclassificacao ainda pode ser feita, mas o ideal e usar destino ativo.');
+  if (destino.status !== 'ativo') avisos.push('O destino está inativo. A reclassificação ainda pode ser feita, mas o ideal é usar destino ativo.');
   if (origem.status === 'inativo') avisos.push('A origem ja esta inativa. Talvez ela ja tenha sido fundida antes.');
 
   const nomesAfetados = uniq([origem.nome, ...origem.aliases]);
@@ -238,7 +238,7 @@ export async function confirmReclassification(input: ReclassificationRequest) {
     bloqueios: preview.bloqueios,
     avisos: preview.avisos,
   });
-  if (logError) throw new Error(`Erro ao gravar historico da reclassificacao: ${logError.message}`);
+  if (logError) throw new Error(`Erro ao gravar histórico da reclassificação: ${logError.message}`);
 
   await logEvent({
     supabase,

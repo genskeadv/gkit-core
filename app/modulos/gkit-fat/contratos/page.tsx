@@ -18,7 +18,7 @@ export default async function GkitFatContratosPage() {
     <GkitFatShell
       active="contratos"
       actions={canWrite ? <Link className="button" href="/modulos/gkit-fat/contratos/novo">Novo contrato</Link> : null}
-      description="Base recorrente e avulsa que alimenta as ordens de servico."
+      description="Base recorrente e avulsa que alimenta as ordens de serviço."
       title="Contratos 03220"
       usuario={context.usuario}
     >

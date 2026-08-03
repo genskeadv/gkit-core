@@ -122,7 +122,7 @@ export function ForecastPage() {
     try {
       const response = await fetch(`/api/gkit-flex/previsoes?competencia=${encodeURIComponent(selectedCompetencia)}`, { cache: 'no-store' });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Nao foi possivel carregar previsoes.');
+      if (!response.ok) throw new Error(payload.error || 'Não foi possível carregar previsões.');
       setData(payload);
       setReceitas(payload.receitas || []);
       setPagamentos(payload.pagamentos || []);
@@ -132,7 +132,7 @@ export function ForecastPage() {
       setReceitas([]);
       setPagamentos([]);
       setHasUnsavedPaymentChanges(false);
-      setError(err instanceof Error ? err.message : 'Erro inesperado ao carregar previsoes.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao carregar previsões.');
     } finally {
       setLoading(false);
     }
@@ -158,15 +158,15 @@ export function ForecastPage() {
         body: JSON.stringify({ competencia: competenciaParam, tipo, overwrite }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Nao foi possivel gerar a previsao.');
+      if (!response.ok) throw new Error(payload.error || 'Não foi possível gerar a previsão.');
       setData(payload);
       setReceitas(payload.receitas || []);
       setPagamentos(payload.pagamentos || []);
       setHasUnsavedPaymentChanges(false);
       const generated = tipo === 'receitas' ? payload.generated?.receitas || 0 : payload.generated?.pagamentos || 0;
-      setMessage(generated ? `Base gerada pelo mes anterior com ${generated} linha(s).` : 'Nao encontrei base no mes anterior para esta aba.');
+      setMessage(generated ? `Base gerada pelo mes anterior com ${generated} linha(s).` : 'Não encontrei base no mês anterior para esta aba.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado ao gerar previsao.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao gerar previsão.');
     } finally {
       setLoading(false);
     }
@@ -183,14 +183,14 @@ export function ForecastPage() {
         body: JSON.stringify({ competencia: competenciaParam, receitas, pagamentos }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Nao foi possivel salvar a previsao.');
+      if (!response.ok) throw new Error(payload.error || 'Não foi possível salvar a previsão.');
       setData(payload);
       setReceitas(payload.receitas || []);
       setPagamentos(payload.pagamentos || []);
       setHasUnsavedPaymentChanges(false);
-      setMessage('Previsao mensal salva.');
+      setMessage('Previsão mensal salva.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado ao salvar previsao.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao salvar previsão.');
     } finally {
       setSaving(false);
     }
@@ -219,28 +219,28 @@ export function ForecastPage() {
     <main className="page-shell wide-shell forecast-page">
       <MonthContextHeader
         title="Previsoes mensais"
-        description="Monte a previsao de receitas por tipo e a previsao de pagamentos do mes, usando o fechamento anterior como base editavel."
+        description="Monte a previsão de receitas por tipo e a previsão de pagamentos do mês, usando o fechamento anterior como base editável."
         competencia={competencia}
         onCompetenciaChange={setCompetencia}
         primaryStatus={{ label: 'Origem', status: data?.configured ? 'ok' : 'indisponivel' }}
-        secondaryStatus={{ label: 'Mes anterior', status: data?.origemCompetencia ? 'ok' : 'nao_aberto' }}
+        secondaryStatus={{ label: 'Mês anterior', status: data?.origemCompetencia ? 'ok' : 'nao_aberto' }}
       >
         <button className="primary-button" onClick={saveForecast} disabled={saving || loading || !data?.configured}>{saving ? 'Salvando...' : 'Salvar previsao'}</button>
       </MonthContextHeader>
 
       {error ? <div className="error">{error}</div> : null}
       {message ? <div className="success">{message}</div> : null}
-      {!data?.configured ? <div className="warning">Supabase nao configurado ou tabelas de previsao ainda nao aplicadas.</div> : null}
+      {!data?.configured ? <div className="warning">Supabase não configurado ou tabelas de previsão ainda não aplicadas.</div> : null}
 
       <section className="grid-4 dashboard-metrics">
         <MetricCard label="Receita prevista" value={formatCurrency(totalReceitas)} help={`${receitas.length} tipo(s)`} tone={totalReceitas ? 'good' : 'default'} />
         <MetricCard label="Pagamentos previstos" value={formatCurrency(totalPagamentos)} help={`${pagamentos.length} linha(s)`} />
         <MetricCard label="Saldo previsto" value={formatCurrency(saldoPrevisto)} tone={saldoPrevisto < 0 ? 'warning' : 'good'} />
-        <MetricCard label="Mes base" value={monthLabel(data?.origemCompetencia || '')} help="fechamento anterior" />
+        <MetricCard label="Mês base" value={monthLabel(data?.origemCompetencia || '')} help="fechamento anterior" />
       </section>
 
       <section className="card forecast-workspace">
-        <div className="forecast-tabs" role="tablist" aria-label="Previsao mensal">
+        <div className="forecast-tabs" role="tablist" aria-label="Previsão mensal">
           <button type="button" className={activeTab === 'receitas' ? 'active' : ''} onClick={() => setActiveTab('receitas')}>Receitas</button>
           <button type="button" className={activeTab === 'pagamentos' ? 'active' : ''} onClick={() => setActiveTab('pagamentos')}>Pagamentos</button>
           <button type="button" className={activeTab === 'comparativo' ? 'active' : ''} onClick={() => setActiveTab('comparativo')}>Comparativo</button>
@@ -250,9 +250,9 @@ export function ForecastPage() {
           <section className="forecast-section">
             <div className="header-row compact-header">
               <div>
-                <p className="eyebrow">Previsao de receitas</p>
+                <p className="eyebrow">Previsão de receitas</p>
                 <h2>Receitas por tipo</h2>
-                <p className="muted small-text">Base sugerida pelo realizado do mes anterior, editavel antes da comparacao com o realizado.</p>
+                <p className="muted small-text">Base sugerida pelo realizado do mês anterior, editável antes da comparação com o realizado.</p>
               </div>
               <div className="action-row">
                 <button className="secondary-button" disabled={loading || !data?.configured} onClick={() => generateBase('receitas')}>Gerar base anterior</button>
@@ -267,9 +267,9 @@ export function ForecastPage() {
           <section className="forecast-section">
             <div className="header-row compact-header">
               <div>
-                <p className="eyebrow">Previsao de pagamentos</p>
+                <p className="eyebrow">Previsão de pagamentos</p>
                 <h2>Pagamentos previstos</h2>
-                <p className="muted small-text">Base sugerida pelo fechamento do mes anterior, com linhas editaveis para ajustes do mes atual.</p>
+                <p className="muted small-text">Base sugerida pelo fechamento do mês anterior, com linhas editaveis para ajustes do mês atual.</p>
               </div>
               <div className="action-row">
                 <button className="secondary-button" disabled={loading || !data?.configured} onClick={() => generateBase('pagamentos')}>Gerar base anterior</button>
@@ -291,14 +291,14 @@ export function ForecastPage() {
               <div>
                 <p className="eyebrow">Fechamento</p>
                 <h2>Previsto x realizado</h2>
-                <p className="muted small-text">Comparacao entre a previsao do inicio do mes e o realizado importado no fechamento.</p>
+                <p className="muted small-text">Comparação entre a previsão do início do mês e o realizado importado no fechamento.</p>
               </div>
               <button className="secondary-button" disabled={loading} onClick={() => loadForecast(competenciaParam)}>Atualizar comparativo</button>
             </div>
             <section className="grid-3 dashboard-metrics">
               <MetricCard label="Saldo previsto" value={formatCurrency(data?.comparativo?.resumo.saldoPrevisto || 0)} />
               <MetricCard label="Saldo realizado" value={formatCurrency(data?.comparativo?.resumo.saldoRealizado || 0)} tone={(data?.comparativo?.resumo.saldoRealizado || 0) < 0 ? 'warning' : 'good'} />
-              <MetricCard label="Diferenca do saldo" value={formatCurrency(data?.comparativo?.resumo.diferencaSaldo || 0)} tone={(data?.comparativo?.resumo.diferencaSaldo || 0) < 0 ? 'warning' : 'good'} />
+              <MetricCard label="Diferença do saldo" value={formatCurrency(data?.comparativo?.resumo.diferencaSaldo || 0)} tone={(data?.comparativo?.resumo.diferencaSaldo || 0) < 0 ? 'warning' : 'good'} />
             </section>
             <section className="forecast-comparison-grid">
               <ComparisonPanel
@@ -343,7 +343,7 @@ function ComparisonPanel({ title, description, rows, empty }: { title: string; d
                 <th>Grupo</th>
                 <th className="text-right">Previsto</th>
                 <th className="text-right">Realizado</th>
-                <th className="text-right">Diferenca</th>
+                <th className="text-right">Diferença</th>
                 <th className="text-right">Var.</th>
               </tr>
             </thead>
@@ -369,7 +369,7 @@ function ComparisonPanel({ title, description, rows, empty }: { title: string; d
 
 function RevenueTable({ rows, onChange, onDelete }: { rows: RevenueForecastRow[]; onChange: (index: number, patch: Partial<RevenueForecastRow>) => void; onDelete: (index: number) => void }) {
   if (!rows.length) {
-    return <EmptyState title="Sem previsao de receitas" description="Gere a base pelo mes anterior ou adicione tipos manualmente." />;
+    return <EmptyState title="Sem previsão de receitas" description="Gere a base pelo mês anterior ou adicione tipos manualmente." />;
   }
 
   return (
@@ -380,7 +380,7 @@ function RevenueTable({ rows, onChange, onDelete }: { rows: RevenueForecastRow[]
             <th>Tipo</th>
             <th className="text-right">Valor previsto</th>
             <th>Origem</th>
-            <th>Observacao</th>
+            <th>Observação</th>
             <th></th>
           </tr>
         </thead>
@@ -402,7 +402,7 @@ function RevenueTable({ rows, onChange, onDelete }: { rows: RevenueForecastRow[]
 
 function PaymentTable({ rows, onChange, onDelete }: { rows: PaymentForecastRow[]; onChange: (index: number, patch: Partial<PaymentForecastRow>) => void; onDelete: (index: number) => void }) {
   if (!rows.length) {
-    return <EmptyState title="Sem previsao de pagamentos" description="Gere a base pelo fechamento anterior ou adicione pagamentos manualmente." />;
+    return <EmptyState title="Sem previsão de pagamentos" description="Gere a base pelo fechamento anterior ou adicione pagamentos manualmente." />;
   }
 
   return (
@@ -410,12 +410,12 @@ function PaymentTable({ rows, onChange, onDelete }: { rows: PaymentForecastRow[]
       <table className="editable-table">
         <thead>
           <tr>
-            <th>Descricao</th>
+            <th>Descrição</th>
             <th>Venc.</th>
             <th>Categoria</th>
             <th>Centro</th>
             <th className="text-right">Valor previsto</th>
-            <th>Observacao</th>
+            <th>Observação</th>
             <th></th>
           </tr>
         </thead>

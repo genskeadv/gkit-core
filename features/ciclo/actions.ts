@@ -196,7 +196,7 @@ function readZipEntries(buffer: Buffer) {
   let directoryOffset = buffer.readUInt32LE(eocdOffset + 16)
 
   for (let index = 0; index < totalEntries; index += 1) {
-    if (buffer.readUInt32LE(directoryOffset) !== 0x02014b50) throw new Error('Estrutura XLSX invalida.')
+    if (buffer.readUInt32LE(directoryOffset) !== 0x02014b50) throw new Error('Estrutura XLSX inválida.')
     const compression = buffer.readUInt16LE(directoryOffset + 10)
     const compressedSize = buffer.readUInt32LE(directoryOffset + 20)
     const fileNameLength = buffer.readUInt16LE(directoryOffset + 28)
@@ -205,7 +205,7 @@ function readZipEntries(buffer: Buffer) {
     const localHeaderOffset = buffer.readUInt32LE(directoryOffset + 42)
     const name = normalizeZipPath(buffer.subarray(directoryOffset + 46, directoryOffset + 46 + fileNameLength).toString('utf8'))
 
-    if (buffer.readUInt32LE(localHeaderOffset) !== 0x04034b50) throw new Error('Estrutura XLSX invalida.')
+    if (buffer.readUInt32LE(localHeaderOffset) !== 0x04034b50) throw new Error('Estrutura XLSX inválida.')
     const localNameLength = buffer.readUInt16LE(localHeaderOffset + 26)
     const localExtraLength = buffer.readUInt16LE(localHeaderOffset + 28)
     const dataStart = localHeaderOffset + 30 + localNameLength + localExtraLength
@@ -1053,7 +1053,7 @@ const onboardingDocumentos = [
   { tipo_documento: 'contrato', titulo: 'Contrato' },
   { tipo_documento: 'cartao_cnpj', titulo: 'Cartao CNPJ' },
   { tipo_documento: 'ata_eleicao', titulo: 'Ata eleicao' },
-  { tipo_documento: 'ata_previsao_orcamentaria', titulo: 'Ata previsao orcamentaria' },
+  { tipo_documento: 'ata_previsao_orcamentaria', titulo: 'Ata previsão orcamentaria' },
   { tipo_documento: 'cpf_sindico', titulo: 'CPF sindico' },
   { tipo_documento: 'cnpj_empresa_sindico', titulo: 'CNPJ empresa sindico' },
   { tipo_documento: 'convencao', titulo: 'Convencao' },
@@ -1551,7 +1551,7 @@ export async function startCicloOnboardingAction(formData: FormData) {
 
 export async function updateCicloCockpitDocumentacaoAction(formData: FormData) {
   const clienteId = required(text(formData, 'cliente_id'), 'Cliente')
-  const descricao = required(text(formData, 'descricao_alteracao'), 'Descricao da alteracao')
+  const descricao = required(text(formData, 'descricao_alteracao'), 'Descrição da alteração')
   const cliente = await getClienteAccess(clienteId)
   const context = await requireCicloDocumentWrite(cliente.carteira_id)
 
@@ -1631,7 +1631,7 @@ export async function updateCicloOnboardingDocumentoAction(formData: FormData) {
 
 export async function createCicloOnboardingWorkflowAtividadeAction(formData: FormData) {
   await requireCicloWrite(null)
-  const descricao = required(text(formData, 'descricao'), 'Descricao')
+  const descricao = required(text(formData, 'descricao'), 'Descrição')
   const ordem = Number(text(formData, 'ordem') || 0)
 
   const { error } = await admin()
@@ -1654,7 +1654,7 @@ export async function createCicloOnboardingWorkflowAtividadeAction(formData: For
 export async function updateCicloOnboardingWorkflowAtividadeAction(formData: FormData) {
   await requireCicloWrite(null)
   const id = required(text(formData, 'id'), 'Atividade')
-  const descricao = required(text(formData, 'descricao'), 'Descricao')
+  const descricao = required(text(formData, 'descricao'), 'Descrição')
   const ordem = Number(text(formData, 'ordem') || 0)
 
   const { error } = await admin()
@@ -1748,7 +1748,7 @@ export async function completeCicloOnboardingAction(formData: FormData) {
   ))
 
   if (atividadesPendentes.length) {
-    throw new Error('Ainda existem atividades obrigatorias pendentes no workflow de onboarding.')
+    throw new Error('Ainda existem atividades obrigatórias pendentes no workflow de onboarding.')
   }
 
   const update = await admin()
@@ -1762,7 +1762,7 @@ export async function completeCicloOnboardingAction(formData: FormData) {
 
   if (update.error) throw new Error(update.error.message)
 
-  await logTimeline(clienteId, cliente.carteira_id, context.usuario.id, 'Onboarding concluido', 'Cliente ativado apos validacao documental.')
+  await logTimeline(clienteId, cliente.carteira_id, context.usuario.id, 'Onboarding concluído', 'Cliente ativado após validação documental.')
   await runOptionalRpc('gkli_recalcular_regularidade_cliente', clienteId)
 
   revalidatePath('/modulos/gkit-ciclo')

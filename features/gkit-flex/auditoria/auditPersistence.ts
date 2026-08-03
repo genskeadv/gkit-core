@@ -37,7 +37,7 @@ export async function getMonthlyAudit(competenciaInput?: string | null) {
       configured: false,
       competencia,
       checklist: [],
-      status: { geral: 'bloqueio' as Status, texto: 'Supabase nao configurado' },
+      status: { geral: 'bloqueio' as Status, texto: 'Supabase não configurado' },
       comissoes: null,
       contasPagar: null,
       versoes: { comissoes: [], importacoes: [], snapshots: [] },
@@ -72,7 +72,7 @@ export async function getMonthlyAudit(competenciaInput?: string | null) {
 
   if (summaryResult.error) throw new Error(`Erro ao consultar resumos de comissao: ${summaryResult.error.message}`);
   if (auditResult.error) throw new Error(`Erro ao consultar auditoria de comissao: ${auditResult.error.message}`);
-  if (launchesResult.error) throw new Error(`Erro ao consultar lancamentos de comissao: ${launchesResult.error.message}`);
+  if (launchesResult.error) throw new Error(`Erro ao consultar lançamentos de comissão: ${launchesResult.error.message}`);
 
   const payableRows = payableMonth?.id
     ? await supabase
@@ -133,25 +133,25 @@ export async function getMonthlyAudit(competenciaInput?: string | null) {
   const checklist: ChecklistItem[] = [
     {
       id: 'comissoes_mes_aberto_ou_fechado',
-      titulo: 'Competencia de comissoes existe',
+      titulo: 'Competência de comissões existe',
       status: commissionMonth ? 'ok' : 'bloqueio',
       detalhe: commissionMonth ? `Status: ${commissionMonth.status}` : 'Abra o mes antes de calcular ou fechar comissoes.',
     },
     {
       id: 'comissoes_processadas',
-      titulo: 'Comissoes processadas',
+      titulo: 'Comissões processadas',
       status: latestExecution ? 'ok' : 'bloqueio',
       detalhe: latestExecution ? `Ultima execucao em ${latestExecution.created_at}` : 'Ainda nao ha calculo de comissoes processado para esta competencia.',
     },
     {
       id: 'auditoria_comissoes',
-      titulo: 'Auditoria de comissoes',
+      titulo: 'Auditoria de comissões',
       status: auditRows.length || semVendedor ? 'aviso' : 'ok',
       detalhe: auditRows.length || semVendedor ? `${auditRows.length} apontamento(s) e ${semVendedor} lancamento(s) sem vendedor.` : 'Sem apontamentos relevantes.',
     },
     {
       id: 'contas_pagar_mes_aberto_ou_fechado',
-      titulo: 'Competencia de pagamentos existe',
+      titulo: 'Competência de pagamentos existe',
       status: payableMonth ? 'ok' : 'bloqueio',
       detalhe: payableMonth ? `Status: ${payableMonth.status}` : 'Abra o mes antes de importar ou fechar pagamentos.',
     },
@@ -226,10 +226,10 @@ export async function buildMonthlyClosingWorkbook(competenciaInput?: string | nu
   const workbook = XLSX.utils.book_new();
 
   const resumo = [
-    { Indicador: 'Competencia', Valor: monthLabel(data.competencia) },
+    { Indicador: 'Competência', Valor: monthLabel(data.competencia) },
     { Indicador: 'Status geral', Valor: data.status.texto },
     { Indicador: 'Total recebido', Valor: data.comissoes?.totalRecebido || 0 },
-    { Indicador: 'Total comissoes', Valor: data.comissoes?.totalComissao || 0 },
+    { Indicador: 'Total comissões', Valor: data.comissoes?.totalComissao || 0 },
     { Indicador: 'Total de pagamentos', Valor: data.contasPagar?.total || 0 },
     { Indicador: 'Total pago', Valor: data.contasPagar?.totalPago || 0 },
     { Indicador: 'Total em aberto', Valor: data.contasPagar?.totalAberto || 0 },

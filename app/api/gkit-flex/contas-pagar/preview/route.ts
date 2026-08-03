@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ preview });
   } catch (error) {
     console.error('[contas-pagar/preview][POST]', error);
-    return Response.json({ error: error instanceof Error ? error.message : 'Erro ao gerar previa de pagamentos.' }, { status: 500 });
+    return Response.json({ error: error instanceof Error ? error.message : 'Erro ao gerar prévia de pagamentos.' }, { status: 500 });
   }
 }
 

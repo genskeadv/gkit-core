@@ -672,7 +672,7 @@ export async function createGkitJurAcordoJudicialAction(formData: FormData) {
     .select('id')
     .single()
 
-  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Nao foi possivel criar o acordo.')
+  if (acordoResult.error || !acordoResult.data) throw new Error(acordoResult.error?.message ?? 'Não foi possível criar o acordo.')
 
   const baseCents = Math.floor(totalCents / quantidadeParcelas)
   const remainder = totalCents - (baseCents * quantidadeParcelas)
@@ -1140,7 +1140,7 @@ export async function updateGkitJurPublicacaoTratamentoAction(formData: FormData
       carteira_id: (processo.carteira_id as string | null) || await defaultCarteiraId(),
       responsavel_id: (processo.responsavel_id as string | null) || null,
       tipo: decisao === 'gerar_prazo' ? 'prazo' : 'publicacao',
-      titulo: decisao === 'gerar_prazo' ? 'Analisar prazo de publicacao' : 'Tratar publicacao/intimacao',
+      titulo: decisao === 'gerar_prazo' ? 'Analisar prazo de publicação' : 'Tratar publicação/intimação',
       descricao: [
         `Publicacao capturada por ${valueText(current.fonte, 'fonte externa')}.`,
         `Processo ${formatCnjForAction(valueText(current.numero_cnj_limpo))}.`,
@@ -1165,7 +1165,7 @@ export async function updateGkitJurPublicacaoTratamentoAction(formData: FormData
       .select('id')
       .single()
 
-    if (tarefaResult.error || !tarefaResult.data) throw new Error(tarefaResult.error?.message ?? 'Nao foi possivel criar tarefa para a publicacao.')
+    if (tarefaResult.error || !tarefaResult.data) throw new Error(tarefaResult.error?.message ?? 'Não foi possível criar tarefa para a publicação.')
     tarefaId = String(tarefaResult.data.id)
   }
 
@@ -1620,7 +1620,7 @@ export async function validateGkitJurAgenteExecucaoAction(formData: FormData) {
     execucao_id: execucaoId,
     nivel: status === 'rejeitado' ? 'warn' : 'info',
     step: 'validacao_humana',
-    mensagem: `Validacao registrada como ${status}.`,
+    mensagem: `Validação registrada como ${status}.`,
     payload: { observacao, validado_por: context.usuario.id },
   })
 
@@ -1650,7 +1650,7 @@ export async function runGkitJurAgenteMonitoramentoAction(formData: FormData) {
     .single()
 
   if (insertResult.error || !insertResult.data) {
-    throw new Error(insertResult.error?.message ?? 'Nao foi possivel iniciar o monitoramento do agente.')
+    throw new Error(insertResult.error?.message ?? 'Não foi possível iniciar o monitoramento do agente.')
   }
 
   const execucaoId = insertResult.data.id

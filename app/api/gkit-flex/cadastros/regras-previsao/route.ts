@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Erro ao atualizar regra de previsao.' },
+      { error: error instanceof Error ? error.message : 'Erro ao atualizar regra de previsão.' },
       { status: 500 },
     );
   }

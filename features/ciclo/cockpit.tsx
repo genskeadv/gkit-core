@@ -10,8 +10,8 @@ type CockpitPanel = 'cliente' | 'onboarding' | 'documentacao' | 'ocorrencia'
 const panels: Array<{ description: string; id: CockpitPanel; label: string; title: string }> = [
   { id: 'cliente', label: '1. Cliente', title: 'Criar cliente', description: 'Cadastre a entrada operacional.' },
   { id: 'onboarding', label: '2. Onboarding', title: 'Iniciar onboarding', description: 'Crie checklist e workflow.' },
-  { id: 'documentacao', label: '3. Documentacao', title: 'Atualizar documentos', description: 'Marque checklist e datas.' },
-  { id: 'ocorrencia', label: '4. Ocorrencia', title: 'Criar ocorrencia', description: 'Registre evento e alerta.' },
+  { id: 'documentacao', label: '3. Documentação', title: 'Atualizar documentos', description: 'Marque checklist e datas.' },
+  { id: 'ocorrencia', label: '4. Ocorrência', title: 'Criar ocorrência', description: 'Registre evento e alerta.' },
 ]
 
 const tipoClienteOptions = [
@@ -45,7 +45,7 @@ function PendingDocumentClientList({ rows }: { rows: CicloListRow[] }) {
   const start = (currentPage - 1) * clientesDocumentacaoPageSize
   const visibleRows = rows.slice(start, start + clientesDocumentacaoPageSize)
 
-  if (!rows.length) return <div className="suite-empty-block">Nenhum cliente com documentacao pendente no momento.</div>
+  if (!rows.length) return <div className="suite-empty-block">Nenhum cliente com documentação pendente no momento.</div>
 
   return (
     <>
@@ -81,7 +81,7 @@ function PendingDocumentClientList({ rows }: { rows: CicloListRow[] }) {
               Anterior
             </button>
             <button disabled={currentPage === pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))} type="button">
-              Proxima
+              Próxima
             </button>
           </div>
         </div>
@@ -118,7 +118,7 @@ export function CicloCockpit({
         <div className="suite-panel-heading">
           <div>
             <h2>Ordem do fluxo</h2>
-            <p>Escolha uma etapa para abrir o formulario; por padrao, o cockpit mostra clientes com documentacao pendente.</p>
+            <p>Escolha uma etapa para abrir o formulario; por padrão, o cockpit mostra clientes com documentação pendente.</p>
           </div>
         </div>
 
@@ -207,7 +207,7 @@ export function CicloCockpit({
             <input name="temperatura" type="hidden" value="neutro" />
             <div className="module-form-wide">
               <label>
-                <span>Observacoes</span>
+                <span>Observações</span>
                 <textarea name="observacoes" />
               </label>
             </div>
@@ -231,7 +231,7 @@ export function CicloCockpit({
                 </select>
               </label>
             </div>
-            <div className="suite-empty-block module-form-wide">O onboarding cria o checklist documental e o workflow operacional padrao.</div>
+            <div className="suite-empty-block module-form-wide">O onboarding cria o checklist documental e o workflow operacional padrão.</div>
             <div className="form-actions module-form-wide">
               <CicloSubmitButton>Iniciar onboarding</CicloSubmitButton>
             </div>
@@ -277,17 +277,17 @@ export function CicloCockpit({
                     <input name={`data_renovacao_${documento.tipoDocumento}`} type="date" defaultValue={documento.dataRenovacao ?? ''} />
                   </label>
                 </article>
-              )) : <div className="suite-empty-block">Selecione um cliente para carregar os documentos padrao.</div>}
+              )) : <div className="suite-empty-block">Selecione um cliente para carregar os documentos padrão.</div>}
             </div>
 
             <div className="module-form-wide">
               <label>
-                <span>Descricao da alteracao</span>
+                <span>Descrição da alteração</span>
                 <textarea name="descricao_alteracao" required />
               </label>
             </div>
             <div className="form-actions module-form-wide">
-              <CicloSubmitButton>Atualizar documentacao</CicloSubmitButton>
+              <CicloSubmitButton>Atualizar documentação</CicloSubmitButton>
             </div>
           </form>
         ) : null}
@@ -334,7 +334,7 @@ export function CicloCockpit({
               <input name="prazo" type="date" />
             </label>
             <label>
-              <span>Responsavel</span>
+              <span>Responsável</span>
               <input name="responsavel" />
             </label>
             <label>
@@ -342,12 +342,12 @@ export function CicloCockpit({
               <input name="peso" type="number" min={1} max={10} defaultValue={1} />
             </label>
             <label className="module-form-wide">
-              <span>Titulo</span>
+              <span>Título</span>
               <input name="titulo" required />
             </label>
             <div className="module-form-wide">
               <label>
-                <span>Descricao</span>
+                <span>Descrição</span>
                 <textarea name="descricao" />
               </label>
             </div>
@@ -358,7 +358,7 @@ export function CicloCockpit({
               <span>Criar alerta para acompanhamento</span>
             </label>
             <div className="form-actions module-form-wide">
-              <CicloSubmitButton>Salvar ocorrencia</CicloSubmitButton>
+              <CicloSubmitButton>Salvar ocorrência</CicloSubmitButton>
             </div>
           </form>
         ) : null}

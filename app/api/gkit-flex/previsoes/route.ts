@@ -10,6 +10,6 @@ export async function GET(request: NextRequest) {
     const data = await getMonthlyForecast(competencia);
     return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao carregar previsoes.' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao carregar previsões.' }, { status: 500 });
   }
 }

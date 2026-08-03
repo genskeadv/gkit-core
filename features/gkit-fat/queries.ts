@@ -84,8 +84,8 @@ export function statusLabel(value: string) {
     autorizada: 'Autorizada',
     rejeitada: 'Rejeitada',
     manual_pendente: 'Manual pendente',
-    pre_nota: 'Pre-nota',
-    observacao: 'Observacao',
+    pre_nota: 'Pré-nota',
+    observacao: 'Observação',
     nao_gerar_financeiro: 'Nao gerar',
     aguardando_fiscal: 'Aguardando fiscal',
     prevista: 'Prevista',
@@ -110,7 +110,7 @@ function schemaHealth(error: any): GkitFatHealth | null {
     return {
       ok: false,
       title: 'Expor schema gkit_fat no Supabase',
-      message: 'O modulo FAT ja tem codigo, mas o schema gkit_fat ainda nao esta visivel para a API.',
+      message: 'O módulo FAT já tem código, mas o schema gkit_fat ainda não está visível para a API.',
       detail: 'Supabase > Project Settings > API > Exposed schemas: adicionar gkit_fat. Depois recarregue o app.',
     }
   }
@@ -299,10 +299,10 @@ export function validateNfsePayload(ordem: Record<string, any>, empresa?: GkitFa
   const empresaCnpj = empresa?.cnpj?.replace(/\D/g, '') ?? ''
   const tomadorDoc = text(tomador.documento).replace(/\D/g, '')
 
-  if (!empresa) erros.push('Empresa emissora nao configurada.')
+  if (!empresa) erros.push('Empresa emissora não configurada.')
   if (empresa && !empresaCnpj) erros.push('CNPJ da empresa emissora ausente.')
   if (empresa && !empresa.inscricao_municipal) alertas.push('Inscricao municipal da empresa emissora nao preenchida.')
-  if (empresa && !empresa.municipio) erros.push('Municipio da empresa emissora ausente.')
+  if (empresa && !empresa.municipio) erros.push('Município da empresa emissora ausente.')
   if (!tomadorDoc) erros.push('CPF/CNPJ do tomador ausente.')
   if (!text(tomador.razao_social) && !text(tomador.nome) && !text(tomador.nome_fantasia)) erros.push('Nome/razao social do tomador ausente.')
   if (!text(tomador.email)) alertas.push('E-mail fiscal do tomador ausente.')
@@ -494,12 +494,12 @@ export async function getGkitFatDashboard(usuario: PlatformUsuario): Promise<Gki
     cards: [
       { label: 'Contratos ativos', value: String(contratos.filter((item) => item.status === 'ativo').length), hint: `${contratos.length} contratos no modulo` },
       { label: 'MRR 03220', value: formatBRL(valorMensal), hint: 'Base mensal ativa de advocacia' },
-      { label: 'OS abertas', value: String(abertas.length), hint: 'Ainda nao faturadas/canceladas' },
-      { label: 'Pendencias fiscais', value: String(rejeitadas.length), hint: 'OS rejeitadas para correcao' },
+      { label: 'OS abertas', value: String(abertas.length), hint: 'Ainda não faturadas/canceladas' },
+      { label: 'Pendências fiscais', value: String(rejeitadas.length), hint: 'OS rejeitadas para correcao' },
     ],
     quickLinks: [
-      { href: '/modulos/gkit-fat/contratos/novo', title: 'Novo contrato', description: 'Criar contrato mensal, pontual ou cobranca para cliente do Ciclo.', label: 'Contratos' },
-      { href: '/modulos/gkit-fat/faturas', title: 'Preparar OS', description: 'Gerar ordem de servico com snapshot para NFS-e 03220.', label: 'Faturamento' },
+      { href: '/modulos/gkit-fat/contratos/novo', title: 'Novo contrato', description: 'Criar contrato mensal, pontual ou cobrança para cliente do Ciclo.', label: 'Contratos' },
+      { href: '/modulos/gkit-fat/faturas', title: 'Preparar OS', description: 'Gerar ordem de serviço com snapshot para NFS-e 03220.', label: 'Faturamento' },
       { href: '/modulos/gkit-ciclo/clientes', title: 'Cadastro do cliente', description: 'Ajustar categoria e natureza do tomador no cadastro mestre.', label: 'GKIT Ciclo' },
     ],
     contratosRecentes: contratos.slice(0, 8),

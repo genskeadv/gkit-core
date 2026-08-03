@@ -117,8 +117,8 @@ export async function CommissionsPage({ competencia }: { competencia?: string | 
       <section className="month-context-header">
         <div className="month-context-main">
           <p className="eyebrow">GKIT Flex</p>
-          <h1>Comissoes</h1>
-          <p className="muted">Previsao mensal de comissoes, detalhada por categoria e carteira.</p>
+          <h1>Comissões</h1>
+          <p className="muted">Previsão mensal de comissões, detalhada por categoria e carteira.</p>
         </div>
       </section>
       <section className="month-context-toolbar">
@@ -127,7 +127,7 @@ export async function CommissionsPage({ competencia }: { competencia?: string | 
         </div>
         <div className="month-context-side">
           <label className="field-label dashboard-month">
-            Competencia
+            Competência
             <input className="text-input" value={formatMonthLabel(competenciaInput)} disabled readOnly />
           </label>
         </div>
@@ -161,7 +161,7 @@ export async function CommissionsPage({ competencia }: { competencia?: string | 
       <section className="card">
         <div className="header-row compact-header">
           <div>
-            <h2>Previsao por colaborador</h2>
+            <h2>Previsão por colaborador</h2>
             <p className="muted small-text">Rateio 50/50 nas carteiras com dois nomes e 100% nas individuais.</p>
           </div>
         </div>
@@ -175,7 +175,7 @@ export async function CommissionsPage({ competencia }: { competencia?: string | 
                   <th>Carteira</th>
                   <th>Categoria</th>
                   <th className="text-right">Rateio</th>
-                  <th className="text-right">Comissao prevista</th>
+                  <th className="text-right">Comissão prevista</th>
                 </tr>
               </thead>
               <tbody>
@@ -192,7 +192,7 @@ export async function CommissionsPage({ competencia }: { competencia?: string | 
             </table>
           </div>
         ) : (
-          <EmptyState title="Sem rateio por colaborador" description="Ainda nao ha apuracao salva para calcular o detalhamento." />
+          <EmptyState title="Sem rateio por colaborador" description="Ainda não há apuração salva para calcular o detalhamento." />
         )}
       </section>
 
@@ -234,7 +234,7 @@ export async function CommissionsPage({ competencia }: { competencia?: string | 
             </table>
           </div>
         ) : (
-          <EmptyState title="Sem comissões previstas" description="Ainda nao ha apuracao de comissoes salva para esta competencia." />
+          <EmptyState title="Sem comissões previstas" description="Ainda não há apuração de comissões salva para esta competência." />
         )}
       </section>
     </main>

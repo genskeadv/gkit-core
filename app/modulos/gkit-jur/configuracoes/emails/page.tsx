@@ -10,7 +10,7 @@ export default async function GkitJurEmailsRoute() {
   return (
     <GkitJurShell
       active="configuracoes"
-      description="Fila, historico e registros manuais de e-mails do juridico."
+      description="Fila, histórico e registros manuais de e-mails do jurídico."
       title="E-mails"
       usuario={context.usuario}
     >

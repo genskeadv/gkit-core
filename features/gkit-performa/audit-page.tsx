@@ -121,7 +121,7 @@ export function GkitPerformaAuditPage() {
             <span className="metric-hint">fora do ranking</span>
           </article>
           <article className="metric-card">
-            <span className="metric-label">Importacao</span>
+            <span className="metric-label">Importação</span>
             <strong className="metric-value">{fmtDate(active.importedAt)}</strong>
             <span className="metric-hint">neste navegador</span>
           </article>
@@ -165,7 +165,7 @@ function AuditTable({
       <div className="gkit-performa-table-wrap">
         <table className="gkit-performa-table">
           <thead>
-            <tr><th>ATE</th><th>Linhas</th><th>Coluna E</th><th>Coluna F</th><th>Responsaveis</th><th>Executores</th></tr>
+            <tr><th>ATE</th><th>Linhas</th><th>Coluna E</th><th>Coluna F</th><th>Responsáveis</th><th>Executores</th></tr>
           </thead>
           <tbody>
             {duplicates.slice(0, 500).map((item) => (
@@ -190,7 +190,7 @@ function AuditTable({
       <div className="gkit-performa-table-wrap">
         <table className="gkit-performa-table">
           <thead>
-            <tr><th>Origem</th><th>Referencia</th><th>Tipo</th><th>Titulo</th><th>Responsavel</th><th>Motivo</th></tr>
+            <tr><th>Origem</th><th>Referência</th><th>Tipo</th><th>Título</th><th>Responsável</th><th>Motivo</th></tr>
           </thead>
           <tbody>
             {attention.slice(0, 500).map((item, index) => (
@@ -215,7 +215,7 @@ function AuditTable({
       <div className="gkit-performa-table-wrap">
         <table className="gkit-performa-table">
           <thead>
-            <tr><th>Linha</th><th>Tipo</th><th>Titulo</th><th>Atendimento</th><th>Responsavel</th><th>Motivo</th></tr>
+            <tr><th>Linha</th><th>Tipo</th><th>Título</th><th>Atendimento</th><th>Responsável</th><th>Motivo</th></tr>
           </thead>
           <tbody>
             {rows.slice(0, 500).map((row) => (
@@ -239,7 +239,7 @@ function AuditTable({
     <div className="gkit-performa-table-wrap">
       <table className="gkit-performa-table">
         <thead>
-          <tr><th>ID</th><th>Tipo</th><th>Responsavel</th><th>Executor</th><th>Prazo</th><th>Status</th><th>Linhas</th></tr>
+          <tr><th>ID</th><th>Tipo</th><th>Responsável</th><th>Executor</th><th>Prazo</th><th>Status</th><th>Linhas</th></tr>
         </thead>
         <tbody>
           {units.slice(0, 500).map((unit) => (

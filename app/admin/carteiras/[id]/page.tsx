@@ -20,7 +20,7 @@ export default async function EditarCarteiraPage({ params }: { params: Promise<{
       <form action={updateCarteiraAction} className="card grid">
         <input type="hidden" name="id" value={carteira.id} />
         <Field label="Nome" name="nome" defaultValue={carteira.nome} required />
-        <Field label="Descricao" name="descricao" defaultValue={carteira.descricao} />
+        <Field label="Descrição" name="descricao" defaultValue={carteira.descricao} />
         <Field label="Cor primaria" name="cor_primaria" defaultValue={carteira.cor_primaria} />
         <Field label="Logo URL" name="logo_url" defaultValue={carteira.logo_url} />
 

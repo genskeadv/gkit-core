@@ -43,7 +43,7 @@ export default async function TimesPage({ searchParams }: TimesPageProps) {
           <thead>
             <tr>
               <th>Nome</th>
-              <th>Area</th>
+              <th>Área</th>
               <th>Status</th>
               <th>Colaboradores</th>
               {canWrite ? <th></th> : null}

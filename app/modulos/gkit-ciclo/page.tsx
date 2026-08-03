@@ -31,7 +31,7 @@ export default async function CicloPage({
       active="cockpit"
       eyebrow="GKIT Ciclo"
       title="Fluxo operacional"
-      description="Execucao diaria do Ciclo, organizada na ordem natural da rotina de acompanhamento."
+      description="Execução diária do Ciclo, organizada na ordem natural da rotina de acompanhamento."
       usuario={context.usuario}
     >
       <CicloCockpit

@@ -337,9 +337,9 @@ function CadastroTable({
                 {tipo === 'categoria' ? <th>Centro</th> : null}
                 <th>Status</th>
                 <th className="text-right">Usos</th>
-                {showForecastRule ? <th>Previa</th> : null}
+                {showForecastRule ? <th>Prévia</th> : null}
                 <th>Aliases</th>
-                <th className="text-right">Acoes</th>
+                <th className="text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -450,7 +450,7 @@ function CommissionRulesTable({
       });
       setEditing(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar regra de comissao.');
+      setError(err instanceof Error ? err.message : 'Erro ao salvar regra de comissão.');
     }
   }
 
@@ -458,9 +458,9 @@ function CommissionRulesTable({
     <section className="card master-data-section">
       <div className="header-row compact-header">
         <div>
-          <p className="eyebrow">Comissoes</p>
+          <p className="eyebrow">Comissões</p>
           <h2>Regras por categoria</h2>
-          <p className="muted small-text">Defina quais categorias geram comissao, o redutor, o percentual e o divisor aplicados na apuracao.</p>
+          <p className="muted small-text">Defina quais categorias geram comissão, o redutor, o percentual e o divisor aplicados na apuração.</p>
         </div>
         <label className="field-label compact-filter">
           Filtrar
@@ -493,7 +493,7 @@ function CommissionRulesTable({
               <input className="text-input" inputMode="decimal" value={reductionPercent} onChange={(event) => setReductionPercent(event.target.value)} />
             </label>
             <label className="field-label">
-              Comissao %
+              Comissão %
               <input className="text-input" inputMode="decimal" value={commissionPercent} onChange={(event) => setCommissionPercent(event.target.value)} />
             </label>
             <label className="field-label">
@@ -529,10 +529,10 @@ function CommissionRulesTable({
               <th>Natureza</th>
               <th>Status</th>
               <th>Redutor</th>
-              <th>Comissao</th>
+              <th>Comissão</th>
               <th>Divisor</th>
               <th>Termos</th>
-              <th className="text-right">Acoes</th>
+              <th className="text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -655,7 +655,7 @@ export function MasterDataPage() {
             <div className="month-context-main">
               <p className="platform-kicker eyebrow">GKIT Flex</p>
               <h1>Cadastros e normalizacao</h1>
-              <p className="muted">Controle nomes canonicos de categorias, centros e carteiras. Novos nomes continuam podendo nascer pela importacao, mas agora podem ser fundidos com seguranca.</p>
+              <p className="muted">Controle nomes canonicos de categorias, centros e carteiras. Novos nomes continuam podendo nascer pela importação, mas agora podem ser fundidos com segurança.</p>
             </div>
           </div>
         </div>
@@ -663,7 +663,7 @@ export function MasterDataPage() {
 
       {error ? <div className="error">{error}</div> : null}
       {success ? <div className="success">{success}</div> : null}
-      {!data?.configured ? <div className="warning">Supabase ainda nao configurado. Configure o `.env.local` e rode o schema atualizado antes de usar os cadastros.</div> : null}
+      {!data?.configured ? <div className="warning">Supabase ainda não configurado. Configure o `.env.local` e rode o schema atualizado antes de usar os cadastros.</div> : null}
 
       <section className="grid-4 dashboard-metrics">
         <MetricCard label="Categorias" value={totals.categorias} help={plural(totals.categorias, 'nome canonico', 'nomes canonicos')} />
@@ -678,7 +678,7 @@ export function MasterDataPage() {
         centros={data?.centros || []}
         tipo="categoria"
         title="Categorias"
-        description="Categorias usadas em pagamentos e comissoes."
+        description="Categorias usadas em pagamentos e comissões."
         items={data?.categorias || []}
         showForecastRule
         savingRuleId={savingRuleId}
@@ -686,7 +686,7 @@ export function MasterDataPage() {
         onSave={saveCadastro}
       />
       <CadastroTable tipo="centro" title="Centros" description="Centros gerenciais usados em pagamentos." items={data?.centros || []} onSave={saveCadastro} />
-      <CadastroTable tipo="carteira" title="Carteiras" description="Carteiras/vendedores usados no calculo de comissoes." items={data?.carteiras || []} onSave={saveCadastro} />
+      <CadastroTable tipo="carteira" title="Carteiras" description="Carteiras/vendedores usados no cálculo de comissões." items={data?.carteiras || []} onSave={saveCadastro} />
     </main>
   );
 }

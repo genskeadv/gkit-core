@@ -21,7 +21,7 @@ export const COMMISSION_RULES: CommissionRule[] = [
   },
   {
     key: 'mensalidade_assessoria',
-    label: 'Mensalidade de Assessoria Juridica',
+    label: 'Mensalidade de Assessoria Jurídica',
     categoryMatchers: ['mensalidade de assessoria juridica', 'mensalidade de assessoria juridica', 'assessoria juridica', 'assessoria juridica'],
     reductionRate: 0.14,
     commissionRate: 0.015,
@@ -34,13 +34,13 @@ export const COMMISSION_WALLET_OVERRIDES = [
     carteira: 'Carteira Aline_Lidiane',
     commissionRate: 1,
     splitBy: 1,
-    observacao: '100% da base apos reducao',
+    observacao: '100% da base após redução',
   },
   {
     carteira: 'Carteira Vania_Lidiane',
     commissionRate: 1,
     splitBy: 1,
-    observacao: '100% da base apos reducao',
+    observacao: '100% da base após redução',
   },
 ];
 
@@ -214,10 +214,10 @@ function makeClientMaps(clientRows: ClientInputRow[]) {
   const sellerColumn = findColumn(headers, CLIENT_ALIASES.vendedor);
 
   if (!docColumn && !clientColumn) {
-    throw new Error('Nao encontrei coluna de CNPJ/CPF nem nome do cliente na planilha de clientes ativos. Confira se a planilha exportada tem cabecalho.');
+    throw new Error('Não encontrei coluna de CNPJ/CPF nem nome do cliente na planilha de clientes ativos. Confira se a planilha exportada tem cabeçalho.');
   }
   if (!sellerColumn) {
-    throw new Error('Nao encontrei a coluna de vendedor/carteira na planilha de clientes ativos. Procurei por "Vendedor (padrao)" ou "Vendedor padrao".');
+    throw new Error('Não encontrei a coluna de vendedor/carteira na planilha de clientes ativos. Procurei por "Vendedor (padrão)" ou "Vendedor padrão".');
   }
 
   const byDocument = new Map<string, string>();
@@ -313,10 +313,10 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
   const receivableRows = readFirstSheetRows(receivablesBuffer, Object.values(RECEIVABLE_ALIASES)) as ReceivableInputRow[];
 
   if (!receivableRows.length) {
-    throw new Error('Nao encontrei lancamentos na planilha de contas a receber.');
+    throw new Error('Não encontrei lançamentos na planilha de contas a receber.');
   }
   if (!clientRows.length) {
-    throw new Error('Nao encontrei clientes na planilha de clientes ativos.');
+    throw new Error('Não encontrei clientes na planilha de clientes ativos.');
   }
 
   const receivableHeaders = Object.keys(receivableRows[0] ?? {});
@@ -334,7 +334,7 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
   ].filter(([, value]) => !value).map(([name]) => name);
 
   if (missing.length) {
-    throw new Error(`Nao encontrei coluna(s) obrigatoria(s) na planilha de contas a receber: ${missing.join(', ')}.`);
+    throw new Error(`Não encontrei coluna(s) obrigatória(s) na planilha de contas a receber: ${missing.join(', ')}.`);
   }
 
   const clientMaps = makeClientMaps(clientRows);
@@ -460,7 +460,7 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
     .sort((a, b) => a.categoria.localeCompare(b.categoria) || b.valorRecebido - a.valorRecebido);
 
   if (!enrichedRows.some((row) => row.valorRecebido > 0)) {
-    throw new Error('Nao encontrei valores liquidos na planilha de contas a receber.');
+    throw new Error('Não encontrei valores líquidos na planilha de contas a receber.');
   }
 
   return { enrichedRows, summaries, collaboratorSummaries: buildCollaboratorSummaries(summaries), auditRows };
@@ -482,7 +482,7 @@ export function buildCommissionWorkbook(result: CommissionProcessResult): Buffer
   const resumo = result.summaries.map((row) => ({
     Categoria: row.categoria,
     Carteira: row.carteira,
-    'Qtde. lancamentos': row.quantidadeLancamentos,
+    'Qtde. lançamentos': row.quantidadeLancamentos,
     'Valor liquido': row.valorRecebido,
     'Reducao %': row.reducaoPercentual,
     'Valor reducao': row.valorReducao,
@@ -499,7 +499,7 @@ export function buildCommissionWorkbook(result: CommissionProcessResult): Buffer
     Colaborador: row.colaborador,
     Carteira: row.carteira,
     Categoria: row.categoria,
-    'Qtde. lancamentos': row.quantidadeLancamentos,
+    'Qtde. lançamentos': row.quantidadeLancamentos,
     'Valor liquido rateado': row.valorRecebido,
     'Valor apos reducao rateado': row.valorAposReducao,
     'Comissao carteira': row.comissaoCarteira,

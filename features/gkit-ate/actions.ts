@@ -147,7 +147,7 @@ function reserveCodigoPublico(baseIso: string | null, reservedCodes: Set<string>
     }
   }
 
-  throw new Error('Nao foi possivel gerar codigo unico para o atendimento.')
+  throw new Error('Não foi possível gerar código único para o atendimento.')
 }
 
 function moneyValue(value: string | null) {
@@ -167,7 +167,7 @@ function cleanPayload(payload: Record<string, unknown>) {
 function optionalDate(formData: FormData, key: string) {
   const value = text(formData, key)
   if (!value) return null
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('Data invalida.')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('Data inválida.')
   return value
 }
 
@@ -710,7 +710,7 @@ export async function createGkitAteAtendimentoAction(formData: FormData) {
     .select('id')
     .single()
 
-  if (saved.error || !saved.data) throw new Error(saved.error?.message ?? 'Nao foi possivel criar o atendimento.')
+  if (saved.error || !saved.data) throw new Error(saved.error?.message ?? 'Não foi possível criar o atendimento.')
 
   const atendimentoId = String(saved.data.id)
   const tarefa = await admin()
@@ -746,7 +746,7 @@ export async function createGkitAteAtendimentoAction(formData: FormData) {
 export async function createGkitAteTarefaAction(formData: FormData) {
   const context = await requireGkitAteWrite('gkit_ate.tarefas.write')
   const atendimentoId = required(text(formData, 'atendimento_id'), 'Atendimento')
-  const descricao = required(text(formData, 'descricao'), 'Descricao')
+  const descricao = required(text(formData, 'descricao'), 'Descrição')
   const tarefaTipo = await resolveTarefaTipo(formData, context.usuario.id, descricao)
 
   const { error } = await admin()
@@ -900,7 +900,7 @@ export async function completeGkitAteTarefaAction(formData: FormData) {
   }
 
   if (outrasAbertas === 0 && resolucao === 'adicionar_tarefa') {
-    const descricao = required(text(formData, 'nova_descricao'), 'Descricao da nova tarefa')
+    const descricao = required(text(formData, 'nova_descricao'), 'Descrição da nova tarefa')
     const tipoNome = text(formData, 'novo_tipo_tarefa') || descricao
     const tarefaTipo = await ensureTarefaTipo(tipoNome, context.usuario.id)
     const nextTask = await admin()

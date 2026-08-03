@@ -12,7 +12,7 @@ export async function GET() {
   } catch (error) {
     console.error('[dashboard/periodos][GET]', error);
     return Response.json(
-      { error: error instanceof Error ? error.message : 'Erro ao listar periodos.' },
+      { error: error instanceof Error ? error.message : 'Erro ao listar períodos.' },
       { status: 500 },
     );
   }

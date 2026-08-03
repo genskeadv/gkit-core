@@ -12,6 +12,6 @@ export async function POST(request: NextRequest) {
     const data = await seedMonthlyForecast(competencia, tipo as 'receitas' | 'pagamentos' | 'tudo', Boolean(payload?.overwrite));
     return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao gerar previsao.' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao gerar previsão.' }, { status: 500 });
   }
 }

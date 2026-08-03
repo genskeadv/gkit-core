@@ -92,7 +92,7 @@ function schemaHealth(error: any): GkitAteHealth | null {
     return {
       ok: false,
       title: 'Expor schema gkit_ate no Supabase',
-      message: 'O modulo ATE ja tem codigo, mas o schema gkit_ate ainda nao esta visivel para a API.',
+      message: 'O módulo ATE já tem código, mas o schema gkit_ate ainda não está visível para a API.',
       detail: 'Supabase > Project Settings > API > Exposed schemas: adicionar gkit_ate. Depois recarregue o app.',
     }
   }
@@ -101,7 +101,7 @@ function schemaHealth(error: any): GkitAteHealth | null {
     return {
       ok: false,
       title: 'Liberar grants do schema gkit_ate',
-      message: 'A API do Supabase nao tem permissao para ler o schema gkit_ate.',
+      message: 'A API do Supabase não tem permissão para ler o schema gkit_ate.',
       detail: 'Execute sql/45_gkit_ate_bootstrap.sql no SQL Editor e confirme os grants para service_role.',
     }
   }
@@ -287,9 +287,9 @@ export async function getGkitAteDashboardData(): Promise<GkitAteDashboardData> {
   return {
     cards: [
       { label: 'Atendimentos', value: String(atendimentos.length), hint: `${abertos.length} aberto(s)` },
-      { label: 'Encerrados', value: String(encerrados.length), hint: 'historico importado' },
+      { label: 'Encerrados', value: String(encerrados.length), hint: 'histórico importado' },
       { label: 'Clientes', value: String(new Set(atendimentos.map((item) => item.cliente_nome)).size), hint: 'base ASTREA' },
-      { label: 'Responsaveis', value: String(new Set(atendimentos.map((item) => item.responsavel ?? 'Sem responsavel')).size), hint: 'operacao consultiva' },
+      { label: 'Responsáveis', value: String(new Set(atendimentos.map((item) => item.responsavel ?? 'Sem responsavel')).size), hint: 'operação consultiva' },
       { label: 'Tarefas', value: String(pendentes.length), hint: `${tarefas.length} total` },
     ],
     atendimentos: atendimentoRows(atendimentos.slice(0, 8)),

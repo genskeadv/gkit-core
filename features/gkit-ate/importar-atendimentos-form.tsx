@@ -39,7 +39,7 @@ export function ImportarGkitAteAstreaForm() {
         setPreview(await previewGkitAteAstreaXlsx(formData))
         setPreviewedFile(fileKey)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Nao foi possivel pre-visualizar o arquivo.')
+        setError(err instanceof Error ? err.message : 'Não foi possível pré-visualizar o arquivo.')
       }
     })
   }
@@ -57,7 +57,7 @@ export function ImportarGkitAteAstreaForm() {
         }
         setResult(await importarGkitAteAstreaXlsx(formData))
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Nao foi possivel importar o arquivo.')
+        setError(err instanceof Error ? err.message : 'Não foi possível importar o arquivo.')
       }
     })
   }

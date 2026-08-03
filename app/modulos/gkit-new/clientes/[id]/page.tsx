@@ -17,7 +17,7 @@ export default async function EditarGkitNewClientePage({ params }: { params: Pro
       description="Atualize dados cadastrais sem alterar manualmente o status."
       usuario={context.usuario}
     >
-      <GkitNewSection title="Dados do cliente" description="CPF/CNPJ continua sendo a chave unica do cadastro.">
+      <GkitNewSection title="Dados do cliente" description="CPF/CNPJ continua sendo a chave única do cadastro.">
         <GkitNewClienteForm action={updateGkitNewClienteAction} cliente={cliente} />
       </GkitNewSection>
     </GkitNewShell>

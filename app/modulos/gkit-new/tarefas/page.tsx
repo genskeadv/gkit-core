@@ -34,7 +34,7 @@ export default async function GkitNewTarefasPage({
       <GkitNewSection title="Tarefas do workflow" description="Pendentes podem ser concluidas pelo operador ou canceladas por encerramento antecipado.">
         <GkitNewFilterBar
           fields={[
-            { label: 'Busca', name: 'q', placeholder: 'Tarefa, cliente, oportunidade ou responsavel', value: filters.q },
+            { label: 'Busca', name: 'q', placeholder: 'Tarefa, cliente, oportunidade ou responsável', value: filters.q },
             {
               label: 'Status',
               name: 'status',
@@ -48,7 +48,7 @@ export default async function GkitNewTarefasPage({
               value: filters.status,
             },
             {
-              label: 'Responsavel',
+              label: 'Responsável',
               name: 'responsavel',
               options: responsavelOptions,
               placeholder: 'Todos',
@@ -63,7 +63,7 @@ export default async function GkitNewTarefasPage({
             options: [
               { label: 'Data prevista', value: 'data' },
               { label: 'Status', value: 'status' },
-              { label: 'Responsavel', value: 'responsavel' },
+              { label: 'Responsável', value: 'responsavel' },
               { label: 'Cliente', value: 'cliente' },
             ],
             value: filters.sort,

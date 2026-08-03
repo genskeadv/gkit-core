@@ -474,7 +474,7 @@ export async function refreshGkitJurProcessSummary(processoId: string) {
     nivel === 'sem_base' || nivel === 'capa' ? { tipo: 'sincronizacao', label: 'Enriquecer base antes do resumo final.' } : null,
   ].filter(Boolean)
   const riscos = [
-    text(processo.status_monitoramento) === 'erro' ? { tipo: 'monitoramento', label: 'Ultima coleta registrou erro.' } : null,
+    text(processo.status_monitoramento) === 'erro' ? { tipo: 'monitoramento', label: 'Última coleta registrou erro.' } : null,
     successSyncCount === 0 && movementCount > 0 ? { tipo: 'historico_parcial', label: 'Há movimentações sem sincronização concluída.' } : null,
   ].filter(Boolean)
   const criterio = {

@@ -227,7 +227,7 @@ export async function saveCommissionExecution(input: SaveExecutionInput): Promis
           raw: row.raw,
         })),
       );
-      if (error) throw new Error(`Erro ao gravar lancamentos no Supabase: ${error.message}`);
+      if (error) throw new Error(`Erro ao gravar lançamentos no Supabase: ${error.message}`);
     }
   }
 
