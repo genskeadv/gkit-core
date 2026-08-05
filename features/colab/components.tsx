@@ -829,7 +829,10 @@ export function ColabProfileDetails({ data }: { data: ColabData }) {
           <UserRoundCheck aria-hidden="true" size={18} strokeWidth={2.2} />
           Dados sincronizados pelo GKIT Flex.
         </span>
-        <Link className="button secondary" href="/modulos/colab/uber">Lançar Uber</Link>
+        <div className="colab-profile-actions">
+          <Link className="button secondary" href="/alterar-senha?next=/modulos/colab/perfil">Alterar senha</Link>
+          <Link className="button secondary" href="/modulos/colab/uber">Lançar Uber</Link>
+        </div>
       </div>
     </section>
   )

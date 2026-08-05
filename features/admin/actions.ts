@@ -461,11 +461,17 @@ export async function saveUsuarioForm(formData: FormData) {
   const id = uuid(text(formData, 'id'), 'Usuário')
   const email = required(text(formData, 'email').toLowerCase(), 'E-mail')
   const nome = required(text(formData, 'nome'), 'Nome')
+  const password = text(formData, 'password')
 
   const supabase = admin()
 
+  if (password && password.length < 8) {
+    throw new Error('Nova senha provisória deve ter pelo menos 8 caracteres.')
+  }
+
   const { error: authError } = await supabase.auth.admin.updateUserById(id, {
     email,
+    ...(password ? { password } : {}),
     user_metadata: {
       nome,
       full_name: nome,
@@ -488,7 +494,7 @@ export async function saveUsuarioForm(formData: FormData) {
   await replaceRelations(id, 'usuario_app_acessos', 'app_id', ids(formData, 'apps'))
   await replaceRelations(id, 'usuario_perfis', 'perfil_id', ids(formData, 'perfis'))
 
-  await logEvent(authUser.id, 'usuario.atualizado', `Usuário atualizado: ${email}`, { id }, {
+  await logEvent(authUser.id, 'usuario.atualizado', `Usuário atualizado: ${email}`, { id, senha_redefinida: Boolean(password) }, {
     entidade_schema: 'security',
     entidade_tabela: 'usuarios',
     entidade_id: id,

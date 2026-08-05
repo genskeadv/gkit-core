@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { BrandLogo } from '@/features/shared/brand-logo'
 import { canAccess, getUsuarioPermissionCodes } from '@/lib/auth/permissions'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -10,6 +11,7 @@ export const revalidate = 0
 type LoginPageProps = {
   searchParams?: Promise<{
     error?: string
+    success?: string
     next?: string
   }>
 }
@@ -71,6 +73,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
         ) : null}
 
+        {params?.success ? (
+          <div className="alert success login-alert">
+            {params.success}
+          </div>
+        ) : null}
+
         <form action="/login/submit" className="grid" method="post">
           <input type="hidden" name="next" value={next} />
 
@@ -86,6 +94,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <button className="button" type="submit">Entrar</button>
         </form>
+
+        <div className="login-form-footer">
+          <Link href="/recuperar-senha">Esqueci minha senha</Link>
+        </div>
       </section>
     </main>
   )

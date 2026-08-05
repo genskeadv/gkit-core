@@ -39,6 +39,7 @@ export default async function EditarUsuarioPage({
         <div className="grid cols-2">
           <Field label="Nome" name="nome" defaultValue={usuario.nome} required />
           <Field label="E-mail" name="email" type="email" defaultValue={usuario.email} required />
+          <Field label="Nova senha provisória" name="password" type="password" minLength={8} />
           <Field label="Avatar URL" name="avatar_url" defaultValue={usuario.avatar_url} />
         </div>
 

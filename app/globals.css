@@ -1337,6 +1337,18 @@ textarea {
   margin-bottom: 16px;
 }
 
+.login-form-footer {
+  color: var(--gkli-muted);
+  font-size: 13px;
+  margin-top: 18px;
+  text-align: center;
+}
+
+.login-form-footer a {
+  color: var(--gkli-primary);
+  font-weight: 700;
+}
+
 .card {
   border-radius: 20px;
   padding: 16px;
@@ -1564,6 +1576,12 @@ tr:last-child td {
   border: 1px solid var(--danger-border);
   background: var(--danger-soft);
   color: #991b1b;
+}
+
+.alert.success {
+  border: 1px solid rgba(4, 120, 87, 0.2);
+  background: var(--success-soft);
+  color: var(--success);
 }
 
 .alert + form,
@@ -3965,6 +3983,13 @@ tr:last-child td {
   font-size: 13px;
   gap: 8px;
   line-height: 1.35;
+}
+
+.colab-profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .colab-empty-state {
