@@ -26451,6 +26451,12 @@ body:has(.gkit-flex-operational-shell) {
   --colab-muted: #667085;
   --colab-line: rgba(148, 163, 184, 0.2);
   --colab-soft: #f8fafc;
+  --colab-section-gap: 16px;
+  --colab-surface-pad: 16px;
+  --colab-card-pad: 14px;
+  --colab-grid-gap: 12px;
+  --colab-field-gap: 8px;
+  --colab-icon-size: 36px;
 }
 
 .colab-shell-wrap *,
@@ -26478,12 +26484,56 @@ body:has(.gkit-flex-operational-shell) {
   box-shadow: none !important;
 }
 
+.colab-shell-wrap > :where(.suite-hero-card, .colab-home-hero, .colab-action-grid, .suite-panel, .suite-split-grid, .colab-uber-overview, .suite-empty-block, .suite-empty-card) {
+  margin: 0 !important;
+}
+
+.colab-shell-wrap > :where(.suite-hero-card, .colab-home-hero, .colab-action-grid, .suite-panel, .suite-split-grid, .colab-uber-overview, .suite-empty-block, .suite-empty-card) + :where(.colab-home-hero, .colab-action-grid, .suite-panel, .suite-split-grid, .colab-uber-overview, .suite-empty-block, .suite-empty-card) {
+  margin-top: var(--colab-section-gap) !important;
+}
+
+.colab-shell-wrap :where(.suite-panel, .colab-list-panel, .colab-benefits-panel, .colab-profile-panel, .colab-uber-panel) {
+  gap: var(--colab-grid-gap) !important;
+  padding: var(--colab-surface-pad) !important;
+}
+
+.colab-shell-wrap :where(.suite-panel-heading) {
+  align-items: flex-start !important;
+  display: flex !important;
+  gap: var(--colab-grid-gap) !important;
+  justify-content: space-between !important;
+  margin: 0 !important;
+}
+
+.colab-shell-wrap :where(.suite-panel-heading h2) {
+  color: var(--colab-ink) !important;
+  font-size: 18px !important;
+  line-height: 1.2 !important;
+}
+
+.colab-shell-wrap :where(.suite-panel-heading p) {
+  color: var(--colab-muted) !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+  margin-top: 4px !important;
+}
+
+.colab-shell-wrap :where(.colab-action-grid, .colab-home-metrics, .suite-split-grid, .colab-next-list, .colab-card-list, .colab-payment-summary, .colab-commission-summary, .colab-benefit-summary, .colab-benefit-grid, .colab-profile-info-grid, .colab-profile-layout, .colab-uber-overview, .colab-uber-form, .colab-uber-flow, .colab-uber-step-grid) {
+  gap: var(--colab-grid-gap) !important;
+}
+
+.colab-shell-wrap :where(.colab-action-card, .colab-next-item, .colab-payment-card, .colab-commission-card, .colab-uber-card, .colab-benefit-card, .colab-payment-summary article, .colab-commission-summary article, .colab-benefit-summary article, .colab-profile-info-card, .colab-uber-overview article, .colab-uber-step, .suite-empty-block, .suite-empty-card) {
+  padding: var(--colab-card-pad) !important;
+}
+
 .colab-app-hero {
-  padding: 14px !important;
+  gap: var(--colab-grid-gap) !important;
+  padding: var(--colab-surface-pad) !important;
 }
 
 .colab-app-hero .suite-hero-main {
-  gap: 12px !important;
+  align-items: center !important;
+  gap: var(--colab-grid-gap) !important;
 }
 
 .colab-app-hero .suite-brand-mark {
@@ -26540,8 +26590,8 @@ body:has(.gkit-flex-operational-shell) {
   border-radius: 8px !important;
   box-shadow: none !important;
   color: var(--colab-ink) !important;
-  gap: 12px !important;
-  padding: 14px !important;
+  gap: var(--colab-grid-gap) !important;
+  padding: var(--colab-surface-pad) !important;
 }
 
 .colab-home-hero::after {
@@ -26563,11 +26613,14 @@ body:has(.gkit-flex-operational-shell) {
 }
 
 .colab-home-primary-action {
+  align-items: center !important;
   background: var(--gkli-primary) !important;
   border-radius: 8px !important;
   color: #fff !important;
   font-weight: 450 !important;
+  justify-content: center !important;
   min-height: 38px !important;
+  padding: 9px 12px !important;
 }
 
 .colab-home-balance,
@@ -26575,6 +26628,8 @@ body:has(.gkit-flex-operational-shell) {
   background: var(--colab-soft) !important;
   border-color: var(--colab-line) !important;
   border-radius: 8px !important;
+  gap: var(--colab-field-gap) !important;
+  padding: var(--colab-card-pad) !important;
 }
 
 .colab-home-balance strong,
@@ -26640,7 +26695,7 @@ body:has(.gkit-flex-operational-shell) {
 .colab-uber-card,
 .colab-benefit-card {
   background: #fff !important;
-  gap: 9px !important;
+  gap: var(--colab-grid-gap) !important;
 }
 
 .colab-action-icon,
@@ -26655,6 +26710,13 @@ body:has(.gkit-flex-operational-shell) {
   border: 1px solid var(--colab-line) !important;
   border-radius: 8px !important;
   color: var(--gkli-primary) !important;
+  height: var(--colab-icon-size) !important;
+  width: var(--colab-icon-size) !important;
+}
+
+.colab-profile-avatar {
+  height: 44px !important;
+  width: 44px !important;
 }
 
 .colab-action-grid,
@@ -26711,12 +26773,14 @@ body:has(.gkit-flex-operational-shell) {
   background: var(--colab-soft) !important;
   border: 1px solid var(--colab-line) !important;
   border-radius: 8px !important;
-  margin-bottom: 12px !important;
-  padding: 10px !important;
+  gap: var(--colab-grid-gap) !important;
+  margin: 0 !important;
+  padding: var(--colab-card-pad) !important;
 }
 
 .colab-panel-filter label {
   flex: 1 1 180px !important;
+  gap: var(--colab-field-gap) !important;
   min-width: min(100%, 180px) !important;
 }
 
@@ -26741,6 +26805,8 @@ body:has(.gkit-flex-operational-shell) {
 .colab-uber-submit-bar {
   background: #fff !important;
   border-radius: 8px !important;
+  gap: var(--colab-grid-gap) !important;
+  padding: var(--colab-card-pad) !important;
 }
 
 .colab-mobile-dock {
@@ -26795,6 +26861,10 @@ body:has(.gkit-flex-operational-shell) {
 
 @media (max-width: 760px) {
   .colab-shell-wrap {
+    --colab-section-gap: 14px;
+    --colab-surface-pad: 14px;
+    --colab-card-pad: 12px;
+    --colab-grid-gap: 10px;
     padding-bottom: 88px !important;
   }
 
@@ -26822,6 +26892,14 @@ body:has(.gkit-flex-operational-shell) {
     font-size: 16px !important;
   }
 
+  .colab-home-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .colab-home-metrics article {
+    padding: 10px 8px !important;
+  }
+
   .colab-home-hero,
   .colab-action-grid,
   .colab-payment-summary,
@@ -26844,14 +26922,14 @@ body:has(.gkit-flex-operational-shell) {
   }
 
   .colab-mobile-dock {
-    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
   }
 
   .colab-mobile-dock a {
-    font-size: 9px !important;
+    font-size: 8px !important;
     gap: 2px !important;
     line-height: 1.05 !important;
     min-height: 44px !important;
-    padding: 4px 2px !important;
+    padding: 4px 1px !important;
   }
 }
