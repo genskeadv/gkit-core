@@ -3694,6 +3694,75 @@ tr:last-child td {
   margin-top: 22px;
 }
 
+.colab-uber-flow {
+  align-items: stretch;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.76fr);
+}
+
+.colab-uber-step {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.colab-uber-step header {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.colab-uber-step header > span {
+  align-items: center;
+  background: #f6f2f7;
+  border: 1px solid rgba(53, 27, 64, 0.14);
+  border-radius: 999px;
+  color: #351b40;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 900;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.colab-uber-step header strong {
+  color: #162033;
+  display: block;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.colab-uber-step header small {
+  color: #64748b;
+  display: block;
+  font-size: 12px;
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.colab-uber-step-main,
+.colab-uber-step-description,
+.colab-uber-submit-bar {
+  grid-column: 1;
+}
+
+.colab-uber-step-receipt {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.colab-uber-step-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 0.42fr) minmax(130px, 0.42fr);
+}
+
 .colab-uber-field {
   display: grid;
   gap: 8px;
@@ -3724,6 +3793,35 @@ tr:last-child td {
   outline: none;
 }
 
+.colab-uber-input-shell {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(100, 116, 139, 0.32);
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.colab-uber-input-shell svg {
+  color: #64748b;
+  flex: 0 0 auto;
+}
+
+.colab-uber-input-shell input {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+}
+
+.colab-uber-input-shell:focus-within {
+  border-color: var(--gkli-primary);
+  box-shadow: 0 0 0 3px rgba(53, 27, 64, 0.12);
+}
+
 .colab-uber-field input[type="file"] {
   align-content: center;
   padding: 8px 10px;
@@ -3740,10 +3838,137 @@ tr:last-child td {
   grid-column: 1 / -1;
 }
 
+.colab-uber-dropzone {
+  align-items: center;
+  background:
+    linear-gradient(180deg, rgba(246, 242, 247, 0.7), rgba(255, 255, 255, 0.96)),
+    #fff;
+  border: 1px dashed rgba(53, 27, 64, 0.28);
+  border-radius: 16px;
+  color: #351b40;
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  min-height: 176px;
+  padding: 18px;
+  position: relative;
+  text-align: center;
+}
+
+.colab-uber-dropzone input {
+  cursor: pointer;
+  inset: 0;
+  opacity: 0;
+  position: absolute;
+}
+
+.colab-uber-dropzone-icon {
+  align-items: center;
+  background: #351b40;
+  border-radius: 16px;
+  color: #fff;
+  display: inline-flex;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
+.colab-uber-dropzone strong {
+  color: #162033;
+  font-size: 15px;
+}
+
+.colab-uber-dropzone small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.colab-receipt-preview {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  padding: 10px;
+}
+
+.colab-receipt-preview-media {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  color: #351b40;
+  display: flex;
+  height: 72px;
+  justify-content: center;
+  overflow: hidden;
+  width: 72px;
+}
+
+.colab-receipt-preview-media img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.colab-receipt-preview div:nth-child(2) {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.colab-receipt-preview div:nth-child(2) span {
+  align-items: center;
+  color: #64748b;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 5px;
+}
+
+.colab-receipt-preview strong {
+  color: #162033;
+  font-size: 13px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.colab-receipt-preview small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.colab-receipt-preview button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  color: #64748b;
+  cursor: pointer;
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
 .colab-uber-actions {
   display: flex;
   grid-column: 1 / -1;
   justify-content: flex-end;
+}
+
+.colab-uber-submit-bar {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px;
 }
 
 .colab-uber-actions .button {
@@ -3804,14 +4029,45 @@ tr:last-child td {
     grid-template-columns: 1fr;
   }
 
+  .colab-uber-step-main,
+  .colab-uber-step-description,
+  .colab-uber-step-receipt,
+  .colab-uber-submit-bar {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .colab-uber-step-grid {
+    grid-template-columns: 1fr;
+  }
+
   .colab-uber-field-client,
   .colab-uber-field-description,
   .colab-uber-field-receipt {
     grid-column: auto;
   }
 
+  .colab-uber-dropzone {
+    min-height: 142px;
+  }
+
+  .colab-receipt-preview {
+    grid-template-columns: 58px minmax(0, 1fr) auto;
+  }
+
+  .colab-receipt-preview-media {
+    height: 58px;
+    width: 58px;
+  }
+
   .colab-uber-actions {
     justify-content: stretch;
+  }
+
+  .colab-uber-submit-bar {
+    bottom: 82px;
+    position: sticky;
+    z-index: 5;
   }
 
   .colab-uber-actions .button,

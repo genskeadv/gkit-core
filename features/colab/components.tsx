@@ -9,12 +9,12 @@ import {
   Home,
   ReceiptText,
   SlidersHorizontal,
-  UploadCloud,
   WalletCards,
   type LucideIcon,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { ColabData, ColabUberData } from '@/features/colab/types'
+import { ColabUberExpenseForm } from '@/features/colab/uber-expense-form'
 import { BrandLogo } from '@/features/shared/brand-logo'
 import type { PlatformUsuario } from '@/lib/auth/platform'
 
@@ -534,39 +534,7 @@ export function ColabUberExpenses({
             <h2>Lançar despesa</h2>
           </div>
         </div>
-        <form action={action} className="colab-uber-form">
-          <label className="colab-uber-field colab-uber-field-client">
-            <span>Cliente Ciclo</span>
-            <select name="cliente_id" required>
-              <option value="">Selecione</option>
-              {data.clients.map((client) => (
-                <option key={client.id} value={client.id}>{client.label}{client.meta ? ` - ${client.meta}` : ''}</option>
-              ))}
-            </select>
-          </label>
-          <label className="colab-uber-field">
-            <span>Data</span>
-            <input name="data_despesa" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required />
-          </label>
-          <label className="colab-uber-field">
-            <span>Valor</span>
-            <input name="valor" inputMode="decimal" placeholder="0,00" required />
-          </label>
-          <label className="colab-uber-field colab-uber-field-receipt">
-            <span>Recibo Uber</span>
-            <input name="recibo" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" required />
-          </label>
-          <label className="colab-uber-field colab-uber-field-description">
-            <span>Descrição</span>
-            <textarea name="descricao" rows={3} placeholder="Ex.: ida ao cliente para assembleia / protocolo / reunião" required />
-          </label>
-          <div className="colab-uber-actions">
-            <button className="button" type="submit">
-              <UploadCloud aria-hidden="true" size={17} strokeWidth={2.2} />
-              Enviar despesa
-            </button>
-          </div>
-        </form>
+        <ColabUberExpenseForm action={action} clients={data.clients} />
       </section>
 
       <section className="card suite-panel colab-list-panel">
