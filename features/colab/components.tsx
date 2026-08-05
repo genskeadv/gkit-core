@@ -386,31 +386,121 @@ export function ColabPayments({
   )
 }
 
-export function ColabCommissions({ data }: { data: ColabData }) {
+export function ColabCommissions({
+  data,
+  referenceFilter = 'todos',
+  showFilters = true,
+  statusFilter = 'todos',
+}: {
+  data: ColabData
+  referenceFilter?: string
+  showFilters?: boolean
+  statusFilter?: string
+}) {
+  const statusOptions = Array.from(new Set(data.commissions.map((commission) => commission.status))).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  const referenceOptions = Array.from(new Set(data.commissions.map((commission) => commission.reference))).sort((a, b) => b.localeCompare(a, 'pt-BR'))
+  const commissions = data.commissions.filter((commission) => {
+    const matchesStatus = statusFilter === 'todos' || commission.status === statusFilter
+    const matchesReference = referenceFilter === 'todos' || commission.reference === referenceFilter
+    return matchesStatus && matchesReference
+  })
+  const hasFilter = statusFilter !== 'todos' || referenceFilter !== 'todos'
+  const totalAmount = commissions.reduce((sum, commission) => sum + commission.amount, 0)
+  const totalBase = commissions.reduce((sum, commission) => sum + commission.baseAmount, 0)
+  const clients = new Set(commissions.map((commission) => commission.client)).size
+
   return (
     <section className="card suite-panel colab-list-panel">
-      <div className="suite-panel-heading">
-        <div>
-          <h2>Comissões</h2>
+      {showFilters ? (
+        <form action="/modulos/colab/comissoes" className="colab-panel-filter colab-commission-filter">
+          <div className="colab-filter-title">
+            <SlidersHorizontal aria-hidden="true" size={18} strokeWidth={2.2} />
+            <strong>Filtrar comissões</strong>
+          </div>
+          <label>
+            <span>Status</span>
+            <select name="status" defaultValue={statusFilter}>
+              <option value="todos">Todos</option>
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>{readableStatus(status)}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Competência</span>
+            <select name="competencia" defaultValue={referenceFilter}>
+              <option value="todos">Todas</option>
+              {referenceOptions.map((reference) => (
+                <option key={reference} value={reference}>{reference}</option>
+              ))}
+            </select>
+          </label>
+          <button className="button" type="submit">Filtrar</button>
+          {hasFilter ? <Link className="button secondary" href="/modulos/colab/comissoes">Limpar</Link> : null}
+        </form>
+      ) : (
+        <div className="suite-panel-heading">
+          <div>
+            <h2>Comissões recentes</h2>
+          </div>
+          <Link className="colab-panel-link" href="/modulos/colab/comissoes">Ver todas</Link>
         </div>
-      </div>
+      )}
+
+      {showFilters ? (
+        <div className="colab-commission-summary">
+          <article>
+            <span>Total filtrado</span>
+            <strong>{currency(totalAmount)}</strong>
+          </article>
+          <article>
+            <span>Base</span>
+            <strong>{currency(totalBase)}</strong>
+          </article>
+          <article>
+            <span>Clientes</span>
+            <strong>{String(clients)}</strong>
+          </article>
+        </div>
+      ) : null}
+
       <div className="colab-card-list">
-        {data.commissions.map((commission) => (
-          <article className="colab-commission-card" key={commission.id}>
-            <div className="colab-list-main">
-              <h3>{commission.reference}</h3>
-              <p>{commission.client} - {commission.category}</p>
-            </div>
-            <span className={`suite-pill ${pillTone(commission.status)}`}>{readableStatus(commission.status)}</span>
-            <strong className="colab-card-amount">{currency(commission.amount)}</strong>
+        {commissions.map((commission, index) => (
+          <details className="colab-commission-card colab-commission-detail-card" key={commission.id} open={showFilters && index === 0}>
+            <summary>
+              <div className="colab-list-main">
+                <h3>{commission.reference}</h3>
+                <p>{commission.client} - {commission.category}</p>
+              </div>
+              <span className={`suite-pill ${pillTone(commission.status)}`}>{readableStatus(commission.status)}</span>
+              <strong className="colab-card-amount">{currency(commission.amount)}</strong>
+            </summary>
             <div className="colab-card-meta">
               <span>Base {currency(commission.baseAmount)}</span>
               <span>{commission.percentage}%</span>
               <span>{commission.paidAt ? `Pago em ${new Date(commission.paidAt).toLocaleDateString('pt-BR')}` : 'Aguardando pagamento'}</span>
             </div>
-          </article>
+            <div className="colab-commission-drilldown">
+              <span>
+                <small>Cliente</small>
+                <strong>{commission.client}</strong>
+              </span>
+              <span>
+                <small>Categoria</small>
+                <strong>{commission.category}</strong>
+              </span>
+              <span>
+                <small>Origem</small>
+                <strong>{commission.origin}</strong>
+              </span>
+              <span>
+                <small>Criada em</small>
+                <strong>{new Date(commission.createdAt).toLocaleDateString('pt-BR')}</strong>
+              </span>
+            </div>
+          </details>
         ))}
-        {!data.commissions.length ? <EmptyBlock label="Nenhuma comissão encontrada." /> : null}
+        {!commissions.length ? <EmptyBlock label={hasFilter ? 'Nenhuma comissão encontrada para o filtro.' : 'Nenhuma comissão encontrada.'} /> : null}
       </div>
     </section>
   )

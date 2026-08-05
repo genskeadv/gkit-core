@@ -18,7 +18,7 @@ export default async function ColabPage() {
       <ColabActionCenter data={data} />
       <section className="suite-split-grid">
         <ColabPayments data={{ ...data, payments: data.payments.slice(0, 5) }} showFilters={false} />
-        <ColabCommissions data={{ ...data, commissions: data.commissions.slice(0, 5) }} />
+        <ColabCommissions data={{ ...data, commissions: data.commissions.slice(0, 5) }} showFilters={false} />
       </section>
     </ColabShell>
   )
