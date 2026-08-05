@@ -1,6 +1,6 @@
 :root {
-  --gkli-primary: #33253b;
-  --gkli-primary-hover: #261b2d;
+  --gkli-primary: #351b40;
+  --gkli-primary-hover: #291531;
   --gkli-primary-soft: #f6f2f7;
   --gkli-primary-border: #ded2e5;
   --gkli-bg: #f8fafc;
@@ -3281,8 +3281,8 @@ tr:last-child td {
 
 .colab-home-hero {
   background:
-    linear-gradient(135deg, rgba(76, 40, 91, 0.96), rgba(30, 64, 175, 0.88)),
-    #2f173c;
+    linear-gradient(135deg, rgba(53, 27, 64, 0.98), rgba(30, 64, 175, 0.88)),
+    #351b40;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 20px;
   box-shadow: 0 24px 58px rgba(33, 24, 43, 0.22);
@@ -3335,7 +3335,7 @@ tr:last-child td {
   align-items: center;
   background: #fff;
   border-radius: 999px;
-  color: #33253b;
+  color: #351b40;
   display: inline-flex;
   font-size: 14px;
   font-weight: 800;
@@ -3439,7 +3439,7 @@ tr:last-child td {
   align-items: center;
   background: #f4f7fb;
   border-radius: 12px;
-  color: #4c285b;
+  color: #351b40;
   display: inline-flex;
   height: 38px;
   justify-content: center;
@@ -3520,13 +3520,13 @@ tr:last-child td {
 }
 
 .colab-next-item em {
-  color: #4c285b;
+  color: #351b40;
   font-style: normal;
   font-weight: 800;
 }
 
 .colab-card-amount {
-  color: #33253b;
+  color: #351b40;
   font-size: 18px;
   line-height: 1.1;
   text-align: right;
@@ -3552,7 +3552,7 @@ tr:last-child td {
 }
 
 .colab-panel-link {
-  color: #4c285b;
+  color: #351b40;
   font-size: 13px;
   font-weight: 800;
   text-decoration: none;
@@ -3560,7 +3560,7 @@ tr:last-child td {
 
 .colab-filter-title {
   align-items: center;
-  color: #33253b;
+  color: #351b40;
   display: inline-flex;
   gap: 8px;
   min-height: 42px;
@@ -3597,7 +3597,7 @@ tr:last-child td {
 }
 
 .colab-benefit-card > strong {
-  color: #4c285b;
+  color: #351b40;
   grid-column: 2;
 }
 
@@ -3629,7 +3629,7 @@ tr:last-child td {
   align-items: center;
   background: #f4f7fb;
   border-radius: 16px;
-  color: #4c285b;
+  color: #351b40;
   display: inline-flex;
   height: 52px;
   justify-content: center;
@@ -3720,7 +3720,7 @@ tr:last-child td {
 
 .colab-uber-field :is(input, select, textarea):focus {
   border-color: var(--gkli-primary);
-  box-shadow: 0 0 0 3px rgba(76, 40, 91, 0.12);
+  box-shadow: 0 0 0 3px rgba(53, 27, 64, 0.12);
   outline: none;
 }
 
@@ -3790,7 +3790,7 @@ tr:last-child td {
 
 .colab-panel-filter select:focus {
   border-color: var(--gkli-primary);
-  box-shadow: 0 0 0 3px rgba(76, 40, 91, 0.12);
+  box-shadow: 0 0 0 3px rgba(53, 27, 64, 0.12);
   outline: none;
 }
 
@@ -4456,8 +4456,8 @@ tr:last-child td {
 }
 
 :where(.platform-brand-mark, .suite-brand-mark, .module-page-brand, .module-sidebar-mark, .login-mark, .sidebar-mark) {
-  background: linear-gradient(135deg, #33253b 0%, #55415f 100%);
-  box-shadow: 0 14px 30px rgba(51, 37, 59, 0.16);
+  background: linear-gradient(135deg, #351b40 0%, #5a3267 100%);
+  box-shadow: 0 14px 30px rgba(53, 27, 64, 0.16);
 }
 
 :where(.button, .module-action) {
