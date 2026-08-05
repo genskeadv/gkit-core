@@ -3403,7 +3403,7 @@ tr:last-child td {
 }
 
 .colab-action-card {
-  align-items: center;
+  align-items: start;
   background: #fff;
   border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 16px;
@@ -3469,6 +3469,64 @@ tr:last-child td {
 
 .colab-action-arrow {
   color: #94a3b8;
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.colab-action-card .suite-pill {
+  grid-column: 2 / -1;
+  justify-self: start;
+}
+
+.colab-ready-state {
+  align-items: center;
+  background: linear-gradient(135deg, rgba(53, 27, 64, 0.06), rgba(255, 255, 255, 0.96));
+  border: 1px solid rgba(53, 27, 64, 0.12);
+  border-radius: 16px;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.colab-ready-state > div {
+  align-items: center;
+  display: grid;
+  gap: 5px 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.colab-ready-state > div > span {
+  align-items: center;
+  background: #351b40;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  grid-row: 1 / span 2;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.colab-ready-state strong {
+  color: #162033;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.colab-ready-state p {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.colab-ready-state .button {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .colab-next-panel .suite-panel-heading {
@@ -5850,6 +5908,19 @@ tr:last-child td {
 
   .colab-action-card {
     min-height: 88px;
+  }
+
+  .colab-action-card .suite-pill {
+    grid-column: 1 / -1;
+  }
+
+  .colab-ready-state {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .colab-ready-state .button {
+    width: 100%;
   }
 
   .colab-next-item,

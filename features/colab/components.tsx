@@ -14,6 +14,7 @@ import {
   Home,
   Mail,
   Phone,
+  PlusCircle,
   ReceiptText,
   SlidersHorizontal,
   UserRoundCheck,
@@ -228,26 +229,29 @@ export function ColabIntegrationStatus({ data }: { data: ColabData }) {
 export function ColabFinancialSummary({ data }: { data: ColabData }) {
   const actions = [
     {
-      detail: plural(data.summary.pendingPayments, 'pendente', 'pendentes'),
+      detail: data.summary.pendingPayments ? plural(data.summary.pendingPayments, 'pendente', 'pendentes') : 'demonstrativos em dia',
       href: '/modulos/colab/pagamentos',
       icon: WalletCards,
       label: 'Pagamentos',
+      status: data.summary.pendingPayments ? 'pendente' : 'pago',
       tone: 'blue',
       value: currency(data.summary.latestPayment),
     },
     {
-      detail: 'lançar e acompanhar',
+      detail: data.summary.pendingUberExpenses ? plural(data.summary.pendingUberExpenses, 'em aberto', 'em aberto') : 'lançar nova despesa',
       href: '/modulos/colab/uber',
       icon: CarFront,
       label: 'Uber',
+      status: data.summary.pendingUberExpenses ? 'pendente' : 'ativo',
       tone: 'green',
       value: String(data.summary.pendingUberExpenses),
     },
     {
-      detail: `${currency(data.summary.paidCommissions)} pagas`,
+      detail: data.summary.openCommissions ? 'em acompanhamento' : `${currency(data.summary.paidCommissions)} pagas`,
       href: '/modulos/colab/comissoes',
       icon: Banknote,
       label: 'Comissões',
+      status: data.summary.openCommissions ? 'em_conferencia' : 'paga',
       tone: 'gold',
       value: currency(data.summary.openCommissions),
     },
@@ -256,6 +260,7 @@ export function ColabFinancialSummary({ data }: { data: ColabData }) {
       href: '/modulos/colab/beneficios',
       icon: Gift,
       label: 'Benefícios',
+      status: data.benefits.length ? 'ativo' : 'pendente',
       tone: 'violet',
       value: String(data.benefits.length),
     },
@@ -273,6 +278,7 @@ export function ColabFinancialSummary({ data }: { data: ColabData }) {
             <strong>{action.value}</strong>
             <em>{action.detail}</em>
           </span>
+          <span className={`suite-pill ${pillTone(action.status)}`}>{readableStatus(action.status)}</span>
           <ChevronRight aria-hidden="true" className="colab-action-arrow" size={18} strokeWidth={2.2} />
         </Link>
       ))}
@@ -355,10 +361,18 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
           ))}
         </div>
       ) : (
-        <div className="suite-empty-block success colab-empty-state">
-          <CheckCircle2 aria-hidden="true" size={20} strokeWidth={2.2} />
-          <strong>Tudo em dia</strong>
-          <span>Nenhuma pendência financeira publicada para este colaborador.</span>
+        <div className="colab-ready-state">
+          <div>
+            <span>
+              <CheckCircle2 aria-hidden="true" size={20} strokeWidth={2.2} />
+            </span>
+            <strong>Tudo em dia</strong>
+            <p>Nenhuma pendência financeira publicada para este colaborador.</p>
+          </div>
+          <Link className="button secondary" href="/modulos/colab/uber">
+            <PlusCircle aria-hidden="true" size={17} strokeWidth={2.2} />
+            Lançar Uber
+          </Link>
         </div>
       )}
     </section>
