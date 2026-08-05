@@ -107,7 +107,7 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
   },
   colab: {
     nome: 'GKIT Colab',
-    descricao: 'Portal individual de colaboradores, pagamentos, comissões e documentos.',
+    descricao: 'Portal individual de colaboradores, pagamentos, comissões, benefícios e reembolsos.',
     area: 'Portal do colaborador',
     href: '/modulos/colab',
   },

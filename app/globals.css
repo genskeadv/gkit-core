@@ -3665,10 +3665,47 @@ tr:last-child td {
   min-height: 42px;
 }
 
+.colab-benefits-panel {
+  gap: 16px;
+}
+
 .colab-benefit-grid {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.colab-benefit-summary {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.colab-benefit-summary article,
+.colab-profile-info-card {
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 13px;
+}
+
+.colab-benefit-summary span,
+.colab-profile-info-card small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.colab-benefit-summary strong,
+.colab-profile-info-card strong {
+  color: #162033;
+  font-size: 18px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .colab-benefit-card {
@@ -3695,9 +3732,23 @@ tr:last-child td {
   margin: 0;
 }
 
-.colab-benefit-card > strong {
-  color: #351b40;
+.colab-benefit-meta {
+  align-items: end;
+  display: grid;
+  gap: 5px;
   grid-column: 2;
+}
+
+.colab-benefit-meta span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.colab-benefit-meta strong {
+  color: #351b40;
+  font-size: 16px;
+  line-height: 1.15;
 }
 
 .colab-profile-panel {
@@ -3714,7 +3765,7 @@ tr:last-child td {
   color: #162033;
   font-size: 23px;
   line-height: 1.15;
-  margin: 0;
+  margin: 8px 0 0;
 }
 
 .colab-profile-head p {
@@ -3730,9 +3781,45 @@ tr:last-child td {
   border-radius: 16px;
   color: #351b40;
   display: inline-flex;
+  flex: 0 0 auto;
   height: 52px;
   justify-content: center;
   width: 52px;
+}
+
+.colab-profile-info-grid,
+.colab-profile-layout {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.colab-profile-info-card {
+  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.colab-profile-info-card > span {
+  align-items: center;
+  background: rgba(53, 27, 64, 0.08);
+  border-radius: 12px;
+  color: #351b40;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.colab-profile-section {
+  display: grid;
+  gap: 10px;
+}
+
+.colab-profile-section > h3 {
+  color: #162033;
+  font-size: 15px;
+  line-height: 1.2;
+  margin: 0;
 }
 
 .colab-profile-benefits {
@@ -3742,23 +3829,44 @@ tr:last-child td {
   padding-top: 16px;
 }
 
-.colab-profile-benefits > strong {
+.colab-profile-benefits-title {
+  align-items: center;
   color: #162033;
+  display: inline-flex;
+  gap: 10px;
 }
 
-.colab-profile-benefits > div {
+.colab-profile-benefits > div:last-child {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.colab-profile-benefits span {
+.colab-profile-benefits > div:last-child span {
   background: #f8fafc;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 999px;
   color: #52647d;
   font-size: 12px;
   padding: 6px 10px;
+}
+
+.colab-profile-footer {
+  align-items: center;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding-top: 16px;
+}
+
+.colab-profile-footer > span {
+  align-items: center;
+  color: #64748b;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 8px;
+  line-height: 1.35;
 }
 
 .colab-empty-state {
@@ -5598,8 +5706,36 @@ tr:last-child td {
     grid-template-columns: 1fr;
   }
 
+  .colab-benefit-summary,
+  .colab-profile-info-grid,
+  .colab-profile-layout {
+    grid-template-columns: 1fr;
+  }
+
   .colab-benefit-card {
     grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .colab-benefit-meta {
+    grid-column: 1 / -1;
+  }
+
+  .colab-profile-head {
+    align-items: flex-start;
+  }
+
+  .colab-profile-head h2 {
+    font-size: 21px;
+  }
+
+  .colab-profile-footer {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .colab-profile-footer .button {
+    justify-content: center;
+    width: 100%;
   }
 
   .suite-panel-heading h2 {
@@ -5651,7 +5787,7 @@ tr:last-child td {
     right: 12px;
     bottom: 12px;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 4px;
     border: 1px solid rgba(148, 163, 184, 0.26);
     border-radius: 18px;
@@ -5667,7 +5803,7 @@ tr:last-child td {
     place-items: center;
     border-radius: 13px;
     color: #64748b;
-    font-size: 11px;
+    font-size: 10px;
     line-height: 1.05;
     padding: 4px 3px;
     text-align: center;

@@ -1,14 +1,19 @@
 import Link from 'next/link'
 import {
   Banknote,
+  BriefcaseBusiness,
+  CalendarDays,
   CarFront,
   CheckCircle2,
   ChevronRight,
   CircleUserRound,
   Gift,
   Home,
+  Mail,
+  Phone,
   ReceiptText,
   SlidersHorizontal,
+  UserRoundCheck,
   WalletCards,
   type LucideIcon,
 } from 'lucide-react'
@@ -25,6 +30,7 @@ const tabs: Array<{ id: ColabTab; href: string; icon: LucideIcon; label: string 
   { id: 'pagamentos', href: '/modulos/colab/pagamentos', icon: WalletCards, label: 'Pagamentos' },
   { id: 'uber', href: '/modulos/colab/uber', icon: CarFront, label: 'Uber' },
   { id: 'comissoes', href: '/modulos/colab/comissoes', icon: Banknote, label: 'Comissões' },
+  { id: 'beneficios', href: '/modulos/colab/beneficios', icon: Gift, label: 'Benefícios' },
   { id: 'perfil', href: '/modulos/colab/perfil', icon: CircleUserRound, label: 'Perfil' },
 ]
 
@@ -197,7 +203,7 @@ export function ColabFinancialSummary({ data }: { data: ColabData }) {
     },
     {
       detail: 'ativos no cadastro',
-      href: '/modulos/colab/perfil',
+      href: '/modulos/colab/beneficios',
       icon: Gift,
       label: 'Benefícios',
       tone: 'violet',
@@ -506,23 +512,136 @@ export function ColabCommissions({
   )
 }
 
-export function ColabBenefits({ data }: { data: ColabData }) {
+export function ColabBenefits({
+  data,
+  providerFilter = 'todos',
+  statusFilter = 'todos',
+}: {
+  data: ColabData
+  providerFilter?: string
+  statusFilter?: string
+}) {
+  const statusOptions = Array.from(new Set(data.benefits.map((benefit) => benefit.status))).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  const providerOptions = Array.from(new Set(data.benefits.map((benefit) => benefit.provider))).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  const benefits = data.benefits.filter((benefit) => {
+    const matchesStatus = statusFilter === 'todos' || benefit.status === statusFilter
+    const matchesProvider = providerFilter === 'todos' || benefit.provider === providerFilter
+    return matchesStatus && matchesProvider
+  })
+  const hasFilter = statusFilter !== 'todos' || providerFilter !== 'todos'
+  const activeBenefits = data.benefits.filter((benefit) => benefit.status === 'ativo').length
+  const monthlyTotal = data.benefits.reduce((sum, benefit) => sum + benefit.monthlyValue, 0)
+  const providerTotal = new Set(data.benefits.map((benefit) => benefit.provider)).size
+
   return (
-    <section className="colab-benefit-grid">
-      {data.benefits.map((benefit) => (
-        <article className="colab-benefit-card" key={benefit.id}>
-          <span className="colab-benefit-icon">
-            <Gift aria-hidden="true" size={18} strokeWidth={2.2} />
-          </span>
-          <div>
-            <span className={`suite-pill ${pillTone(benefit.status)}`}>{readableStatus(benefit.status)}</span>
-            <h2>{benefit.name}</h2>
-            <p>{benefit.description}</p>
-          </div>
-          <strong>{benefit.monthlyValue ? currency(benefit.monthlyValue) : benefit.provider}</strong>
+    <section className="card suite-panel colab-benefits-panel">
+      <form action="/modulos/colab/beneficios" className="colab-panel-filter colab-benefit-filter">
+        <div className="colab-filter-title">
+          <SlidersHorizontal aria-hidden="true" size={18} strokeWidth={2.2} />
+          <strong>Filtrar benefícios</strong>
+        </div>
+        <label>
+          <span>Status</span>
+          <select name="status" defaultValue={statusFilter}>
+            <option value="todos">Todos</option>
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>{readableStatus(status)}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Provedor</span>
+          <select name="provedor" defaultValue={providerFilter}>
+            <option value="todos">Todos</option>
+            {providerOptions.map((provider) => (
+              <option key={provider} value={provider}>{provider}</option>
+            ))}
+          </select>
+        </label>
+        <button className="button" type="submit">Filtrar</button>
+        {hasFilter ? <Link className="button secondary" href="/modulos/colab/beneficios">Limpar</Link> : null}
+      </form>
+
+      <div className="colab-benefit-summary">
+        <article>
+          <span>Ativos</span>
+          <strong>{String(activeBenefits)}</strong>
         </article>
-      ))}
-      {!data.benefits.length ? <EmptyBlock label="Nenhum benefício cadastrado no GKIT Flex." /> : null}
+        <article>
+          <span>Valor mensal</span>
+          <strong>{monthlyTotal ? currency(monthlyTotal) : '-'}</strong>
+        </article>
+        <article>
+          <span>Provedores</span>
+          <strong>{String(providerTotal)}</strong>
+        </article>
+      </div>
+
+      <div className="colab-benefit-grid">
+        {benefits.map((benefit) => (
+          <article className="colab-benefit-card" key={benefit.id}>
+            <span className="colab-benefit-icon">
+              <Gift aria-hidden="true" size={18} strokeWidth={2.2} />
+            </span>
+            <div>
+              <span className={`suite-pill ${pillTone(benefit.status)}`}>{readableStatus(benefit.status)}</span>
+              <h2>{benefit.name}</h2>
+              <p>{benefit.description}</p>
+            </div>
+            <div className="colab-benefit-meta">
+              <span>{benefit.provider}</span>
+              <strong>{benefit.monthlyValue ? currency(benefit.monthlyValue) : 'Sem valor informado'}</strong>
+            </div>
+          </article>
+        ))}
+        {!benefits.length ? <EmptyBlock label={hasFilter ? 'Nenhum benefício encontrado para o filtro.' : 'Nenhum benefício cadastrado no GKIT Flex.'} /> : null}
+      </div>
+    </section>
+  )
+}
+
+function ProfileInfoCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+}) {
+  return (
+    <article className="colab-profile-info-card">
+      <span>
+        <Icon aria-hidden="true" size={17} strokeWidth={2.2} />
+      </span>
+      <div>
+        <small>{label}</small>
+        <strong>{value || '-'}</strong>
+      </div>
+    </article>
+  )
+}
+
+function ProfileSection({
+  rows,
+  title,
+}: {
+  rows: Array<{ label: string; value: string }>
+  title: string
+}) {
+  return (
+    <section className="colab-profile-section">
+      <h3>{title}</h3>
+      <div className="suite-table-list compact">
+        {rows.map((row) => (
+          <article key={row.label}>
+            <div>
+              <h3>{row.label}</h3>
+              <p>{row.value || '-'}</p>
+            </div>
+          </article>
+        ))}
+      </div>
     </section>
   )
 }
@@ -539,15 +658,19 @@ export function ColabProfileDetails({ data }: { data: ColabData }) {
     )
   }
 
-  const rows = [
+  const admissionDate = new Date(collaborator.admissionDate).toLocaleDateString('pt-BR')
+  const contactRows = [
     { label: 'E-mail', value: collaborator.email },
     { label: 'Telefone', value: collaborator.phone },
+  ]
+  const workRows = [
     { label: 'Cargo', value: collaborator.role },
     { label: 'Time', value: collaborator.department },
     { label: 'Gestor', value: collaborator.manager },
-    { label: 'Admissão', value: new Date(collaborator.admissionDate).toLocaleDateString('pt-BR') },
-    { label: 'Status', value: collaborator.status },
+    { label: 'Admissão', value: admissionDate },
+    { label: 'Status', value: readableStatus(collaborator.status) },
   ]
+  const activeBenefits = data.benefits.filter((benefit) => benefit.status === 'ativo')
 
   return (
     <section className="card suite-panel colab-profile-panel">
@@ -556,28 +679,45 @@ export function ColabProfileDetails({ data }: { data: ColabData }) {
           <CircleUserRound aria-hidden="true" size={24} strokeWidth={2.1} />
         </span>
         <div>
+          <span className={`suite-pill ${pillTone(collaborator.status)}`}>{readableStatus(collaborator.status)}</span>
           <h2>{collaborator.name}</h2>
           <p>{collaborator.role} · {collaborator.department}</p>
         </div>
       </div>
-      <div className="suite-table-list compact">
-        {rows.map((row) => (
-          <article key={row.label}>
-            <div>
-              <h3>{row.label}</h3>
-              <p>{row.value || '-'}</p>
-            </div>
-          </article>
-        ))}
+
+      <div className="colab-profile-info-grid">
+        <ProfileInfoCard icon={Mail} label="E-mail" value={collaborator.email} />
+        <ProfileInfoCard icon={Phone} label="Telefone" value={collaborator.phone} />
+        <ProfileInfoCard icon={BriefcaseBusiness} label="Time" value={collaborator.department} />
+        <ProfileInfoCard icon={CalendarDays} label="Admissão" value={admissionDate} />
       </div>
+
+      <div className="colab-profile-layout">
+        <ProfileSection rows={workRows} title="Vínculo" />
+        <ProfileSection rows={contactRows} title="Contato" />
+      </div>
+
       <div className="colab-profile-benefits">
-        <strong>Benefícios ativos</strong>
+        <div className="colab-profile-benefits-title">
+          <span className="colab-benefit-icon">
+            <Gift aria-hidden="true" size={18} strokeWidth={2.2} />
+          </span>
+          <strong>Benefícios ativos</strong>
+        </div>
         <div>
-          {data.benefits.map((benefit) => (
+          {activeBenefits.map((benefit) => (
             <span key={benefit.id}>{benefit.name}</span>
           ))}
-          {!data.benefits.length ? <span>Nenhum benefício cadastrado</span> : null}
+          {!activeBenefits.length ? <span>Nenhum benefício cadastrado</span> : null}
         </div>
+      </div>
+
+      <div className="colab-profile-footer">
+        <span>
+          <UserRoundCheck aria-hidden="true" size={18} strokeWidth={2.2} />
+          Dados sincronizados pelo GKIT Flex.
+        </span>
+        <Link className="button secondary" href="/modulos/colab/uber">Lançar Uber</Link>
       </div>
     </section>
   )

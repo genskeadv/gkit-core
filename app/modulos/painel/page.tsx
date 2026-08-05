@@ -126,7 +126,6 @@ const shortcutGroups = [
       { href: '/modulos/colab/pagamentos', label: 'Pagamentos' },
       { href: '/modulos/colab/comissoes', label: 'Comissões' },
       { href: '/modulos/colab/beneficios', label: 'Benefícios' },
-      { href: '/modulos/colab/documentos', label: 'Documentos' },
       { href: '/modulos/colab/perfil', label: 'Perfil' },
     ],
     pending: [],

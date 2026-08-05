@@ -46,15 +46,6 @@ export type ColabBenefit = {
   monthlyValue: number
 }
 
-export type ColabDocument = {
-  id: string
-  title: string
-  type: string
-  reference: string
-  status: string
-  updatedAt: string
-}
-
 export type ColabUberExpense = {
   id: string
   client: string
@@ -86,7 +77,6 @@ export type ColabData = {
   payments: ColabPayment[]
   commissions: ColabCommission[]
   benefits: ColabBenefit[]
-  documents: ColabDocument[]
   uber: ColabUberExpense[]
   databaseReady: boolean
   source: {

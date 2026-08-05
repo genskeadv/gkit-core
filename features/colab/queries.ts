@@ -5,7 +5,6 @@ import type {
   ColabCollaborator,
   ColabCommission,
   ColabData,
-  ColabDocument,
   ColabPayment,
   ColabUberData,
   ColabUberExpense,
@@ -98,7 +97,6 @@ function emptyData(databaseReady: boolean, message: string): ColabData {
     payments: [],
     commissions: [],
     benefits: [],
-    documents: [],
     uber: [],
     databaseReady,
     source: {
@@ -155,34 +153,6 @@ function buildBenefits(collaborator: ColabCollaborator, row?: Record<string, unk
       monthlyValue: value,
     },
   ]
-}
-
-function buildDocuments(
-  _collaborator: ColabCollaborator,
-  payments: ColabPayment[],
-  commissions: ColabCommission[],
-): ColabDocument[] {
-  const paymentDocs = payments.slice(0, 12).map((payment) => ({
-    id: `${payment.id}-demonstrativo`,
-    title: `Demonstrativo ${payment.competence}`,
-    type: 'PDF',
-    reference: payment.competence,
-    status: payment.status === 'pago' ? 'disponivel' : 'pendente',
-    updatedAt: payment.paymentDate,
-  }))
-
-  const commissionDocs = commissions.slice(0, 6).map((commission) => ({
-    id: `${commission.id}-comissao`,
-    title: `Resumo de comissao ${commission.reference}`,
-    type: 'PDF',
-    reference: commission.reference,
-    status: commission.status === 'paga' || commission.status === 'aprovada' ? 'disponivel' : 'pendente',
-    updatedAt: commission.createdAt,
-  }))
-
-  return [...paymentDocs, ...commissionDocs].sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-  )
 }
 
 export async function requireColabContext() {
@@ -342,7 +312,6 @@ export async function getColabData(userEmail: string): Promise<ColabData> {
     payments,
     commissions,
     benefits: buildBenefits(collaborator, sourceProfile),
-    documents: buildDocuments(collaborator, payments, commissions),
     uber,
     databaseReady: true,
     source: {
