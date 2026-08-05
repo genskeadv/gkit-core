@@ -3679,10 +3679,13 @@ tr:last-child td {
 }
 
 .colab-card-meta :is(span, a) {
+  align-items: center;
   background: #f8fafc;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 999px;
   color: #52647d;
+  display: inline-flex;
+  gap: 5px;
   padding: 5px 9px;
   text-decoration: none;
 }
@@ -3924,6 +3927,54 @@ tr:last-child td {
 .colab-record-amount {
   font-size: 18px;
   line-height: 1.1;
+}
+
+.colab-uber-overview {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 0.72fr));
+}
+
+.colab-uber-overview article {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.colab-uber-overview-main {
+  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.colab-uber-overview small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.colab-uber-overview strong {
+  color: #162033;
+  font-size: 19px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.colab-uber-overview-main strong {
+  color: #351b40;
+  font-size: 24px;
+}
+
+.colab-uber-overview p {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.35;
+  margin: 0;
 }
 
 .colab-uber-panel {
@@ -4223,6 +4274,108 @@ tr:last-child td {
   min-height: 46px;
   padding-inline: 22px;
   white-space: nowrap;
+}
+
+.colab-uber-detail-body {
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.colab-uber-status-trail {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.colab-uber-status-trail li {
+  color: #94a3b8;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  position: relative;
+}
+
+.colab-uber-status-trail li:not(:last-child)::after {
+  background: rgba(148, 163, 184, 0.28);
+  content: "";
+  height: 2px;
+  left: 24px;
+  position: absolute;
+  right: -8px;
+  top: 7px;
+}
+
+.colab-uber-status-trail li.active {
+  color: #351b40;
+}
+
+.colab-uber-status-trail li.active:not(:last-child)::after {
+  background: rgba(53, 27, 64, 0.34);
+}
+
+.colab-uber-status-trail li > span {
+  background: #e2e8f0;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.28);
+  height: 16px;
+  position: relative;
+  width: 16px;
+  z-index: 1;
+}
+
+.colab-uber-status-trail li.active > span {
+  background: #351b40;
+  box-shadow: 0 0 0 3px rgba(53, 27, 64, 0.12);
+}
+
+.colab-uber-status-trail small {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.colab-uber-status-trail.rejected {
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.16);
+  border-radius: 14px;
+  color: #991b1b;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.colab-uber-status-trail.rejected strong {
+  color: #991b1b;
+}
+
+.colab-uber-status-trail.rejected span,
+.colab-uber-status-note span {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.colab-uber-status-note {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  display: flex;
+  gap: 9px;
+  padding: 10px 12px;
+}
+
+.colab-uber-status-note svg {
+  color: #351b40;
+  flex: 0 0 auto;
 }
 
 .colab-panel-filter {
@@ -5887,6 +6040,18 @@ tr:last-child td {
   .colab-record-amount {
     font-size: 19px;
     text-align: left;
+  }
+
+  .colab-uber-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .colab-uber-status-trail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .colab-uber-status-trail li:nth-child(2)::after {
+    display: none;
   }
 
   .colab-uber-form {

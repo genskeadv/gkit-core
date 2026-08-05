@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   ChevronRight,
   CircleUserRound,
+  Clock3,
+  ExternalLink,
   FileText,
   Gift,
   Home,
@@ -56,6 +58,53 @@ function firstName(name?: string | null) {
 
 function plural(count: number, singular: string, pluralLabel: string) {
   return `${count} ${count === 1 ? singular : pluralLabel}`
+}
+
+const uberStatusFlow = [
+  { key: 'lancado', label: 'Lançado' },
+  { key: 'em_conferencia', label: 'Conferência' },
+  { key: 'conciliado', label: 'Conciliado' },
+  { key: 'reembolsado', label: 'Reembolso' },
+]
+
+function uberStatusIndex(status: string) {
+  if (status === 'rejeitado') return -1
+  if (status === 'reembolsado') return 3
+  if (status === 'conciliado') return 2
+  if (['em_conferencia', 'em_processamento', 'pendente'].includes(status)) return 1
+  return 0
+}
+
+function uberStatusHint(status: string) {
+  if (status === 'reembolsado') return 'Reembolso concluído.'
+  if (status === 'conciliado') return 'Corrida conciliada com o relatório Uber.'
+  if (status === 'rejeitado') return 'Lançamento rejeitado na conferência.'
+  if (['em_conferencia', 'em_processamento', 'pendente'].includes(status)) return 'Lançamento em conferência pelo financeiro.'
+  return 'Recibo enviado e aguardando conciliação.'
+}
+
+function ColabUberStatusTrail({ status }: { status: string }) {
+  const activeIndex = uberStatusIndex(status)
+
+  if (status === 'rejeitado') {
+    return (
+      <div className="colab-uber-status-trail rejected">
+        <strong>Rejeitado</strong>
+        <span>Procure o financeiro para corrigir o lançamento.</span>
+      </div>
+    )
+  }
+
+  return (
+    <ol className="colab-uber-status-trail" aria-label="Andamento do reembolso">
+      {uberStatusFlow.map((step, index) => (
+        <li className={index <= activeIndex ? 'active' : ''} key={step.key}>
+          <span />
+          <small>{step.label}</small>
+        </li>
+      ))}
+    </ol>
+  )
 }
 
 export function ColabShell({
@@ -792,6 +841,14 @@ export function ColabUberExpenses({
     )
   }
 
+  const totalAmount = data.expenses.reduce((sum, expense) => sum + expense.amount, 0)
+  const pendingExpenses = data.expenses.filter((expense) => !['conciliado', 'reembolsado', 'rejeitado'].includes(expense.status))
+  const pendingAmount = pendingExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+  const reconciledAmount = data.expenses
+    .filter((expense) => ['conciliado', 'reembolsado'].includes(expense.status))
+    .reduce((sum, expense) => sum + expense.amount, 0)
+  const latestExpense = data.expenses[0]
+
   return (
     <>
       {success ? (
@@ -806,6 +863,31 @@ export function ColabUberExpenses({
           <span>{error}</span>
         </div>
       ) : null}
+
+      <section className="colab-uber-overview" aria-label="Resumo das despesas Uber">
+        <article className="colab-uber-overview-main">
+          <span className="colab-payment-icon">
+            <CarFront aria-hidden="true" size={20} strokeWidth={2.2} />
+          </span>
+          <div>
+            <small>Uber lançado</small>
+            <strong>{currency(totalAmount)}</strong>
+            <p>{pendingExpenses.length ? `${plural(pendingExpenses.length, 'lançamento', 'lançamentos')} aguardando conciliação` : 'Nenhuma pendência aberta'}</p>
+          </div>
+        </article>
+        <article>
+          <small>Pendente</small>
+          <strong>{currency(pendingAmount)}</strong>
+        </article>
+        <article>
+          <small>Conciliado</small>
+          <strong>{currency(reconciledAmount)}</strong>
+        </article>
+        <article>
+          <small>Último envio</small>
+          <strong>{latestExpense ? new Date(latestExpense.createdAt).toLocaleDateString('pt-BR') : '-'}</strong>
+        </article>
+      </section>
 
       <section className="card suite-panel colab-uber-panel">
         <div className="suite-panel-heading">
@@ -823,20 +905,37 @@ export function ColabUberExpenses({
           </div>
         </div>
         <div className="colab-card-list">
-          {data.expenses.map((expense) => (
-            <article className="colab-uber-card" key={expense.id}>
-              <div className="colab-list-main">
-                <h3>{expense.client}</h3>
-                <p>{expense.description}</p>
-              </div>
-              <span className={`suite-pill ${pillTone(expense.status)}`}>{readableStatus(expense.status)}</span>
-              <strong className="colab-card-amount">{currency(expense.amount)}</strong>
+          {data.expenses.map((expense, index) => (
+            <details className="colab-uber-card colab-uber-detail-card colab-detail-card" key={expense.id} open={index === 0}>
+              <summary>
+                <span className="colab-payment-icon">
+                  <CarFront aria-hidden="true" size={18} strokeWidth={2.2} />
+                </span>
+                <div className="colab-list-main">
+                  <h3>{expense.client}</h3>
+                  <p>{expense.description}</p>
+                </div>
+                <span className={`suite-pill ${pillTone(expense.status)}`}>{readableStatus(expense.status)}</span>
+                <strong className="colab-card-amount">{currency(expense.amount)}</strong>
+              </summary>
               <div className="colab-card-meta">
                 <span>{new Date(expense.date).toLocaleDateString('pt-BR')}</span>
                 <span>{expense.competence}</span>
-                {expense.receiptUrl ? <a href={expense.receiptUrl}>Recibo</a> : <span>Sem recibo</span>}
+                {expense.receiptUrl ? (
+                  <a href={expense.receiptUrl} rel="noreferrer" target="_blank">
+                    <ExternalLink aria-hidden="true" size={13} strokeWidth={2.2} />
+                    Recibo
+                  </a>
+                ) : <span>Sem recibo</span>}
               </div>
-            </article>
+              <div className="colab-uber-detail-body">
+                <ColabUberStatusTrail status={expense.status} />
+                <div className="colab-uber-status-note">
+                  <Clock3 aria-hidden="true" size={17} strokeWidth={2.2} />
+                  <span>{uberStatusHint(expense.status)}</span>
+                </div>
+              </div>
+            </details>
           ))}
           {!data.expenses.length ? <EmptyBlock label="Nenhuma despesa de Uber lançada." /> : null}
         </div>
