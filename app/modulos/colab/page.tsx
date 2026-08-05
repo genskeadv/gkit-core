@@ -9,7 +9,7 @@ export default async function ColabPage() {
     <ColabShell
       active="dashboard"
       title="Portal do Colaborador"
-      description="Experiência individual, sem menu lateral, com pagamentos, comissões e documentos derivados do Intr."
+      description="Experiência individual, sem menu lateral, com pagamentos, comissões, benefícios e reembolsos."
       usuario={context.usuario}
     >
       <ColabIntegrationStatus data={data} />

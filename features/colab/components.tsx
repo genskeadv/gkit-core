@@ -4,14 +4,13 @@ import type { ColabData, ColabUberData } from '@/features/colab/types'
 import { BrandLogo } from '@/features/shared/brand-logo'
 import type { PlatformUsuario } from '@/lib/auth/platform'
 
-type ColabTab = 'dashboard' | 'pagamentos' | 'comissoes' | 'beneficios' | 'documentos' | 'uber' | 'perfil'
+type ColabTab = 'dashboard' | 'pagamentos' | 'comissoes' | 'beneficios' | 'uber' | 'perfil'
 
 const tabs: Array<{ id: ColabTab; href: string; label: string }> = [
   { id: 'dashboard', href: '/modulos/colab', label: 'Início' },
   { id: 'pagamentos', href: '/modulos/colab/pagamentos', label: 'Pagamentos' },
   { id: 'comissoes', href: '/modulos/colab/comissoes', label: 'Comissões' },
   { id: 'beneficios', href: '/modulos/colab/beneficios', label: 'Benefícios' },
-  { id: 'documentos', href: '/modulos/colab/documentos', label: 'Documentos' },
   { id: 'uber', href: '/modulos/colab/uber', label: 'Uber' },
   { id: 'perfil', href: '/modulos/colab/perfil', label: 'Perfil' },
 ]
@@ -112,11 +111,6 @@ export function ColabProfile({ data }: { data: ColabData }) {
         <p className="metric-value">{String(data.benefits.length)}</p>
         <p className="metric-hint">ativos no cadastro</p>
       </article>
-      <article className="card metric-card">
-        <p className="metric-label">Documentos</p>
-        <p className="metric-value">{String(data.documents.length)}</p>
-        <p className="metric-hint">demonstrativos e resumos</p>
-      </article>
     </section>
   )
 }
@@ -196,15 +190,6 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
           detail: 'calculadas, em conferência ou aprovadas',
         }
       : null,
-    data.documents.filter((item) => item.status === 'disponivel').length
-      ? {
-          href: '/modulos/colab/documentos',
-          status: 'disponivel',
-          title: 'Documentos disponíveis',
-          value: String(data.documents.filter((item) => item.status === 'disponivel').length),
-          detail: 'demonstrativos e resumos publicados',
-        }
-      : null,
     data.summary.pendingUberExpenses
       ? {
           href: '/modulos/colab/uber',
@@ -249,7 +234,6 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
 }
 
 export function ColabModuleMap({ data }: { data: ColabData }) {
-  const availableDocuments = data.documents.filter((item) => item.status === 'disponivel').length
   const modules = [
     {
       href: '/modulos/colab/perfil',
@@ -280,13 +264,6 @@ export function ColabModuleMap({ data }: { data: ColabData }) {
       value: String(data.benefits.length),
     },
     {
-      href: '/modulos/colab/documentos',
-      status: availableDocuments ? 'disponivel' : 'pendente',
-      title: 'Documentos',
-      description: 'Demonstrativos gerados por pagamentos e comissões',
-      value: String(data.documents.length),
-    },
-    {
       href: '/modulos/colab/uber',
       status: data.summary.pendingUberExpenses ? 'pendente' : 'sincronizado',
       title: 'Uber',
@@ -309,17 +286,50 @@ export function ColabModuleMap({ data }: { data: ColabData }) {
   )
 }
 
-export function ColabPayments({ data }: { data: ColabData }) {
+export function ColabPayments({
+  competenceFilter = 'todos',
+  data,
+  statusFilter = 'todos',
+}: {
+  competenceFilter?: string
+  data: ColabData
+  statusFilter?: string
+}) {
+  const statusOptions = Array.from(new Set(data.payments.map((payment) => payment.status))).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  const competenceOptions = Array.from(new Set(data.payments.map((payment) => payment.competence))).sort((a, b) => b.localeCompare(a, 'pt-BR'))
+  const payments = data.payments.filter((payment) => {
+    const matchesStatus = statusFilter === 'todos' || payment.status === statusFilter
+    const matchesCompetence = competenceFilter === 'todos' || payment.competence === competenceFilter
+    return matchesStatus && matchesCompetence
+  })
+  const hasFilter = statusFilter !== 'todos' || competenceFilter !== 'todos'
+
   return (
     <section className="card suite-panel">
-      <div className="suite-panel-heading">
-        <div>
-          <h2>Pagamentos</h2>
-          <p>Demonstrativos financeiros derivados do GKIT Flex.</p>
-        </div>
-      </div>
+      <form action="/modulos/colab/pagamentos" className="colab-panel-filter">
+        <label>
+          <span>Status</span>
+          <select name="status" defaultValue={statusFilter}>
+            <option value="todos">Todos</option>
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Competência</span>
+          <select name="competencia" defaultValue={competenceFilter}>
+            <option value="todos">Todas</option>
+            {competenceOptions.map((competence) => (
+              <option key={competence} value={competence}>{competence}</option>
+            ))}
+          </select>
+        </label>
+        <button className="button" type="submit">Filtrar</button>
+        {hasFilter ? <Link className="button secondary" href="/modulos/colab/pagamentos">Limpar</Link> : null}
+      </form>
       <div className="suite-table-list colab-record-list">
-        {data.payments.map((payment) => (
+        {payments.map((payment) => (
           <article key={payment.id}>
             <div>
               <h3>{payment.competence}</h3>
@@ -333,7 +343,7 @@ export function ColabPayments({ data }: { data: ColabData }) {
             </small>
           </article>
         ))}
-        {!data.payments.length ? <EmptyBlock label="Nenhum pagamento encontrado." /> : null}
+        {!payments.length ? <EmptyBlock label={hasFilter ? 'Nenhum pagamento encontrado para o filtro.' : 'Nenhum pagamento encontrado.'} /> : null}
       </div>
     </section>
   )
@@ -379,55 +389,6 @@ export function ColabBenefits({ data }: { data: ColabData }) {
       ))}
       {!data.benefits.length ? <EmptyBlock label="Nenhum benefício cadastrado no GKIT Flex." /> : null}
     </section>
-  )
-}
-
-export function ColabDocuments({ data }: { data: ColabData }) {
-  const available = data.documents.filter((item) => item.status === 'disponivel').length
-  const pending = data.documents.filter((item) => item.status === 'pendente').length
-
-  return (
-    <>
-      <section className="suite-kpi-grid compact">
-        <article className="card metric-card">
-          <p className="metric-label">Total</p>
-          <p className="metric-value">{String(data.documents.length)}</p>
-          <p className="metric-hint">documentos gerados</p>
-        </article>
-        <article className="card metric-card">
-          <p className="metric-label">Disponíveis</p>
-          <p className="metric-value">{String(available)}</p>
-          <p className="metric-hint">prontos para consulta</p>
-        </article>
-        <article className="card metric-card">
-          <p className="metric-label">Pendentes</p>
-          <p className="metric-value">{String(pending)}</p>
-          <p className="metric-hint">aguardando fechamento</p>
-        </article>
-      </section>
-
-      <section className="card suite-panel">
-        <div className="suite-panel-heading">
-          <div>
-            <h2>Documentos</h2>
-            <p>Demonstrativos e resumos derivados de pagamentos e comissões.</p>
-          </div>
-        </div>
-        <div className="suite-table-list">
-          {data.documents.map((document) => (
-            <article key={document.id}>
-              <div>
-                <h3>{document.title}</h3>
-                <p>{document.type} - {document.reference}</p>
-              </div>
-              <span className={`suite-pill ${pillTone(document.status)}`}>{document.status}</span>
-              <strong>{new Date(document.updatedAt).toLocaleDateString('pt-BR')}</strong>
-            </article>
-          ))}
-          {!data.documents.length ? <EmptyBlock label="Nenhum documento disponível." /> : null}
-        </div>
-      </section>
-    </>
   )
 }
 

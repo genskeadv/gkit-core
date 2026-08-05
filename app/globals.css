@@ -3348,7 +3348,77 @@ tr:last-child td {
   white-space: nowrap;
 }
 
+.colab-panel-filter {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.colab-panel-filter label {
+  display: grid;
+  gap: 7px;
+  min-width: 180px;
+}
+
+.colab-panel-filter span {
+  color: #536786;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.colab-panel-filter select {
+  background: #fff;
+  border: 1px solid rgba(100, 116, 139, 0.32);
+  border-radius: 8px;
+  color: #162033;
+  font: inherit;
+  min-height: 42px;
+  padding: 9px 12px;
+  width: 100%;
+}
+
+.colab-panel-filter select:focus {
+  border-color: var(--gkli-primary);
+  box-shadow: 0 0 0 3px rgba(76, 40, 91, 0.12);
+  outline: none;
+}
+
+.colab-panel-filter .button {
+  min-height: 42px;
+  white-space: nowrap;
+}
+
 @media (max-width: 900px) {
+  .colab-uber-form {
+    grid-template-columns: 1fr;
+  }
+
+  .colab-uber-field-client,
+  .colab-uber-field-description,
+  .colab-uber-field-receipt {
+    grid-column: auto;
+  }
+
+  .colab-uber-actions {
+    justify-content: stretch;
+  }
+
+  .colab-uber-actions .button,
+  .colab-panel-filter .button {
+    width: 100%;
+  }
+
+  .colab-panel-filter {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .colab-panel-filter label {
+    min-width: 0;
+  }
 }
 
 .suite-pill {
