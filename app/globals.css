@@ -5172,10 +5172,27 @@ tr:last-child td {
     width: 100%;
   }
 
-  .colab-home-metrics,
   .colab-action-grid,
   .colab-benefit-grid {
     grid-template-columns: 1fr;
+  }
+
+  .colab-home-metrics {
+    gap: 7px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .colab-home-metrics article {
+    padding: 10px 8px;
+  }
+
+  .colab-home-metrics span {
+    font-size: 11px;
+    line-height: 1.15;
+  }
+
+  .colab-home-metrics strong {
+    font-size: 15px;
   }
 
   .colab-action-card {

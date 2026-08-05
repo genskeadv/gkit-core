@@ -9,7 +9,7 @@ export default async function ColabPerfilPage() {
     <ColabShell
       active="perfil"
       title={data.collaborator?.name ?? 'Perfil'}
-      description="Dados basicos sincronizados a partir do cadastro administrativo."
+      description="Dados básicos sincronizados a partir do cadastro administrativo."
       usuario={context.usuario}
     >
       <ColabProfileDetails data={data} />
