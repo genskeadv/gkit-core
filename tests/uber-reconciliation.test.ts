@@ -28,3 +28,30 @@ test('uber reconciliation reports rides without collaborator submission', () => 
   assert.equal(reconciled[1].reconciliationStatus, 'sem_corrida')
   assert.equal(reconciled[2].reconciliationStatus, 'sem_lancamento')
 })
+
+test('uber reconciliation ignores rejected collaborator submissions', () => {
+  const rows = parseUberVoucherCsv(`Creation Date,Voucher Link,Guest Name,Guest Email,Guest Phone,Voucher Status,Amount Spent,Orders/Trips
+2026-08-04 09:12:00 -0300,https://r.uber.com/R1,Marina,marina@genskeadvogados.com.br,,VOUCHER_CLAIMED,41,1`)
+
+  const reconciled = reconcileUberRows(rows, [
+    { id: 'expense-rejected', collaboratorEmail: 'marina@genskeadvogados.com.br', amount: 41, status: 'rejeitado' },
+  ])
+
+  assert.equal(reconciled[0].matchedExpenseId, null)
+  assert.equal(reconciled[0].reconciliationStatus, 'sem_lancamento')
+})
+
+test('uber reconciliation consumes one matching expense per report ride', () => {
+  const rows = parseUberVoucherCsv(`Creation Date,Voucher Link,Guest Name,Guest Email,Guest Phone,Voucher Status,Amount Spent,Orders/Trips
+2026-08-04 09:12:00 -0300,https://r.uber.com/R1,Denys,denys@genskeadvogados.com.br,,VOUCHER_CLAIMED,22.50,1
+2026-08-04 10:18:00 -0300,https://r.uber.com/R2,Denys,denys@genskeadvogados.com.br,,VOUCHER_CLAIMED,22.50,1`)
+
+  const reconciled = reconcileUberRows(rows, [
+    { id: 'expense-1', collaboratorEmail: 'denys@genskeadvogados.com.br', amount: 22.5 },
+  ])
+
+  assert.equal(reconciled[0].matchedExpenseId, 'expense-1')
+  assert.equal(reconciled[0].reconciliationStatus, 'conciliado')
+  assert.equal(reconciled[1].matchedExpenseId, null)
+  assert.equal(reconciled[1].reconciliationStatus, 'sem_lancamento')
+})

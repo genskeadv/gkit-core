@@ -15,7 +15,7 @@ const navItems = [
   { href: '/modulos/gkit-flex/receitas', label: 'Receitas' },
   { href: '/modulos/gkit-flex/pagamentos', label: 'Pagamentos' },
   { href: '/modulos/gkit-flex/saneamento', label: 'Saneamento' },
-  { href: '/modulos/gkit-flex/uber', label: 'Uber' },
+  { href: '/modulos/gkit-flex/uber', label: 'Uber', permission: 'gkit_flex.uber.read' },
   { href: '/modulos/gkit-flex/colaboradores', label: 'Colaboradores' },
   { href: '/modulos/gkit-flex/comissoes', label: 'Comiss\u00f5es' },
   { href: '/modulos/gkit-flex/cadastros', label: 'Cadastros' },
@@ -36,7 +36,17 @@ function withCompetencia(href: string, competencia: string) {
   return competencia ? `${href}?competencia=${encodeURIComponent(competencia)}` : href;
 }
 
-export function AppFrame({ children, usuario }: { children: ReactNode; usuario: PlatformUsuario }) {
+function canUseNavItem(permissions: string[] | undefined, permission?: string) {
+  if (!permission || !permissions) return true;
+  if (permissions.includes('*') || permissions.includes(permission)) return true;
+
+  const [scope] = permission.split('.');
+  if (scope && permissions.includes(`${scope}.*`)) return true;
+
+  return permission.endsWith('.read') && permissions.includes(permission.replace(/\.read$/, '.write'));
+}
+
+export function AppFrame({ children, permissions, usuario }: { children: ReactNode; permissions?: string[]; usuario: PlatformUsuario }) {
   const pathname = usePathname();
   const [competencia, setCompetencia] = useState('');
 
@@ -69,7 +79,7 @@ export function AppFrame({ children, usuario }: { children: ReactNode; usuario: 
         </Link>
 
         <nav aria-label="Navegacao GKIT Flex">
-          {navItems.map((item) => (
+          {navItems.filter((item) => canUseNavItem(permissions, item.permission)).map((item) => (
             <Link className={isActive(pathname, item.href) ? 'active' : ''} href={withCompetencia(item.href, competencia)} key={item.href}>
               <span>{item.label}</span>
             </Link>

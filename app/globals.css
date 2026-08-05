@@ -26444,3 +26444,242 @@ body:has(.gkit-flex-operational-shell) {
   margin: 6px 0 0 !important;
   max-width: none !important;
 }
+
+/* Clean Colab pass: lighter mobile-first operational UI. */
+.colab-shell-wrap {
+  --colab-ink: #182033;
+  --colab-muted: #667085;
+  --colab-line: rgba(148, 163, 184, 0.2);
+  --colab-soft: #f8fafc;
+}
+
+.colab-shell-wrap :where(strong, b, h1, h2, h3, h4, .button, button, a.button, .suite-pill, summary, label, small) {
+  font-weight: 450 !important;
+}
+
+.colab-shell-wrap :where(p, span, small, em, a, input, select, textarea) {
+  letter-spacing: 0 !important;
+}
+
+.colab-shell-wrap :where(.suite-hero-card, .suite-panel, .card, .suite-empty-block, .suite-empty-card),
+.colab-shell-wrap :where(.colab-action-card, .colab-benefit-card, .colab-payment-card, .colab-commission-card, .colab-uber-card, .colab-uber-step, .colab-uber-overview article, .colab-profile-info-card, .colab-payment-summary article, .colab-commission-summary article, .colab-benefit-summary article) {
+  border-color: var(--colab-line) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.colab-app-hero {
+  padding: 14px !important;
+}
+
+.colab-app-hero .suite-hero-main {
+  gap: 12px !important;
+}
+
+.colab-app-hero .suite-brand-mark {
+  border-radius: 8px !important;
+  height: 42px !important;
+  width: 42px !important;
+}
+
+.colab-app-hero .platform-kicker {
+  color: var(--colab-muted) !important;
+  font-size: 11px !important;
+  margin-bottom: 4px !important;
+  text-transform: none !important;
+}
+
+.colab-app-hero h1 {
+  color: var(--colab-ink) !important;
+  font-size: 24px !important;
+  line-height: 1.1 !important;
+}
+
+.colab-app-hero .suite-hero-main p:not(.platform-kicker) {
+  color: var(--colab-muted) !important;
+  font-size: 13px !important;
+  margin-top: 5px !important;
+}
+
+.colab-app-hero .suite-tabs {
+  gap: 6px !important;
+}
+
+.colab-app-hero .suite-tabs a {
+  background: #fff !important;
+  border-color: var(--colab-line) !important;
+  border-radius: 8px !important;
+  color: var(--colab-muted) !important;
+  min-height: 34px !important;
+  padding: 8px 10px !important;
+}
+
+.colab-app-hero .suite-tabs a.active {
+  background: var(--gkli-primary-soft) !important;
+  border-color: rgba(53, 27, 64, 0.18) !important;
+  color: var(--gkli-primary) !important;
+}
+
+.colab-home-hero {
+  background: #fff !important;
+  border-color: var(--colab-line) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  color: var(--colab-ink) !important;
+  gap: 12px !important;
+  padding: 14px !important;
+}
+
+.colab-home-hero::after {
+  display: none !important;
+}
+
+.colab-home-hero-copy h2 {
+  color: var(--colab-ink) !important;
+  font-size: clamp(24px, 4vw, 34px) !important;
+  font-weight: 450 !important;
+}
+
+.colab-home-hero-copy p,
+.colab-home-balance span,
+.colab-home-balance small,
+.colab-home-metrics span {
+  color: var(--colab-muted) !important;
+}
+
+.colab-home-primary-action {
+  background: var(--gkli-primary) !important;
+  border-radius: 8px !important;
+  color: #fff !important;
+  min-height: 38px !important;
+}
+
+.colab-home-balance,
+.colab-home-metrics article {
+  background: var(--colab-soft) !important;
+  border-color: var(--colab-line) !important;
+  border-radius: 8px !important;
+}
+
+.colab-home-balance strong,
+.colab-home-metrics strong,
+.colab-action-copy strong,
+.colab-payment-summary strong,
+.colab-commission-summary strong,
+.colab-benefit-summary strong,
+.colab-profile-info-card strong,
+.colab-uber-overview strong,
+.colab-card-amount,
+.colab-record-amount {
+  color: var(--colab-ink) !important;
+  font-weight: 450 !important;
+}
+
+.colab-action-card,
+.colab-next-item,
+.colab-payment-card,
+.colab-commission-card,
+.colab-uber-card,
+.colab-benefit-card {
+  background: #fff !important;
+  gap: 9px !important;
+}
+
+.colab-action-icon,
+.colab-next-icon,
+.colab-benefit-icon,
+.colab-payment-icon,
+.colab-profile-avatar,
+.colab-profile-info-card > span,
+.colab-uber-dropzone-icon,
+.colab-uber-step header > span {
+  background: var(--colab-soft) !important;
+  border: 1px solid var(--colab-line) !important;
+  border-radius: 8px !important;
+  color: var(--gkli-primary) !important;
+}
+
+.colab-uber-dropzone-icon {
+  height: 42px !important;
+  width: 42px !important;
+}
+
+.colab-filter-title,
+.colab-panel-link,
+.colab-next-item em {
+  color: var(--gkli-primary) !important;
+  font-weight: 450 !important;
+}
+
+.colab-panel-filter {
+  background: var(--colab-soft) !important;
+  border: 1px solid var(--colab-line) !important;
+  border-radius: 8px !important;
+  margin-bottom: 12px !important;
+  padding: 10px !important;
+}
+
+.colab-panel-filter span,
+.colab-uber-field span,
+.colab-uber-overview small,
+.colab-benefit-summary span,
+.colab-profile-info-card small,
+.colab-benefit-meta span,
+.colab-uber-status-trail small {
+  color: var(--colab-muted) !important;
+  font-weight: 400 !important;
+}
+
+.colab-uber-dropzone {
+  background: var(--colab-soft) !important;
+  border-color: rgba(148, 163, 184, 0.32) !important;
+  border-radius: 8px !important;
+  color: var(--gkli-primary) !important;
+}
+
+.colab-uber-submit-bar {
+  background: #fff !important;
+  border-radius: 8px !important;
+}
+
+.colab-mobile-dock {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--colab-line) !important;
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+.colab-mobile-dock a {
+  border-radius: 8px !important;
+  font-weight: 400 !important;
+}
+
+@media (max-width: 760px) {
+  .colab-shell-wrap {
+    padding-bottom: 88px !important;
+  }
+
+  .colab-app-hero h1 {
+    font-size: 22px !important;
+  }
+
+  .colab-home-hero,
+  .colab-action-grid,
+  .colab-payment-summary,
+  .colab-commission-summary,
+  .colab-benefit-summary,
+  .colab-profile-info-grid,
+  .colab-profile-layout,
+  .colab-uber-overview {
+    grid-template-columns: 1fr !important;
+  }
+
+  .colab-profile-footer {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  .colab-profile-actions,
+  .colab-profile-actions .button {
+    width: 100% !important;
+  }
+}

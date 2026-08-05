@@ -6,7 +6,7 @@ export default async function GkitFlexSaneamentoPage() {
   const context = await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/saneamento');
 
   return (
-    <AppFrame usuario={context.usuario}>
+    <AppFrame permissions={context.permissions} usuario={context.usuario}>
       <SaneamentoPage />
     </AppFrame>
   );

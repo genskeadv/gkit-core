@@ -6,7 +6,7 @@ export default async function GkitFlexCadastrosPage() {
   const context = await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/cadastros')
 
   return (
-    <AppFrame usuario={context.usuario}>
+    <AppFrame permissions={context.permissions} usuario={context.usuario}>
       <MasterDataPage />
     </AppFrame>
   )

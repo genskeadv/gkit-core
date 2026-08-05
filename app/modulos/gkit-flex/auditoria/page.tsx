@@ -6,7 +6,7 @@ export default async function GkitFlexAuditoriaPage() {
   const context = await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/auditoria')
 
   return (
-    <AppFrame usuario={context.usuario}>
+    <AppFrame permissions={context.permissions} usuario={context.usuario}>
       <AuditPage />
     </AppFrame>
   )

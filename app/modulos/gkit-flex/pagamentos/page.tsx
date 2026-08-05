@@ -6,7 +6,7 @@ export default async function GkitFlexPagamentosPage() {
   const context = await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/pagamentos')
 
   return (
-    <AppFrame usuario={context.usuario}>
+    <AppFrame permissions={context.permissions} usuario={context.usuario}>
       <AccountsPayablePage />
     </AppFrame>
   )

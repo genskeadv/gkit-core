@@ -17,7 +17,16 @@ function admin() {
 }
 
 export function canAccess(permissions: string[], permission: string) {
-  return permissions.includes('*') || permissions.includes(permission)
+  if (permissions.includes('*') || permissions.includes(permission)) return true
+
+  const [scope] = permission.split('.')
+  if (scope && permissions.includes(`${scope}.*`)) return true
+
+  if (permission.endsWith('.read')) {
+    return permissions.includes(permission.replace(/\.read$/, '.write'))
+  }
+
+  return false
 }
 
 export async function getUsuarioPermissionCodes(usuario: UsuarioAdmin) {

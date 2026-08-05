@@ -15,7 +15,7 @@ export default async function GkitFlexReceitasPage({ searchParams }: { searchPar
   const context = await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/receitas')
 
   return (
-    <AppFrame usuario={context.usuario}>
+    <AppFrame permissions={context.permissions} usuario={context.usuario}>
       <ReceitasPage competencia={firstParam(params?.competencia)} />
     </AppFrame>
   )

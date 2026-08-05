@@ -14,7 +14,7 @@ export default async function GkitFlexColaboradoresRoute({ searchParams }: { sea
   const data = await listGkitFlexColaboradores();
 
   return (
-    <AppFrame usuario={context.usuario}>
+    <AppFrame permissions={context.permissions} usuario={context.usuario}>
       <GkitFlexColaboradoresPage
         data={data}
         canWrite={canAccess(context.permissions, 'gkit_flex.colaboradores.write')}

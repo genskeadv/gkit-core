@@ -11,7 +11,7 @@ export default async function GkitFlexNovoColaboradorPage() {
   const data = await getGkitFlexColaboradorFormData();
 
   return (
-    <AppFrame usuario={context.usuario}>
+    <AppFrame permissions={context.permissions} usuario={context.usuario}>
       <GkitFlexColaboradorForm data={data} />
     </AppFrame>
   );

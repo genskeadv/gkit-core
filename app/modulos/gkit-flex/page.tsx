@@ -6,7 +6,7 @@ export default async function GkitFlexPage() {
   const context = await requireModuleAccess('gkit-flex', '/modulos/gkit-flex')
 
   return (
-    <AppFrame usuario={context.usuario}>
+    <AppFrame permissions={context.permissions} usuario={context.usuario}>
       <DashboardHome />
     </AppFrame>
   )

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function ColabDocumentosPage() {
-  redirect('/modulos/colab')
+  redirect('/modulos/colab/perfil')
 }

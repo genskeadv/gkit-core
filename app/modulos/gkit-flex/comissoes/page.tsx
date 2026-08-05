@@ -15,7 +15,7 @@ export default async function GkitFlexComissoesPage({ searchParams }: { searchPa
   const context = await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/comissoes')
 
   return (
-    <AppFrame usuario={context.usuario}>
+    <AppFrame permissions={context.permissions} usuario={context.usuario}>
       <CommissionsPage competencia={firstParam(params?.competencia)} />
     </AppFrame>
   )

@@ -6,7 +6,7 @@ export default async function GkitFlexPrevisoesPage() {
   const context = await requireModuleAccess('gkit-flex', '/modulos/gkit-flex/previsoes');
 
   return (
-    <AppFrame usuario={context.usuario}>
+    <AppFrame permissions={context.permissions} usuario={context.usuario}>
       <ForecastPage />
     </AppFrame>
   );
