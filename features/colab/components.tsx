@@ -510,15 +510,15 @@ export function ColabUberExpenses({
         </div>
       ) : null}
 
-      <section className="card suite-panel">
+      <section className="card suite-panel colab-uber-panel">
         <div className="suite-panel-heading">
           <div>
             <h2>Lançar despesa de Uber</h2>
             <p>Informe o cliente do Ciclo, descreva a corrida e anexe o recibo emitido pela Uber.</p>
           </div>
         </div>
-        <form action={action} className="module-form-grid">
-          <label>
+        <form action={action} className="colab-uber-form">
+          <label className="colab-uber-field colab-uber-field-client">
             <span>Cliente Ciclo</span>
             <select name="cliente_id" required>
               <option value="">Selecione</option>
@@ -527,23 +527,23 @@ export function ColabUberExpenses({
               ))}
             </select>
           </label>
-          <label>
+          <label className="colab-uber-field">
             <span>Data</span>
             <input name="data_despesa" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required />
           </label>
-          <label>
+          <label className="colab-uber-field">
             <span>Valor</span>
             <input name="valor" inputMode="decimal" placeholder="0,00" required />
           </label>
-          <label>
+          <label className="colab-uber-field colab-uber-field-receipt">
             <span>Recibo Uber</span>
             <input name="recibo" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" required />
           </label>
-          <label className="form-span-2">
+          <label className="colab-uber-field colab-uber-field-description">
             <span>Descrição</span>
             <textarea name="descricao" rows={3} placeholder="Ex.: ida ao cliente para assembleia / protocolo / reunião" required />
           </label>
-          <div className="form-actions">
+          <div className="colab-uber-actions">
             <button className="button" type="submit">Enviar despesa</button>
           </div>
         </form>

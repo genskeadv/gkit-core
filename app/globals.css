@@ -3278,6 +3278,79 @@ tr:last-child td {
   line-height: 1.1;
 }
 
+.colab-uber-panel {
+  overflow: hidden;
+}
+
+.colab-uber-form {
+  align-items: end;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(260px, 1fr) minmax(150px, 0.42fr) minmax(320px, 0.85fr);
+  margin-top: 22px;
+}
+
+.colab-uber-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.colab-uber-field span {
+  color: #536786;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.colab-uber-field :is(input, select, textarea) {
+  background: #fff;
+  border: 1px solid rgba(100, 116, 139, 0.32);
+  border-radius: 8px;
+  color: #162033;
+  font: inherit;
+  min-height: 44px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.colab-uber-field :is(input, select, textarea):focus {
+  border-color: var(--gkli-primary);
+  box-shadow: 0 0 0 3px rgba(76, 40, 91, 0.12);
+  outline: none;
+}
+
+.colab-uber-field input[type="file"] {
+  align-content: center;
+  padding: 8px 10px;
+}
+
+.colab-uber-field textarea {
+  line-height: 1.45;
+  min-height: 96px;
+  resize: vertical;
+}
+
+.colab-uber-field-client,
+.colab-uber-field-description {
+  grid-column: 1 / -1;
+}
+
+.colab-uber-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.colab-uber-actions .button {
+  min-height: 46px;
+  padding-inline: 22px;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+}
+
 .suite-pill {
   display: inline-flex;
   align-items: center;
@@ -4689,6 +4762,24 @@ tr:last-child td {
   .colab-record-amount {
     font-size: 19px;
     text-align: left;
+  }
+
+  .colab-uber-form {
+    grid-template-columns: 1fr;
+  }
+
+  .colab-uber-field-client,
+  .colab-uber-field-description,
+  .colab-uber-field-receipt {
+    grid-column: auto;
+  }
+
+  .colab-uber-actions {
+    justify-content: stretch;
+  }
+
+  .colab-uber-actions .button {
+    width: 100%;
   }
 }
 
