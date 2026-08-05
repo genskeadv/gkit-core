@@ -43,14 +43,21 @@ function currency(value: number) {
 }
 
 function pillTone(status: string) {
-  if (['pago', 'paga', 'aprovada', 'disponivel', 'ativo', 'sincronizado'].includes(status)) return 'success'
+  if (['pago', 'paga', 'disponivel', 'ativo', 'sincronizado'].includes(status)) return 'success'
   if (['cancelado', 'cancelada', 'rejeitada', 'erro'].includes(status)) return 'danger'
-  if (['previsto', 'pendente', 'em_processamento', 'calculada', 'em_conferencia'].includes(status)) return 'warning'
+  if (['aprovada', 'previsto', 'pendente', 'em_processamento', 'em_conferencia'].includes(status)) return 'warning'
   return 'primary'
 }
 
 function readableStatus(status: string) {
-  return status.replaceAll('_', ' ')
+  const labels: Record<string, string> = {
+    apurada: 'Apurada',
+    aprovada: 'Aprovada',
+    paga: 'Paga',
+    pago: 'Pago',
+    previsto: 'Previsto',
+  }
+  return labels[status] ?? status.replaceAll('_', ' ')
 }
 
 function firstName(name?: string | null) {

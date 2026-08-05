@@ -24,6 +24,45 @@ function numberValue(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+function roundMoney(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100
+}
+
+function normalizeKey(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function collaboratorsFromWallet(carteira: string) {
+  const cleaned = text(carteira)
+    .replace(/^carteira\s+/i, '')
+    .replace(/^carteira[_\s-]*/i, '')
+    .trim()
+  const parts = cleaned
+    .split(/[_/&,+]+|\s+e\s+/i)
+    .map((part) => part.trim())
+    .filter(Boolean)
+  return parts.length ? Array.from(new Set(parts)) : [cleaned].filter(Boolean)
+}
+
+function collaboratorShare(carteira: string, collaboratorName: string) {
+  const collaborators = collaboratorsFromWallet(carteira)
+  if (!collaborators.length) return 1
+
+  const collaboratorKey = normalizeKey(collaboratorName)
+  const collaboratorFirstName = collaboratorKey.split(' ')[0] ?? ''
+  const matched = collaborators.some((name) => {
+    const key = normalizeKey(name)
+    return key === collaboratorKey || key === collaboratorFirstName || collaboratorKey.startsWith(`${key} `)
+  })
+
+  return matched ? 1 / collaborators.length : 1
+}
+
 function dateValue(...values: unknown[]) {
   return text(values.find(Boolean), new Date().toISOString())
 }
@@ -70,11 +109,15 @@ function mapGkitFlexPayment(row: Record<string, unknown>): ColabPayment {
 function mapGkitFlexCommission(
   row: Record<string, unknown>,
   executionsById: Map<string, Record<string, unknown>>,
-  paidSummaryIds: Set<string>,
+  summaryFinancialStatus: Map<string, { status: string; paidAt: string | null }>,
+  executionFinancialStatus: Map<string, { status: string; paidAt: string | null }>,
+  collaboratorName: string,
 ): ColabCommission {
   const execution = executionsById.get(text(row.execucao_id))
   const summaryId = text(row.id)
-  const paid = paidSummaryIds.has(summaryId)
+  const financialStatus = summaryFinancialStatus.get(summaryId) ?? executionFinancialStatus.get(text(row.execucao_id))
+  const status = financialStatus?.status ?? commissionStatusFromExecution(text(execution?.status))
+  const share = collaboratorShare(text(row.carteira), collaboratorName)
 
   return {
     id: summaryId,
@@ -82,13 +125,35 @@ function mapGkitFlexCommission(
     origin: text(row.carteira, 'Carteira'),
     client: text(row.carteira, 'Carteira'),
     category: text(row.categoria, 'Sem categoria'),
-    baseAmount: numberValue(row.valor_apos_reducao || row.valor_recebido),
+    baseAmount: roundMoney(numberValue(row.valor_apos_reducao || row.valor_recebido) * share),
     percentage: numberValue(row.percentual_comissao),
-    amount: numberValue(row.comissao_final),
-    status: paid ? 'paga' : text(execution?.status, 'calculada'),
+    amount: roundMoney(numberValue(row.comissao_final) * share),
+    status,
     createdAt: dateValue(row.created_at, execution?.created_at),
-    paidAt: paid ? dateValue(row.updated_at, execution?.created_at) : null,
+    paidAt: status === 'paga' ? financialStatus?.paidAt ?? dateValue(row.updated_at, execution?.created_at) : null,
   }
+}
+
+function commissionStatusFromExecution(status: string) {
+  if (['paga', 'pago'].includes(status)) return 'paga'
+  if (['aprovada', 'aprovado', 'prevista', 'previsto'].includes(status)) return 'aprovada'
+  if (['cancelada', 'cancelado', 'rejeitada', 'rejeitado'].includes(status)) return status
+  return 'apurada'
+}
+
+function mergeCommissionFinancialStatus(
+  map: Map<string, { status: string; paidAt: string | null }>,
+  id: string,
+  row: Record<string, unknown>,
+) {
+  if (!id) return
+  const current = map.get(id)
+  const paid = Boolean(row.pago)
+  if (current?.status === 'paga' && !paid) return
+  map.set(id, {
+    status: paid ? 'paga' : 'aprovada',
+    paidAt: paid ? dateValue(row.updated_at, row.created_at, row.competencia) : null,
+  })
 }
 
 function emptyData(databaseReady: boolean, message: string): ColabData {
@@ -128,9 +193,9 @@ function buildSummary(payments: ColabPayment[], commissions: ColabCommission[], 
 
   return {
     latestPayment: payments[0]?.netAmount ?? 0,
-    openCommissions,
-    approvedCommissions,
-    paidCommissions,
+    openCommissions: roundMoney(openCommissions),
+    approvedCommissions: roundMoney(approvedCommissions),
+    paidCommissions: roundMoney(paidCommissions),
     pendingPayments: payments.filter((item) => item.status !== 'pago' && item.status !== 'cancelado').length,
     pendingUberExpenses: uber.filter((item) => !['conciliado', 'reembolsado', 'rejeitado'].includes(item.status)).length,
   }
@@ -269,7 +334,7 @@ export async function getColabData(userEmail: string): Promise<ColabData> {
       .limit(24),
     admin()
       .from('contas_pagar_itens')
-      .select('id, competencia, descricao, valor_previsto, pago, origem_tipo, origem_resumo_id, raw, created_at, updated_at')
+      .select('id, competencia, descricao, valor_previsto, pago, origem_tipo, origem_execucao_id, origem_resumo_id, raw, created_at, updated_at')
       .eq('origem_tipo', 'comissao')
       .order('competencia', { ascending: false })
       .limit(200),
@@ -291,20 +356,23 @@ export async function getColabData(userEmail: string): Promise<ColabData> {
     (((executionsResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [text(row.id), row])),
   )
 
-  const paymentRows = paymentRowsResult.error
+  const commissionPaymentRows = paymentRowsResult.error
     ? []
     : ((paymentRowsResult.data ?? []) as Array<Record<string, unknown>>)
-      .filter((row) => text((row.raw as Record<string, unknown> | null)?.carteira) === carteiraNome)
-      .slice(0, 24)
 
-  const paidSummaryIds = new Set(
-    paymentRows
-      .filter((row) => Boolean(row.pago) && row.origem_resumo_id)
-      .map((row) => text(row.origem_resumo_id)),
-  )
+  const paymentRows = commissionPaymentRows
+    .filter((row) => text((row.raw as Record<string, unknown> | null)?.carteira) === carteiraNome)
+    .slice(0, 24)
+
+  const summaryFinancialStatus = new Map<string, { status: string; paidAt: string | null }>()
+  const executionFinancialStatus = new Map<string, { status: string; paidAt: string | null }>()
+  for (const row of commissionPaymentRows) {
+    mergeCommissionFinancialStatus(summaryFinancialStatus, text(row.origem_resumo_id), row)
+    mergeCommissionFinancialStatus(executionFinancialStatus, text(row.origem_execucao_id), row)
+  }
 
   const payments = paymentRows.map(mapGkitFlexPayment)
-  const commissions = commissionRows.map((row) => mapGkitFlexCommission(row, executionsById, paidSummaryIds))
+  const commissions = commissionRows.map((row) => mapGkitFlexCommission(row, executionsById, summaryFinancialStatus, executionFinancialStatus, collaborator.name))
   const uber = await listUberExpensesForUser(collaborator.id)
 
   return {
