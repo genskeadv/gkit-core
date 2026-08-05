@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronRight,
   CircleUserRound,
+  FileText,
   Gift,
   Home,
   Mail,
@@ -334,6 +335,9 @@ export function ColabPayments({
     return matchesStatus && matchesCompetence
   })
   const hasFilter = statusFilter !== 'todos' || competenceFilter !== 'todos'
+  const totalGross = payments.reduce((sum, payment) => sum + payment.grossAmount, 0)
+  const totalDiscount = payments.reduce((sum, payment) => sum + payment.discountAmount, 0)
+  const totalNet = payments.reduce((sum, payment) => sum + payment.netAmount, 0)
 
   return (
     <section className="card suite-panel colab-list-panel">
@@ -347,7 +351,7 @@ export function ColabPayments({
           <select name="status" defaultValue={statusFilter}>
             <option value="todos">Todos</option>
             {statusOptions.map((status) => (
-              <option key={status} value={status}>{status}</option>
+              <option key={status} value={status}>{readableStatus(status)}</option>
             ))}
           </select>
         </label>
@@ -370,21 +374,66 @@ export function ColabPayments({
           <Link className="colab-panel-link" href="/modulos/colab/pagamentos">Ver todos</Link>
         </div>
       )}
+
+      {showFilters ? (
+        <div className="colab-payment-summary">
+          <article>
+            <span>Líquido filtrado</span>
+            <strong>{currency(totalNet)}</strong>
+          </article>
+          <article>
+            <span>Bruto</span>
+            <strong>{currency(totalGross)}</strong>
+          </article>
+          <article>
+            <span>Descontos</span>
+            <strong>{currency(totalDiscount)}</strong>
+          </article>
+          <article>
+            <span>Itens</span>
+            <strong>{String(payments.length)}</strong>
+          </article>
+        </div>
+      ) : null}
+
       <div className="colab-card-list">
-        {payments.map((payment) => (
-          <article className="colab-payment-card" key={payment.id}>
-            <div className="colab-list-main">
-              <h3>{payment.competence}</h3>
-              <p>{payment.type} - {payment.description}</p>
-            </div>
-            <span className={`suite-pill ${pillTone(payment.status)}`}>{readableStatus(payment.status)}</span>
-            <strong className="colab-card-amount">{currency(payment.netAmount)}</strong>
+        {payments.map((payment, index) => (
+          <details className="colab-payment-card colab-payment-detail-card colab-detail-card" key={payment.id} open={showFilters && index === 0}>
+            <summary>
+              <span className="colab-payment-icon">
+                <FileText aria-hidden="true" size={18} strokeWidth={2.2} />
+              </span>
+              <div className="colab-list-main">
+                <h3>{payment.competence}</h3>
+                <p>{payment.type} - {payment.description}</p>
+              </div>
+              <span className={`suite-pill ${pillTone(payment.status)}`}>{readableStatus(payment.status)}</span>
+              <strong className="colab-card-amount">{currency(payment.netAmount)}</strong>
+            </summary>
             <div className="colab-card-meta">
               <span>Bruto {currency(payment.grossAmount)}</span>
               <span>Descontos {currency(payment.discountAmount)}</span>
               <span>{payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString('pt-BR') : 'Sem data de pagamento'}</span>
             </div>
-          </article>
+            <div className="colab-payment-drilldown">
+              <span>
+                <small>Competência</small>
+                <strong>{payment.competence}</strong>
+              </span>
+              <span>
+                <small>Origem</small>
+                <strong>{payment.type}</strong>
+              </span>
+              <span>
+                <small>Descrição</small>
+                <strong>{payment.description}</strong>
+              </span>
+              <span>
+                <small>Referência</small>
+                <strong>{payment.commissionId ? 'Comissão vinculada' : 'Sem vínculo externo'}</strong>
+              </span>
+            </div>
+          </details>
         ))}
         {!payments.length ? <EmptyBlock label={hasFilter ? 'Nenhum pagamento encontrado para o filtro.' : 'Nenhum pagamento encontrado.'} /> : null}
       </div>
@@ -472,7 +521,7 @@ export function ColabCommissions({
 
       <div className="colab-card-list">
         {commissions.map((commission, index) => (
-          <details className="colab-commission-card colab-commission-detail-card" key={commission.id} open={showFilters && index === 0}>
+          <details className="colab-commission-card colab-commission-detail-card colab-detail-card" key={commission.id} open={showFilters && index === 0}>
             <summary>
               <div className="colab-list-main">
                 <h3>{commission.reference}</h3>
