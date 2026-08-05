@@ -26453,12 +26453,22 @@ body:has(.gkit-flex-operational-shell) {
   --colab-soft: #f8fafc;
 }
 
+.colab-shell-wrap *,
+.colab-shell-wrap *::before,
+.colab-shell-wrap *::after {
+  min-width: 0;
+}
+
 .colab-shell-wrap :where(strong, b, h1, h2, h3, h4, .button, button, a.button, .suite-pill, summary, label, small) {
   font-weight: 450 !important;
 }
 
 .colab-shell-wrap :where(p, span, small, em, a, input, select, textarea) {
   letter-spacing: 0 !important;
+}
+
+.colab-shell-wrap :where(h1, h2, h3, h4, p, span, strong, small, em, a, button, label, summary, div) {
+  overflow-wrap: anywhere;
 }
 
 .colab-shell-wrap :where(.suite-hero-card, .suite-panel, .card, .suite-empty-block, .suite-empty-card),
@@ -26503,6 +26513,8 @@ body:has(.gkit-flex-operational-shell) {
 
 .colab-app-hero .suite-tabs {
   gap: 6px !important;
+  overflow-x: auto !important;
+  scrollbar-width: none;
 }
 
 .colab-app-hero .suite-tabs a {
@@ -26510,8 +26522,10 @@ body:has(.gkit-flex-operational-shell) {
   border-color: var(--colab-line) !important;
   border-radius: 8px !important;
   color: var(--colab-muted) !important;
+  flex: 0 0 auto !important;
   min-height: 34px !important;
   padding: 8px 10px !important;
+  white-space: nowrap !important;
 }
 
 .colab-app-hero .suite-tabs a.active {
@@ -26536,8 +26550,9 @@ body:has(.gkit-flex-operational-shell) {
 
 .colab-home-hero-copy h2 {
   color: var(--colab-ink) !important;
-  font-size: clamp(24px, 4vw, 34px) !important;
+  font-size: 28px !important;
   font-weight: 450 !important;
+  line-height: 1.12 !important;
 }
 
 .colab-home-hero-copy p,
@@ -26551,6 +26566,7 @@ body:has(.gkit-flex-operational-shell) {
   background: var(--gkli-primary) !important;
   border-radius: 8px !important;
   color: #fff !important;
+  font-weight: 450 !important;
   min-height: 38px !important;
 }
 
@@ -26573,6 +26589,48 @@ body:has(.gkit-flex-operational-shell) {
 .colab-record-amount {
   color: var(--colab-ink) !important;
   font-weight: 450 !important;
+}
+
+.colab-home-balance strong {
+  font-size: 26px !important;
+  line-height: 1.08 !important;
+}
+
+.colab-home-metrics strong,
+.colab-action-copy strong,
+.colab-payment-summary strong,
+.colab-commission-summary strong,
+.colab-benefit-summary strong,
+.colab-profile-info-card strong,
+.colab-uber-overview strong,
+.colab-card-amount,
+.colab-record-amount {
+  font-size: 17px !important;
+  line-height: 1.18 !important;
+}
+
+.colab-uber-overview-main strong {
+  font-size: 22px !important;
+}
+
+.colab-payment-summary strong,
+.colab-commission-summary strong,
+.colab-benefit-summary strong,
+.colab-profile-info-card strong,
+.colab-uber-overview strong,
+.colab-card-amount,
+.colab-record-amount {
+  display: block;
+}
+
+.colab-uber-overview-main > div {
+  display: grid;
+  gap: 3px;
+}
+
+.colab-card-amount {
+  max-width: 100% !important;
+  white-space: normal !important;
 }
 
 .colab-action-card,
@@ -26599,6 +26657,44 @@ body:has(.gkit-flex-operational-shell) {
   color: var(--gkli-primary) !important;
 }
 
+.colab-action-grid,
+.colab-benefit-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)) !important;
+}
+
+.colab-payment-summary,
+.colab-commission-summary,
+.colab-benefit-summary,
+.colab-profile-info-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)) !important;
+}
+
+.colab-uber-overview {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)) !important;
+}
+
+.colab-payment-detail-card summary,
+.colab-uber-detail-card summary {
+  grid-template-columns: auto minmax(0, 1fr) minmax(72px, max-content) minmax(86px, max-content) 28px !important;
+}
+
+.colab-detail-card summary {
+  grid-template-columns: auto minmax(0, 1fr) minmax(86px, max-content) 28px !important;
+}
+
+.colab-commission-detail-card summary {
+  grid-template-columns: minmax(0, 1fr) minmax(72px, max-content) minmax(86px, max-content) 28px !important;
+}
+
+.colab-detail-card summary::after {
+  justify-self: end !important;
+}
+
+.colab-detail-card summary .suite-pill,
+.colab-detail-card summary .colab-card-amount {
+  justify-self: end;
+}
+
 .colab-uber-dropzone-icon {
   height: 42px !important;
   width: 42px !important;
@@ -26617,6 +26713,11 @@ body:has(.gkit-flex-operational-shell) {
   border-radius: 8px !important;
   margin-bottom: 12px !important;
   padding: 10px !important;
+}
+
+.colab-panel-filter label {
+  flex: 1 1 180px !important;
+  min-width: min(100%, 180px) !important;
 }
 
 .colab-panel-filter span,
@@ -26651,6 +26752,45 @@ body:has(.gkit-flex-operational-shell) {
 .colab-mobile-dock a {
   border-radius: 8px !important;
   font-weight: 400 !important;
+  overflow: hidden !important;
+  text-wrap: balance;
+}
+
+.colab-mobile-dock a svg {
+  flex: 0 0 auto !important;
+}
+
+@media (max-width: 980px) {
+  .colab-home-hero {
+    grid-template-columns: 1fr !important;
+  }
+
+  .colab-home-metrics {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)) !important;
+  }
+
+  .colab-detail-card summary,
+  .colab-payment-detail-card summary,
+  .colab-uber-detail-card summary,
+  .colab-commission-detail-card summary {
+    grid-template-columns: minmax(0, 1fr) 28px !important;
+  }
+
+  .colab-detail-card summary .colab-payment-icon {
+    grid-column: 1 / -1;
+  }
+
+  .colab-detail-card summary .suite-pill,
+  .colab-detail-card summary .colab-card-amount {
+    grid-column: 1 / -1;
+    justify-self: start;
+    text-align: left !important;
+  }
+
+  .colab-detail-card summary::after {
+    grid-column: 2;
+    grid-row: 1;
+  }
 }
 
 @media (max-width: 760px) {
@@ -26659,7 +26799,27 @@ body:has(.gkit-flex-operational-shell) {
   }
 
   .colab-app-hero h1 {
-    font-size: 22px !important;
+    font-size: 21px !important;
+  }
+
+  .colab-home-hero-copy h2 {
+    font-size: 24px !important;
+  }
+
+  .colab-home-balance strong {
+    font-size: 23px !important;
+  }
+
+  .colab-home-metrics strong,
+  .colab-action-copy strong,
+  .colab-payment-summary strong,
+  .colab-commission-summary strong,
+  .colab-benefit-summary strong,
+  .colab-profile-info-card strong,
+  .colab-uber-overview strong,
+  .colab-card-amount,
+  .colab-record-amount {
+    font-size: 16px !important;
   }
 
   .colab-home-hero,
@@ -26681,5 +26841,17 @@ body:has(.gkit-flex-operational-shell) {
   .colab-profile-actions,
   .colab-profile-actions .button {
     width: 100% !important;
+  }
+
+  .colab-mobile-dock {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+
+  .colab-mobile-dock a {
+    font-size: 9px !important;
+    gap: 2px !important;
+    line-height: 1.05 !important;
+    min-height: 44px !important;
+    padding: 4px 2px !important;
   }
 }
