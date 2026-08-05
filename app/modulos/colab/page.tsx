@@ -1,4 +1,4 @@
-import { ColabActionCenter, ColabCommissions, ColabFinancialSummary, ColabIntegrationStatus, ColabModuleMap, ColabPayments, ColabProfile, ColabShell } from '@/features/colab/components'
+import { ColabActionCenter, ColabCommissions, ColabFinancialSummary, ColabIntegrationStatus, ColabPayments, ColabProfile, ColabShell } from '@/features/colab/components'
 import { getColabData, requireColabContext } from '@/features/colab/queries'
 
 export default async function ColabPage() {
@@ -16,9 +16,8 @@ export default async function ColabPage() {
       <ColabProfile data={data} />
       <ColabFinancialSummary data={data} />
       <ColabActionCenter data={data} />
-      <ColabModuleMap data={data} />
       <section className="suite-split-grid">
-        <ColabPayments data={{ ...data, payments: data.payments.slice(0, 5) }} />
+        <ColabPayments data={{ ...data, payments: data.payments.slice(0, 5) }} showFilters={false} />
         <ColabCommissions data={{ ...data, commissions: data.commissions.slice(0, 5) }} />
       </section>
     </ColabShell>

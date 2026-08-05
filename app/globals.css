@@ -3264,6 +3264,410 @@ tr:last-child td {
   display: none;
 }
 
+.colab-app-hero {
+  gap: 18px;
+  padding: 22px;
+}
+
+.colab-app-hero .suite-hero-main {
+  align-items: center;
+}
+
+.colab-app-hero .suite-tabs a {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+}
+
+.colab-home-hero {
+  background:
+    linear-gradient(135deg, rgba(76, 40, 91, 0.96), rgba(30, 64, 175, 0.88)),
+    #2f173c;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  box-shadow: 0 24px 58px rgba(33, 24, 43, 0.22);
+  color: #fff;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.8fr);
+  overflow: hidden;
+  padding: 22px;
+  position: relative;
+}
+
+.colab-home-hero::after {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(255, 255, 255, 0));
+  content: "";
+  inset: auto -18% -40% 42%;
+  min-height: 220px;
+  position: absolute;
+  transform: rotate(-8deg);
+}
+
+.colab-home-hero-copy,
+.colab-home-balance,
+.colab-home-metrics {
+  position: relative;
+  z-index: 1;
+}
+
+.colab-home-hero-copy {
+  align-content: center;
+  display: grid;
+  gap: 10px;
+}
+
+.colab-home-hero-copy h2 {
+  font-size: clamp(27px, 4vw, 40px);
+  font-weight: 760;
+  line-height: 1.02;
+  margin: 0;
+}
+
+.colab-home-hero-copy p {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 15px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.colab-home-primary-action {
+  align-items: center;
+  background: #fff;
+  border-radius: 999px;
+  color: #33253b;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 800;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 6px;
+  min-height: 42px;
+  padding: 10px 15px;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.colab-home-balance {
+  align-content: center;
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px;
+  display: grid;
+  gap: 7px;
+  padding: 18px;
+}
+
+.colab-home-balance span,
+.colab-home-balance small,
+.colab-home-metrics span {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.colab-home-balance strong {
+  color: #fff;
+  font-size: clamp(27px, 4vw, 38px);
+  line-height: 1;
+}
+
+.colab-home-balance small {
+  font-size: 13px;
+}
+
+.colab-home-metrics {
+  display: grid;
+  gap: 10px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.colab-home-metrics article {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.colab-home-metrics strong {
+  color: #fff;
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.colab-action-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.colab-action-card {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  color: #162033;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 108px;
+  padding: 14px;
+  text-decoration: none;
+}
+
+.colab-action-card.blue {
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+.colab-action-card.green {
+  border-color: rgba(22, 163, 74, 0.22);
+}
+
+.colab-action-card.gold {
+  border-color: rgba(202, 138, 4, 0.24);
+}
+
+.colab-action-card.violet {
+  border-color: rgba(126, 34, 206, 0.22);
+}
+
+.colab-action-icon,
+.colab-next-icon,
+.colab-benefit-icon {
+  align-items: center;
+  background: #f4f7fb;
+  border-radius: 12px;
+  color: #4c285b;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.colab-action-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.colab-action-copy small,
+.colab-action-copy em {
+  color: #64748b;
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.2;
+}
+
+.colab-action-copy strong {
+  color: #162033;
+  font-size: 20px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.colab-action-arrow {
+  color: #94a3b8;
+}
+
+.colab-next-panel .suite-panel-heading {
+  margin-bottom: 2px;
+}
+
+.colab-next-list,
+.colab-card-list {
+  display: grid;
+  gap: 10px;
+}
+
+.colab-next-item,
+.colab-payment-card,
+.colab-commission-card,
+.colab-uber-card {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 14px;
+  color: #162033;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  padding: 12px;
+  text-decoration: none;
+}
+
+.colab-next-item {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.colab-next-item strong,
+.colab-list-main h3 {
+  color: #162033;
+  display: block;
+  font-size: 15px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.colab-next-item small,
+.colab-list-main p {
+  color: #64748b;
+  display: block;
+  font-size: 13px;
+  line-height: 1.35;
+  margin: 4px 0 0;
+}
+
+.colab-next-item em {
+  color: #4c285b;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.colab-card-amount {
+  color: #33253b;
+  font-size: 18px;
+  line-height: 1.1;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.colab-card-meta {
+  color: #64748b;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 6px;
+  grid-column: 1 / -1;
+}
+
+.colab-card-meta :is(span, a) {
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+  color: #52647d;
+  padding: 5px 9px;
+  text-decoration: none;
+}
+
+.colab-panel-link {
+  color: #4c285b;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.colab-filter-title {
+  align-items: center;
+  color: #33253b;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 42px;
+}
+
+.colab-benefit-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.colab-benefit-card {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 16px;
+}
+
+.colab-benefit-card h2 {
+  color: #162033;
+  font-size: 17px;
+  line-height: 1.25;
+  margin: 10px 0 4px;
+}
+
+.colab-benefit-card p {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.colab-benefit-card > strong {
+  color: #4c285b;
+  grid-column: 2;
+}
+
+.colab-profile-panel {
+  gap: 18px;
+}
+
+.colab-profile-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.colab-profile-head h2 {
+  color: #162033;
+  font-size: 23px;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.colab-profile-head p {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.35;
+  margin: 4px 0 0;
+}
+
+.colab-profile-avatar {
+  align-items: center;
+  background: #f4f7fb;
+  border-radius: 16px;
+  color: #4c285b;
+  display: inline-flex;
+  height: 52px;
+  justify-content: center;
+  width: 52px;
+}
+
+.colab-profile-benefits {
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+}
+
+.colab-profile-benefits > strong {
+  color: #162033;
+}
+
+.colab-profile-benefits > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.colab-profile-benefits span {
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  color: #52647d;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.colab-empty-state {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
 .colab-kpi-grid .metric-card,
 .colab-financial-grid .metric-card {
   min-height: 86px;
@@ -3343,6 +3747,10 @@ tr:last-child td {
 }
 
 .colab-uber-actions .button {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
   min-height: 46px;
   padding-inline: 22px;
   white-space: nowrap;
@@ -4740,6 +5148,71 @@ tr:last-child td {
     padding: 8px 13px;
   }
 
+  .colab-app-hero {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .colab-app-hero .suite-tabs {
+    display: none;
+  }
+
+  .colab-home-hero {
+    border-radius: 18px;
+    gap: 14px;
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .colab-home-hero-copy h2 {
+    font-size: 31px;
+  }
+
+  .colab-home-primary-action {
+    width: 100%;
+  }
+
+  .colab-home-metrics,
+  .colab-action-grid,
+  .colab-benefit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .colab-action-card {
+    min-height: 88px;
+  }
+
+  .colab-next-item,
+  .colab-payment-card,
+  .colab-commission-card,
+  .colab-uber-card {
+    align-items: flex-start;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .colab-next-item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .colab-next-item .suite-pill,
+  .colab-next-item em,
+  .colab-card-amount,
+  .colab-payment-card .suite-pill,
+  .colab-commission-card .suite-pill,
+  .colab-uber-card .suite-pill {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+
+  .colab-card-amount {
+    font-size: 22px;
+    white-space: normal;
+  }
+
+  .colab-benefit-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
   .suite-panel-heading h2 {
     font-size: 17px;
   }
@@ -4789,7 +5262,7 @@ tr:last-child td {
     right: 12px;
     bottom: 12px;
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
     border: 1px solid rgba(148, 163, 184, 0.26);
     border-radius: 18px;
@@ -4809,6 +5282,10 @@ tr:last-child td {
     line-height: 1.05;
     padding: 4px 3px;
     text-align: center;
+  }
+
+  .colab-mobile-dock a svg {
+    margin-bottom: 2px;
   }
 
   .colab-mobile-dock a.active {

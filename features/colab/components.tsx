@@ -1,4 +1,18 @@
 import Link from 'next/link'
+import {
+  Banknote,
+  CarFront,
+  CheckCircle2,
+  ChevronRight,
+  CircleUserRound,
+  Gift,
+  Home,
+  ReceiptText,
+  SlidersHorizontal,
+  UploadCloud,
+  WalletCards,
+  type LucideIcon,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { ColabData, ColabUberData } from '@/features/colab/types'
 import { BrandLogo } from '@/features/shared/brand-logo'
@@ -6,13 +20,12 @@ import type { PlatformUsuario } from '@/lib/auth/platform'
 
 type ColabTab = 'dashboard' | 'pagamentos' | 'comissoes' | 'beneficios' | 'uber' | 'perfil'
 
-const tabs: Array<{ id: ColabTab; href: string; label: string }> = [
-  { id: 'dashboard', href: '/modulos/colab', label: 'Início' },
-  { id: 'pagamentos', href: '/modulos/colab/pagamentos', label: 'Pagamentos' },
-  { id: 'comissoes', href: '/modulos/colab/comissoes', label: 'Comissões' },
-  { id: 'beneficios', href: '/modulos/colab/beneficios', label: 'Benefícios' },
-  { id: 'uber', href: '/modulos/colab/uber', label: 'Uber' },
-  { id: 'perfil', href: '/modulos/colab/perfil', label: 'Perfil' },
+const tabs: Array<{ id: ColabTab; href: string; icon: LucideIcon; label: string }> = [
+  { id: 'dashboard', href: '/modulos/colab', icon: Home, label: 'Início' },
+  { id: 'pagamentos', href: '/modulos/colab/pagamentos', icon: WalletCards, label: 'Pagamentos' },
+  { id: 'uber', href: '/modulos/colab/uber', icon: CarFront, label: 'Uber' },
+  { id: 'comissoes', href: '/modulos/colab/comissoes', icon: Banknote, label: 'Comissões' },
+  { id: 'perfil', href: '/modulos/colab/perfil', icon: CircleUserRound, label: 'Perfil' },
 ]
 
 function currency(value: number) {
@@ -24,6 +37,18 @@ function pillTone(status: string) {
   if (['cancelado', 'cancelada', 'rejeitada', 'erro'].includes(status)) return 'danger'
   if (['previsto', 'pendente', 'em_processamento', 'calculada', 'em_conferencia'].includes(status)) return 'warning'
   return 'primary'
+}
+
+function readableStatus(status: string) {
+  return status.replaceAll('_', ' ')
+}
+
+function firstName(name?: string | null) {
+  return name?.trim().split(/\s+/)[0] ?? 'Colaborador'
+}
+
+function plural(count: number, singular: string, pluralLabel: string) {
+  return `${count} ${count === 1 ? singular : pluralLabel}`
 }
 
 export function ColabShell({
@@ -42,7 +67,7 @@ export function ColabShell({
     <main className="suite-page">
       <div className="platform-bg" />
       <div className="suite-wrap no-sidebar colab-shell-wrap">
-        <section className="suite-hero-card">
+        <section className="suite-hero-card colab-app-hero">
           <div className="suite-hero-main">
             <BrandLogo className="suite-brand-mark" label="GKIT Colab" />
             <div>
@@ -54,6 +79,7 @@ export function ColabShell({
           <nav className="suite-tabs" aria-label="Navegacao do colaborador">
             {tabs.map((tab) => (
               <Link className={tab.id === active ? 'active' : ''} href={tab.href} key={tab.id}>
+                <tab.icon aria-hidden="true" size={16} strokeWidth={2.2} />
                 {tab.label}
               </Link>
             ))}
@@ -65,6 +91,7 @@ export function ColabShell({
         <nav className="colab-mobile-dock" aria-label="Navegacao rápida do colaborador">
           {tabs.map((tab) => (
             <Link className={tab.id === active ? 'active' : ''} href={tab.href} key={tab.id}>
+              <tab.icon aria-hidden="true" size={18} strokeWidth={2.2} />
               {tab.label}
             </Link>
           ))}
@@ -84,33 +111,45 @@ export function ColabProfile({ data }: { data: ColabData }) {
     )
   }
 
+  const pendingTotal = data.summary.pendingPayments + data.summary.pendingUberExpenses
+  const nextAction = data.summary.pendingUberExpenses
+    ? { href: '/modulos/colab/uber', label: 'Enviar ou acompanhar Uber' }
+    : data.summary.pendingPayments
+      ? { href: '/modulos/colab/pagamentos', label: 'Conferir pagamentos' }
+      : data.summary.openCommissions
+        ? { href: '/modulos/colab/comissoes', label: 'Acompanhar comissões' }
+        : { href: '/modulos/colab/perfil', label: 'Ver meu perfil' }
+
   return (
-    <section className="suite-kpi-grid compact colab-kpi-grid">
-      <article className="card metric-card">
-        <p className="metric-label">Colaborador</p>
-        <p className="metric-value">{data.collaborator.name}</p>
-        <p className="metric-hint">{data.collaborator.role}</p>
-      </article>
-      <article className="card metric-card">
-        <p className="metric-label">Time</p>
-        <p className="metric-value">{data.collaborator.department}</p>
-        <p className="metric-hint">Gestor: {data.collaborator.manager}</p>
-      </article>
-      <article className="card metric-card">
-        <p className="metric-label">Último pagamento</p>
-        <p className="metric-value">{currency(data.summary.latestPayment)}</p>
-        <p className="metric-hint">{data.payments[0]?.competence ?? 'Sem demonstrativo'}</p>
-      </article>
-      <article className="card metric-card">
-        <p className="metric-label">Comissões abertas</p>
-        <p className="metric-value">{currency(data.summary.openCommissions)}</p>
-        <p className="metric-hint">calculadas e em conferência</p>
-      </article>
-      <article className="card metric-card">
-        <p className="metric-label">Benefícios</p>
-        <p className="metric-value">{String(data.benefits.length)}</p>
-        <p className="metric-hint">ativos no cadastro</p>
-      </article>
+    <section className="colab-home-hero">
+      <div className="colab-home-hero-copy">
+        <span className={`suite-pill ${pillTone(data.source.status)}`}>{readableStatus(data.source.status)}</span>
+        <h2>Olá, {firstName(data.collaborator.name)}</h2>
+        <p>{data.collaborator.role} · {data.collaborator.department}</p>
+        <Link className="colab-home-primary-action" href={nextAction.href}>
+          {nextAction.label}
+          <ChevronRight aria-hidden="true" size={18} strokeWidth={2.2} />
+        </Link>
+      </div>
+      <div className="colab-home-balance">
+        <span>Último pagamento</span>
+        <strong>{currency(data.summary.latestPayment)}</strong>
+        <small>{data.payments[0]?.competence ?? 'Sem demonstrativo publicado'}</small>
+      </div>
+      <div className="colab-home-metrics">
+        <article>
+          <span>Pendências</span>
+          <strong>{String(pendingTotal)}</strong>
+        </article>
+        <article>
+          <span>Comissões</span>
+          <strong>{currency(data.summary.openCommissions)}</strong>
+        </article>
+        <article>
+          <span>Benefícios</span>
+          <strong>{String(data.benefits.length)}</strong>
+        </article>
+      </div>
     </section>
   )
 }
@@ -118,8 +157,12 @@ export function ColabProfile({ data }: { data: ColabData }) {
 export function ColabIntegrationStatus({ data }: { data: ColabData }) {
   const tone = data.source.status === 'sincronizado' ? 'success' : data.source.status === 'erro' ? 'danger' : 'warning'
 
+  if (data.source.status === 'sincronizado') {
+    return null
+  }
+
   return (
-    <section className={`suite-empty-block ${tone}`}>
+    <section className={`suite-empty-block ${tone} colab-attention-banner`}>
       <strong>{data.source.label}: {data.source.status}</strong>
       <span>{data.source.message}</span>
     </section>
@@ -127,28 +170,56 @@ export function ColabIntegrationStatus({ data }: { data: ColabData }) {
 }
 
 export function ColabFinancialSummary({ data }: { data: ColabData }) {
+  const actions = [
+    {
+      detail: plural(data.summary.pendingPayments, 'pendente', 'pendentes'),
+      href: '/modulos/colab/pagamentos',
+      icon: WalletCards,
+      label: 'Pagamentos',
+      tone: 'blue',
+      value: currency(data.summary.latestPayment),
+    },
+    {
+      detail: 'lançar e acompanhar',
+      href: '/modulos/colab/uber',
+      icon: CarFront,
+      label: 'Uber',
+      tone: 'green',
+      value: String(data.summary.pendingUberExpenses),
+    },
+    {
+      detail: `${currency(data.summary.paidCommissions)} pagas`,
+      href: '/modulos/colab/comissoes',
+      icon: Banknote,
+      label: 'Comissões',
+      tone: 'gold',
+      value: currency(data.summary.openCommissions),
+    },
+    {
+      detail: 'ativos no cadastro',
+      href: '/modulos/colab/perfil',
+      icon: Gift,
+      label: 'Benefícios',
+      tone: 'violet',
+      value: String(data.benefits.length),
+    },
+  ]
+
   return (
-    <section className="suite-kpi-grid compact colab-financial-grid">
-      <article className="card metric-card">
-        <p className="metric-label">Comissões aprovadas</p>
-        <p className="metric-value">{currency(data.summary.approvedCommissions)}</p>
-        <p className="metric-hint">aguardando pagamento</p>
-      </article>
-      <article className="card metric-card">
-        <p className="metric-label">Comissões pagas</p>
-        <p className="metric-value">{currency(data.summary.paidCommissions)}</p>
-        <p className="metric-hint">histórico publicado</p>
-      </article>
-      <article className="card metric-card">
-        <p className="metric-label">Pagamentos pendentes</p>
-        <p className="metric-value">{String(data.summary.pendingPayments)}</p>
-        <p className="metric-hint">previstos ou em processamento</p>
-      </article>
-      <article className="card metric-card">
-        <p className="metric-label">Uber pendente</p>
-        <p className="metric-value">{String(data.summary.pendingUberExpenses)}</p>
-        <p className="metric-hint">lançamentos aguardando conferência</p>
-      </article>
+    <section className="colab-action-grid" aria-label="Atalhos do Colab">
+      {actions.map((action) => (
+        <Link className={`colab-action-card ${action.tone}`} href={action.href} key={action.label}>
+          <span className="colab-action-icon">
+            <action.icon aria-hidden="true" size={18} strokeWidth={2.2} />
+          </span>
+          <span className="colab-action-copy">
+            <small>{action.label}</small>
+            <strong>{action.value}</strong>
+            <em>{action.detail}</em>
+          </span>
+          <ChevronRight aria-hidden="true" className="colab-action-arrow" size={18} strokeWidth={2.2} />
+        </Link>
+      ))}
     </section>
   )
 }
@@ -175,6 +246,7 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
     data.summary.pendingPayments
       ? {
           href: '/modulos/colab/pagamentos',
+          icon: ReceiptText,
           status: 'pendente',
           title: 'Pagamentos em aberto',
           value: String(data.summary.pendingPayments),
@@ -184,6 +256,7 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
     data.summary.openCommissions
       ? {
           href: '/modulos/colab/comissoes',
+          icon: Banknote,
           status: 'em_conferencia',
           title: 'Comissões em acompanhamento',
           value: currency(data.summary.openCommissions),
@@ -193,38 +266,41 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
     data.summary.pendingUberExpenses
       ? {
           href: '/modulos/colab/uber',
+          icon: CarFront,
           status: 'pendente',
           title: 'Despesas Uber',
           value: String(data.summary.pendingUberExpenses),
           detail: 'lançamentos aguardando conciliação',
         }
       : null,
-  ].filter(Boolean) as Array<{ detail: string; href: string; status: string; title: string; value: string }>
+  ].filter(Boolean) as Array<{ detail: string; href: string; icon: LucideIcon; status: string; title: string; value: string }>
 
   return (
-    <section className="card suite-panel">
+    <section className="card suite-panel colab-next-panel">
       <div className="suite-panel-heading">
         <div>
-          <h2>Pendências</h2>
-          <p>Itens publicados pelo GKIT Flex para acompanhamento individual.</p>
+          <h2>Próximas ações</h2>
         </div>
       </div>
       {actions.length ? (
-        <div className="suite-table-list">
+        <div className="colab-next-list">
           {actions.map((item) => (
-            <article key={item.title}>
-              <div>
-                <h3>{item.title}</h3>
-                <p>{item.detail}</p>
-              </div>
-              <span className={`suite-pill ${pillTone(item.status)}`}>{item.status}</span>
-              <strong>{item.value}</strong>
-              <small><Link href={item.href}>Abrir</Link></small>
-            </article>
+            <Link className="colab-next-item" href={item.href} key={item.title}>
+              <span className="colab-next-icon">
+                <item.icon aria-hidden="true" size={18} strokeWidth={2.2} />
+              </span>
+              <span>
+                <strong>{item.title}</strong>
+                <small>{item.detail}</small>
+              </span>
+              <span className={`suite-pill ${pillTone(item.status)}`}>{readableStatus(item.status)}</span>
+              <em>{item.value}</em>
+            </Link>
           ))}
         </div>
       ) : (
-        <div className="suite-empty-block success">
+        <div className="suite-empty-block success colab-empty-state">
+          <CheckCircle2 aria-hidden="true" size={20} strokeWidth={2.2} />
           <strong>Tudo em dia</strong>
           <span>Nenhuma pendência financeira publicada para este colaborador.</span>
         </div>
@@ -233,66 +309,15 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
   )
 }
 
-export function ColabModuleMap({ data }: { data: ColabData }) {
-  const modules = [
-    {
-      href: '/modulos/colab/perfil',
-      status: data.collaborator ? 'sincronizado' : 'pendente',
-      title: 'Perfil',
-      description: data.collaborator ? `${data.collaborator.role} - ${data.collaborator.department}` : 'Cadastro pendente no GKIT Flex',
-      value: data.collaborator?.status ?? '-',
-    },
-    {
-      href: '/modulos/colab/pagamentos',
-      status: data.summary.pendingPayments ? 'pendente' : 'sincronizado',
-      title: 'Pagamentos',
-      description: 'Demonstrativos vindos do GKIT Flex',
-      value: String(data.payments.length),
-    },
-    {
-      href: '/modulos/colab/comissoes',
-      status: data.summary.openCommissions ? 'em_conferencia' : 'sincronizado',
-      title: 'Comissões',
-      description: 'Valores variáveis por competência',
-      value: currency(data.summary.openCommissions + data.summary.paidCommissions),
-    },
-    {
-      href: '/modulos/colab/beneficios',
-      status: data.benefits.length ? 'ativo' : 'pendente',
-      title: 'Benefícios',
-      description: 'Benefícios cadastrados no GKIT Flex',
-      value: String(data.benefits.length),
-    },
-    {
-      href: '/modulos/colab/uber',
-      status: data.summary.pendingUberExpenses ? 'pendente' : 'sincronizado',
-      title: 'Uber',
-      description: 'Reembolsos com cliente, descrição e recibo',
-      value: String(data.uber.length),
-    },
-  ]
-
-  return (
-    <section className="suite-module-grid colab-module-grid">
-      {modules.map((item) => (
-        <Link className="suite-module-card" href={item.href} key={item.title}>
-          <span className={`suite-pill ${pillTone(item.status)}`}>{item.status}</span>
-          <h2>{item.title}</h2>
-          <p>{item.description}</p>
-          <strong>{item.value}</strong>
-        </Link>
-      ))}
-    </section>
-  )
-}
-
 export function ColabPayments({
   competenceFilter = 'todos',
   data,
+  showFilters = true,
   statusFilter = 'todos',
 }: {
   competenceFilter?: string
   data: ColabData
+  showFilters?: boolean
   statusFilter?: string
 }) {
   const statusOptions = Array.from(new Set(data.payments.map((payment) => payment.status))).sort((a, b) => a.localeCompare(b, 'pt-BR'))
@@ -305,8 +330,12 @@ export function ColabPayments({
   const hasFilter = statusFilter !== 'todos' || competenceFilter !== 'todos'
 
   return (
-    <section className="card suite-panel">
-      <form action="/modulos/colab/pagamentos" className="colab-panel-filter">
+    <section className="card suite-panel colab-list-panel">
+      {showFilters ? <form action="/modulos/colab/pagamentos" className="colab-panel-filter">
+        <div className="colab-filter-title">
+          <SlidersHorizontal aria-hidden="true" size={18} strokeWidth={2.2} />
+          <strong>Filtrar demonstrativos</strong>
+        </div>
         <label>
           <span>Status</span>
           <select name="status" defaultValue={statusFilter}>
@@ -327,20 +356,28 @@ export function ColabPayments({
         </label>
         <button className="button" type="submit">Filtrar</button>
         {hasFilter ? <Link className="button secondary" href="/modulos/colab/pagamentos">Limpar</Link> : null}
-      </form>
-      <div className="suite-table-list colab-record-list">
+      </form> : (
+        <div className="suite-panel-heading">
+          <div>
+            <h2>Pagamentos recentes</h2>
+          </div>
+          <Link className="colab-panel-link" href="/modulos/colab/pagamentos">Ver todos</Link>
+        </div>
+      )}
+      <div className="colab-card-list">
         {payments.map((payment) => (
-          <article key={payment.id}>
-            <div>
+          <article className="colab-payment-card" key={payment.id}>
+            <div className="colab-list-main">
               <h3>{payment.competence}</h3>
               <p>{payment.type} - {payment.description}</p>
             </div>
-            <span className={`suite-pill ${pillTone(payment.status)}`}>{payment.status}</span>
-            <strong className="colab-record-amount">{currency(payment.netAmount)}</strong>
-            <small>
-              Bruto {currency(payment.grossAmount)}
-              {payment.discountAmount ? ` - Descontos ${currency(payment.discountAmount)}` : ''}
-            </small>
+            <span className={`suite-pill ${pillTone(payment.status)}`}>{readableStatus(payment.status)}</span>
+            <strong className="colab-card-amount">{currency(payment.netAmount)}</strong>
+            <div className="colab-card-meta">
+              <span>Bruto {currency(payment.grossAmount)}</span>
+              <span>Descontos {currency(payment.discountAmount)}</span>
+              <span>{payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString('pt-BR') : 'Sem data de pagamento'}</span>
+            </div>
           </article>
         ))}
         {!payments.length ? <EmptyBlock label={hasFilter ? 'Nenhum pagamento encontrado para o filtro.' : 'Nenhum pagamento encontrado.'} /> : null}
@@ -351,23 +388,26 @@ export function ColabPayments({
 
 export function ColabCommissions({ data }: { data: ColabData }) {
   return (
-    <section className="card suite-panel">
+    <section className="card suite-panel colab-list-panel">
       <div className="suite-panel-heading">
         <div>
           <h2>Comissões</h2>
-          <p>Valores variáveis vinculados ao cadastro do colaborador.</p>
         </div>
       </div>
-      <div className="suite-table-list colab-record-list">
+      <div className="colab-card-list">
         {data.commissions.map((commission) => (
-          <article key={commission.id}>
-            <div>
+          <article className="colab-commission-card" key={commission.id}>
+            <div className="colab-list-main">
               <h3>{commission.reference}</h3>
               <p>{commission.client} - {commission.category}</p>
             </div>
-            <span className={`suite-pill ${pillTone(commission.status)}`}>{commission.status}</span>
-            <strong className="colab-record-amount">{currency(commission.amount)}</strong>
-            <small>{commission.percentage}% sobre {currency(commission.baseAmount)}</small>
+            <span className={`suite-pill ${pillTone(commission.status)}`}>{readableStatus(commission.status)}</span>
+            <strong className="colab-card-amount">{currency(commission.amount)}</strong>
+            <div className="colab-card-meta">
+              <span>Base {currency(commission.baseAmount)}</span>
+              <span>{commission.percentage}%</span>
+              <span>{commission.paidAt ? `Pago em ${new Date(commission.paidAt).toLocaleDateString('pt-BR')}` : 'Aguardando pagamento'}</span>
+            </div>
           </article>
         ))}
         {!data.commissions.length ? <EmptyBlock label="Nenhuma comissão encontrada." /> : null}
@@ -378,12 +418,17 @@ export function ColabCommissions({ data }: { data: ColabData }) {
 
 export function ColabBenefits({ data }: { data: ColabData }) {
   return (
-    <section className="suite-module-grid">
+    <section className="colab-benefit-grid">
       {data.benefits.map((benefit) => (
-        <article className="suite-module-card" key={benefit.id}>
-          <span className={`suite-pill ${pillTone(benefit.status)}`}>{benefit.status}</span>
-          <h2>{benefit.name}</h2>
-          <p>{benefit.description}</p>
+        <article className="colab-benefit-card" key={benefit.id}>
+          <span className="colab-benefit-icon">
+            <Gift aria-hidden="true" size={18} strokeWidth={2.2} />
+          </span>
+          <div>
+            <span className={`suite-pill ${pillTone(benefit.status)}`}>{readableStatus(benefit.status)}</span>
+            <h2>{benefit.name}</h2>
+            <p>{benefit.description}</p>
+          </div>
           <strong>{benefit.monthlyValue ? currency(benefit.monthlyValue) : benefit.provider}</strong>
         </article>
       ))}
@@ -410,16 +455,19 @@ export function ColabProfileDetails({ data }: { data: ColabData }) {
     { label: 'Cargo', value: collaborator.role },
     { label: 'Time', value: collaborator.department },
     { label: 'Gestor', value: collaborator.manager },
-    { label: 'Admissao', value: new Date(collaborator.admissionDate).toLocaleDateString('pt-BR') },
+    { label: 'Admissão', value: new Date(collaborator.admissionDate).toLocaleDateString('pt-BR') },
     { label: 'Status', value: collaborator.status },
   ]
 
   return (
-    <section className="card suite-panel">
-      <div className="suite-panel-heading">
+    <section className="card suite-panel colab-profile-panel">
+      <div className="colab-profile-head">
+        <span className="colab-profile-avatar">
+          <CircleUserRound aria-hidden="true" size={24} strokeWidth={2.1} />
+        </span>
         <div>
-          <h2>Dados profissionais</h2>
-          <p>Informações sincronizadas a partir do cadastro administrativo.</p>
+          <h2>{collaborator.name}</h2>
+          <p>{collaborator.role} · {collaborator.department}</p>
         </div>
       </div>
       <div className="suite-table-list compact">
@@ -431,6 +479,15 @@ export function ColabProfileDetails({ data }: { data: ColabData }) {
             </div>
           </article>
         ))}
+      </div>
+      <div className="colab-profile-benefits">
+        <strong>Benefícios ativos</strong>
+        <div>
+          {data.benefits.map((benefit) => (
+            <span key={benefit.id}>{benefit.name}</span>
+          ))}
+          {!data.benefits.length ? <span>Nenhum benefício cadastrado</span> : null}
+        </div>
       </div>
     </section>
   )
@@ -474,8 +531,7 @@ export function ColabUberExpenses({
       <section className="card suite-panel colab-uber-panel">
         <div className="suite-panel-heading">
           <div>
-            <h2>Lançar despesa de Uber</h2>
-            <p>Informe o cliente do Ciclo, descreva a corrida e anexe o recibo emitido pela Uber.</p>
+            <h2>Lançar despesa</h2>
           </div>
         </div>
         <form action={action} className="colab-uber-form">
@@ -505,31 +561,34 @@ export function ColabUberExpenses({
             <textarea name="descricao" rows={3} placeholder="Ex.: ida ao cliente para assembleia / protocolo / reunião" required />
           </label>
           <div className="colab-uber-actions">
-            <button className="button" type="submit">Enviar despesa</button>
+            <button className="button" type="submit">
+              <UploadCloud aria-hidden="true" size={17} strokeWidth={2.2} />
+              Enviar despesa
+            </button>
           </div>
         </form>
       </section>
 
-      <section className="card suite-panel">
+      <section className="card suite-panel colab-list-panel">
         <div className="suite-panel-heading">
           <div>
             <h2>Meus lançamentos</h2>
-            <p>Despesas enviadas para conferência e pedido de reembolso.</p>
           </div>
         </div>
-        <div className="suite-table-list colab-record-list">
+        <div className="colab-card-list">
           {data.expenses.map((expense) => (
-            <article key={expense.id}>
-              <div>
+            <article className="colab-uber-card" key={expense.id}>
+              <div className="colab-list-main">
                 <h3>{expense.client}</h3>
                 <p>{expense.description}</p>
               </div>
-              <span className={`suite-pill ${pillTone(expense.status)}`}>{expense.status}</span>
-              <strong className="colab-record-amount">{currency(expense.amount)}</strong>
-              <small>
-                {new Date(expense.date).toLocaleDateString('pt-BR')}
-                {expense.receiptUrl ? <> · <a href={expense.receiptUrl}>Recibo</a></> : null}
-              </small>
+              <span className={`suite-pill ${pillTone(expense.status)}`}>{readableStatus(expense.status)}</span>
+              <strong className="colab-card-amount">{currency(expense.amount)}</strong>
+              <div className="colab-card-meta">
+                <span>{new Date(expense.date).toLocaleDateString('pt-BR')}</span>
+                <span>{expense.competence}</span>
+                {expense.receiptUrl ? <a href={expense.receiptUrl}>Recibo</a> : <span>Sem recibo</span>}
+              </div>
             </article>
           ))}
           {!data.expenses.length ? <EmptyBlock label="Nenhuma despesa de Uber lançada." /> : null}
@@ -540,5 +599,5 @@ export function ColabUberExpenses({
 }
 
 function EmptyBlock({ label }: { label: string }) {
-  return <div className="suite-empty-block">{label}</div>
+  return <div className="suite-empty-block colab-empty-state">{label}</div>
 }
