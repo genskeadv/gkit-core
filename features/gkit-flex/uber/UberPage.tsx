@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { MetricCard, MonthContextHeader } from '../ui/FlexUI'
+import { MetricCard, MonthContextHeader, StatusBadge } from '../ui/FlexUI'
+import type { UberDashboardData, UberDashboardExpense } from './uberPersistence'
 
 type MissingRow = {
   line: number
@@ -27,29 +28,79 @@ type ImportResult = {
   missing: MissingRow[]
 }
 
+const statusActions = [
+  { label: 'Em conferência', value: 'em_conferencia' },
+  { label: 'Reembolso solicitado', value: 'reembolso_solicitado' },
+  { label: 'Reembolsado', value: 'reembolsado' },
+  { label: 'Rejeitado', value: 'rejeitado' },
+]
+
 function currentMonthValue() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function monthFromCompetencia(value?: string | null) {
+  return value ? String(value).slice(0, 7) : currentMonthValue()
 }
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat('pt-BR', { currency: 'BRL', style: 'currency' }).format(value || 0)
 }
 
-function formatDate(value: string) {
+function formatDate(value?: string | null) {
   const match = String(value || '').match(/^(\d{4}-\d{2}-\d{2})/)
   if (!match) return '-'
   const [year, month, day] = match[1].split('-')
   return `${day}/${month}/${year}`
 }
 
-export function UberPage() {
-  const [competencia, setCompetencia] = useState(currentMonthValue())
+function readableStatus(status: string) {
+  return status.replaceAll('_', ' ')
+}
+
+function statusTone(status: string) {
+  if (['conciliado', 'reembolsado'].includes(status)) return 'ok'
+  if (status === 'rejeitado') return 'bloqueio'
+  if (['lancado', 'em_conferencia', 'reembolso_solicitado'].includes(status)) return 'aviso'
+  return 'nao_aberto'
+}
+
+function expenseNeedsAction(expense: UberDashboardExpense) {
+  return !['reembolsado', 'rejeitado'].includes(expense.status)
+}
+
+export function UberPage({ initialData }: { initialData: UberDashboardData }) {
+  const [competencia, setCompetencia] = useState(monthFromCompetencia(initialData.competencia))
   const [file, setFile] = useState<File | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)
+  const [data, setData] = useState(initialData)
   const [loading, setLoading] = useState(false)
+  const [savingId, setSavingId] = useState('')
   const [error, setError] = useState('')
   const competenciaParam = useMemo(() => `${competencia}-01`, [competencia])
+
+  async function loadDashboard(nextCompetencia = competenciaParam) {
+    setLoading(true)
+    setError('')
+
+    try {
+      const response = await fetch(`/api/gkit-flex/uber/importar?competencia=${encodeURIComponent(nextCompetencia)}`, { cache: 'no-store' })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || 'Não foi possível carregar a conciliação Uber.')
+      setData(payload)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao carregar Uber.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function changeCompetencia(value: string) {
+    setCompetencia(value)
+    setResult(null)
+    await loadDashboard(`${value}-01`)
+  }
 
   async function importReport() {
     if (!file) return
@@ -68,6 +119,7 @@ export function UberPage() {
       if (!response.ok) throw new Error(payload.error || 'Não foi possível importar o relatório.')
 
       setResult(payload)
+      await loadDashboard(competenciaParam)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado ao importar relatório Uber.')
     } finally {
@@ -75,15 +127,39 @@ export function UberPage() {
     }
   }
 
+  async function updateExpenseStatus(expense: UberDashboardExpense, status: string) {
+    setSavingId(`${expense.id}:${status}`)
+    setError('')
+
+    try {
+      const response = await fetch(`/api/gkit-flex/uber/despesas/${expense.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || 'Não foi possível atualizar o status.')
+      await loadDashboard(competenciaParam)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao atualizar status.')
+    } finally {
+      setSavingId('')
+    }
+  }
+
   return (
-    <main className="page-shell audit-page">
+    <main className="page-shell audit-page flex-uber-page">
       <MonthContextHeader
         title="Conciliação Uber"
-        description="Importe o relatório de vouchers da Uber e identifique corridas sem lançamento pelo colaborador."
+        description="Importe o relatório de vouchers, acompanhe lançamentos do Colab e marque reembolsos."
         competencia={competencia}
-        onCompetenciaChange={setCompetencia}
-        primaryStatus={{ label: 'Relatório', status: result ? 'aberto' : 'nao_aberto' }}
+        onCompetenciaChange={changeCompetencia}
+        primaryStatus={{ label: 'Relatório', status: data.reports.length ? 'ok' : 'nao_aberto' }}
+        secondaryStatus={{ label: 'Pendências', status: data.summary.missingRides || data.summary.pendingExpenses ? 'aviso' : 'ok' }}
       >
+        <button className="secondary-button" disabled={loading} onClick={() => loadDashboard()} type="button">
+          {loading ? 'Atualizando...' : 'Atualizar'}
+        </button>
         <a className="secondary-button" href="/modulos/gkit-flex/auditoria">Auditoria</a>
       </MonthContextHeader>
 
@@ -105,55 +181,146 @@ export function UberPage() {
         </div>
       </section>
 
-      {result ? (
-        <>
-          <section className="grid-4 dashboard-metrics">
-            <MetricCard label="Linhas lidas" value={result.report.linhasLidas} help={result.report.arquivo} />
-            <MetricCard label="Corridas" value={result.report.corridasIdentificadas} help={formatMoney(result.report.valorTotal)} />
-            <MetricCard label="Sem lançamento" value={result.report.corridasSemLancamento} help={formatMoney(result.report.valorSemLancamento)} tone={result.report.corridasSemLancamento ? 'warning' : 'good'} />
-            <MetricCard label="Conciliadas" value={result.report.corridasIdentificadas - result.report.corridasSemLancamento} help="por e-mail e valor" />
-          </section>
+      <section className="grid-4 dashboard-metrics">
+        <MetricCard label="Lançamentos Colab" value={data.summary.totalExpenses} help={`${data.summary.pendingExpenses} pendente(s)`} />
+        <MetricCard label="Aberto para tratar" value={formatMoney(data.summary.openAmount)} help="lançado, conferência ou reembolso solicitado" tone={data.summary.openAmount ? 'warning' : 'good'} />
+        <MetricCard label="Reembolsado" value={formatMoney(data.summary.reimbursedAmount)} help={`${data.summary.reimbursedExpenses} lançamento(s)`} />
+        <MetricCard label="Sem lançamento" value={data.summary.missingRides} help={formatMoney(data.summary.missingAmount)} tone={data.summary.missingRides ? 'warning' : 'good'} />
+      </section>
 
-          <section className="card">
-            <p className="eyebrow">Pendências</p>
-            <h2>Corridas no relatório sem lançamento Colab</h2>
-            {result.missing.length ? (
-              <div className="table-wrap">
-                <table className="periods-table">
-                  <thead>
-                    <tr>
-                      <th>Linha</th>
-                      <th>Data</th>
-                      <th>Colaborador</th>
-                      <th>E-mail</th>
-                      <th>Status</th>
-                      <th className="text-right">Corridas</th>
-                      <th className="text-right">Valor</th>
-                      <th>Voucher</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {result.missing.map((row) => (
-                      <tr key={`${row.line}-${row.voucherLink}`}>
-                        <td>{row.line}</td>
-                        <td>{formatDate(row.creationDate)}</td>
-                        <td>{row.guestName || '-'}</td>
-                        <td>{row.guestEmail || '-'}</td>
-                        <td>{row.voucherStatus || '-'}</td>
-                        <td className="text-right">{row.ordersTrips}</td>
-                        <td className="text-right">{formatMoney(row.amountSpent)}</td>
-                        <td>{row.voucherLink ? <a href={row.voucherLink}>Abrir</a> : '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="success">Todas as corridas do relatório têm lançamento correspondente no Colab.</div>
-            )}
-          </section>
-        </>
+      <section className="card flex-uber-split">
+        <div>
+          <p className="eyebrow">Histórico</p>
+          <h2>Relatórios importados</h2>
+          {data.reports.length ? (
+            <div className="flex-uber-stack">
+              {data.reports.map((report) => (
+                <article className="flex-uber-report-card" key={report.id}>
+                  <div>
+                    <strong>{report.arquivo}</strong>
+                    <span>{formatDate(report.createdAt)} · {report.linhasLidas} linha(s)</span>
+                  </div>
+                  <div>
+                    <small>Corridas</small>
+                    <strong>{report.corridasIdentificadas}</strong>
+                  </div>
+                  <div>
+                    <small>Sem lançamento</small>
+                    <strong>{report.corridasSemLancamento}</strong>
+                  </div>
+                  <div>
+                    <small>Valor</small>
+                    <strong>{formatMoney(report.valorTotal)}</strong>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state compact">Nenhum relatório importado para esta competência.</div>
+          )}
+        </div>
+
+        <div>
+          <p className="eyebrow">Pendências</p>
+          <h2>Corridas sem lançamento</h2>
+          {data.missing.length ? (
+            <div className="flex-uber-stack">
+              {data.missing.slice(0, 8).map((row) => (
+                <article className="flex-uber-missing-card" key={row.id}>
+                  <div>
+                    <strong>{row.guestName || row.guestEmail || `Linha ${row.line}`}</strong>
+                    <span>{formatDate(row.creationDate)} · {row.voucherStatus || 'Sem status'}</span>
+                  </div>
+                  <strong>{formatMoney(row.amountSpent)}</strong>
+                  {row.voucherLink ? <a href={row.voucherLink} rel="noreferrer" target="_blank">Voucher</a> : null}
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="success">Nenhuma corrida sem lançamento para esta competência.</div>
+          )}
+        </div>
+      </section>
+
+      {result ? (
+        <section className="grid-4 dashboard-metrics">
+          <MetricCard label="Linhas lidas" value={result.report.linhasLidas} help={result.report.arquivo} />
+          <MetricCard label="Corridas" value={result.report.corridasIdentificadas} help={formatMoney(result.report.valorTotal)} />
+          <MetricCard label="Sem lançamento" value={result.report.corridasSemLancamento} help={formatMoney(result.report.valorSemLancamento)} tone={result.report.corridasSemLancamento ? 'warning' : 'good'} />
+          <MetricCard label="Conciliadas" value={result.report.corridasIdentificadas - result.report.corridasSemLancamento} help="por e-mail e valor" />
+        </section>
       ) : null}
+
+      <section className="card">
+        <div className="header-row">
+          <div>
+            <p className="eyebrow">Reembolsos</p>
+            <h2>Lançamentos dos colaboradores</h2>
+          </div>
+          <StatusBadge status={data.summary.pendingExpenses ? 'aviso' : 'ok'} label={data.summary.pendingExpenses ? 'Acompanhar' : 'Em dia'} compact />
+        </div>
+
+        {data.expenses.length ? (
+          <div className="table-wrap">
+            <table className="periods-table">
+              <thead>
+                <tr>
+                  <th>Colaborador</th>
+                  <th>Cliente</th>
+                  <th>Data</th>
+                  <th>Status</th>
+                  <th>Recibo</th>
+                  <th className="text-right">Valor</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.expenses.map((expense) => (
+                  <tr key={expense.id}>
+                    <td>
+                      <strong>{expense.collaboratorName}</strong>
+                      <br />
+                      <span className="muted small-text">{expense.collaboratorEmail || '-'}</span>
+                    </td>
+                    <td>
+                      <strong>{expense.client}</strong>
+                      <br />
+                      <span className="muted small-text">{expense.description}</span>
+                    </td>
+                    <td>{formatDate(expense.date)}</td>
+                    <td><StatusBadge status={statusTone(expense.status)} label={readableStatus(expense.status)} compact /></td>
+                    <td>{expense.receiptUrl ? <a href={expense.receiptUrl} rel="noreferrer" target="_blank">{expense.receiptName}</a> : '-'}</td>
+                    <td className="text-right"><strong>{formatMoney(expense.amount)}</strong></td>
+                    <td>
+                      {expenseNeedsAction(expense) ? (
+                        <div className="flex-uber-row-actions">
+                          {statusActions
+                            .filter((action) => action.value !== expense.status)
+                            .map((action) => (
+                              <button
+                                className="secondary-button compact-button"
+                                disabled={Boolean(savingId)}
+                                key={action.value}
+                                onClick={() => updateExpenseStatus(expense, action.value)}
+                                type="button"
+                              >
+                                {savingId === `${expense.id}:${action.value}` ? 'Salvando...' : action.label}
+                              </button>
+                            ))}
+                        </div>
+                      ) : (
+                        <span className="muted small-text">Sem ação pendente</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state compact">Nenhum lançamento Colab para esta competência.</div>
+        )}
+      </section>
     </main>
   )
 }

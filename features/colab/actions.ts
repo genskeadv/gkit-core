@@ -48,6 +48,29 @@ function fail(message: string): never {
   redirect(`/modulos/colab/uber?erro=${encodeURIComponent(message)}`)
 }
 
+async function logUberEvent(
+  supabase: ReturnType<typeof admin>,
+  params: {
+    action: string
+    competencia?: string | null
+    entidadeId?: string | null
+    detalhe?: Record<string, unknown>
+  },
+) {
+  const { error } = await supabase.from('gkit_eventos').insert({
+    modulo: 'colab',
+    competencia: params.competencia || null,
+    action: params.action,
+    entidade_tipo: 'colab_uber_despesa',
+    entidade_id: params.entidadeId || null,
+    detalhe: params.detalhe || {},
+  })
+
+  if (error) {
+    console.warn('[colab_uber] falha ao registrar auditoria:', error.message)
+  }
+}
+
 export async function createColabUberExpenseAction(formData: FormData) {
   const context = await requireColabContext()
   const profileResult = await getGkitFlexProfileByEmail(context.usuario.email)
@@ -76,6 +99,35 @@ export async function createColabUberExpenseAction(formData: FormData) {
 
   if (clienteError || !cliente || cliente.ativo === false) fail('Cliente do Ciclo não localizado ou inativo.')
 
+  const competencia = competenciaFromDate(dataDespesa)
+  const { data: duplicate, error: duplicateError } = await supabase
+    .from('colab_uber_despesas')
+    .select('id, status')
+    .eq('colaborador_usuario_id', context.usuario.id)
+    .eq('cliente_id', cliente.id)
+    .eq('data_despesa', dataDespesa)
+    .eq('valor', valor)
+    .neq('status', 'rejeitado')
+    .limit(1)
+    .maybeSingle()
+
+  if (duplicateError) fail(`Não foi possível validar duplicidade: ${duplicateError.message}`)
+  if (duplicate) {
+    await logUberEvent(supabase, {
+      action: 'bloquear_despesa_uber_duplicada',
+      competencia,
+      entidadeId: String(duplicate.id || ''),
+      detalhe: {
+        cliente_id: cliente.id,
+        cliente: cliente.nome,
+        data_despesa: dataDespesa,
+        valor,
+        status_existente: duplicate.status,
+      },
+    })
+    fail('Já existe um lançamento de Uber com o mesmo cliente, data e valor.')
+  }
+
   const profile = profileResult.data as Record<string, unknown>
   const receiptName = safeFileName(receipt.name)
   const receiptPath = `${context.usuario.id}/${randomUUID()}-${receiptName}`
@@ -86,7 +138,21 @@ export async function createColabUberExpenseAction(formData: FormData) {
     upsert: false,
   })
 
-  if (upload.error) fail(`Não foi possível anexar o recibo: ${upload.error.message}`)
+  if (upload.error) {
+    await logUberEvent(supabase, {
+      action: 'falha_upload_recibo_uber',
+      competencia,
+      detalhe: {
+        cliente_id: cliente.id,
+        cliente: cliente.nome,
+        data_despesa: dataDespesa,
+        valor,
+        recibo_nome: receipt.name || receiptName,
+        erro: upload.error.message,
+      },
+    })
+    fail(`Não foi possível anexar o recibo: ${upload.error.message}`)
+  }
 
   const { error: insertError } = await supabase.from('colab_uber_despesas').insert({
     colaborador_usuario_id: context.usuario.id,
@@ -94,7 +160,7 @@ export async function createColabUberExpenseAction(formData: FormData) {
     cliente_id: cliente.id,
     cliente_nome_snapshot: cliente.nome,
     data_despesa: dataDespesa,
-    competencia: competenciaFromDate(dataDespesa),
+    competencia,
     descricao,
     valor,
     recibo_bucket: RECEIPT_BUCKET,
@@ -107,14 +173,24 @@ export async function createColabUberExpenseAction(formData: FormData) {
 
   if (insertError) {
     await supabase.storage.from(RECEIPT_BUCKET).remove([receiptPath])
+    await logUberEvent(supabase, {
+      action: 'falha_gravar_despesa_uber',
+      competencia,
+      detalhe: {
+        cliente_id: cliente.id,
+        cliente: cliente.nome,
+        data_despesa: dataDespesa,
+        valor,
+        recibo_path: receiptPath,
+        erro: insertError.message,
+      },
+    })
     fail(`Não foi possível gravar a despesa: ${insertError.message}`)
   }
 
-  await supabase.from('gkit_eventos').insert({
-    modulo: 'colab',
-    competencia: competenciaFromDate(dataDespesa),
+  await logUberEvent(supabase, {
     action: 'lancar_despesa_uber',
-    entidade_tipo: 'colab_uber_despesa',
+    competencia,
     detalhe: { cliente_id: cliente.id, cliente: cliente.nome, valor },
   })
 

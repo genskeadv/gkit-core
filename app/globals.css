@@ -24114,6 +24114,82 @@ a.button {
   width: 100%;
 }
 
+.gkit-flex-shell .flex-uber-page {
+  gap: 18px;
+}
+
+.gkit-flex-shell .flex-uber-split {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.gkit-flex-shell .flex-uber-split h2 {
+  margin: 4px 0 12px;
+}
+
+.gkit-flex-shell .flex-uber-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.gkit-flex-shell .flex-uber-report-card,
+.gkit-flex-shell .flex-uber-missing-card {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.gkit-flex-shell .flex-uber-report-card {
+  grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(88px, 0.5fr));
+}
+
+.gkit-flex-shell .flex-uber-missing-card {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.gkit-flex-shell .flex-uber-report-card strong,
+.gkit-flex-shell .flex-uber-missing-card strong {
+  color: #162033;
+  display: block;
+  font-size: 14px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.gkit-flex-shell .flex-uber-report-card span,
+.gkit-flex-shell .flex-uber-report-card small,
+.gkit-flex-shell .flex-uber-missing-card span {
+  color: #64748b;
+  display: block;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.gkit-flex-shell .flex-uber-missing-card a {
+  color: #351b40;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.gkit-flex-shell .flex-uber-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.gkit-flex-shell .flex-uber-row-actions .compact-button {
+  min-height: 30px;
+  padding: 6px 9px;
+}
+
 .gkit-flex-shell .forecast-workspace,
 .gkit-flex-shell .forecast-section {
   display: grid;
@@ -24190,6 +24266,11 @@ a.button {
     grid-template-columns: 1fr;
   }
 
+  .gkit-flex-shell .flex-uber-split,
+  .gkit-flex-shell .flex-uber-report-card {
+    grid-template-columns: 1fr;
+  }
+
   .gkit-flex-shell .month-context-side {
     align-items: stretch;
     justify-items: stretch;
@@ -24210,8 +24291,13 @@ a.button {
   }
 
   .gkit-flex-shell .flex-cockpit-grid,
-  .gkit-flex-shell .flex-cockpit-import-row {
+  .gkit-flex-shell .flex-cockpit-import-row,
+  .gkit-flex-shell .flex-uber-missing-card {
     grid-template-columns: 1fr;
+  }
+
+  .gkit-flex-shell .flex-uber-row-actions {
+    min-width: 0;
   }
 }
 

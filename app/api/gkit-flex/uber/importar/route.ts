@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireGkitFlexApiAccess } from '@/features/gkit-flex/api-auth'
-import { importUberVoucherReport } from '@/features/gkit-flex/uber/uberPersistence'
+import { getUberDashboard, importUberVoucherReport } from '@/features/gkit-flex/uber/uberPersistence'
+
+export async function GET(request: NextRequest) {
+  try {
+    const accessError = await requireGkitFlexApiAccess('gkit_flex.uber.read')
+    if (accessError) return accessError
+
+    const competencia = request.nextUrl.searchParams.get('competencia')
+    const result = await getUberDashboard(competencia)
+    return NextResponse.json(result)
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao consultar conciliação Uber.' }, { status: 500 })
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const accessError = await requireGkitFlexApiAccess()
+    const accessError = await requireGkitFlexApiAccess('gkit_flex.uber.write')
     if (accessError) return accessError
 
     const formData = await request.formData()

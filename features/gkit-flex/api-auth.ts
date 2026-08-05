@@ -7,7 +7,7 @@ function admin() {
   return createSupabaseAdminClient() as any
 }
 
-export async function requireGkitFlexApiAccess() {
+export async function requireGkitFlexApiAccess(requiredPermission?: string) {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -30,9 +30,20 @@ export async function requireGkitFlexApiAccess() {
   }
 
   const permissions = await getUsuarioPermissionCodes(usuario)
+  const hasGlobalAccess = usuario.tipo === 'admin_global' || permissions.includes('*') || permissions.includes('gkit_flex.*')
+  const hasRequiredPermission = requiredPermission
+    ? permissions.includes(requiredPermission) ||
+      (requiredPermission.endsWith('.read') && permissions.includes(requiredPermission.replace(/\.read$/, '.write')))
+    : false
+
+  if (requiredPermission) {
+    return hasGlobalAccess || hasRequiredPermission
+      ? null
+      : NextResponse.json({ error: 'Sem permissão para esta ação do GKIT Flex.' }, { status: 403 })
+  }
+
   if (
-    usuario.tipo === 'admin_global' ||
-    permissions.includes('*') ||
+    hasGlobalAccess ||
     permissions.some((code: string) => code === 'gkit_flex.*' || code.startsWith('gkit_flex.'))
   ) {
     return null
