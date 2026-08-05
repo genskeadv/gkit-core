@@ -1,4 +1,4 @@
-import { ColabDocuments, ColabIntegrationStatus, ColabProfile, ColabShell } from '@/features/colab/components'
+import { ColabDocuments, ColabShell } from '@/features/colab/components'
 import { getColabData, requireColabContext } from '@/features/colab/queries'
 
 export default async function ColabDocumentosPage() {
@@ -12,8 +12,6 @@ export default async function ColabDocumentosPage() {
       description="Demonstrativos, comprovantes e resumos associados ao colaborador."
       usuario={context.usuario}
     >
-      <ColabIntegrationStatus data={data} />
-      <ColabProfile data={data} />
       <ColabDocuments data={data} />
     </ColabShell>
   )

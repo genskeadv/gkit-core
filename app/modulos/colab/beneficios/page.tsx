@@ -1,4 +1,4 @@
-import { ColabBenefits, ColabIntegrationStatus, ColabProfile, ColabShell } from '@/features/colab/components'
+import { ColabBenefits, ColabShell } from '@/features/colab/components'
 import { getColabData, requireColabContext } from '@/features/colab/queries'
 
 export default async function ColabBeneficiosPage() {
@@ -12,8 +12,6 @@ export default async function ColabBeneficiosPage() {
       description="Benefícios vinculados ao colaborador logado, com status, provedor e valor de referência."
       usuario={context.usuario}
     >
-      <ColabIntegrationStatus data={data} />
-      <ColabProfile data={data} />
       <ColabBenefits data={data} />
     </ColabShell>
   )

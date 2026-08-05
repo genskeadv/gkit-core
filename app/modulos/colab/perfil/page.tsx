@@ -1,4 +1,4 @@
-import { ColabIntegrationStatus, ColabProfile, ColabProfileDetails, ColabShell } from '@/features/colab/components'
+import { ColabProfileDetails, ColabShell } from '@/features/colab/components'
 import { getColabData, requireColabContext } from '@/features/colab/queries'
 
 export default async function ColabPerfilPage() {
@@ -12,8 +12,6 @@ export default async function ColabPerfilPage() {
       description="Dados basicos sincronizados a partir do cadastro administrativo."
       usuario={context.usuario}
     >
-      <ColabIntegrationStatus data={data} />
-      <ColabProfile data={data} />
       <ColabProfileDetails data={data} />
     </ColabShell>
   )

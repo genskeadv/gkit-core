@@ -1,6 +1,6 @@
-import { ColabIntegrationStatus, ColabProfile, ColabShell, ColabUberExpenses } from '@/features/colab/components'
+import { ColabShell, ColabUberExpenses } from '@/features/colab/components'
 import { createColabUberExpenseAction } from '@/features/colab/actions'
-import { getColabData, getColabUberData, requireColabContext } from '@/features/colab/queries'
+import { getColabUberData, requireColabContext } from '@/features/colab/queries'
 
 export default async function ColabUberPage({
   searchParams,
@@ -8,8 +8,7 @@ export default async function ColabUberPage({
   searchParams?: Promise<{ ok?: string; erro?: string }>
 }) {
   const context = await requireColabContext()
-  const [data, uberData, params] = await Promise.all([
-    getColabData(context.usuario.email),
+  const [uberData, params] = await Promise.all([
     getColabUberData(context.usuario.email),
     searchParams ?? Promise.resolve({} as { ok?: string; erro?: string }),
   ])
@@ -21,8 +20,6 @@ export default async function ColabUberPage({
       description="Lançamento de corridas vinculadas a clientes do Ciclo, com recibo para pedido de reembolso."
       usuario={context.usuario}
     >
-      <ColabIntegrationStatus data={data} />
-      <ColabProfile data={data} />
       <ColabUberExpenses
         action={createColabUberExpenseAction}
         data={uberData}

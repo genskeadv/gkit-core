@@ -1,4 +1,4 @@
-import { ColabIntegrationStatus, ColabPayments, ColabProfile, ColabShell } from '@/features/colab/components'
+import { ColabPayments, ColabShell } from '@/features/colab/components'
 import { getColabData, requireColabContext } from '@/features/colab/queries'
 
 export default async function ColabPagamentosPage() {
@@ -12,8 +12,6 @@ export default async function ColabPagamentosPage() {
       description="Demonstrativos de pagamento do colaborador logado."
       usuario={context.usuario}
     >
-      <ColabIntegrationStatus data={data} />
-      <ColabProfile data={data} />
       <ColabPayments data={data} />
     </ColabShell>
   )

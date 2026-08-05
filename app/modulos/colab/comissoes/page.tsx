@@ -1,4 +1,4 @@
-import { ColabCommissions, ColabFinancialSummary, ColabIntegrationStatus, ColabProfile, ColabShell } from '@/features/colab/components'
+import { ColabCommissions, ColabShell } from '@/features/colab/components'
 import { getColabData, requireColabContext } from '@/features/colab/queries'
 
 export default async function ColabComissoesPage() {
@@ -12,9 +12,6 @@ export default async function ColabComissoesPage() {
       description="Resumo de comissões e valores variáveis vinculados ao Intr."
       usuario={context.usuario}
     >
-      <ColabIntegrationStatus data={data} />
-      <ColabProfile data={data} />
-      <ColabFinancialSummary data={data} />
       <ColabCommissions data={data} />
     </ColabShell>
   )
