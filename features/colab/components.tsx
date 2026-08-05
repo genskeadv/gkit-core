@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import type { ColabData } from '@/features/colab/types'
+import type { ColabData, ColabUberData } from '@/features/colab/types'
 import { BrandLogo } from '@/features/shared/brand-logo'
 import type { PlatformUsuario } from '@/lib/auth/platform'
 
-type ColabTab = 'dashboard' | 'pagamentos' | 'comissoes' | 'beneficios' | 'documentos' | 'perfil'
+type ColabTab = 'dashboard' | 'pagamentos' | 'comissoes' | 'beneficios' | 'documentos' | 'uber' | 'perfil'
 
 const tabs: Array<{ id: ColabTab; href: string; label: string }> = [
   { id: 'dashboard', href: '/modulos/colab', label: 'Início' },
@@ -12,6 +12,7 @@ const tabs: Array<{ id: ColabTab; href: string; label: string }> = [
   { id: 'comissoes', href: '/modulos/colab/comissoes', label: 'Comissões' },
   { id: 'beneficios', href: '/modulos/colab/beneficios', label: 'Benefícios' },
   { id: 'documentos', href: '/modulos/colab/documentos', label: 'Documentos' },
+  { id: 'uber', href: '/modulos/colab/uber', label: 'Uber' },
   { id: 'perfil', href: '/modulos/colab/perfil', label: 'Perfil' },
 ]
 
@@ -149,6 +150,11 @@ export function ColabFinancialSummary({ data }: { data: ColabData }) {
         <p className="metric-value">{String(data.summary.pendingPayments)}</p>
         <p className="metric-hint">previstos ou em processamento</p>
       </article>
+      <article className="card metric-card">
+        <p className="metric-label">Uber pendente</p>
+        <p className="metric-value">{String(data.summary.pendingUberExpenses)}</p>
+        <p className="metric-hint">lançamentos aguardando conferência</p>
+      </article>
     </section>
   )
 }
@@ -197,6 +203,15 @@ export function ColabActionCenter({ data }: { data: ColabData }) {
           title: 'Documentos disponíveis',
           value: String(data.documents.filter((item) => item.status === 'disponivel').length),
           detail: 'demonstrativos e resumos publicados',
+        }
+      : null,
+    data.summary.pendingUberExpenses
+      ? {
+          href: '/modulos/colab/uber',
+          status: 'pendente',
+          title: 'Despesas Uber',
+          value: String(data.summary.pendingUberExpenses),
+          detail: 'lançamentos aguardando conciliação',
         }
       : null,
   ].filter(Boolean) as Array<{ detail: string; href: string; status: string; title: string; value: string }>
@@ -270,6 +285,13 @@ export function ColabModuleMap({ data }: { data: ColabData }) {
       title: 'Documentos',
       description: 'Demonstrativos gerados por pagamentos e comissões',
       value: String(data.documents.length),
+    },
+    {
+      href: '/modulos/colab/uber',
+      status: data.summary.pendingUberExpenses ? 'pendente' : 'sincronizado',
+      title: 'Uber',
+      description: 'Reembolsos com cliente, descrição e recibo',
+      value: String(data.uber.length),
     },
   ]
 
@@ -450,6 +472,109 @@ export function ColabProfileDetails({ data }: { data: ColabData }) {
         ))}
       </div>
     </section>
+  )
+}
+
+export function ColabUberExpenses({
+  action,
+  data,
+  error,
+  success,
+}: {
+  action: (formData: FormData) => Promise<void>
+  data: ColabUberData
+  error?: string
+  success?: boolean
+}) {
+  if (!data.collaborator) {
+    return (
+      <section className="suite-empty-card">
+        <strong>Cadastro não localizado</strong>
+        <span>O e-mail do usuário precisa estar vinculado ao cadastro de colaborador no GKIT Flex.</span>
+      </section>
+    )
+  }
+
+  return (
+    <>
+      {success ? (
+        <div className="suite-empty-block success">
+          <strong>Despesa enviada</strong>
+          <span>O recibo foi anexado e o lançamento ficou disponível para conciliação.</span>
+        </div>
+      ) : null}
+      {error ? (
+        <div className="suite-empty-block danger">
+          <strong>Não foi possível gravar</strong>
+          <span>{error}</span>
+        </div>
+      ) : null}
+
+      <section className="card suite-panel">
+        <div className="suite-panel-heading">
+          <div>
+            <h2>Lançar despesa de Uber</h2>
+            <p>Informe o cliente do Ciclo, descreva a corrida e anexe o recibo emitido pela Uber.</p>
+          </div>
+        </div>
+        <form action={action} className="module-form-grid">
+          <label>
+            <span>Cliente Ciclo</span>
+            <select name="cliente_id" required>
+              <option value="">Selecione</option>
+              {data.clients.map((client) => (
+                <option key={client.id} value={client.id}>{client.label}{client.meta ? ` - ${client.meta}` : ''}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Data</span>
+            <input name="data_despesa" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required />
+          </label>
+          <label>
+            <span>Valor</span>
+            <input name="valor" inputMode="decimal" placeholder="0,00" required />
+          </label>
+          <label>
+            <span>Recibo Uber</span>
+            <input name="recibo" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" required />
+          </label>
+          <label className="form-span-2">
+            <span>Descrição</span>
+            <textarea name="descricao" rows={3} placeholder="Ex.: ida ao cliente para assembleia / protocolo / reunião" required />
+          </label>
+          <div className="form-actions">
+            <button className="button" type="submit">Enviar despesa</button>
+          </div>
+        </form>
+      </section>
+
+      <section className="card suite-panel">
+        <div className="suite-panel-heading">
+          <div>
+            <h2>Meus lançamentos</h2>
+            <p>Despesas enviadas para conferência e pedido de reembolso.</p>
+          </div>
+        </div>
+        <div className="suite-table-list colab-record-list">
+          {data.expenses.map((expense) => (
+            <article key={expense.id}>
+              <div>
+                <h3>{expense.client}</h3>
+                <p>{expense.description}</p>
+              </div>
+              <span className={`suite-pill ${pillTone(expense.status)}`}>{expense.status}</span>
+              <strong className="colab-record-amount">{currency(expense.amount)}</strong>
+              <small>
+                {new Date(expense.date).toLocaleDateString('pt-BR')}
+                {expense.receiptUrl ? <> · <a href={expense.receiptUrl}>Recibo</a></> : null}
+              </small>
+            </article>
+          ))}
+          {!data.expenses.length ? <EmptyBlock label="Nenhuma despesa de Uber lançada." /> : null}
+        </div>
+      </section>
+    </>
   )
 }
 

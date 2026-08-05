@@ -7,6 +7,8 @@ import type {
   ColabData,
   ColabDocument,
   ColabPayment,
+  ColabUberData,
+  ColabUberExpense,
 } from '@/features/colab/types'
 
 function admin() {
@@ -97,6 +99,7 @@ function emptyData(databaseReady: boolean, message: string): ColabData {
     commissions: [],
     benefits: [],
     documents: [],
+    uber: [],
     databaseReady,
     source: {
       label: 'GKIT Intr',
@@ -109,11 +112,12 @@ function emptyData(databaseReady: boolean, message: string): ColabData {
       approvedCommissions: 0,
       paidCommissions: 0,
       pendingPayments: 0,
+      pendingUberExpenses: 0,
     },
   }
 }
 
-function buildSummary(payments: ColabPayment[], commissions: ColabCommission[]): ColabData['summary'] {
+function buildSummary(payments: ColabPayment[], commissions: ColabCommission[], uber: ColabUberExpense[] = []): ColabData['summary'] {
   const openCommissions = commissions
     .filter((item) => !['paga', 'cancelada', 'rejeitada'].includes(item.status))
     .reduce((sum, item) => sum + item.amount, 0)
@@ -130,6 +134,7 @@ function buildSummary(payments: ColabPayment[], commissions: ColabCommission[]):
     approvedCommissions,
     paidCommissions,
     pendingPayments: payments.filter((item) => item.status !== 'pago' && item.status !== 'cancelado').length,
+    pendingUberExpenses: uber.filter((item) => !['conciliado', 'reembolsado', 'rejeitado'].includes(item.status)).length,
   }
 }
 
@@ -184,7 +189,7 @@ export async function requireColabContext() {
   return requireModuleAccess('colab')
 }
 
-async function getGkitFlexProfileByEmail(normalizedEmail: string) {
+export async function getGkitFlexProfileByEmail(normalizedEmail: string) {
   const usuarioResult = await admin()
     .schema('security')
     .from('usuarios')
@@ -230,6 +235,42 @@ async function getGkitFlexProfileByEmail(normalizedEmail: string) {
     },
     error: null,
   }
+}
+
+function mapUberExpense(row: Record<string, unknown>, signedUrl?: string | null): ColabUberExpense {
+  return {
+    id: text(row.id),
+    client: text(row.cliente_nome_snapshot, 'Cliente'),
+    description: text(row.descricao, 'Despesa Uber'),
+    date: dateValue(row.data_despesa),
+    competence: competenceLabel(row.competencia),
+    amount: numberValue(row.valor),
+    status: text(row.status, 'lancado'),
+    receiptName: text(row.recibo_nome, 'Recibo'),
+    receiptUrl: signedUrl || null,
+    createdAt: dateValue(row.created_at),
+  }
+}
+
+async function listUberExpensesForUser(usuarioId: string): Promise<ColabUberExpense[]> {
+  const { data, error } = await admin()
+    .from('colab_uber_despesas')
+    .select('id, cliente_nome_snapshot, data_despesa, competencia, descricao, valor, recibo_bucket, recibo_path, recibo_nome, status, created_at')
+    .eq('colaborador_usuario_id', usuarioId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (error) return []
+
+  const rows = (data ?? []) as Array<Record<string, unknown>>
+  return Promise.all(rows.map(async (row) => {
+    const bucket = text(row.recibo_bucket, 'colab-uber-recibos')
+    const path = text(row.recibo_path)
+    if (!path) return mapUberExpense(row, null)
+
+    const { data: signed } = await admin().storage.from(bucket).createSignedUrl(path, 60 * 30)
+    return mapUberExpense(row, signed?.signedUrl || null)
+  }))
 }
 
 export async function getColabData(userEmail: string): Promise<ColabData> {
@@ -294,6 +335,7 @@ export async function getColabData(userEmail: string): Promise<ColabData> {
 
   const payments = paymentRows.map(mapGkitFlexPayment)
   const commissions = commissionRows.map((row) => mapGkitFlexCommission(row, executionsById, paidSummaryIds))
+  const uber = await listUberExpensesForUser(collaborator.id)
 
   return {
     collaborator,
@@ -301,12 +343,51 @@ export async function getColabData(userEmail: string): Promise<ColabData> {
     commissions,
     benefits: buildBenefits(collaborator, sourceProfile),
     documents: buildDocuments(collaborator, payments, commissions),
+    uber,
     databaseReady: true,
     source: {
       label: 'GKIT Flex',
       status: 'sincronizado',
       message: `Dados sincronizados pelo e-mail institucional ${collaborator.email}.`,
     },
-    summary: buildSummary(payments, commissions),
+    summary: buildSummary(payments, commissions, uber),
+  }
+}
+
+export async function getColabUberData(userEmail: string): Promise<ColabUberData> {
+  const flexProfileResult = await getGkitFlexProfileByEmail(userEmail.trim())
+
+  if (flexProfileResult.error || !flexProfileResult.data) {
+    return {
+      collaborator: null,
+      clients: [],
+      expenses: [],
+      canCreate: false,
+    }
+  }
+
+  const collaborator = mapCollaborator(flexProfileResult.data as Record<string, unknown>)
+  const [clientsResult, expenses] = await Promise.all([
+    admin()
+      .schema('ciclo')
+      .from('clientes')
+      .select('id,nome,documento,status_operacional,ativo')
+      .eq('ativo', true)
+      .order('nome', { ascending: true })
+      .limit(800),
+    listUberExpensesForUser(collaborator.id),
+  ])
+
+  const clients = ((clientsResult.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    id: text(row.id),
+    label: text(row.nome, 'Cliente'),
+    meta: [text(row.documento), text(row.status_operacional)].filter(Boolean).join(' · '),
+  }))
+
+  return {
+    collaborator,
+    clients,
+    expenses,
+    canCreate: true,
   }
 }

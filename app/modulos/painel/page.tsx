@@ -78,6 +78,7 @@ const shortcutGroups = [
       { href: '/modulos/gkit-flex/pagamentos', label: 'Contas a pagar' },
       { href: '/modulos/gkit-flex/colaboradores', label: 'Colaboradores' },
       { href: '/modulos/gkit-flex/cadastros', label: 'Cadastros' },
+      { href: '/modulos/gkit-flex/uber', label: 'Uber' },
       { href: '/modulos/gkit-flex/auditoria', label: 'Auditoria' },
     ],
     pending: [],

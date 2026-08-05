@@ -55,12 +55,39 @@ export type ColabDocument = {
   updatedAt: string
 }
 
+export type ColabUberExpense = {
+  id: string
+  client: string
+  description: string
+  date: string
+  competence: string
+  amount: number
+  status: string
+  receiptName: string
+  receiptUrl: string | null
+  createdAt: string
+}
+
+export type ColabUberClientOption = {
+  id: string
+  label: string
+  meta: string
+}
+
+export type ColabUberData = {
+  collaborator: ColabCollaborator | null
+  clients: ColabUberClientOption[]
+  expenses: ColabUberExpense[]
+  canCreate: boolean
+}
+
 export type ColabData = {
   collaborator: ColabCollaborator | null
   payments: ColabPayment[]
   commissions: ColabCommission[]
   benefits: ColabBenefit[]
   documents: ColabDocument[]
+  uber: ColabUberExpense[]
   databaseReady: boolean
   source: {
     label: string
@@ -73,5 +100,6 @@ export type ColabData = {
     approvedCommissions: number
     paidCommissions: number
     pendingPayments: number
+    pendingUberExpenses: number
   }
 }
