@@ -901,7 +901,7 @@ export async function classifyPayableSanitization(competenciaInput: string, ids:
   return { ok: true, updated: updateIds.length, field, value, ...(await listPayableSanitization(competencia)) };
 }
 
-export async function updatePayableItem(id: string, patch: Partial<Pick<PayableItem, 'descricao' | 'valor_previsto' | 'categoria' | 'pago'>>) {
+export async function updatePayableItem(id: string, patch: Partial<Pick<PayableItem, 'descricao' | 'vencimento_dia' | 'vencimento_texto' | 'valor_previsto' | 'categoria' | 'pago'>>) {
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error('Supabase não configurado.');
 
@@ -915,6 +915,16 @@ export async function updatePayableItem(id: string, patch: Partial<Pick<PayableI
   await requireOpenPayableMonth(supabase, item.competencia as string);
   const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (patch.descricao !== undefined) payload.descricao = String(patch.descricao).trim();
+  if (patch.vencimento_dia !== undefined) {
+    const vencimentoDia = patch.vencimento_dia === null ? null : Number(patch.vencimento_dia);
+    if (vencimentoDia !== null && (!Number.isInteger(vencimentoDia) || vencimentoDia < 1 || vencimentoDia > 31)) {
+      throw new Error('Dia de vencimento deve ficar entre 1 e 31.');
+    }
+    payload.vencimento_dia = vencimentoDia;
+    payload.vencimento_texto = patch.vencimento_texto ?? (vencimentoDia ? String(vencimentoDia).padStart(2, '0') : null);
+  } else if (patch.vencimento_texto !== undefined) {
+    payload.vencimento_texto = patch.vencimento_texto;
+  }
   if (patch.valor_previsto !== undefined) payload.valor_previsto = roundMoney(Number(patch.valor_previsto));
   if (patch.categoria !== undefined) payload.categoria = String(patch.categoria).trim() || 'Sem categoria';
   if (patch.pago !== undefined) payload.pago = Boolean(patch.pago);

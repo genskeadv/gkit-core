@@ -11,6 +11,7 @@ const moduleArea: Record<string, string> = {
   'gkit-dir': 'Diretorio',
   'gkit-flex': 'Financial Xperience',
   'gkit-jur': 'Juridico',
+  'gkit-money': 'Financial Xperience',
   ciclo: 'Governanca',
   colab: 'Portal do colaborador',
 }
@@ -74,6 +75,7 @@ const shortcutGroups = [
     description: 'App financeiro independente para comissões, contas a pagar, cadastros e auditoria.',
     links: [
       { href: '/modulos/gkit-flex', label: 'Abrir app' },
+      { href: '/modulos/gkit-money', label: 'Money mobile' },
       { href: '/modulos/gkit-flex/comissoes', label: 'Comissões' },
       { href: '/modulos/gkit-flex/pagamentos', label: 'Contas a pagar' },
       { href: '/modulos/gkit-flex/colaboradores', label: 'Colaboradores' },

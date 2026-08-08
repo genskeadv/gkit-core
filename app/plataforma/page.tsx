@@ -43,6 +43,7 @@ const moduleArea: Record<string, string> = {
   'gkit-fat': 'Faturamento',
   'gkit-flex': 'Financial Xperience',
   'gkit-jur': 'Juridico',
+  'gkit-money': 'Financial Xperience',
   'gkit-new': 'Novos negocios',
   'gkit-performa': 'Performance',
   colab: 'Portal do colaborador',
@@ -92,6 +93,12 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
     descricao: 'Comissões, contas a pagar, cadastros financeiros e auditoria mensal.',
     area: 'Financial Xperience',
     href: '/modulos/gkit-flex',
+  },
+  'gkit-money': {
+    nome: 'GKIT Money',
+    descricao: 'Versao mobile para consulta e baixa de pagamentos do Flex.',
+    area: 'Financial Xperience',
+    href: '/modulos/gkit-money',
   },
   'gkit-jur': {
     nome: 'GKIT Jur',
@@ -150,6 +157,28 @@ function uniqueModules(modules: PlatformModule[]) {
   return Array.from(byCode.values())
 }
 
+function withGkitMoneyShortcut(modules: ModuleCard[]) {
+  const hasFlex = modules.some((module) => module.codigo === 'gkit-flex')
+  const hasMoney = modules.some((module) => module.codigo === 'gkit-money')
+  if (!hasFlex || hasMoney) return modules
+
+  const moneyDisplay = moduleDisplay['gkit-money']
+  const moneyModule: ModuleCard = {
+    id: 'gkit-money-flex-shortcut',
+    codigo: 'gkit-money',
+    nome: moneyDisplay.nome,
+    descricao: moneyDisplay.descricao,
+    status: 'ativo',
+    href: moneyDisplay.href || '/modulos/gkit-money',
+    area: moneyDisplay.area,
+  }
+
+  const flexIndex = modules.findIndex((module) => module.codigo === 'gkit-flex')
+  const nextModules = [...modules]
+  nextModules.splice(flexIndex + 1, 0, moneyModule)
+  return nextModules
+}
+
 function ModuleTile({ module }: { module: ModuleCard }) {
   const manualSlug = manualSlugs[module.codigo]
   const cardClassName = module.external ? 'platform-module-card external' : 'platform-module-card'
@@ -194,9 +223,9 @@ function ModuleTile({ module }: { module: ModuleCard }) {
 export default async function PlataformaPage() {
   const { usuario, permissions, modules } = await requirePlatformContext()
   const hasAdmin = canAccess(permissions, 'admin.dashboard.read')
-  const integratedModules = uniqueModules(modules).filter((module) => (
+  const integratedModules = withGkitMoneyShortcut(uniqueModules(modules).filter((module) => (
     !['cobranca', 'crm', 'din', 'fix', 'flex', 'intr'].includes(module.codigo)
-  ))
+  )))
   const visibleModules: ModuleCard[] = hasAdmin
     ? [adminModule, ...integratedModules]
     : [...integratedModules]

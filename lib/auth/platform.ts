@@ -30,6 +30,7 @@ const MODULE_PATHS: Record<string, string> = {
   'gkit-fat': '/modulos/gkit-fat',
   'gkit-flex': '/modulos/gkit-flex',
   'gkit-jur': '/modulos/gkit-jur',
+  'gkit-money': '/modulos/gkit-money',
   'gkit-new': '/modulos/gkit-new',
   'gkit-performa': '/modulos/gkit-performa',
   gkit_ate: '/modulos/gkit-ate',
@@ -38,6 +39,7 @@ const MODULE_PATHS: Record<string, string> = {
   gkit_fat: '/modulos/gkit-fat',
   gkit_flex: '/modulos/gkit-flex',
   gkit_jur: '/modulos/gkit-jur',
+  gkit_money: '/modulos/gkit-money',
   gkit_new: '/modulos/gkit-new',
   gkit_performa: '/modulos/gkit-performa',
   colab: '/modulos/colab',
@@ -72,6 +74,7 @@ function moduleCode(codigo: unknown) {
   if (value === 'gkit_fat') return 'gkit-fat'
   if (value === 'gkit_flex') return 'gkit-flex'
   if (value === 'gkit_jur') return 'gkit-jur'
+  if (value === 'gkit_money') return 'gkit-money'
   if (value === 'gkit_performa') return 'gkit-performa'
   return value === 'gkit_new' ? 'gkit-new' : value
 }

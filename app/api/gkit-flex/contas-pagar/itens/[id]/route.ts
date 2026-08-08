@@ -10,9 +10,13 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (accessError) return accessError;
     const { id } = await context.params;
     const payload = await request.json();
-    const patch: { descricao?: string; valor_previsto?: number; categoria?: string; pago?: boolean } = {};
+    const patch: { descricao?: string; vencimento_dia?: number | null; vencimento_texto?: string | null; valor_previsto?: number; categoria?: string; pago?: boolean } = {};
 
     if ('descricao' in payload) patch.descricao = String(payload.descricao || '');
+    if ('vencimento_dia' in payload) {
+      patch.vencimento_dia = payload.vencimento_dia === null || payload.vencimento_dia === undefined || payload.vencimento_dia === '' ? null : Number(payload.vencimento_dia);
+      patch.vencimento_texto = patch.vencimento_dia ? String(patch.vencimento_dia).padStart(2, '0') : null;
+    }
     if ('valor_previsto' in payload) patch.valor_previsto = Number(payload.valor_previsto || 0);
     if ('categoria' in payload) patch.categoria = String(payload.categoria || '');
     if ('pago' in payload) patch.pago = Boolean(payload.pago);
