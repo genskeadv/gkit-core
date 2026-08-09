@@ -88,7 +88,7 @@ function dueLabel(item: PayableItem) {
 export function GkitMoneyPage() {
   const [competencia] = useState(currentCompetencia)
   const [range, setRange] = useState<RangeKey>('mes')
-  const [visibility, setVisibility] = useState<VisibilityMode>('todos')
+  const [visibility, setVisibility] = useState<VisibilityMode>('abertos')
   const [selectedAccountId, setSelectedAccountId] = useState('genske')
   const [accountSheetOpen, setAccountSheetOpen] = useState(false)
   const [rows, setRows] = useState<PayableItem[]>([])

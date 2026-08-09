@@ -135,7 +135,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  color: #315947;
+  color: #351b40;
 }
 
 .gkit-money-month-title strong {
@@ -184,11 +184,11 @@
   height: 100%;
   min-width: 3px;
   border-radius: inherit;
-  background: #315947;
+  background: #351b40;
 }
 
 .gkit-money-track i.is-paid {
-  background: #b8802d;
+  background: #351b40;
 }
 
 .gkit-money-controls {
@@ -233,8 +233,8 @@
 .gkit-money-range button.is-active,
 .gkit-money-toggle button.is-active,
 .gkit-money-save {
-  border-color: #315947;
-  background: #315947;
+  border-color: #351b40;
+  background: #351b40;
   color: #ffffff;
 }
 
@@ -298,8 +298,8 @@
 }
 
 .gkit-money-payment.is-paid .gkit-money-check {
-  border-color: #315947;
-  background: #315947;
+  border-color: #351b40;
+  background: #351b40;
 }
 
 .gkit-money-description {
@@ -439,9 +439,9 @@
 }
 
 .gkit-money-account-list button.is-active {
-  border-color: #315947;
-  background: #f4f8f3;
-  color: #315947;
+  border-color: #351b40;
+  background: #f6f2f7;
+  color: #351b40;
 }
 
 .gkit-money-account-list span {
