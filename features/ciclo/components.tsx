@@ -732,35 +732,149 @@ export function CicloAtendimentoDashboardView({
   )
 }
 
-export function CicloDocumentoList({ canWrite = false, documentos }: { canWrite?: boolean; documentos: CicloDocumento[] }) {
+type CicloDocumentoFilters = {
+  ate?: string
+  de?: string
+  status?: string
+  tipo?: string
+}
+
+const documentoStatusOptions: Array<{ label: string; value: CicloDocumento['status'] }> = [
+  { label: 'Pendente', value: 'pendente' },
+  { label: 'Recebido', value: 'recebido' },
+  { label: 'Validado', value: 'validado' },
+  { label: 'Vencido', value: 'vencido' },
+  { label: 'Dispensado', value: 'dispensado' },
+]
+
+function documentoDateKey(value: string) {
+  return /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : ''
+}
+
+function documentTypeLabel(value: string) {
+  return cicloDocumentoTipos.find(([tipo]) => tipo === value)?.[1] ?? value
+}
+
+function filteredDocumentos(documentos: CicloDocumento[], filters: CicloDocumentoFilters) {
+  const hasDateFilter = Boolean(filters.de || filters.ate)
+
+  return documentos.filter((documento) => {
+    if (filters.tipo && documento.tipo !== filters.tipo) return false
+    if (filters.status && documento.status !== filters.status) return false
+
+    if (hasDateFilter) {
+      const date = documentoDateKey(documento.dataRenovacao)
+      if (!date) return false
+      if (filters.de && date < filters.de) return false
+      if (filters.ate && date > filters.ate) return false
+    }
+
+    return true
+  })
+}
+
+function groupDocumentosByTipo(documentos: CicloDocumento[]) {
+  const groups = new Map<string, CicloDocumento[]>()
+
+  for (const documento of documentos) {
+    const tipo = documento.tipo || 'Sem tipo'
+    const items = groups.get(tipo) ?? []
+    items.push(documento)
+    groups.set(tipo, items)
+  }
+
+  return [...groups.entries()]
+    .map(([tipo, items]) => ({
+      items: items.sort((a, b) => {
+        const dateA = documentoDateKey(a.dataRenovacao) || '9999-12-31'
+        const dateB = documentoDateKey(b.dataRenovacao) || '9999-12-31'
+        return dateA.localeCompare(dateB) || a.cliente.localeCompare(b.cliente) || a.titulo.localeCompare(b.titulo)
+      }),
+      tipo,
+    }))
+    .sort((a, b) => documentTypeLabel(a.tipo).localeCompare(documentTypeLabel(b.tipo)))
+}
+
+export function CicloDocumentoList({
+  canWrite = false,
+  documentos,
+  filters = {},
+}: {
+  canWrite?: boolean
+  documentos: CicloDocumento[]
+  filters?: CicloDocumentoFilters
+}) {
+  const tipoOptions = [...new Set(documentos.map((documento) => documento.tipo).filter(Boolean))]
+    .sort((a, b) => documentTypeLabel(a).localeCompare(documentTypeLabel(b)))
+  const rows = filteredDocumentos(documentos, filters)
+  const groups = groupDocumentosByTipo(rows)
+  const hasFilters = Boolean(filters.tipo || filters.status || filters.de || filters.ate)
+
   return (
     <section className="card ciclo-panel">
       <div className="ciclo-panel-heading">
         <div>
           <h2>Documentos operacionais</h2>
-          <p>Checklist documental por cliente, status e vencimento.</p>
+          <p>{rows.length} de {documentos.length} documentos</p>
         </div>
       </div>
 
-      {documentos.length ? (
-        <div className="ciclo-table-list docs">
-          {documentos.map((documento) => (
-            <article key={documento.id}>
-              <div>
-                <h3>{documento.titulo}</h3>
-                <p>{documento.cliente} · {documento.tipo}</p>
+      <form className="ciclo-document-filter-bar" method="get">
+        <label>
+          <span>Tipo</span>
+          <select className="select" name="tipo" defaultValue={filters.tipo ?? ''}>
+            <option value="">Todos</option>
+            {tipoOptions.map((tipo) => <option key={tipo} value={tipo}>{documentTypeLabel(tipo)}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Status</span>
+          <select className="select" name="status" defaultValue={filters.status ?? ''}>
+            <option value="">Todos</option>
+            {documentoStatusOptions.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Vencimento de</span>
+          <input className="input" name="de" type="date" defaultValue={filters.de ?? ''} />
+        </label>
+        <label>
+          <span>Vencimento até</span>
+          <input className="input" name="ate" type="date" defaultValue={filters.ate ?? ''} />
+        </label>
+        <button className="button secondary" type="submit">Filtrar</button>
+        {hasFilters ? <Link className="button secondary" href="/modulos/gkit-ciclo/documentos">Limpar</Link> : null}
+      </form>
+
+      {groups.length ? (
+        <div className="ciclo-document-groups">
+          {groups.map((group) => (
+            <section className="ciclo-document-group" key={group.tipo}>
+              <div className="ciclo-document-group-heading">
+                <h3>{documentTypeLabel(group.tipo)}</h3>
+                <span>{group.items.length}</span>
               </div>
-              <span className={`ciclo-pill ${riskTone(documento.status)}`}>{documento.status}</span>
-              <strong>{documento.obrigatorio ? 'Obrigatório' : 'Opcional'}</strong>
-              <small>
-                {formatDate(documento.dataRenovacao)}
-                {canWrite ? <Link className="button secondary" href={`/modulos/gkit-ciclo/documentos/${documento.id}`}>Editar</Link> : null}
-              </small>
-            </article>
+              <div className="ciclo-table-list docs">
+                {group.items.map((documento) => (
+                  <article key={documento.id}>
+                    <div>
+                      <h3>{documento.titulo}</h3>
+                      <p>{documento.cliente}</p>
+                    </div>
+                    <span className={`ciclo-pill ${riskTone(documento.status)}`}>{documento.status}</span>
+                    <strong>{documento.obrigatorio ? 'Obrigatório' : 'Opcional'}</strong>
+                    <small>
+                      {formatDate(documento.dataRenovacao)}
+                      {canWrite ? <Link className="button secondary" href={`/modulos/gkit-ciclo/documentos/${documento.id}`}>Editar</Link> : null}
+                    </small>
+                  </article>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       ) : (
-        <EmptyBlock label="Nenhum documento cadastrado." />
+        <EmptyBlock label={hasFilters ? 'Nenhum documento encontrado com os filtros atuais.' : 'Nenhum documento cadastrado.'} />
       )}
     </section>
   )
