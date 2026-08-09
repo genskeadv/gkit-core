@@ -70,7 +70,7 @@
   margin: 2px 0 0;
   color: #15211b;
   font-size: 1.05rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0;
 }
 
@@ -118,7 +118,7 @@
 .gkit-money-balance strong {
   color: #15211b;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
 }
 
@@ -143,7 +143,7 @@
   margin-top: 2px;
   color: #15211b;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .gkit-money-bars {
@@ -168,7 +168,7 @@
 .gkit-money-bar-row strong {
   color: #15211b;
   font-size: 0.78rem;
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
 }
 
@@ -266,7 +266,7 @@
 
 .gkit-money-list-head strong {
   color: #15211b;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .gkit-money-payment {
@@ -340,7 +340,7 @@
 .gkit-money-payment-side strong {
   color: #15211b;
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
 }
 
@@ -393,7 +393,7 @@
   margin: 2px 0 0;
   color: #15211b;
   font-size: 1.1rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0;
 }
 
@@ -453,7 +453,7 @@
 .gkit-money-account-list strong {
   color: inherit;
   font-size: 0.88rem;
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
 }
 
@@ -464,6 +464,10 @@
   justify-content: center;
   gap: 8px;
   margin-top: 14px;
+}
+
+.gkit-money-shell :where(h1, h2, h3, h4, p, span, strong, b, small, button, label, input) {
+  font-weight: 400 !important;
 }
 
 @keyframes gkitMoneySpin {
