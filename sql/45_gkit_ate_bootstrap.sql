@@ -265,6 +265,14 @@ after insert or update or delete on gkit_ate.tarefas
 deferrable initially deferred
 for each row execute function gkit_ate.validar_atendimento_com_tarefa_aberta();
 
+drop trigger if exists validar_atendimento_com_tarefa_aberta_atendimentos on gkit_ate.atendimentos;
+create constraint trigger validar_atendimento_com_tarefa_aberta_atendimentos
+after update of status on gkit_ate.atendimentos
+deferrable initially deferred
+for each row
+when (new.status = 'aberto')
+execute function gkit_ate.validar_atendimento_com_tarefa_aberta();
+
 create index if not exists gkit_ate_atendimento_tipos_slug_idx on gkit_ate.atendimento_tipos(slug);
 create index if not exists gkit_ate_tarefa_tipos_slug_idx on gkit_ate.tarefa_tipos(slug);
 create index if not exists gkit_ate_atendimentos_cliente_idx on gkit_ate.atendimentos(cliente_nome);
