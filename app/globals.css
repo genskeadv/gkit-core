@@ -27636,3 +27636,116 @@ body:has(.gkit-flex-operational-shell) {
     padding: 4px 1px !important;
   }
 }
+
+/* GKIT ATE final parity after shared operational rules. */
+.gkit-ate-shell :where(strong, b, h1, h2, h3, h4, .button, button, a.button, .suite-pill, summary) {
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}
+
+.gkit-ate-shell .module-page-hero h1,
+.gkit-ate-shell .suite-panel-heading h2,
+.gkit-ate-shell .gkit-ate-panel-heading h2,
+.gkit-ate-shell .suite-table-list h3,
+.gkit-ate-shell .suite-table-list strong,
+.gkit-ate-shell .gkit-ate-quick-card h3,
+.gkit-ate-shell .button,
+.gkit-ate-shell a.button,
+.gkit-ate-shell button.button {
+  font-weight: 400 !important;
+}
+
+.gkit-ate-shell .module-page-hero h1 {
+  font-size: 24px !important;
+  line-height: 1.15 !important;
+}
+
+.gkit-ate-shell :where(.suite-panel-heading h2, .gkit-ate-panel-heading h2, .gkit-ate-quick-card h3) {
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 1.25 !important;
+}
+
+.gkit-ate-shell :where(.suite-panel-heading p, .gkit-ate-panel-heading p, .gkit-ate-quick-card p, .suite-table-list p, .suite-table-list small) {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+}
+
+.gkit-ate-shell :where(.suite-table-list h3, .suite-table-list strong, .gkit-ate-detail-field strong, .gkit-ate-detail-story strong, .gkit-ate-import-stats strong) {
+  color: var(--gkit-ate-text) !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+}
+
+.gkit-ate-shell .gkit-ate-detail-head h2 {
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  line-height: 1.25 !important;
+}
+
+.gkit-ate-shell :where(.gkit-ate-detail-head > div:first-child > span, .gkit-ate-detail-field span, .gkit-ate-detail-story > span, .gkit-ate-filter-bar label span, .gkit-ate-filter-actions span, .gkit-ate-task-form-heading span, .gkit-ate-task-form label span, .module-form label span, .gkit-ate-import-stats span) {
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.25 !important;
+}
+
+.gkit-ate-shell .suite-table-list strong {
+  text-align: right;
+}
+
+.gkit-ate-shell :where(.gkit-ate-tabs a, .gkit-ate-tabs small, .gkit-ate-filter-actions span, .suite-pill) {
+  font-size: 11px !important;
+}
+
+.gkit-ate-cockpit-page .module-form.module-form-grid {
+  gap: 10px !important;
+  padding: 12px !important;
+}
+
+.gkit-ate-cockpit-page .module-form input,
+.gkit-ate-cockpit-page .module-form select,
+.gkit-ate-cockpit-page .module-form textarea,
+.gkit-ate-shell :where(.gkit-ate-filter-bar input, .gkit-ate-filter-bar select, .gkit-ate-task-form input, .input) {
+  min-height: 36px !important;
+  padding: 8px 10px !important;
+}
+
+.gkit-ate-cockpit-page .module-form textarea {
+  min-height: 88px !important;
+}
+
+.gkit-ate-cockpit-page .module-form .form-actions,
+.gkit-ate-shell .gkit-ate-task-actions,
+.gkit-ate-shell .gkit-ate-task-command-row {
+  align-items: center !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  justify-content: flex-start !important;
+}
+
+.gkit-ate-shell .gkit-ate-task-command-row form {
+  margin: 0;
+}
+
+.gkit-ate-shell .gkit-ate-task-detail-card {
+  gap: 12px !important;
+}
+
+.gkit-ate-shell .gkit-ate-task-context {
+  margin-top: 0;
+}
+
+@media (max-width: 760px) {
+  .gkit-ate-shell .module-page-hero h1 {
+    font-size: 21px !important;
+  }
+
+  .gkit-ate-shell .suite-table-list strong,
+  .gkit-ate-shell .suite-table-list small {
+    text-align: left;
+  }
+}

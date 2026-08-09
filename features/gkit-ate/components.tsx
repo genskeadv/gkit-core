@@ -404,19 +404,43 @@ export function GkitAteTarefaDetail({
 }) {
   const isOpenTask = tarefa.status === 'pendente' || tarefa.status === 'em_andamento'
   const isLastOpenTask = tarefa.atendimento_status === 'aberto' && isOpenTask && tarefa.outras_tarefas_abertas === 0
+  const statusLabel = formatAteStatus(tarefa.status)
+  const statusTone = tarefa.status === 'concluida' ? 'success' : tarefa.status === 'cancelada' ? 'danger' : 'warning'
 
   return (
-    <section className="card module-form">
-      <div className="suite-table-list compact">
-        <article>
+    <section className="card module-form gkit-ate-detail-card gkit-ate-task-detail-card">
+      <div className="gkit-ate-detail-head">
+        <div>
+          <span>Tarefa vinculada</span>
+          <h2>{tarefa.descricao}</h2>
+          <p>{tarefa.cliente_nome} - {tarefa.atendimento_titulo}</p>
+        </div>
+        <div className="gkit-ate-detail-actions">
+          <span className={`suite-pill ${statusTone}`}>{statusLabel}</span>
+        </div>
+      </div>
+
+      <InfoGrid
+        items={[
+          { label: 'Tipo', value: tarefa.tipo_nome },
+          { label: 'Responsável', value: tarefa.responsavel },
+          { label: 'Prazo', value: formatAteDate(tarefa.data_prevista) ?? 'Sem prazo' },
+          { label: 'Conclusão', value: formatAteDate(tarefa.data_conclusao) },
+          { label: 'Origem', value: tarefa.origem },
+          { label: 'Outras abertas', value: isOpenTask ? String(tarefa.outras_tarefas_abertas) : null },
+        ]}
+      />
+
+      <div className="suite-table-list compact gkit-ate-task-context">
+        <Link className="suite-row-link" href={`/modulos/gkit-ate/atendimentos/${tarefa.atendimento_id}`}>
           <div>
-            <h3>{tarefa.descricao}</h3>
-            <p>{tarefa.cliente_nome} - {tarefa.atendimento_titulo}</p>
+            <h3>{tarefa.atendimento_titulo}</h3>
+            <p>{tarefa.cliente_nome}</p>
           </div>
-          <span className={`suite-pill ${tarefa.status === 'concluida' ? 'success' : tarefa.status === 'cancelada' ? 'danger' : 'warning'}`}>{tarefa.status}</span>
-          <strong>{tarefa.data_prevista ?? 'Sem prazo'}</strong>
-          <small>{tarefa.tipo_nome ?? tarefa.responsavel ?? 'Sem responsável'}</small>
-        </article>
+          <span className={`suite-pill ${tarefa.atendimento_status === 'encerrado' ? 'success' : 'warning'}`}>{formatAteStatus(tarefa.atendimento_status)}</span>
+          <strong>Ver atendimento</strong>
+          <small>{tarefa.origem}</small>
+        </Link>
       </div>
 
       {canWrite && isOpenTask && isLastOpenTask ? (
@@ -426,7 +450,7 @@ export function GkitAteTarefaDetail({
         </div>
       ) : null}
 
-      <div className="form-actions">
+      <div className="form-actions gkit-ate-task-command-row">
         {canWrite && isOpenTask && !isLastOpenTask ? (
           <form action={action}>
             <input type="hidden" name="id" value={tarefa.id} />
@@ -440,31 +464,36 @@ export function GkitAteTarefaDetail({
             <button className="button" type="submit">Concluir e encerrar atendimento</button>
           </form>
         ) : null}
-        <Link className="button secondary" href={`/modulos/gkit-ate/atendimentos/${tarefa.atendimento_id}`}>Ver atendimento</Link>
         <Link className="button secondary" href="/modulos/gkit-ate/tarefas">Voltar</Link>
       </div>
 
       {canWrite && isLastOpenTask ? (
-        <form action={action} className="module-form-grid">
+        <form action={action} className="gkit-ate-task-form">
           <input type="hidden" name="id" value={tarefa.id} />
           <input type="hidden" name="resolucao" value="adicionar_tarefa" />
-          <label>
-            <span>Tipo da nova tarefa</span>
-            <input name="novo_tipo_tarefa" placeholder="Ex.: Elaborar parecer" />
-          </label>
-          <label className="module-form-wide">
+          <div className="gkit-ate-task-form-heading">
+            <span>Nova tarefa</span>
+            <p>Conclua a atual e deixe a próxima tarefa aberta para manter o atendimento ativo.</p>
+          </div>
+          <label className="gkit-ate-task-description">
             <span>Descrição da nova tarefa</span>
-            <input name="nova_descricao" required />
+            <input name="nova_descricao" placeholder="Ex.: Elaborar parecer" required />
           </label>
-          <label>
-            <span>Responsável</span>
-            <input name="novo_responsavel" defaultValue={tarefa.responsavel ?? ''} />
-          </label>
-          <label>
-            <span>Prazo</span>
-            <input name="nova_data_prevista" type="date" />
-          </label>
-          <div className="form-actions module-form-wide">
+          <div className="gkit-ate-task-fields">
+            <label>
+              <span>Tipo da nova tarefa</span>
+              <input name="novo_tipo_tarefa" placeholder="Ex.: Elaborar parecer" />
+            </label>
+            <label>
+              <span>Responsável</span>
+              <input name="novo_responsavel" defaultValue={tarefa.responsavel ?? ''} />
+            </label>
+            <label>
+              <span>Prazo</span>
+              <input name="nova_data_prevista" type="date" />
+            </label>
+          </div>
+          <div className="gkit-ate-task-actions">
             <button className="button secondary" type="submit">Concluir e adicionar tarefa</button>
           </div>
         </form>
