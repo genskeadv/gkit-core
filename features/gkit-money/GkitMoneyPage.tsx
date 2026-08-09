@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, Check, ChevronDown, ChevronLeft, Clock3, Loader2, PencilLine, WalletCards, X } from 'lucide-react'
+import { CalendarDays, Check, ChevronDown, ChevronLeft, Clock3, Loader2, PencilLine, Plus, WalletCards, X } from 'lucide-react'
 import type { PayableItem, PayableSummary } from '@/features/gkit-flex/contas-pagar/types'
 
 type RangeKey = 'hoje' | 'semana' | 'quinzena' | 'mes'
@@ -24,9 +24,24 @@ type ForecastResponse = {
   }
 }
 
-const ACCOUNTS = [
-  { id: 'genske', name: 'Genske Advogados' },
-]
+type MoneyAccount = {
+  id: string
+  nome: string
+  status: string
+  conta_principal: boolean
+  ordem: number
+}
+
+type AccountsResponse = {
+  contas: MoneyAccount[]
+}
+
+type AccountBalance = MoneyAccount & {
+  saldoAbertura: number
+  totalPago: number
+  saldoAtual: number
+  totalEntrada: number
+}
 
 const RANGE_LABELS: Record<RangeKey, string> = {
   hoje: 'Hoje',
@@ -85,43 +100,70 @@ function dueLabel(item: PayableItem) {
   return item.vencimento_texto ? `Vence ${item.vencimento_texto}` : 'Sem vencimento'
 }
 
+function sumPayables(rows: PayableItem[]) {
+  const total = rows.reduce((acc, item) => acc + Number(item.valor_previsto || 0), 0)
+  const totalPago = rows.filter((item) => item.pago).reduce((acc, item) => acc + Number(item.valor_previsto || 0), 0)
+  return {
+    total,
+    totalPago,
+    totalAberto: total - totalPago,
+    quantidade: rows.length,
+    quantidadePaga: rows.filter((item) => item.pago).length,
+  }
+}
+
 export function GkitMoneyPage() {
   const [competencia] = useState(currentCompetencia)
   const [range, setRange] = useState<RangeKey>('mes')
   const [visibility, setVisibility] = useState<VisibilityMode>('abertos')
-  const [selectedAccountId, setSelectedAccountId] = useState('genske')
+  const [selectedAccountId, setSelectedAccountId] = useState('')
   const [accountSheetOpen, setAccountSheetOpen] = useState(false)
+  const [accounts, setAccounts] = useState<MoneyAccount[]>([])
+  const [newAccountName, setNewAccountName] = useState('')
+  const [creatingAccount, setCreatingAccount] = useState(false)
   const [rows, setRows] = useState<PayableItem[]>([])
-  const [summary, setSummary] = useState<PayableSummary>({ total: 0, totalPago: 0, totalAberto: 0, quantidade: 0, quantidadePaga: 0 })
   const [openingBalance, setOpeningBalance] = useState(0)
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<PayableItem | null>(null)
-  const [form, setForm] = useState({ descricao: '', vencimento: '', valor: '' })
+  const [form, setForm] = useState({ descricao: '', vencimento: '', valor: '', moneyContaId: '', moneyDestinoId: '' })
 
-  const selectedAccount = ACCOUNTS.find((account) => account.id === selectedAccountId) || ACCOUNTS[0]
+  const mainAccount = accounts.find((account) => account.conta_principal) || accounts[0] || null
+  const selectedAccount = accounts.find((account) => account.id === selectedAccountId) || mainAccount
+  const mainAccountId = mainAccount?.id || ''
+
+  function rowAccountId(item: PayableItem) {
+    return item.money_conta_id || mainAccountId
+  }
 
   async function loadMoneyData() {
     setLoading(true)
     setError('')
     try {
-      const [payablesResponse, forecastResponse] = await Promise.all([
+      const [payablesResponse, forecastResponse, accountsResponse] = await Promise.all([
         fetch(`/api/gkit-flex/contas-pagar/itens?competencia=${competencia}`, { cache: 'no-store' }),
         fetch(`/api/gkit-flex/previsoes?competencia=${competencia}`, { cache: 'no-store' }),
+        fetch('/api/gkit-money/contas', { cache: 'no-store' }),
       ])
 
       const payablesData = (await payablesResponse.json()) as PayablesResponse & { error?: string }
       const forecastData = (await forecastResponse.json()) as ForecastResponse & { error?: string }
+      const accountsData = (await accountsResponse.json()) as AccountsResponse & { error?: string }
 
       if (!payablesResponse.ok) throw new Error(payablesData.error || 'Erro ao carregar pagamentos.')
       if (!forecastResponse.ok) throw new Error(forecastData.error || 'Erro ao carregar previsão de receitas.')
+      if (!accountsResponse.ok) throw new Error(accountsData.error || 'Erro ao carregar contas.')
 
       setRows(payablesData.rows || [])
-      setSummary(payablesData.summary || { total: 0, totalPago: 0, totalAberto: 0, quantidade: 0, quantidadePaga: 0 })
       setStatus(payablesData.status || '')
       setOpeningBalance(Number(forecastData.summary?.totalReceitas || 0))
+      setAccounts(accountsData.contas || [])
+      setSelectedAccountId((current) => {
+        if (current && accountsData.contas?.some((account) => account.id === current)) return current
+        return accountsData.contas?.find((account) => account.conta_principal)?.id || accountsData.contas?.[0]?.id || ''
+      })
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Erro ao carregar pagamentos.')
     } finally {
@@ -133,13 +175,41 @@ export function GkitMoneyPage() {
     loadMoneyData()
   }, [competencia])
 
-  const currentBalance = openingBalance - summary.totalPago
-  const maxChartValue = Math.max(openingBalance, summary.totalPago, 1)
+  const accountBalances = useMemo<AccountBalance[]>(() => {
+    return accounts.map((account) => {
+      const accountRows = rows.filter((item) => rowAccountId(item) === account.id)
+      const accountSummary = sumPayables(accountRows)
+      const totalEntrada = account.conta_principal
+        ? openingBalance
+        : rows
+            .filter((item) => item.pago && item.money_conta_destino_id === account.id)
+            .reduce((acc, item) => acc + Number(item.valor_previsto || 0), 0)
+
+      return {
+        ...account,
+        saldoAbertura: totalEntrada,
+        totalEntrada,
+        totalPago: accountSummary.totalPago,
+        saldoAtual: totalEntrada - accountSummary.totalPago,
+      }
+    })
+  }, [accounts, rows, openingBalance, mainAccountId])
+
+  const selectedRows = useMemo(() => {
+    if (!selectedAccount) return rows
+    return rows.filter((item) => rowAccountId(item) === selectedAccount.id)
+  }, [rows, selectedAccount?.id, mainAccountId])
+
+  const selectedSummary = useMemo(() => sumPayables(selectedRows), [selectedRows])
+  const selectedAccountBalance = accountBalances.find((account) => account.id === selectedAccount?.id)
+  const currentBalance = selectedAccountBalance?.saldoAtual ?? 0
+  const selectedOpeningBalance = selectedAccountBalance?.saldoAbertura ?? 0
+  const maxChartValue = Math.max(selectedOpeningBalance, selectedSummary.totalPago, 1)
 
   const visibleRows = useMemo(() => {
     const { start, end } = rangeLimit(range)
 
-    return rows
+    return selectedRows
       .filter((item) => {
         if (visibility === 'abertos' && item.pago) return false
         if (!item.pago) return true
@@ -155,7 +225,7 @@ export function GkitMoneyPage() {
         const dayB = b.vencimento_dia ?? 99
         return dayA - dayB || Number(a.pago) - Number(b.pago) || a.descricao.localeCompare(b.descricao, 'pt-BR')
       })
-  }, [competencia, range, rows, visibility])
+  }, [competencia, range, selectedRows, visibility])
 
   function openEditor(item: PayableItem) {
     setEditing(item)
@@ -163,10 +233,15 @@ export function GkitMoneyPage() {
       descricao: item.descricao,
       vencimento: dateInputFromDay(competencia, item.vencimento_dia),
       valor: String(item.valor_previsto || 0),
+      moneyContaId: item.money_conta_id || selectedAccount?.id || mainAccountId,
+      moneyDestinoId: item.money_conta_destino_id || '',
     })
   }
 
-  async function patchPayable(id: string, patch: Partial<Pick<PayableItem, 'descricao' | 'vencimento_dia' | 'valor_previsto' | 'pago'>>) {
+  async function patchPayable(
+    id: string,
+    patch: Partial<Pick<PayableItem, 'descricao' | 'vencimento_dia' | 'valor_previsto' | 'pago' | 'money_conta_id' | 'money_conta_destino_id'>>,
+  ) {
     setSavingId(id)
     setError('')
     try {
@@ -187,12 +262,41 @@ export function GkitMoneyPage() {
 
   async function saveEditor() {
     if (!editing) return
+    const sourceId = form.moneyContaId || mainAccountId || null
+    const destinoId = form.moneyDestinoId && form.moneyDestinoId !== sourceId ? form.moneyDestinoId : null
+
     await patchPayable(editing.id, {
       descricao: form.descricao,
       vencimento_dia: dayFromDateInput(form.vencimento),
       valor_previsto: Number(String(form.valor).replace(',', '.')) || 0,
+      money_conta_id: sourceId,
+      money_conta_destino_id: destinoId,
     })
     setEditing(null)
+  }
+
+  async function createAccount() {
+    const nome = newAccountName.trim()
+    if (!nome) return
+
+    setCreatingAccount(true)
+    setError('')
+    try {
+      const response = await fetch('/api/gkit-money/contas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome }),
+      })
+      const data = (await response.json()) as { conta?: MoneyAccount; error?: string }
+      if (!response.ok) throw new Error(data.error || 'Erro ao criar conta.')
+      setNewAccountName('')
+      await loadMoneyData()
+      if (data.conta?.id) setSelectedAccountId(data.conta.id)
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : 'Erro ao criar conta.')
+    } finally {
+      setCreatingAccount(false)
+    }
   }
 
   return (
@@ -205,7 +309,7 @@ export function GkitMoneyPage() {
           <button type="button" className="gkit-money-account" onClick={() => setAccountSheetOpen(true)}>
             <p>Conta</p>
             <h1>
-              {selectedAccount.name}
+              {selectedAccount?.nome || 'Conta'}
               <ChevronDown size={16} />
             </h1>
           </button>
@@ -228,16 +332,16 @@ export function GkitMoneyPage() {
             <div className="gkit-money-bar-row">
               <span>Abertura</span>
               <div className="gkit-money-track">
-                <i style={{ width: `${(openingBalance / maxChartValue) * 100}%` }} />
+                <i style={{ width: `${(selectedOpeningBalance / maxChartValue) * 100}%` }} />
               </div>
-              <strong>{currency.format(openingBalance)}</strong>
+              <strong>{currency.format(selectedOpeningBalance)}</strong>
             </div>
             <div className="gkit-money-bar-row">
               <span>Pago</span>
               <div className="gkit-money-track">
-                <i className="is-paid" style={{ width: `${(summary.totalPago / maxChartValue) * 100}%` }} />
+                <i className="is-paid" style={{ width: `${(selectedSummary.totalPago / maxChartValue) * 100}%` }} />
               </div>
-              <strong>{currency.format(summary.totalPago)}</strong>
+              <strong>{currency.format(selectedSummary.totalPago)}</strong>
             </div>
           </div>
         </section>
@@ -323,7 +427,7 @@ export function GkitMoneyPage() {
             </header>
 
             <div className="gkit-money-account-list">
-              {ACCOUNTS.map((account) => (
+              {accountBalances.map((account) => (
                 <button
                   key={account.id}
                   type="button"
@@ -333,11 +437,25 @@ export function GkitMoneyPage() {
                     setAccountSheetOpen(false)
                   }}
                 >
-                  <span>{account.name}</span>
-                  <strong>{currency.format(currentBalance)}</strong>
+                  <span>{account.nome}</span>
+                  <strong>{currency.format(account.saldoAtual)}</strong>
                   {account.id === selectedAccountId ? <Check size={18} /> : null}
                 </button>
               ))}
+            </div>
+
+            <div className="gkit-money-account-create">
+              <input
+                value={newAccountName}
+                placeholder="Nova conta"
+                onChange={(event) => setNewAccountName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') createAccount()
+                }}
+              />
+              <button type="button" aria-label="Criar conta" disabled={creatingAccount || !newAccountName.trim()} onClick={createAccount}>
+                {creatingAccount ? <Loader2 className="gkit-money-spin" size={18} /> : <Plus size={18} />}
+              </button>
             </div>
           </section>
         </div>
@@ -367,6 +485,38 @@ export function GkitMoneyPage() {
             <label>
               Valor
               <input inputMode="decimal" value={form.valor} onChange={(event) => setForm((current) => ({ ...current, valor: event.target.value }))} />
+            </label>
+            <label>
+              Conta
+              <select
+                value={form.moneyContaId}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    moneyContaId: event.target.value,
+                    moneyDestinoId: current.moneyDestinoId === event.target.value ? '' : current.moneyDestinoId,
+                  }))
+                }
+              >
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Creditar saldo em
+              <select value={form.moneyDestinoId} onChange={(event) => setForm((current) => ({ ...current, moneyDestinoId: event.target.value }))}>
+                <option value="">Nenhuma conta</option>
+                {accounts
+                  .filter((account) => account.id !== form.moneyContaId)
+                  .map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.nome}
+                    </option>
+                  ))}
+              </select>
             </label>
 
             <button type="button" className="gkit-money-save" disabled={savingId === editing.id} onClick={saveEditor}>

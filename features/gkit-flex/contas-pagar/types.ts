@@ -23,6 +23,8 @@ export type PayableItem = {
   categoria: string;
   centro: string | null;
   pago: boolean;
+  money_conta_id?: string | null;
+  money_conta_destino_id?: string | null;
   origem_tipo?: 'manual' | 'importacao' | 'recorrencia' | 'comissao' | string | null;
   origem_execucao_id?: string | null;
   origem_resumo_id?: string | null;

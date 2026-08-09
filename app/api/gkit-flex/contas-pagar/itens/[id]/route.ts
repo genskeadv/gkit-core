@@ -10,7 +10,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (accessError) return accessError;
     const { id } = await context.params;
     const payload = await request.json();
-    const patch: { descricao?: string; vencimento_dia?: number | null; vencimento_texto?: string | null; valor_previsto?: number; categoria?: string; pago?: boolean } = {};
+    const patch: { descricao?: string; vencimento_dia?: number | null; vencimento_texto?: string | null; valor_previsto?: number; categoria?: string; pago?: boolean; money_conta_id?: string | null; money_conta_destino_id?: string | null } = {};
 
     if ('descricao' in payload) patch.descricao = String(payload.descricao || '');
     if ('vencimento_dia' in payload) {
@@ -19,6 +19,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     }
     if ('valor_previsto' in payload) patch.valor_previsto = Number(payload.valor_previsto || 0);
     if ('categoria' in payload) patch.categoria = String(payload.categoria || '');
+    if ('money_conta_id' in payload) patch.money_conta_id = payload.money_conta_id ? String(payload.money_conta_id) : null;
+    if ('money_conta_destino_id' in payload) patch.money_conta_destino_id = payload.money_conta_destino_id ? String(payload.money_conta_destino_id) : null;
     if ('pago' in payload) patch.pago = Boolean(payload.pago);
 
     const result = await updatePayableItem(id, patch);

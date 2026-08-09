@@ -406,7 +406,8 @@
   font-weight: 400;
 }
 
-.gkit-money-sheet input {
+.gkit-money-sheet input,
+.gkit-money-sheet select {
   width: 100%;
   min-height: 44px;
   border: 1px solid rgba(35, 48, 41, 0.16);
@@ -416,6 +417,10 @@
   font: inherit;
   font-weight: 400;
   padding: 10px 12px;
+}
+
+.gkit-money-sheet select {
+  appearance: none;
 }
 
 .gkit-money-account-list {
@@ -457,6 +462,30 @@
   white-space: nowrap;
 }
 
+.gkit-money-account-create {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.gkit-money-account-create button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #351b40;
+  border-radius: 8px;
+  background: #351b40;
+  color: #ffffff;
+}
+
+.gkit-money-account-create button:disabled {
+  border-color: rgba(35, 48, 41, 0.12);
+  background: #edf0ea;
+  color: #7a837d;
+}
+
 .gkit-money-save {
   display: inline-flex;
   width: 100%;
@@ -466,7 +495,7 @@
   margin-top: 14px;
 }
 
-.gkit-money-shell :where(h1, h2, h3, h4, p, span, strong, b, small, button, label, input) {
+.gkit-money-shell :where(h1, h2, h3, h4, p, span, strong, b, small, button, label, input, select, option) {
   font-weight: 400 !important;
 }
 

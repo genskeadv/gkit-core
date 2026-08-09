@@ -190,6 +190,12 @@ function summarize(rows: PayableItem[]): PayableSummary {
   };
 }
 
+function isMissingMoneyColumnsError(error: unknown) {
+  const record = error as { code?: string; message?: string } | null;
+  const message = String(record?.message || '').toLowerCase();
+  return record?.code === '42703' || (message.includes('money_conta') && message.includes('column'));
+}
+
 function isUncategorized(value: unknown) {
   return !String(value || '').trim() || String(value || '').trim().toLowerCase() === 'sem categoria';
 }
@@ -734,15 +740,21 @@ export async function listPayables(competenciaInput: string) {
 
   if (status.status === 'aberto') await syncCicloRegularidadePagamentos(supabase, competencia);
 
-  const { data, error } = await supabase
-    .from('contas_pagar_itens')
-    .select('id, competencia_id, competencia, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, pago, origem_tipo, origem_execucao_id, origem_resumo_id, created_at, updated_at')
-    .eq('competencia_id', status.row.id)
-    .order('vencimento_dia', { ascending: true, nullsFirst: false })
-    .order('descricao', { ascending: true });
+  const selectPayables = (columns: string) =>
+    supabase
+      .from('contas_pagar_itens')
+      .select(columns)
+      .eq('competencia_id', status.row.id)
+      .order('vencimento_dia', { ascending: true, nullsFirst: false })
+      .order('descricao', { ascending: true });
+
+  let { data, error } = await selectPayables('id, competencia_id, competencia, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, pago, money_conta_id, money_conta_destino_id, origem_tipo, origem_execucao_id, origem_resumo_id, created_at, updated_at');
+  if (error && isMissingMoneyColumnsError(error)) {
+    ({ data, error } = await selectPayables('id, competencia_id, competencia, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, pago, origem_tipo, origem_execucao_id, origem_resumo_id, created_at, updated_at'));
+  }
 
   if (error) throw new Error(`Erro ao listar pagamentos: ${error.message}`);
-  const rows = (data || []) as PayableItem[];
+  const rows = (data || []) as unknown as PayableItem[];
   const forecast = await getMonthlyForecast(competencia);
   return {
     configured: true,
@@ -901,7 +913,7 @@ export async function classifyPayableSanitization(competenciaInput: string, ids:
   return { ok: true, updated: updateIds.length, field, value, ...(await listPayableSanitization(competencia)) };
 }
 
-export async function updatePayableItem(id: string, patch: Partial<Pick<PayableItem, 'descricao' | 'vencimento_dia' | 'vencimento_texto' | 'valor_previsto' | 'categoria' | 'pago'>>) {
+export async function updatePayableItem(id: string, patch: Partial<Pick<PayableItem, 'descricao' | 'vencimento_dia' | 'vencimento_texto' | 'valor_previsto' | 'categoria' | 'pago' | 'money_conta_id' | 'money_conta_destino_id'>>) {
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error('Supabase não configurado.');
 
@@ -927,12 +939,23 @@ export async function updatePayableItem(id: string, patch: Partial<Pick<PayableI
   }
   if (patch.valor_previsto !== undefined) payload.valor_previsto = roundMoney(Number(patch.valor_previsto));
   if (patch.categoria !== undefined) payload.categoria = String(patch.categoria).trim() || 'Sem categoria';
+  if (patch.money_conta_id !== undefined) payload.money_conta_id = patch.money_conta_id || null;
+  if (patch.money_conta_destino_id !== undefined) payload.money_conta_destino_id = patch.money_conta_destino_id || null;
   if (patch.pago !== undefined) payload.pago = Boolean(patch.pago);
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from('contas_pagar_itens')
     .update(payload)
     .eq('id', id);
+
+  if (error && isMissingMoneyColumnsError(error) && ('money_conta_id' in payload || 'money_conta_destino_id' in payload)) {
+    delete payload.money_conta_id;
+    delete payload.money_conta_destino_id;
+    ({ error } = await supabase
+      .from('contas_pagar_itens')
+      .update(payload)
+      .eq('id', id));
+  }
 
   if (error) throw new Error(`Erro ao atualizar pagamento: ${error.message}`);
   if (patch.pago !== undefined) await syncCicloRegularidadePagamentos(supabase, item.competencia as string);
