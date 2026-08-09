@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { GkitNewSubmitButton } from '@/features/gkit-new/submit-button'
-import type { GkitNewFormData, GkitNewListRow, GkitNewOportunidade } from '@/features/gkit-new/types'
+import type { GkitNewCockpitInsight, GkitNewFormData, GkitNewListRow, GkitNewOportunidade } from '@/features/gkit-new/types'
 
 type CockpitPanel = 'contato' | 'cliente' | 'proposta' | 'acompanhamento'
 type CockpitAction = (formData: FormData) => Promise<void>
@@ -116,11 +116,42 @@ function OpenProposalList({ rows }: { rows: GkitNewListRow[] }) {
   )
 }
 
+function InsightList({ empty, rows }: { empty: string; rows: GkitNewListRow[] }) {
+  if (!rows.length) return <div className="suite-empty-block success">{empty}</div>
+
+  return (
+    <div className="suite-table-list compact gkit-new-table-list" role="list">
+      {rows.map((row) => {
+        const content = (
+          <>
+            <div>
+              <h3>{row.title}</h3>
+              <p>{row.subtitle}</p>
+            </div>
+            <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+            <strong>{row.value}</strong>
+            <small>{row.meta}</small>
+          </>
+        )
+
+        return row.detailHref ? (
+          <Link className="suite-row-link" href={row.detailHref} key={row.id} role="listitem">
+            {content}
+          </Link>
+        ) : (
+          <article key={row.id} role="listitem">{content}</article>
+        )
+      })}
+    </div>
+  )
+}
+
 export function GkitNewCockpit({
   createClienteAction,
   createContatoAction,
   createPropostaAction,
   formData,
+  insights,
   initialPanel = null,
   oportunidades,
   propostasAbertas,
@@ -130,6 +161,7 @@ export function GkitNewCockpit({
   createContatoAction: CockpitAction
   createPropostaAction: CockpitAction
   formData: GkitNewFormData
+  insights: GkitNewCockpitInsight
   initialPanel?: CockpitPanel | null
   oportunidades: GkitNewOportunidade[]
   propostasAbertas: GkitNewListRow[]
@@ -174,7 +206,34 @@ export function GkitNewCockpit({
           </div>
         </div>
 
-        {!activePanel ? <OpenProposalList rows={propostasAbertas} /> : null}
+        {!activePanel ? (
+          <div className="gkit-new-cockpit-overview">
+            <OpenProposalList rows={propostasAbertas} />
+            <div className="gkit-new-cockpit-columns">
+              <section className="gkit-new-compact-panel">
+                <div>
+                  <h3>Pipeline aberto</h3>
+                  <p>Distribuicao por status.</p>
+                </div>
+                <InsightList empty="Sem oportunidades abertas." rows={insights.statusResumo} />
+              </section>
+              <section className="gkit-new-compact-panel">
+                <div>
+                  <h3>Tarefas criticas</h3>
+                  <p>Pendentes vencidas ou para hoje.</p>
+                </div>
+                <InsightList empty="Nenhuma tarefa critica." rows={insights.tarefasCriticas} />
+              </section>
+              <section className="gkit-new-compact-panel">
+                <div>
+                  <h3>Sem responsavel</h3>
+                  <p>Oportunidades abertas sem dono.</p>
+                </div>
+                <InsightList empty="Tudo com responsavel." rows={insights.semResponsavel} />
+              </section>
+            </div>
+          </div>
+        ) : null}
 
         {activePanel === 'contato' ? (
           <form action={createContatoAction} className="card module-form module-form-grid">

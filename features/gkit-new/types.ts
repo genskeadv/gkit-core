@@ -125,7 +125,9 @@ export type GkitNewWorkflowRecord = {
 export type GkitNewOportunidadeRecord = {
   id: string
   cliente_id: string
+  cliente_nome?: string
   contato_id: string
+  contato_nome?: string
   data: string
   descricao: string
   tipo: GkitNewOportunidadeTipo
@@ -134,6 +136,21 @@ export type GkitNewOportunidadeRecord = {
   status: GkitNewOportunidadeStatus
   motivo_encerramento_antecipado: string | null
   responsavel_id: string | null
+  responsavel_nome?: string
+  criado_em?: string
+  tarefas_pendentes?: number
+  tarefas_total?: number
+}
+
+export type GkitNewOportunidadeDetail = GkitNewOportunidadeRecord & {
+  eventos: GkitNewEvento[]
+  tarefas: GkitNewTarefa[]
+}
+
+export type GkitNewCockpitInsight = {
+  statusResumo: GkitNewListRow[]
+  tarefasCriticas: GkitNewListRow[]
+  semResponsavel: GkitNewListRow[]
 }
 
 export type GkitNewFormData = {

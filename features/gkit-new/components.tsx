@@ -11,6 +11,7 @@ import type {
   GkitNewFormData,
   GkitNewHealth,
   GkitNewListRow,
+  GkitNewOportunidadeDetail,
   GkitNewTarefa,
   GkitNewWorkflowRecord,
 } from '@/features/gkit-new/types'
@@ -256,6 +257,54 @@ function Field({ children, label }: { children: ReactNode; label: string }) {
   )
 }
 
+function formatBRL(value: number) {
+  return value.toLocaleString('pt-BR', { currency: 'BRL', style: 'currency' })
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return 'Sem data'
+  const date = new Date(value.includes('T') ? value : `${value}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('pt-BR').format(date)
+}
+
+function statusLabel(status: string) {
+  const labels: Record<string, string> = {
+    aprovada: 'Aprovada',
+    cancelada: 'Cancelada',
+    concluida: 'Concluida',
+    em_negociacao: 'Em negociacao',
+    encerrada: 'Encerrada',
+    nova: 'Nova',
+    pendente: 'Pendente',
+    proposta_enviada: 'Proposta enviada',
+    rejeitada: 'Rejeitada',
+  }
+  return labels[status] ?? status
+}
+
+function statusTone(status: string) {
+  if (status === 'aprovada' || status === 'concluida') return 'success'
+  if (status === 'cancelada' || status === 'encerrada' || status === 'rejeitada') return 'danger'
+  return 'warning'
+}
+
+function InfoGrid({ items }: { items: Array<{ label: string; value?: ReactNode | null }> }) {
+  const visible = items.filter((item) => item.value !== null && item.value !== undefined && item.value !== '')
+  if (!visible.length) return null
+
+  return (
+    <div className="gkit-new-detail-grid">
+      {visible.map((item) => (
+        <div className="gkit-new-detail-field" key={item.label}>
+          <span>{item.label}</span>
+          <strong>{item.value}</strong>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function GkitNewClienteForm({
   action,
   cliente,
@@ -397,6 +446,128 @@ export function GkitNewWorkflowForm({
         <Link className="button secondary" href="/modulos/gkit-new/base/workflow">Cancelar</Link>
       </div>
     </form>
+  )
+}
+
+export function GkitNewOportunidadeDetailPanel({
+  canWrite,
+  oportunidade,
+  statusAction,
+}: {
+  canWrite?: boolean
+  oportunidade: GkitNewOportunidadeDetail
+  statusAction: (formData: FormData) => Promise<void>
+}) {
+  const tarefasPendentes = oportunidade.tarefas.filter((tarefa) => tarefa.status === 'pendente')
+  const quickStatuses = [
+    { label: 'Em negociacao', value: 'em_negociacao' },
+    { label: 'Aprovar', value: 'aprovada' },
+    { label: 'Rejeitar', value: 'rejeitada' },
+    { label: 'Cancelar', value: 'cancelada' },
+  ]
+
+  return (
+    <div className="gkit-new-detail-stack">
+      <section className="card module-form gkit-new-detail-card">
+        <div className="gkit-new-detail-head">
+          <div>
+            <span>Oportunidade</span>
+            <h2>{oportunidade.descricao}</h2>
+            <p>{oportunidade.cliente_nome} - {oportunidade.contato_nome}</p>
+          </div>
+          <span className={`suite-pill ${statusTone(oportunidade.status)}`}>{statusLabel(oportunidade.status)}</span>
+        </div>
+
+        <InfoGrid
+          items={[
+            { label: 'Valor', value: formatBRL(oportunidade.valor) },
+            { label: 'Tipo', value: oportunidade.tipo === 'pontual' ? 'Pontual' : 'Mensal' },
+            { label: 'Data', value: formatDate(oportunidade.data) },
+            { label: 'Responsavel', value: oportunidade.responsavel_nome ?? 'Sem responsavel' },
+            { label: 'Tarefas abertas', value: `${tarefasPendentes.length}/${oportunidade.tarefas.length}` },
+            { label: 'Criacao', value: formatDate(oportunidade.criado_em) },
+          ]}
+        />
+
+        {oportunidade.escopo ? (
+          <div className="gkit-new-detail-story">
+            <span>Escopo</span>
+            <p>{oportunidade.escopo}</p>
+          </div>
+        ) : null}
+
+        {oportunidade.motivo_encerramento_antecipado ? (
+          <div className="gkit-new-detail-story">
+            <span>Ultimo motivo</span>
+            <p>{oportunidade.motivo_encerramento_antecipado}</p>
+          </div>
+        ) : null}
+      </section>
+
+      {canWrite ? (
+        <section className="card module-form gkit-new-detail-card">
+          <div className="gkit-new-detail-head compact">
+            <div>
+              <span>Acoes rapidas</span>
+              <h2>Avancar proposta</h2>
+              <p>Status final com tarefas pendentes exige motivo e cancela o restante do workflow.</p>
+            </div>
+          </div>
+          <div className="gkit-new-status-actions">
+            {quickStatuses.map((status) => (
+              <form action={statusAction} key={status.value}>
+                <input type="hidden" name="oportunidade_id" value={oportunidade.id} />
+                <input type="hidden" name="status" value={status.value} />
+                <label>
+                  <span>{status.label}</span>
+                  <input name="descricao" placeholder={status.value === 'em_negociacao' ? 'Resumo da negociacao' : 'Motivo'} />
+                </label>
+                <GkitNewSubmitButton>{status.label}</GkitNewSubmitButton>
+              </form>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="card module-form gkit-new-detail-card">
+        <div className="gkit-new-detail-head compact">
+          <div>
+            <span>Workflow</span>
+            <h2>Tarefas vinculadas</h2>
+            <p>{tarefasPendentes.length} pendente(s) de {oportunidade.tarefas.length} tarefa(s).</p>
+          </div>
+        </div>
+        <GkitNewList empty="Nenhuma tarefa vinculada." rows={oportunidade.tarefas.map((tarefa) => ({
+          id: tarefa.id,
+          title: tarefa.descricao,
+          subtitle: tarefa.responsavel_nome,
+          status: statusLabel(tarefa.status),
+          value: formatDate(tarefa.data_prevista),
+          meta: tarefa.oportunidade_descricao,
+          detailHref: `/modulos/gkit-new/tarefas/${tarefa.id}`,
+          tone: statusTone(tarefa.status) as 'success' | 'warning' | 'danger',
+        }))} />
+      </section>
+
+      <section className="card module-form gkit-new-detail-card">
+        <div className="gkit-new-detail-head compact">
+          <div>
+            <span>Historico</span>
+            <h2>Eventos recentes</h2>
+            <p>Registro das principais movimentacoes da oportunidade.</p>
+          </div>
+        </div>
+        <GkitNewList empty="Nenhum evento registrado." rows={oportunidade.eventos.map((evento) => ({
+          id: evento.id,
+          title: evento.tipo,
+          subtitle: evento.descricao,
+          status: evento.entidade,
+          value: evento.usuario_nome,
+          meta: formatDate(evento.criado_em),
+          tone: evento.tipo.includes('cancel') || evento.tipo.includes('encerr') ? 'danger' : 'primary',
+        }))} />
+      </section>
+    </div>
   )
 }
 

@@ -263,6 +263,19 @@ function isFinalOpportunityStatus(status: string) {
   return status === 'aprovada' || status === 'rejeitada' || status === 'cancelada' || status === 'encerrada'
 }
 
+function isOpenOpportunityStatus(status: string) {
+  return status === 'nova' || status === 'proposta_enviada' || status === 'em_negociacao'
+}
+
+async function ensureOpenOpportunityHasPendingTask(oportunidadeId: string, status: string) {
+  if (!isOpenOpportunityStatus(status) || await countActiveWorkflowModels() === 0) return
+
+  const pendingTasks = await countPendingTasks(oportunidadeId)
+  if (pendingTasks === 0) {
+    throw new Error('Oportunidade aberta precisa ter ao menos uma tarefa pendente no workflow.')
+  }
+}
+
 function revalidateGkitNewBase(id?: string, kind?: 'cliente' | 'contato' | 'workflow' | 'oportunidade' | 'tarefa') {
   revalidatePath('/modulos/gkit-new')
   revalidatePath('/modulos/gkit-new/clientes')
@@ -469,6 +482,7 @@ export async function createGkitNewOportunidadeAction(formData: FormData) {
   if (error) throw new Error(error.message)
 
   const oportunidadeId = String(data.id)
+  await ensureOpenOpportunityHasPendingTask(oportunidadeId, payload.status)
   await registerEvent({
     entidade: 'oportunidade',
     entidadeId: oportunidadeId,
@@ -561,6 +575,7 @@ export async function updateGkitNewOportunidadeAction(formData: FormData) {
   await ensureContatoVinculado(payload.cliente_id, payload.contato_id)
 
   const pendingTasks = await countPendingTasks(id)
+  await ensureOpenOpportunityHasPendingTask(id, payload.status)
   if (isFinalOpportunityStatus(payload.status) && pendingTasks > 0 && !payload.motivo_encerramento_antecipado) {
     throw new Error('Motivo é obrigatório para aprovar ou encerrar antes do fim do workflow.')
   }
@@ -653,6 +668,7 @@ export async function updateGkitNewAcompanhamentoAction(formData: FormData) {
   }
 
   const pendingTasks = await countPendingTasks(id)
+  await ensureOpenOpportunityHasPendingTask(id, status)
   const { error } = await admin()
     .schema('gkit_new')
     .from('oportunidades')
@@ -676,4 +692,55 @@ export async function updateGkitNewAcompanhamentoAction(formData: FormData) {
 
   revalidateGkitNewBase(id, 'oportunidade')
   redirect('/modulos/gkit-new?painel=acompanhamento')
+}
+
+export async function updateGkitNewOportunidadeQuickStatusAction(formData: FormData) {
+  const id = requiredText(formData, 'oportunidade_id', 'Oportunidade')
+  const status = text(formData, 'status') || 'proposta_enviada'
+  const descricao = optionalText(formData, 'descricao')
+  const context = await requireGkitNewWrite('gkit_new.oportunidades.write')
+
+  if (!['proposta_enviada', 'em_negociacao', 'aprovada', 'rejeitada', 'cancelada'].includes(status)) {
+    throw new Error('Status de acompanhamento invalido.')
+  }
+
+  if (status !== 'proposta_enviada' && !descricao) {
+    throw new Error('Descricao e obrigatoria ao alterar o status da proposta.')
+  }
+
+  const pendingTasks = await countPendingTasks(id)
+  await ensureOpenOpportunityHasPendingTask(id, status)
+
+  const updates: Record<string, unknown> = {
+    status,
+    atualizado_por: context.usuario.id,
+  }
+
+  if (descricao) {
+    updates.motivo_encerramento_antecipado = descricao
+  }
+
+  const { error } = await admin()
+    .schema('gkit_new')
+    .from('oportunidades')
+    .update(updates)
+    .eq('id', id)
+
+  if (error) throw new Error(error.message)
+
+  await registerEvent({
+    entidade: 'oportunidade',
+    entidadeId: id,
+    usuarioId: context.usuario.id,
+    tipo: 'oportunidade_acompanhamento',
+    descricao: descricao ?? 'Proposta marcada como enviada.',
+    metadata: { status },
+  })
+
+  if (isFinalOpportunityStatus(status) && pendingTasks > 0 && descricao) {
+    await cancelPendingTasks(id, context.usuario.id, descricao)
+  }
+
+  revalidateGkitNewBase(id, 'oportunidade')
+  redirect(`/modulos/gkit-new/oportunidades/${id}`)
 }

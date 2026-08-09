@@ -9,7 +9,9 @@ import { GkitNewHealthNotice, GkitNewShell } from '@/features/gkit-new/component
 import {
   getGkitNewFormData,
   getGkitNewHealth,
+  buildGkitNewCockpitInsights,
   listGkitNewOportunidades,
+  listGkitNewTarefas,
   propostasAbertasRows,
   requireGkitNewContext,
 } from '@/features/gkit-new/queries'
@@ -30,10 +32,11 @@ export default async function GkitNewPage({
 }) {
   const params = await searchParams
   const context = await requireGkitNewContext(moduleTarget('/modulos/gkit-new', params))
-  const [health, formData, oportunidades] = await Promise.all([
+  const [health, formData, oportunidades, tarefas] = await Promise.all([
     getGkitNewHealth(),
     getGkitNewFormData(),
     listGkitNewOportunidades(),
+    listGkitNewTarefas(),
   ])
 
   return (
@@ -49,6 +52,7 @@ export default async function GkitNewPage({
         createContatoAction={createGkitNewContatoAction}
         createPropostaAction={createGkitNewCockpitPropostaAction}
         formData={formData}
+        insights={buildGkitNewCockpitInsights(oportunidades, tarefas)}
         initialPanel={initialPanel(params?.panel ?? params?.painel)}
         oportunidades={oportunidades}
         propostasAbertas={propostasAbertasRows(oportunidades)}

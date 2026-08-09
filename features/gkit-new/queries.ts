@@ -7,6 +7,7 @@ import type {
   GkitNewClienteRecord,
   GkitNewContato,
   GkitNewContatoRecord,
+  GkitNewCockpitInsight,
   GkitNewDashboardData,
   GkitNewEvento,
   GkitNewFormData,
@@ -14,6 +15,7 @@ import type {
   GkitNewHealth,
   GkitNewListRow,
   GkitNewOportunidade,
+  GkitNewOportunidadeDetail,
   GkitNewOportunidadeRecord,
   GkitNewOportunidadeStatus,
   GkitNewOption,
@@ -104,6 +106,10 @@ function tone(status: string): GkitNewTone {
   if (['pendente', 'prospecto', 'proposta_enviada', 'em_negociacao'].includes(status)) return 'warning'
   if (['cancelada', 'rejeitada', 'inativo', 'encerrada'].includes(status)) return 'danger'
   return 'primary'
+}
+
+function isOpenOpportunityStatus(status: GkitNewOportunidadeStatus) {
+  return status === 'nova' || status === 'proposta_enviada' || status === 'em_negociacao'
 }
 
 function option(row: Record<string, any>, labelKey = 'nome'): GkitNewOption {
@@ -474,10 +480,8 @@ export function oportunidadeRows(oportunidades: GkitNewOportunidade[]): GkitNewL
 }
 
 export function propostasAbertasRows(oportunidades: GkitNewOportunidade[], limit = 8): GkitNewListRow[] {
-  const finalStatuses = new Set<GkitNewOportunidadeStatus>(['aprovada', 'rejeitada', 'cancelada', 'encerrada'])
-
   return oportunidades
-    .filter((oportunidade) => !finalStatuses.has(oportunidade.status))
+    .filter((oportunidade) => isOpenOpportunityStatus(oportunidade.status))
     .slice(0, limit)
     .map((oportunidade) => ({
       id: oportunidade.id,
@@ -489,6 +493,45 @@ export function propostasAbertasRows(oportunidades: GkitNewOportunidade[], limit
       detailHref: `/modulos/gkit-new/oportunidades/${oportunidade.id}`,
       tone: tone(oportunidade.status),
     }))
+}
+
+export function buildGkitNewCockpitInsights(oportunidades: GkitNewOportunidade[], tarefas: GkitNewTarefa[]): GkitNewCockpitInsight {
+  const today = new Date().toISOString().slice(0, 10)
+  const abertas = oportunidades.filter((oportunidade) => isOpenOpportunityStatus(oportunidade.status))
+  const statusOrder: GkitNewOportunidadeStatus[] = ['nova', 'proposta_enviada', 'em_negociacao']
+  const statusResumo = statusOrder.map((status) => {
+    const rows = abertas.filter((oportunidade) => oportunidade.status === status)
+    return {
+      id: `status-${status}`,
+      title: statusLabel(status),
+      subtitle: `${rows.length} oportunidade(s) aberta(s)`,
+      status: statusLabel(status),
+      value: formatBRL(rows.reduce((total, oportunidade) => total + oportunidade.valor, 0)),
+      meta: rows.length ? `${Math.round((rows.length / Math.max(abertas.length, 1)) * 100)}% abertas` : 'Sem registros',
+      tone: tone(status),
+    }
+  })
+  const tarefasCriticas = tarefaRows(
+    tarefas
+      .filter((tarefa) => tarefa.status === 'pendente' && tarefa.data_prevista <= today)
+      .sort((a, b) => a.data_prevista.localeCompare(b.data_prevista))
+      .slice(0, 6),
+  )
+  const semResponsavel = abertas
+    .filter((oportunidade) => !oportunidade.responsavel_id)
+    .slice(0, 6)
+    .map((oportunidade) => ({
+      id: `sem-responsavel-${oportunidade.id}`,
+      title: oportunidade.descricao,
+      subtitle: `${oportunidade.cliente_nome} - ${oportunidade.contato_nome}`,
+      status: statusLabel(oportunidade.status),
+      value: formatBRL(oportunidade.valor),
+      meta: 'Sem responsavel',
+      detailHref: `/modulos/gkit-new/oportunidades/${oportunidade.id}`,
+      tone: 'warning' as const,
+    }))
+
+  return { semResponsavel, statusResumo, tarefasCriticas }
 }
 
 export function tarefaRows(tarefas: GkitNewTarefa[]): GkitNewListRow[] {
@@ -710,28 +753,41 @@ export async function getGkitNewWorkflowModelo(id: string): Promise<GkitNewWorkf
 }
 
 export async function getGkitNewOportunidade(id: string): Promise<GkitNewOportunidadeRecord> {
-  const { data, error } = await admin()
-    .schema('gkit_new')
-    .from('oportunidades')
-    .select('id,cliente_id,contato_id,data,descricao,tipo,valor,escopo,status,motivo_encerramento_antecipado,responsavel_id')
-    .eq('id', id)
-    .single()
+  const detail = await getGkitNewOportunidadeDetail(id)
+  const { eventos: _eventos, tarefas: _tarefas, ...record } = detail
+  return record
+}
 
-  if (error || !data) throw new Error(error?.message ?? 'Oportunidade não encontrada.')
-  const row = data as Record<string, any>
+export async function getGkitNewOportunidadeDetail(id: string): Promise<GkitNewOportunidadeDetail> {
+  const [oportunidades, tarefas, eventos] = await Promise.all([
+    listGkitNewOportunidades(),
+    listGkitNewTarefas(),
+    listGkitNewEventos(),
+  ])
+  const oportunidade = oportunidades.find((item) => item.id === id)
+
+  if (!oportunidade) throw new Error('Oportunidade nao encontrada.')
 
   return {
-    id: String(row.id),
-    cliente_id: String(row.cliente_id),
-    contato_id: String(row.contato_id),
-    data: text(row.data),
-    descricao: text(row.descricao),
-    tipo: row.tipo === 'pontual' ? 'pontual' : 'mensal',
-    valor: numberValue(row.valor),
-    escopo: text(row.escopo) || null,
-    status: opportunityStatus(row.status),
-    motivo_encerramento_antecipado: text(row.motivo_encerramento_antecipado) || null,
-    responsavel_id: text(row.responsavel_id) || null,
+    id: oportunidade.id,
+    cliente_id: oportunidade.cliente_id,
+    cliente_nome: oportunidade.cliente_nome,
+    contato_id: oportunidade.contato_id,
+    contato_nome: oportunidade.contato_nome,
+    data: oportunidade.data,
+    descricao: oportunidade.descricao,
+    tipo: oportunidade.tipo,
+    valor: oportunidade.valor,
+    escopo: oportunidade.escopo,
+    status: oportunidade.status,
+    motivo_encerramento_antecipado: oportunidade.motivo_encerramento_antecipado,
+    responsavel_id: oportunidade.responsavel_id,
+    responsavel_nome: oportunidade.responsavel_nome,
+    criado_em: oportunidade.criado_em,
+    tarefas_pendentes: oportunidade.tarefas_pendentes,
+    tarefas_total: oportunidade.tarefas_total,
+    tarefas: tarefas.filter((tarefa) => tarefa.oportunidade_id === id),
+    eventos: eventos.filter((evento) => evento.entidade === 'oportunidade' && evento.entidade_id === id),
   }
 }
 
