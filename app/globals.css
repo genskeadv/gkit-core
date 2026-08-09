@@ -27998,3 +27998,85 @@ body:has(.gkit-flex-operational-shell) {
     display: grid;
   }
 }
+
+/* Cross-app operational polish, excluding Colab, Money and Novo Jur custom surfaces. */
+:is(.admin-shell, .platform-page, .gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+  :where(h1, h2, h3, h4, p, span, strong, small, em, a, button, label, summary, input, select, textarea) {
+  letter-spacing: 0 !important;
+}
+
+:is(.admin-shell, .platform-page, .gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+  :where(strong, b, h1, h2, h3, h4, .metric-value, .module-main-value, .button, button.button, a.button, .suite-pill, .status-pill, .ciclo-pill, summary) {
+  font-weight: 450 !important;
+}
+
+:is(.admin-shell, .platform-page, .gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+  :where(p, small, label, input, select, textarea, .metric-label, .metric-hint, .page-subtitle, .platform-kicker, .module-sidebar-header small, .module-sidebar-footer span) {
+  font-weight: 400 !important;
+}
+
+:is(.admin-shell, .platform-page, .gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+  :where(.button, button.button, a.button, .primary-button, .secondary-button, .danger-button, .module-action) {
+  align-items: center !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  font-size: 12px !important;
+  font-weight: 450 !important;
+  gap: 7px !important;
+  justify-content: center !important;
+  line-height: 1.15 !important;
+  min-height: 34px !important;
+  padding: 8px 12px !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+}
+
+:is(.admin-shell, .gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+  :where(.list-toolbar, .gkit-new-filter-bar, .gkit-ate-filter-bar, .ciclo-list-filter-bar, .ciclo-document-filter-bar, .ciclo-atendimento-filters, .gkit-jur-filter-bar, .gkit-flex-filters, .gkit-performa-filters) {
+  background: rgba(255, 255, 255, 0.84) !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 10px !important;
+}
+
+:is(.admin-shell, .gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+  :where(.list-toolbar label, .gkit-new-filter-fields label, .gkit-ate-filter-fields label, .ciclo-list-filter-bar label, .ciclo-document-filter-bar label, .ciclo-atendimento-filters label, .gkit-jur-filter-bar label, .gkit-flex-filters label, .gkit-performa-filter-grid label) {
+  gap: 5px !important;
+}
+
+:is(.admin-shell, .gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+  :where(.label, .list-toolbar label > span, .gkit-new-filter-fields label > span, .gkit-ate-filter-fields label > span, .ciclo-list-filter-bar label > span, .ciclo-document-filter-bar label > span, .ciclo-atendimento-filters label > span, .gkit-jur-filter-bar label > span, .gkit-flex-filters label > span, .gkit-performa-filter-grid label > span) {
+  color: var(--unified-muted, var(--gkli-muted)) !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  line-height: 1.25 !important;
+  text-transform: none !important;
+}
+
+:is(.admin-shell, .gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+  :where(.input, .select, .textarea, input:not([type='checkbox']):not([type='radio']), select, textarea) {
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  min-height: 34px !important;
+}
+
+:is(.admin-shell, .platform-page, .gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+  :where(.card, .suite-panel, .metric-card, .table-wrap, .empty-state, .suite-empty-block) {
+  border-radius: 8px !important;
+}
+
+@media (max-width: 760px) {
+  :is(.admin-shell, .gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+    :where(.list-toolbar, .gkit-new-filter-bar, .gkit-ate-filter-bar, .ciclo-list-filter-bar, .ciclo-document-filter-bar, .ciclo-atendimento-filters, .gkit-jur-filter-bar, .gkit-flex-filters, .gkit-performa-filters) {
+    grid-template-columns: 1fr !important;
+  }
+
+  :is(.admin-shell, .platform-page, .gkit-flex-operational-shell, .gkit-new-shell, .ciclo-shell, .gkit-ate-shell, .gkit-fat-shell, .gkit-dir-shell, .gkit-performa-shell)
+    :where(.button, button.button, a.button, .primary-button, .secondary-button, .danger-button, .module-action) {
+    white-space: normal !important;
+  }
+}
