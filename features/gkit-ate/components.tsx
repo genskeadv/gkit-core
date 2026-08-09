@@ -230,16 +230,45 @@ export function GkitAteHealthNotice({ health }: { health?: GkitAteHealth }) {
   )
 }
 
+const ateDateFormatter = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  timeZone: 'UTC',
+  year: 'numeric',
+})
+
+function formatAteDate(value: string | null | undefined) {
+  const raw = value?.trim()
+  if (!raw) return null
+
+  const date = new Date(raw)
+  if (Number.isNaN(date.getTime())) return raw
+  if (date.getUTCFullYear() < 1990) return 'Data inconsistente'
+
+  return ateDateFormatter.format(date)
+}
+
+function formatAteStatus(value: string | null | undefined) {
+  const raw = value?.trim()
+  if (!raw) return 'Sem status'
+
+  return raw
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map((part) => (part ? `${part.charAt(0).toLocaleUpperCase('pt-BR')}${part.slice(1)}` : part))
+    .join(' ')
+}
+
 function InfoGrid({ items }: { items: Array<{ label: string; value: string | null | undefined }> }) {
   const visible = items.filter((item) => item.value)
   if (!visible.length) return null
 
   return (
-    <div className="suite-executive-grid">
+    <div className="gkit-ate-detail-grid">
       {visible.map((item) => (
-        <article className="suite-executive-card" key={item.label}>
+        <article className="gkit-ate-detail-field" key={item.label}>
           <span>{item.label}</span>
-          <h2>{item.value}</h2>
+          <strong>{item.value}</strong>
         </article>
       ))}
     </div>
@@ -255,15 +284,24 @@ export function GkitAteAtendimentoDetailView({
   atendimento: GkitAteAtendimentoDetail
   canWrite?: boolean
 }) {
+  const tarefasTotal = atendimento.tarefas.length
+  const tarefasPendentes = atendimento.tarefas.filter((tarefa) => tarefa.status !== 'concluida' && tarefa.status !== 'cancelada').length
+  const statusTone = atendimento.status === 'encerrado' ? 'success' : 'warning'
+  const statusLabel = formatAteStatus(atendimento.status)
+
   return (
-    <div className="module-form-grid">
-      <section className="card module-form module-form-wide">
-        <div className="suite-panel-heading">
+    <div className="gkit-ate-detail-layout">
+      <section className="card module-form module-form-wide gkit-ate-detail-card">
+        <div className="gkit-ate-detail-head">
           <div>
+            <span>Registro importado</span>
             <h2>{atendimento.titulo}</h2>
             <p>{atendimento.cliente_nome}</p>
           </div>
-          <span className={`suite-pill ${atendimento.status === 'encerrado' ? 'success' : 'warning'}`}>{atendimento.status}</span>
+          <div className="gkit-ate-detail-actions">
+            <span className={`suite-pill ${statusTone}`}>{statusLabel}</span>
+            {atendimento.url_processo ? <a className="button secondary" href={atendimento.url_processo} target="_blank" rel="noreferrer">Abrir no ASTREA</a> : null}
+          </div>
         </div>
 
         <InfoGrid
@@ -272,18 +310,18 @@ export function GkitAteAtendimentoDetailView({
             { label: 'Código ASTREA', value: atendimento.astrea_codigo },
             { label: 'Tipo', value: atendimento.tipo },
             { label: 'Responsável', value: atendimento.responsavel },
-            { label: 'Criacao', value: atendimento.data_criacao },
-            { label: 'Prazo', value: atendimento.prazo_finalizacao },
-            { label: 'Último histórico', value: atendimento.data_ultimo_historico },
-            { label: 'Encerramento', value: atendimento.data_encerramento },
+            { label: 'Criação', value: formatAteDate(atendimento.data_criacao) },
+            { label: 'Prazo', value: formatAteDate(atendimento.prazo_finalizacao) },
+            { label: 'Último histórico', value: formatAteDate(atendimento.data_ultimo_historico) },
+            { label: 'Encerramento', value: formatAteDate(atendimento.data_encerramento) },
             { label: 'Acesso', value: atendimento.acesso },
           ]}
         />
 
-        <div className="suite-empty-block">
+        <div className="gkit-ate-detail-story">
+          <span>Objeto e histórico</span>
           <strong>{atendimento.objeto ?? 'Objeto não informado'}</strong>
-          <span>{atendimento.ultimo_historico ?? atendimento.observacoes ?? 'Sem histórico textual no arquivo importado.'}</span>
-          {atendimento.url_processo ? <a href={atendimento.url_processo} target="_blank" rel="noreferrer">Abrir no ASTREA</a> : null}
+          <p>{atendimento.ultimo_historico ?? atendimento.observacoes ?? 'Sem histórico textual no arquivo importado.'}</p>
         </div>
 
         <InfoGrid
@@ -298,11 +336,11 @@ export function GkitAteAtendimentoDetailView({
         />
       </section>
 
-      <section className="card module-form module-form-wide">
+      <section className="card module-form module-form-wide gkit-ate-detail-card">
         <div className="suite-panel-heading">
           <div>
             <h2>Tarefas vinculadas</h2>
-            <p>Um atendimento pode ter várias tarefas operacionais.</p>
+            <p>{tarefasTotal} no total, {tarefasPendentes} em aberto.</p>
           </div>
         </div>
 
@@ -312,8 +350,8 @@ export function GkitAteAtendimentoDetailView({
             id: tarefa.id,
             title: tarefa.descricao,
             subtitle: `${tarefa.tipo_nome ?? 'Tarefa'} - ${tarefa.responsavel ?? 'Sem responsável'}`,
-            status: tarefa.status,
-            value: tarefa.data_prevista ?? 'Sem prazo',
+            status: formatAteStatus(tarefa.status),
+            value: formatAteDate(tarefa.data_prevista) ?? 'Sem prazo',
             meta: tarefa.origem,
             detailHref: `/modulos/gkit-ate/tarefas/${tarefa.id}`,
             tone: tarefa.status === 'concluida' ? 'success' : tarefa.status === 'cancelada' ? 'danger' : 'warning',
