@@ -33,6 +33,8 @@ export async function POST(request: NextRequest) {
       categoria: String(payload?.categoria || ''),
       centro: String(payload?.centro || ''),
       pago: Boolean(payload?.pago),
+      moneyContaId: payload?.money_conta_id ? String(payload.money_conta_id) : null,
+      moneyContaDestinoId: payload?.money_conta_destino_id ? String(payload.money_conta_destino_id) : null,
     });
 
     return Response.json(result);

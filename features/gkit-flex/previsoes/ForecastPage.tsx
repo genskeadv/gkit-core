@@ -24,6 +24,16 @@ type PaymentForecastRow = {
   origem_item_id?: string | null;
   observacao?: string | null;
   ordem?: number;
+  money_conta_id?: string | null;
+  money_conta_destino_id?: string | null;
+};
+
+type MoneyAccount = {
+  id: string;
+  nome: string;
+  status: string;
+  conta_principal: boolean;
+  ordem: number;
 };
 
 type ForecastData = {
@@ -57,6 +67,7 @@ type ForecastData = {
     };
     receitasPorTipo: ComparisonRow[];
     pagamentosPorCategoria: ComparisonRow[];
+    pagamentosPorConta: ComparisonRow[];
   };
 };
 
@@ -94,8 +105,8 @@ function makeBlankRevenue(): RevenueForecastRow {
   return { tipo: '', valor_previsto: 0, observacao: '' };
 }
 
-function makeBlankPayment(index: number): PaymentForecastRow {
-  return { descricao: '', vencimento_dia: null, vencimento_texto: '', valor_previsto: 0, categoria: 'Sem categoria', centro: '', observacao: '', ordem: index };
+function makeBlankPayment(index: number, moneyContaId = ''): PaymentForecastRow {
+  return { descricao: '', vencimento_dia: null, vencimento_texto: '', valor_previsto: 0, categoria: 'Sem categoria', centro: '', observacao: '', ordem: index, money_conta_id: moneyContaId || null, money_conta_destino_id: null };
 }
 
 export function ForecastPage() {
@@ -104,6 +115,7 @@ export function ForecastPage() {
   const [data, setData] = useState<ForecastData | null>(null);
   const [receitas, setReceitas] = useState<RevenueForecastRow[]>([]);
   const [pagamentos, setPagamentos] = useState<PaymentForecastRow[]>([]);
+  const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -114,23 +126,32 @@ export function ForecastPage() {
   const totalReceitas = useMemo(() => Math.round(receitas.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0) * 100) / 100, [receitas]);
   const totalPagamentos = useMemo(() => Math.round(pagamentos.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0) * 100) / 100, [pagamentos]);
   const saldoPrevisto = Math.round((totalReceitas - totalPagamentos) * 100) / 100;
+  const mainAccount = accounts.find((account) => account.conta_principal) || accounts[0] || null;
+  const mainAccountId = mainAccount?.id || '';
 
   async function loadForecast(selectedCompetencia = competenciaParam) {
     setLoading(true);
     setError('');
     setMessage('');
     try {
-      const response = await fetch(`/api/gkit-flex/previsoes?competencia=${encodeURIComponent(selectedCompetencia)}`, { cache: 'no-store' });
+      const [response, accountsResponse] = await Promise.all([
+        fetch(`/api/gkit-flex/previsoes?competencia=${encodeURIComponent(selectedCompetencia)}`, { cache: 'no-store' }),
+        fetch('/api/gkit-money/contas', { cache: 'no-store' }),
+      ]);
       const payload = await response.json();
+      const accountsPayload = await accountsResponse.json();
+      if (!accountsResponse.ok) throw new Error(accountsPayload.error || 'Nao foi possivel carregar contas.');
       if (!response.ok) throw new Error(payload.error || 'Não foi possível carregar previsões.');
       setData(payload);
       setReceitas(payload.receitas || []);
       setPagamentos(payload.pagamentos || []);
+      setAccounts(accountsPayload.contas || []);
       setHasUnsavedPaymentChanges(false);
     } catch (err) {
       setData(null);
       setReceitas([]);
       setPagamentos([]);
+      setAccounts([]);
       setHasUnsavedPaymentChanges(false);
       setError(err instanceof Error ? err.message : 'Erro inesperado ao carregar previsões.');
     } finally {
@@ -207,7 +228,7 @@ export function ForecastPage() {
 
   function addPaymentRow() {
     setHasUnsavedPaymentChanges(true);
-    setPagamentos((current) => [...current, makeBlankPayment(current.length)]);
+    setPagamentos((current) => [...current, makeBlankPayment(current.length, mainAccountId)]);
   }
 
   function deletePaymentRow(index: number) {
@@ -281,7 +302,7 @@ export function ForecastPage() {
                 ) : null}
               </div>
             </div>
-            <PaymentTable rows={pagamentos} onChange={updatePayment} onDelete={deletePaymentRow} />
+            <PaymentTable rows={pagamentos} accounts={accounts} mainAccountId={mainAccountId} onChange={updatePayment} onDelete={deletePaymentRow} />
           </section>
         ) : null}
 
@@ -312,6 +333,12 @@ export function ForecastPage() {
                 description={`Previsto ${formatCurrency(data?.comparativo?.resumo.totalPagamentosPrevistos || 0)} / realizado ${formatCurrency(data?.comparativo?.resumo.totalPagamentosRealizados || 0)}`}
                 rows={data?.comparativo?.pagamentosPorCategoria || []}
                 empty="Sem previsão ou realizado de pagamentos para comparar."
+              />
+              <ComparisonPanel
+                title="Pagamentos por conta"
+                description="Previsto e realizado separados pela conta financeira"
+                rows={data?.comparativo?.pagamentosPorConta || []}
+                empty="Sem pagamentos por conta para comparar."
               />
             </section>
           </section>
@@ -400,7 +427,19 @@ function RevenueTable({ rows, onChange, onDelete }: { rows: RevenueForecastRow[]
   );
 }
 
-function PaymentTable({ rows, onChange, onDelete }: { rows: PaymentForecastRow[]; onChange: (index: number, patch: Partial<PaymentForecastRow>) => void; onDelete: (index: number) => void }) {
+function PaymentTable({
+  rows,
+  accounts,
+  mainAccountId,
+  onChange,
+  onDelete,
+}: {
+  rows: PaymentForecastRow[];
+  accounts: MoneyAccount[];
+  mainAccountId: string;
+  onChange: (index: number, patch: Partial<PaymentForecastRow>) => void;
+  onDelete: (index: number) => void;
+}) {
   if (!rows.length) {
     return <EmptyState title="Sem previsão de pagamentos" description="Gere a base pelo fechamento anterior ou adicione pagamentos manualmente." />;
   }
@@ -414,6 +453,7 @@ function PaymentTable({ rows, onChange, onDelete }: { rows: PaymentForecastRow[]
             <th>Venc.</th>
             <th>Categoria</th>
             <th>Centro</th>
+            <th>Conta</th>
             <th className="text-right">Valor previsto</th>
             <th>Observação</th>
             <th></th>
@@ -426,6 +466,13 @@ function PaymentTable({ rows, onChange, onDelete }: { rows: PaymentForecastRow[]
               <td><input className="inline-input short-input" value={row.vencimento_dia ? String(row.vencimento_dia).padStart(2, '0') : row.vencimento_texto || ''} onChange={(event) => onChange(index, { vencimento_dia: Number(event.target.value.replace(/\D/g, '')) || null, vencimento_texto: event.target.value })} /></td>
               <td><input className="inline-input" value={row.categoria} onChange={(event) => onChange(index, { categoria: event.target.value })} /></td>
               <td><input className="inline-input" value={row.centro || ''} onChange={(event) => onChange(index, { centro: event.target.value })} /></td>
+              <td>
+                <select className="inline-input" value={row.money_conta_id || mainAccountId} onChange={(event) => onChange(index, { money_conta_id: event.target.value || null })}>
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>{account.nome}</option>
+                  ))}
+                </select>
+              </td>
               <td className="text-right"><input className="inline-input money-input" value={String(row.valor_previsto ?? 0).replace('.', ',')} onChange={(event) => onChange(index, { valor_previsto: normalizeMoneyInput(event.target.value) })} /></td>
               <td><input className="inline-input" value={row.observacao || ''} onChange={(event) => onChange(index, { observacao: event.target.value })} /></td>
               <td className="text-right"><button className="secondary-button compact-button" type="button" onClick={() => onDelete(index)}>Remover</button></td>

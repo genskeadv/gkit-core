@@ -1,5 +1,6 @@
 import { getSupabaseAdmin, logEvent } from '../audit';
 import { listGkitFlexColaboradores } from '../colaboradores/queries';
+import { listMoneyAccounts } from '@/features/gkit-money/moneyPersistence';
 
 export type RevenueForecastRow = {
   id?: string;
@@ -22,6 +23,8 @@ export type PaymentForecastRow = {
   origem_item_id?: string | null;
   observacao?: string | null;
   ordem?: number;
+  money_conta_id?: string | null;
+  money_conta_destino_id?: string | null;
 };
 
 export type ForecastPayload = {
@@ -62,6 +65,12 @@ function isAutomaticForecastBlocked(row: { categoria?: string | null }, blockedC
   return Boolean(categoria && blockedCategoryKeys.has(categoria));
 }
 
+function isMissingMoneyColumnsError(error: unknown) {
+  const record = error as { code?: string; message?: string } | null;
+  const message = String(record?.message || '').toLowerCase();
+  return record?.code === '42703' || (message.includes('money_conta') && message.includes('column'));
+}
+
 export function sanitizeCompetencia(value?: string | null): string {
   if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value.slice(0, 10);
   if (value && /^\d{4}-\d{2}$/.test(value)) return `${value}-01`;
@@ -100,6 +109,8 @@ function normalizePaymentRow(row: Record<string, unknown>, index = 0): PaymentFo
     origem_item_id: row.origem_item_id ? String(row.origem_item_id) : null,
     observacao: row.observacao ? String(row.observacao) : '',
     ordem: Number(row.ordem ?? index),
+    money_conta_id: row.money_conta_id ? String(row.money_conta_id) : null,
+    money_conta_destino_id: row.money_conta_destino_id ? String(row.money_conta_destino_id) : null,
   };
 }
 
@@ -158,28 +169,46 @@ async function listForecastRows(supabase: ReturnType<typeof getSupabaseAdmin>, c
       .order('tipo', { ascending: true }),
     supabase
       .from('gkit_flex_previsao_pagamentos')
-      .select('id, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, origem_competencia, origem_item_id, observacao, ordem, created_at, updated_at')
+      .select('id, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, money_conta_id, money_conta_destino_id, origem_competencia, origem_item_id, observacao, ordem, created_at, updated_at')
       .eq('competencia', competencia)
       .order('ordem', { ascending: true })
       .order('descricao', { ascending: true }),
   ]);
 
   if (receitasResult.error) throw new Error(`Erro ao consultar previsao de receitas: ${receitasResult.error.message}`);
-  if (pagamentosResult.error) throw new Error(`Erro ao consultar previsao de pagamentos: ${pagamentosResult.error.message}`);
+  let pagamentosData: unknown = pagamentosResult.data;
+  let pagamentosError = pagamentosResult.error;
+  if (pagamentosError && isMissingMoneyColumnsError(pagamentosError)) {
+    const fallback = await supabase
+      .from('gkit_flex_previsao_pagamentos')
+      .select('id, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, origem_competencia, origem_item_id, observacao, ordem, created_at, updated_at')
+      .eq('competencia', competencia)
+      .order('ordem', { ascending: true })
+      .order('descricao', { ascending: true });
+    pagamentosData = fallback.data;
+    pagamentosError = fallback.error;
+  }
+
+  if (pagamentosError) throw new Error(`Erro ao consultar previsao de pagamentos: ${pagamentosError.message}`);
 
   const receitas = ((receitasResult.data || []) as Array<Record<string, unknown>>).map(normalizeRevenueRow);
-  const pagamentos = ((pagamentosResult.data || []) as Array<Record<string, unknown>>).map(normalizePaymentRow);
+  const pagamentos = ((pagamentosData || []) as Array<Record<string, unknown>>).map(normalizePaymentRow);
 
   return { receitas, pagamentos };
 }
 
 async function actualsForMonth(supabase: ReturnType<typeof getSupabaseAdmin>, competencia: string) {
+  const moneyAccounts = await listMoneyAccounts().catch(() => []);
+  const mainAccount = moneyAccounts.find((account) => account.conta_principal) || moneyAccounts[0] || null;
+  const accountName = (id?: string | null) => moneyAccounts.find((account) => account.id === id)?.nome || mainAccount?.nome || 'Genske Advogados';
+
   if (!supabase) {
     return {
       receitasRealizadas: 0,
       pagamentosRealizados: 0,
       receitasPorTipo: [] as Array<{ tipo: string; valor: number }>,
       pagamentosPorCategoria: [] as Array<{ categoria: string; valor: number }>,
+      pagamentosPorConta: [] as Array<{ contaId: string | null; conta: string; valor: number }>,
     };
   }
 
@@ -219,20 +248,36 @@ async function actualsForMonth(supabase: ReturnType<typeof getSupabaseAdmin>, co
 
   let pagamentosRealizados = 0;
   let pagamentosPorCategoria: Array<{ categoria: string; valor: number }> = [];
+  let pagamentosPorConta: Array<{ contaId: string | null; conta: string; valor: number }> = [];
   if (payableMonth?.id) {
-    const { data: payables, error: payablesError } = await supabase
+    let { data: payables, error: payablesError } = await supabase
       .from('contas_pagar_itens')
-      .select('valor_previsto, pago, categoria')
+      .select('valor_previsto, pago, categoria, money_conta_id')
       .eq('competencia_id', payableMonth.id);
+    if (payablesError && isMissingMoneyColumnsError(payablesError)) {
+      const fallback = await supabase
+        .from('contas_pagar_itens')
+        .select('valor_previsto, pago, categoria')
+        .eq('competencia_id', payableMonth.id);
+      payables = fallback.data as unknown as typeof payables;
+      payablesError = fallback.error;
+    }
     if (payablesError) throw new Error(`Erro ao consultar pagamentos realizados: ${payablesError.message}`);
 
     pagamentosRealizados = roundMoney((payables || []).filter((row) => row.pago).reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0));
     const byCategoria = new Map<string, number>();
+    const byConta = new Map<string, { contaId: string | null; conta: string; valor: number }>();
     for (const row of (payables || []).filter((item) => item.pago)) {
       const categoria = String(row.categoria || 'Sem categoria');
+      const contaId = String(row.money_conta_id || mainAccount?.id || '');
+      const contaKey = contaId || 'principal';
       byCategoria.set(categoria, roundMoney((byCategoria.get(categoria) || 0) + Number(row.valor_previsto || 0)));
+      const currentConta = byConta.get(contaKey) || { contaId: contaId || null, conta: accountName(contaId), valor: 0 };
+      currentConta.valor = roundMoney(currentConta.valor + Number(row.valor_previsto || 0));
+      byConta.set(contaKey, currentConta);
     }
     pagamentosPorCategoria = Array.from(byCategoria.entries()).map(([categoria, valor]) => ({ categoria, valor })).sort((a, b) => b.valor - a.valor);
+    pagamentosPorConta = Array.from(byConta.values()).sort((a, b) => b.valor - a.valor);
   }
 
   return {
@@ -240,10 +285,18 @@ async function actualsForMonth(supabase: ReturnType<typeof getSupabaseAdmin>, co
     pagamentosRealizados,
     receitasPorTipo,
     pagamentosPorCategoria,
+    pagamentosPorConta,
   };
 }
 
-function buildComparison(receitas: RevenueForecastRow[], pagamentos: PaymentForecastRow[], actuals: Awaited<ReturnType<typeof actualsForMonth>>) {
+function buildComparison(
+  receitas: RevenueForecastRow[],
+  pagamentos: PaymentForecastRow[],
+  actuals: Awaited<ReturnType<typeof actualsForMonth>>,
+  moneyAccounts: Array<{ id: string; nome: string; conta_principal: boolean }> = [],
+) {
+  const moneyAccountsById = new Map(moneyAccounts.map((account) => [account.id, account.nome]));
+  const mainAccountName = moneyAccounts.find((account) => account.conta_principal)?.nome || moneyAccounts[0]?.nome || 'Genske Advogados';
   const receitasPorTipo = buildComparisonRows(
     receitas.map((row) => ({ key: row.tipo || 'Sem tipo', label: row.tipo || 'Sem tipo', value: row.valor_previsto })),
     actuals.receitasPorTipo.map((row) => ({ key: row.tipo || 'Sem tipo', label: row.tipo || 'Sem tipo', value: row.valor })),
@@ -251,6 +304,14 @@ function buildComparison(receitas: RevenueForecastRow[], pagamentos: PaymentFore
   const pagamentosPorCategoria = buildComparisonRows(
     pagamentos.map((row) => ({ key: row.categoria || 'Sem categoria', label: row.categoria || 'Sem categoria', value: row.valor_previsto })),
     actuals.pagamentosPorCategoria.map((row) => ({ key: row.categoria || 'Sem categoria', label: row.categoria || 'Sem categoria', value: row.valor })),
+  );
+  const pagamentosPorConta = buildComparisonRows(
+    pagamentos.map((row) => {
+      const key = row.money_conta_id || 'principal';
+      const label = row.money_conta_id ? (moneyAccountsById.get(row.money_conta_id) || row.money_conta_id) : mainAccountName;
+      return { key, label, value: row.valor_previsto };
+    }),
+    actuals.pagamentosPorConta.map((row) => ({ key: row.contaId || 'principal', label: row.conta, value: row.valor })),
   );
   const totalReceitasPrevistas = roundMoney(receitas.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0));
   const totalPagamentosPrevistos = roundMoney(pagamentos.reduce((acc, row) => acc + Number(row.valor_previsto || 0), 0));
@@ -271,6 +332,7 @@ function buildComparison(receitas: RevenueForecastRow[], pagamentos: PaymentFore
     },
     receitasPorTipo,
     pagamentosPorCategoria,
+    pagamentosPorConta,
   };
 }
 
@@ -288,12 +350,13 @@ export async function getMonthlyForecast(competenciaInput?: string | null) {
       pagamentos: [] as PaymentForecastRow[],
       summary: summarizeForecast([], []),
       actuals: { receitasRealizadas: 0, pagamentosRealizados: 0, receitasPorTipo: [], pagamentosPorCategoria: [] },
-      comparativo: buildComparison([], [], { receitasRealizadas: 0, pagamentosRealizados: 0, receitasPorTipo: [], pagamentosPorCategoria: [] }),
+      comparativo: buildComparison([], [], { receitasRealizadas: 0, pagamentosRealizados: 0, receitasPorTipo: [], pagamentosPorCategoria: [], pagamentosPorConta: [] }),
     };
   }
 
   const { receitas, pagamentos } = await listForecastRows(supabase, competencia);
   const actuals = await actualsForMonth(supabase, competencia);
+  const moneyAccounts = await listMoneyAccounts().catch(() => []);
   return {
     configured: true,
     competencia,
@@ -302,7 +365,7 @@ export async function getMonthlyForecast(competenciaInput?: string | null) {
     pagamentos,
     summary: summarizeForecast(receitas, pagamentos),
     actuals,
-    comparativo: buildComparison(receitas, pagamentos, actuals),
+    comparativo: buildComparison(receitas, pagamentos, actuals, moneyAccounts),
   };
 }
 
@@ -389,16 +452,23 @@ async function seedPaymentForecast(supabase: NonNullable<ReturnType<typeof getSu
   if (monthError) throw new Error(`Erro ao consultar fechamento anterior: ${monthError.message}`);
   if (!month?.id) return 0;
 
-  const { data: rows, error } = await supabase
+  const selectClosedPayables = (columns: string) => supabase
     .from('contas_pagar_itens')
-    .select('id, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, origem_tipo')
+    .select(columns)
     .eq('competencia_id', month.id)
     .order('vencimento_dia', { ascending: true, nullsFirst: false })
     .order('descricao', { ascending: true });
+
+  let { data: rows, error } = await selectClosedPayables('id, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, money_conta_id, money_conta_destino_id, origem_tipo');
+  if (error && isMissingMoneyColumnsError(error)) {
+    const fallback = await selectClosedPayables('id, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, origem_tipo');
+    rows = fallback.data as unknown as typeof rows;
+    error = fallback.error;
+  }
   if (error) throw new Error(`Erro ao consultar pagamentos do fechamento anterior: ${error.message}`);
 
   const blockedCategoryKeys = await listAutomaticForecastBlockedCategories(supabase);
-  const payload = (rows || [])
+  const payload = ((rows || []) as Array<Record<string, any>>)
     .filter((row) => !isCommissionPaymentSource(row))
     .filter((row) => !isAutomaticForecastBlocked(row, blockedCategoryKeys))
     .map((row, index) => ({
@@ -409,6 +479,8 @@ async function seedPaymentForecast(supabase: NonNullable<ReturnType<typeof getSu
       valor_previsto: roundMoney(Number(row.valor_previsto || 0)),
       categoria: String(row.categoria || 'Sem categoria'),
       centro: row.centro || null,
+      money_conta_id: row.money_conta_id || null,
+      money_conta_destino_id: row.money_conta_destino_id || null,
       origem_competencia: origemCompetencia,
       origem_item_id: row.id,
       ordem: index,
@@ -421,7 +493,14 @@ async function seedPaymentForecast(supabase: NonNullable<ReturnType<typeof getSu
   const fullPayload = [...payload, ...filteredAutomaticPayload];
 
   if (!fullPayload.length) return 0;
-  const { error: insertError } = await supabase.from('gkit_flex_previsao_pagamentos').insert(fullPayload);
+  let { error: insertError } = await supabase.from('gkit_flex_previsao_pagamentos').insert(fullPayload);
+  if (insertError && isMissingMoneyColumnsError(insertError)) {
+    const fallbackPayload = fullPayload.map((row) => {
+      const { money_conta_id: _moneyContaId, money_conta_destino_id: _moneyContaDestinoId, ...rest } = row;
+      return rest;
+    });
+    ({ error: insertError } = await supabase.from('gkit_flex_previsao_pagamentos').insert(fallbackPayload));
+  }
   if (insertError) throw new Error(`Erro ao gerar previsao de pagamentos: ${insertError.message}`);
   return fullPayload.length;
 }
@@ -470,6 +549,8 @@ async function buildAutomaticPaymentForecast(
     origem_item_id: row.id,
     observacao: `${AUTOMATIC_COLLABORATOR_FORECAST}. Fonte: cadastro de colaboradores do Flex.`,
     ordem: initialOrder + index,
+    money_conta_id: null,
+    money_conta_destino_id: null,
   }));
 
   const { data: latestExecution, error: executionError } = await supabase
@@ -496,6 +577,8 @@ async function buildAutomaticPaymentForecast(
         origem_item_id: String(latestExecution.id),
         observacao: `${AUTOMATIC_COMMISSION_FORECAST}. Fonte: apuracao de receitas da competencia anterior (${commissionCompetencia}, ${latestExecution.created_at || ''}).`,
         ordem: initialOrder + colaboradorRows.length,
+        money_conta_id: null,
+        money_conta_destino_id: null,
       }]
     : [];
 
@@ -547,6 +630,8 @@ export async function saveMonthlyForecast(competenciaInput: string, payload: For
       valor_previsto: roundMoney(Number(row.valor_previsto || 0)),
       categoria: String(row.categoria || 'Sem categoria').trim() || 'Sem categoria',
       centro: row.centro || null,
+      money_conta_id: row.money_conta_id || null,
+      money_conta_destino_id: row.money_conta_destino_id || null,
       origem_competencia: row.origem_competencia || null,
       origem_item_id: row.origem_item_id || null,
       observacao: row.observacao || null,
@@ -567,7 +652,14 @@ export async function saveMonthlyForecast(competenciaInput: string, payload: For
     if (error) throw new Error(`Erro ao salvar previsao de receitas: ${error.message}`);
   }
   if (pagamentos.length) {
-    const { error } = await supabase.from('gkit_flex_previsao_pagamentos').insert(pagamentos);
+    let { error } = await supabase.from('gkit_flex_previsao_pagamentos').insert(pagamentos);
+    if (error && isMissingMoneyColumnsError(error)) {
+      const fallbackPagamentos = pagamentos.map((row) => {
+        const { money_conta_id: _moneyContaId, money_conta_destino_id: _moneyContaDestinoId, ...rest } = row;
+        return rest;
+      });
+      ({ error } = await supabase.from('gkit_flex_previsao_pagamentos').insert(fallbackPagamentos));
+    }
     if (error) throw new Error(`Erro ao salvar previsao de pagamentos: ${error.message}`);
   }
 

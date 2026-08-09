@@ -268,6 +268,8 @@ type CreatePayableItemInput = {
   categoria: string;
   centro?: string | null;
   pago: boolean;
+  moneyContaId?: string | null;
+  moneyContaDestinoId?: string | null;
 };
 
 function tokenSet(value: string) {
@@ -644,14 +646,19 @@ export async function importPayables(competenciaInput: string, rows: PayableImpo
   });
 
   const preview = await previewPayablesImport(competencia, rows, fileName);
-  const { data: currentRows, error: currentError } = await supabase
+  const selectCurrentRows = (columns: string) => supabase
     .from('contas_pagar_itens')
-    .select('id, competencia_id, competencia, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, pago, origem_tipo')
+    .select(columns)
     .eq('competencia_id', competenciaId);
+
+  let { data: currentRows, error: currentError } = await selectCurrentRows('id, competencia_id, competencia, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, pago, money_conta_id, money_conta_destino_id, origem_tipo');
+  if (currentError && isMissingMoneyColumnsError(currentError)) {
+    ({ data: currentRows, error: currentError } = await selectCurrentRows('id, competencia_id, competencia, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, pago, origem_tipo'));
+  }
 
   if (currentError) throw new Error(`Erro ao consultar pagamentos atuais: ${currentError.message}`);
 
-  const reconciliation = planPayablesImportReconciliation((currentRows || []) as PayableItem[], rows);
+  const reconciliation = planPayablesImportReconciliation((currentRows || []) as unknown as PayableItem[], rows);
 
   if (reconciliation.rowsToDelete.length) {
     const { error: deleteError } = await supabase
@@ -979,23 +986,37 @@ export async function createManualPayableItem(input: CreatePayableItemInput) {
     throw new Error('Dia de vencimento deve ficar entre 1 e 31.');
   }
 
-  const { data, error } = await supabase
+  const insertPayload: Record<string, unknown> = {
+    competencia_id: competenciaId,
+    competencia,
+    descricao,
+    vencimento_dia: vencimentoDia,
+    vencimento_texto: input.vencimentoTexto || (vencimentoDia ? String(vencimentoDia).padStart(2, '0') : null),
+    valor_previsto: valorPrevisto,
+    categoria: String(input.categoria || '').trim() || 'Sem categoria',
+    centro: String(input.centro || '').trim() || null,
+    pago: Boolean(input.pago),
+    money_conta_id: input.moneyContaId || null,
+    money_conta_destino_id: input.moneyContaDestinoId || null,
+    origem_tipo: 'manual',
+    raw: { origem: 'manual' },
+  };
+
+  let { data, error } = await supabase
     .from('contas_pagar_itens')
-    .insert({
-      competencia_id: competenciaId,
-      competencia,
-      descricao,
-      vencimento_dia: vencimentoDia,
-      vencimento_texto: input.vencimentoTexto || (vencimentoDia ? String(vencimentoDia).padStart(2, '0') : null),
-      valor_previsto: valorPrevisto,
-      categoria: String(input.categoria || '').trim() || 'Sem categoria',
-      centro: String(input.centro || '').trim() || null,
-      pago: Boolean(input.pago),
-      origem_tipo: 'manual',
-      raw: { origem: 'manual' },
-    })
+    .insert(insertPayload)
     .select('id')
     .single();
+
+  if (error && isMissingMoneyColumnsError(error)) {
+    delete insertPayload.money_conta_id;
+    delete insertPayload.money_conta_destino_id;
+    ({ data, error } = await supabase
+      .from('contas_pagar_itens')
+      .insert(insertPayload)
+      .select('id')
+      .single());
+  }
 
   if (error) throw new Error(`Erro ao criar pagamento manual: ${error.message}`);
 
@@ -1023,11 +1044,16 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
 
   await syncCicloRegularidadePagamentos(supabase, competencia);
 
-  const { data: currentItems, error: itemsError } = await supabase
+  const selectItemsToCopy = (columns: string) => supabase
     .from('contas_pagar_itens')
-    .select('id, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, origem_tipo, origem_execucao_id, origem_resumo_id, raw')
+    .select(columns)
     .eq('competencia_id', current.row.id)
     .order('vencimento_dia', { ascending: true, nullsFirst: false });
+
+  let { data: currentItems, error: itemsError } = await selectItemsToCopy('id, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, money_conta_id, money_conta_destino_id, origem_tipo, origem_execucao_id, origem_resumo_id, raw');
+  if (itemsError && isMissingMoneyColumnsError(itemsError)) {
+    ({ data: currentItems, error: itemsError } = await selectItemsToCopy('id, descricao, vencimento_dia, vencimento_texto, valor_previsto, categoria, centro, origem_tipo, origem_execucao_id, origem_resumo_id, raw'));
+  }
 
   if (itemsError) throw new Error(`Erro ao carregar pagamentos atuais para fechamento: ${itemsError.message}`);
 
@@ -1057,10 +1083,10 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
     if (deleteNextError) throw new Error(`Erro ao substituir pagamentos previstos do próximo mês: ${deleteNextError.message}`);
   }
 
-  const itemsToCopy = currentItems || [];
+  const itemsToCopy = (currentItems || []) as Array<Record<string, any>>;
 
   if (itemsToCopy.length) {
-    const { error: copyError } = await supabase.from('contas_pagar_itens').insert(itemsToCopy.map((item) => ({
+    const copyPayload: Array<Record<string, unknown>> = itemsToCopy.map((item) => ({
       competencia_id: nextRow.id,
       competencia: next,
       descricao: item.descricao,
@@ -1069,11 +1095,21 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
       valor_previsto: item.valor_previsto,
       categoria: item.categoria,
       centro: item.centro,
+      money_conta_id: item.money_conta_id || null,
+      money_conta_destino_id: item.money_conta_destino_id || null,
       pago: false,
       origem_tipo: item.origem_tipo || 'recorrencia',
       origem_item_id: item.id,
       raw: item.raw || {},
-    })));
+    }));
+    let { error: copyError } = await supabase.from('contas_pagar_itens').insert(copyPayload);
+    if (copyError && isMissingMoneyColumnsError(copyError)) {
+      copyPayload.forEach((item) => {
+        delete item.money_conta_id;
+        delete item.money_conta_destino_id;
+      });
+      ({ error: copyError } = await supabase.from('contas_pagar_itens').insert(copyPayload));
+    }
     if (copyError) throw new Error(`Erro ao copiar pagamentos previstos para o próximo mês: ${copyError.message}`);
   }
 

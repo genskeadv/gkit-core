@@ -24456,6 +24456,22 @@ a.button {
   min-width: 0;
 }
 
+.gkit-flex-shell .payable-account-toolbar {
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.gkit-flex-shell .payable-account-toolbar .field-label {
+  min-width: min(100%, 260px);
+}
+
+.gkit-flex-shell .payable-account-create {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap: 8px;
+}
+
 .gkit-flex-shell label,
 .gkit-flex-shell .field-label,
 .gkit-flex-shell .dashboard-month {

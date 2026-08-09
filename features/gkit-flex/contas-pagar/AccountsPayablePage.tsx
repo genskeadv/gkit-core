@@ -14,7 +14,22 @@ type PayableItem = {
   categoria: string;
   centro: string | null;
   pago: boolean;
+  money_conta_id?: string | null;
+  money_conta_destino_id?: string | null;
   origem_tipo?: string | null;
+};
+
+type MoneyAccount = {
+  id: string;
+  nome: string;
+  status: string;
+  conta_principal: boolean;
+  ordem: number;
+};
+
+type PaymentForecastRow = {
+  valor_previsto: number;
+  money_conta_id?: string | null;
 };
 
 type Summary = {
@@ -55,6 +70,8 @@ type ManualPayableForm = {
   categoria: string;
   centro: string;
   pago: boolean;
+  moneyContaId: string;
+  moneyDestinoId: string;
 };
 
 const emptySummary: Summary = { total: 0, totalPago: 0, totalAberto: 0, quantidade: 0, quantidadePaga: 0 };
@@ -66,6 +83,8 @@ const emptyManualPayableForm: ManualPayableForm = {
   categoria: 'Sem categoria',
   centro: '',
   pago: true,
+  moneyContaId: '',
+  moneyDestinoId: '',
 };
 
 function formatCurrency(value: number) {
@@ -98,6 +117,11 @@ export function AccountsPayablePage() {
   const [competencia, setCompetencia] = useState(() => new Date().toISOString().slice(0, 7));
   const [monthStatus, setMonthStatus] = useState<MonthStatus>('indisponivel');
   const [items, setItems] = useState<PayableItem[]>([]);
+  const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState('todas');
+  const [paymentForecasts, setPaymentForecasts] = useState<PaymentForecastRow[]>([]);
+  const [newAccountName, setNewAccountName] = useState('');
+  const [creatingAccount, setCreatingAccount] = useState(false);
   const [summary, setSummary] = useState<Summary>(emptySummary);
   const [forecastSummary, setForecastSummary] = useState<ForecastSummary>(emptyForecastSummary);
   const [file, setFile] = useState<File | null>(null);
@@ -110,6 +134,12 @@ export function AccountsPayablePage() {
   const [error, setError] = useState<string | null>(null);
 
   const canEdit = monthStatus === 'aberto';
+  const mainAccount = accounts.find((account) => account.conta_principal) || accounts[0] || null;
+  const mainAccountId = mainAccount?.id || '';
+
+  function payableAccountId(item: Pick<PayableItem | PaymentForecastRow, 'money_conta_id'>) {
+    return item.money_conta_id || mainAccountId;
+  }
 
   const categories = useMemo(() => {
     const set = new Set(items.map((item) => item.categoria).filter(Boolean));
@@ -133,16 +163,27 @@ export function AccountsPayablePage() {
 
       setMonthStatus(statusPayload.configured ? (statusPayload.status || 'nao_aberto') : 'indisponivel');
 
-      const itemsResponse = await fetch(`/api/gkit-flex/contas-pagar/itens?competencia=${selectedCompetencia}`, { cache: 'no-store' });
+      const [itemsResponse, accountsResponse, forecastResponse] = await Promise.all([
+        fetch(`/api/gkit-flex/contas-pagar/itens?competencia=${selectedCompetencia}`, { cache: 'no-store' }),
+        fetch('/api/gkit-money/contas', { cache: 'no-store' }),
+        fetch(`/api/gkit-flex/previsoes?competencia=${selectedCompetencia}`, { cache: 'no-store' }),
+      ]);
       const itemsPayload = await itemsResponse.json();
+      const accountsPayload = await accountsResponse.json();
+      const forecastPayload = await forecastResponse.json();
+      if (!accountsResponse.ok) throw new Error(accountsPayload?.error || 'Nao foi possivel carregar contas.');
       if (!itemsResponse.ok) throw new Error(itemsPayload?.error || 'Não foi possível carregar pagamentos.');
 
       setItems(itemsPayload.rows || []);
+      setAccounts(accountsPayload.contas || []);
+      setPaymentForecasts(forecastResponse.ok ? forecastPayload.pagamentos || [] : []);
       setSummary(itemsPayload.summary || emptySummary);
       setForecastSummary(itemsPayload.forecastSummary || emptyForecastSummary);
     } catch (err) {
       setMonthStatus('indisponivel');
       setItems([]);
+      setAccounts([]);
+      setPaymentForecasts([]);
       setSummary(emptySummary);
       setForecastSummary(emptyForecastSummary);
       setError(err instanceof Error ? err.message : 'Erro inesperado ao carregar pagamentos.');
@@ -250,8 +291,32 @@ export function AccountsPayablePage() {
     });
   }
 
-  const forecastTotal = Math.round(Number(forecastSummary.totalPagamentos || 0) * 100) / 100;
-  const actualTotal = Math.round(Number(summary.totalPago || 0) * 100) / 100;
+  const visibleItems = useMemo(() => {
+    if (selectedAccountId === 'todas') return items;
+    return items.filter((item) => payableAccountId(item) === selectedAccountId);
+  }, [items, selectedAccountId, mainAccountId]);
+
+  const visibleSummary = useMemo(() => {
+    const total = visibleItems.reduce((acc, item) => acc + Number(item.valor_previsto || 0), 0);
+    const totalPago = visibleItems.filter((item) => item.pago).reduce((acc, item) => acc + Number(item.valor_previsto || 0), 0);
+    return {
+      total,
+      totalPago,
+      totalAberto: total - totalPago,
+      quantidade: visibleItems.length,
+      quantidadePaga: visibleItems.filter((item) => item.pago).length,
+    };
+  }, [visibleItems]);
+
+  const visibleForecasts = useMemo(() => {
+    if (selectedAccountId === 'todas') return paymentForecasts;
+    return paymentForecasts.filter((item) => payableAccountId(item) === selectedAccountId);
+  }, [paymentForecasts, selectedAccountId, mainAccountId]);
+
+  const forecastTotal = Math.round((selectedAccountId === 'todas'
+    ? Number(forecastSummary.totalPagamentos || 0)
+    : visibleForecasts.reduce((acc, item) => acc + Number(item.valor_previsto || 0), 0)) * 100) / 100;
+  const actualTotal = Math.round(Number(visibleSummary.totalPago || 0) * 100) / 100;
   const forecastDifference = Math.round((forecastTotal - actualTotal) * 100) / 100;
 
   async function saveItem(id: string, patch: Record<string, unknown>) {
@@ -305,6 +370,8 @@ export function AccountsPayablePage() {
           categoria: manualForm.categoria,
           centro: manualForm.centro,
           pago: manualForm.pago,
+          money_conta_id: manualForm.moneyContaId || (selectedAccountId !== 'todas' ? selectedAccountId : mainAccountId) || null,
+          money_conta_destino_id: manualForm.moneyDestinoId || null,
         }),
       });
       const payload = await response.json();
@@ -320,6 +387,31 @@ export function AccountsPayablePage() {
       setError(err instanceof Error ? err.message : 'Erro inesperado ao criar pagamento manual.');
     } finally {
       setSavingId(null);
+    }
+  }
+
+  async function createAccount() {
+    const nome = newAccountName.trim();
+    if (!nome) return;
+
+    try {
+      setCreatingAccount(true);
+      setError(null);
+      const response = await fetch('/api/gkit-money/contas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || 'Nao foi possivel criar a conta.');
+      setNewAccountName('');
+      setMessage('Conta criada.');
+      await loadMonth(competencia);
+      if (payload.conta?.id) setSelectedAccountId(payload.conta.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao criar conta.');
+    } finally {
+      setCreatingAccount(false);
     }
   }
 
@@ -370,9 +462,35 @@ export function AccountsPayablePage() {
         {error && <div className="error">{error}</div>}
         {message && <div className="success">{message}</div>}
 
+        <div className="header-row payable-account-toolbar">
+          <label className="field-label">
+            Conta financeira
+            <select className="text-input" value={selectedAccountId} onChange={(event) => setSelectedAccountId(event.target.value)}>
+              <option value="todas">Todas as contas</option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>{account.nome}</option>
+              ))}
+            </select>
+          </label>
+          <div className="payable-account-create">
+            <input
+              className="text-input"
+              value={newAccountName}
+              placeholder="Nova conta"
+              onChange={(event) => setNewAccountName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') createAccount();
+              }}
+            />
+            <button type="button" className="secondary-button" disabled={creatingAccount || !newAccountName.trim()} onClick={createAccount}>
+              {creatingAccount ? 'Criando...' : 'Adicionar conta +'}
+            </button>
+          </div>
+        </div>
+
         <div className="grid-3">
-          <MetricCard label="Previsão do mês" value={formatCurrency(forecastTotal)} help={`${forecastSummary.pagamentosCount || 0} linha(s) previstas`} />
-          <MetricCard label="Pagamentos efetuados" value={formatCurrency(actualTotal)} help={`${summary.quantidadePaga} pagamento(s) no extrato`} tone="good" />
+          <MetricCard label="Previsão do mês" value={formatCurrency(forecastTotal)} help={`${selectedAccountId === 'todas' ? forecastSummary.pagamentosCount || 0 : visibleForecasts.length} linha(s) previstas`} />
+          <MetricCard label="Pagamentos efetuados" value={formatCurrency(actualTotal)} help={`${visibleSummary.quantidadePaga} pagamento(s) no extrato`} tone="good" />
           <MetricCard label="Diferença" value={formatCurrency(forecastDifference)} help="Previsto menos realizado" tone={forecastDifference > 0 ? 'warning' : 'good'} />
         </div>
 
@@ -435,7 +553,7 @@ export function AccountsPayablePage() {
         <div className="header-row payable-header-row">
           <div>
             <h2>Pagamentos do mês</h2>
-            <p className="muted small-text">{summary.quantidade} lançamentos, {summary.quantidadePaga} marcados como pagos.</p>
+            <p className="muted small-text">{visibleSummary.quantidade} lançamentos, {visibleSummary.quantidadePaga} marcados como pagos.</p>
           </div>
           <button type="button" className="secondary-button" onClick={() => setShowManualForm((current) => !current)} disabled={!canEdit || loading}>
             {showManualForm ? 'Cancelar inclusão' : 'Adicionar pagamento'}
@@ -473,6 +591,31 @@ export function AccountsPayablePage() {
                 Centro
                 <input className="text-input" list="payable-centers" value={manualForm.centro} onChange={(event) => updateManualForm({ centro: event.target.value })} />
               </label>
+              <label className="field-label">
+                Conta
+                <select
+                  className="text-input"
+                  value={manualForm.moneyContaId || (selectedAccountId !== 'todas' ? selectedAccountId : mainAccountId)}
+                  onChange={(event) => updateManualForm({ moneyContaId: event.target.value, moneyDestinoId: manualForm.moneyDestinoId === event.target.value ? '' : manualForm.moneyDestinoId })}
+                >
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>{account.nome}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="grid-3">
+              <label className="field-label">
+                Creditar saldo em
+                <select className="text-input" value={manualForm.moneyDestinoId} onChange={(event) => updateManualForm({ moneyDestinoId: event.target.value })}>
+                  <option value="">Nenhuma conta</option>
+                  {accounts
+                    .filter((account) => account.id !== (manualForm.moneyContaId || (selectedAccountId !== 'todas' ? selectedAccountId : mainAccountId)))
+                    .map((account) => (
+                      <option key={account.id} value={account.id}>{account.nome}</option>
+                    ))}
+                </select>
+              </label>
               <label className="gkit-flex-check">
                 <input type="checkbox" checked={manualForm.pago} onChange={(event) => updateManualForm({ pago: event.target.checked })} />
                 <span>Pago</span>
@@ -499,11 +642,13 @@ export function AccountsPayablePage() {
                 <th>Categoria</th>
                 <th>Centro</th>
                 <th className="text-right">Valor</th>
+                <th>Conta</th>
+                <th>Creditar em</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <tr key={item.id} className={item.pago ? 'paid-row' : ''}>
                   <td>
                     <input
@@ -543,12 +688,53 @@ export function AccountsPayablePage() {
                       onBlur={(event) => saveItem(item.id, { valor_previsto: normalizeMoneyInput(event.target.value) })}
                     />
                   </td>
+                  <td>
+                    <select
+                      className="inline-input"
+                      value={item.money_conta_id || mainAccountId}
+                      disabled={!canEdit || savingId === item.id}
+                      onChange={(event) => {
+                        const nextContaId = event.target.value || null;
+                        updateLocal(item.id, {
+                          money_conta_id: nextContaId,
+                          money_conta_destino_id: item.money_conta_destino_id === nextContaId ? null : item.money_conta_destino_id,
+                        });
+                        saveItem(item.id, {
+                          money_conta_id: nextContaId,
+                          money_conta_destino_id: item.money_conta_destino_id === nextContaId ? null : item.money_conta_destino_id,
+                        });
+                      }}
+                    >
+                      {accounts.map((account) => (
+                        <option key={account.id} value={account.id}>{account.nome}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <select
+                      className="inline-input"
+                      value={item.money_conta_destino_id || ''}
+                      disabled={!canEdit || savingId === item.id}
+                      onChange={(event) => {
+                        const nextDestinoId = event.target.value || null;
+                        updateLocal(item.id, { money_conta_destino_id: nextDestinoId });
+                        saveItem(item.id, { money_conta_destino_id: nextDestinoId });
+                      }}
+                    >
+                      <option value="">-</option>
+                      {accounts
+                        .filter((account) => account.id !== (item.money_conta_id || mainAccountId))
+                        .map((account) => (
+                          <option key={account.id} value={account.id}>{account.nome}</option>
+                        ))}
+                    </select>
+                  </td>
                   <td>{savingId === item.id ? <span className="badge">Salvando</span> : item.pago ? <span className="badge badge-paid">Pago</span> : <span className="badge">Aberto</span>}</td>
                 </tr>
               ))}
-              {!items.length && (
+              {!visibleItems.length && (
                 <tr>
-                  <td colSpan={7}><EmptyState title="Nenhum pagamento neste mês" description="Abra o mês e importe o extrato realizado, ou feche o mês anterior para criar a próxima competência automaticamente." /></td>
+                  <td colSpan={9}><EmptyState title="Nenhum pagamento neste mês" description="Abra o mês e importe o extrato realizado, ou feche o mês anterior para criar a próxima competência automaticamente." /></td>
                 </tr>
               )}
             </tbody>
