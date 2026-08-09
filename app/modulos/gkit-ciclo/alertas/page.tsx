@@ -1,9 +1,14 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CicloAlertList, CicloKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
+import { buildCicloListFilters, CicloAlertList, CicloKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloData, requireCicloContext } from '@/features/ciclo/queries'
 
-export default async function CicloAlertasPage() {
+export default async function CicloAlertasPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
   const context = await requireCicloContext()
   const data = await getCicloData(context)
   const canWrite = canAccess(context.permissions, 'ciclo.alertas.write')
@@ -29,7 +34,7 @@ export default async function CicloAlertasPage() {
         title="Alertas recentes"
         description="Riscos operacionais, documentação e acompanhamentos em aberto."
       >
-        <CicloAlertList alertas={data.alertas} canWrite={canWrite} />
+        <CicloAlertList alertas={data.alertas} canWrite={canWrite} filters={buildCicloListFilters(params)} />
       </CicloSection>
     </CicloShell>
   )

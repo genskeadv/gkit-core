@@ -72,6 +72,8 @@ export type CicloListRow = {
   status: string
   value: string
   meta: string
+  category?: string
+  date?: string
   detailHref?: string
   tone?: 'primary' | 'success' | 'warning' | 'danger'
 }

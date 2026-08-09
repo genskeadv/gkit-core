@@ -1,7 +1,12 @@
-import { CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
+import { buildCicloListFilters, CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloRegularidadeRows, requireCicloContext } from '@/features/ciclo/queries'
 
-export default async function CicloRegularidadePage() {
+export default async function CicloRegularidadePage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
   const context = await requireCicloContext()
   const rows = await listCicloRegularidadeRows(context)
 
@@ -30,6 +35,7 @@ export default async function CicloRegularidadePage() {
           description="Percentual de regularidade e indicadores de risco."
           detailHrefBase="/modulos/gkit-ciclo/clientes"
           emptyLabel="Nenhum cliente encontrado para regularidade."
+          filters={buildCicloListFilters(params)}
           rows={rows}
         />
       </CicloSection>

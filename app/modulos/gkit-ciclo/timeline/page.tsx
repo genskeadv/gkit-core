@@ -1,7 +1,12 @@
-import { CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
+import { buildCicloListFilters, CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloTimelineRows, requireCicloContext } from '@/features/ciclo/queries'
 
-export default async function CicloTimelinePage() {
+export default async function CicloTimelinePage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
   const context = await requireCicloContext()
   const rows = await listCicloTimelineRows(context)
 
@@ -29,6 +34,7 @@ export default async function CicloTimelinePage() {
           title="Eventos recentes"
           description="Timeline operacional registrada no Ciclo."
           emptyLabel="Nenhum evento encontrado."
+          filters={buildCicloListFilters(params)}
           rows={rows}
         />
       </CicloSection>

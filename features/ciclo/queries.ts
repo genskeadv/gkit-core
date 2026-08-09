@@ -539,6 +539,7 @@ export async function listCicloAdministradoraRows(): Promise<CicloListRow[]> {
       status,
       value: text(row.site, 'Sem site'),
       meta: `${(countMap.get(text(row.id)) ?? 0).toLocaleString('pt-BR')} cliente(s)`,
+      category: 'Administradora',
       tone: listTone(status),
     }
   })
@@ -569,6 +570,8 @@ export async function listCicloImportacaoRows(context: CicloContext): Promise<Ci
       status,
       value: `${numberValue(row.total_linhas ?? row.linhas_processadas).toLocaleString('pt-BR')} linhas`,
       meta: dateLabel(row.finalizado_em ?? row.created_at),
+      category: text(row.tipo, 'importacao'),
+      date: text(row.finalizado_em ?? row.created_at).slice(0, 10),
       tone: listTone(status),
     }
   })
@@ -585,6 +588,8 @@ export async function listCicloContratoRows(context: CicloContext): Promise<Cicl
       status,
       value: formatBRL(numberValue(row.valor)),
       meta: `Reajuste: ${dateLabel(row.proximo_reajuste)}`,
+      category: text(row.indice_reajuste, 'Contrato'),
+      date: text(row.data_fim ?? row.proximo_reajuste).slice(0, 10),
       tone: listTone(status),
     }
   })
@@ -601,6 +606,8 @@ export async function listCicloAtaRows(context: CicloContext): Promise<CicloList
       status,
       value: dateLabel(row.data_ata),
       meta: `Validade: ${dateLabel(row.data_validade)}`,
+      category: text(row.tipo, 'Ata'),
+      date: text(row.data_validade ?? row.data_ata).slice(0, 10),
       tone: listTone(status),
     }
   })
@@ -641,6 +648,7 @@ export async function listCicloOnboardingRows(): Promise<CicloListRow[]> {
       status: cliente.status,
       value: `${percentual}%`,
       meta: `${cliente.carteira} - risco ${cliente.risco}`,
+      category: cliente.carteira,
       tone: listTone(cliente.status),
       }
     })
@@ -684,6 +692,7 @@ export async function listCicloRegularidadeRows(context: CicloContext): Promise<
       status,
       value: `${cliente.regularidade}%`,
       meta: `${cliente.carteira} · risco ${cliente.risco}`,
+      category: cliente.carteira,
       tone: listTone(status),
     }
   })
@@ -698,6 +707,8 @@ export async function listCicloTimelineRows(context: CicloContext): Promise<Cicl
     status: row.tipo,
     value: dateLabel(row.createdAt),
     meta: row.cliente,
+    category: row.tipo,
+    date: text(row.createdAt).slice(0, 10),
     tone: 'primary',
   }))
 }
@@ -714,6 +725,8 @@ export async function listCicloOcorrenciaRows(context: CicloContext): Promise<Ci
       status: text(metadata.status, tipo),
       value: dateLabel(row.data_ocorrencia ?? row.created_at),
       meta: `${text(metadata.responsavel, 'Sem responsável')} - impacto ${text(row.impacto, 'medio')}`,
+      category: tipo,
+      date: text(row.data_ocorrencia ?? row.created_at).slice(0, 10),
       tone: listTone(text(row.impacto, tipo)),
     }
   })
@@ -730,6 +743,8 @@ export async function listCicloAlertaRows(context: CicloContext): Promise<CicloL
       status,
       value: dateLabel(row.vencimento_em ?? row.created_at),
       meta: `Severidade ${text(row.severidade, 'media')}`,
+      category: text(row.tipo, 'alerta'),
+      date: text(row.vencimento_em ?? row.created_at).slice(0, 10),
       tone: listTone(status === 'aberto' ? text(row.severidade, status) : status),
     }
   })

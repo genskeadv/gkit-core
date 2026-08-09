@@ -1,9 +1,14 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
+import { buildCicloListFilters, CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloContratoRows, requireCicloContext } from '@/features/ciclo/queries'
 
-export default async function CicloContratosPage() {
+export default async function CicloContratosPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
   const context = await requireCicloContext()
   const rows = await listCicloContratoRows(context)
   const canWrite = canAccess(context.permissions, 'ciclo.clientes.write')
@@ -34,6 +39,7 @@ export default async function CicloContratosPage() {
           description="Contratos cadastrados no schema Ciclo."
           detailHrefBase={canWrite ? '/modulos/gkit-ciclo/contratos' : undefined}
           emptyLabel="Nenhum contrato encontrado."
+          filters={buildCicloListFilters(params)}
           rows={rows}
         />
       </CicloSection>

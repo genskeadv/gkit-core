@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
 import { moduleTarget } from '@/lib/auth/platform'
-import { CicloGenericList, CicloSection, CicloShell } from '@/features/ciclo/components'
+import { buildCicloListFilters, CicloGenericList, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { ImportarAtendimentosAstreaForm } from '@/features/ciclo/importar-atendimentos-form'
 import { ImportarClientesForm } from '@/features/ciclo/importar-clientes-form'
 import { listCicloImportacaoRows, requireCicloContext } from '@/features/ciclo/queries'
@@ -15,10 +15,10 @@ function activeTab(value?: string): ImportacaoTab {
 export default async function CicloImportacoesPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ tipo?: string }>
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
   const params = await searchParams
-  const tab = activeTab(params?.tipo)
+  const tab = activeTab(Array.isArray(params?.tipo) ? params?.tipo[0] : params?.tipo)
   const context = await requireCicloContext(moduleTarget('/modulos/gkit-ciclo/importacoes', params))
   const rows = await listCicloImportacaoRows(context)
   const canWrite = canAccess(context.permissions, 'ciclo.clientes.write')
@@ -69,6 +69,8 @@ export default async function CicloImportacoesPage({
           description="Arquivos processados para clientes e atendimentos."
           detailHrefBase="/modulos/gkit-ciclo/importacoes"
           emptyLabel="Nenhuma importação encontrada."
+          filters={buildCicloListFilters(params)}
+          hiddenInputs={{ tipo: tab }}
           rows={rows}
         />
       </CicloSection>

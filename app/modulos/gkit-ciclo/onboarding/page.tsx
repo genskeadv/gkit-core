@@ -1,8 +1,13 @@
 import Link from 'next/link'
-import { CicloOnboardingOverview, CicloSection, CicloShell } from '@/features/ciclo/components'
+import { buildCicloListFilters, CicloOnboardingOverview, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloOnboardingRows, requireCicloContext } from '@/features/ciclo/queries'
 
-export default async function CicloOnboardingPage() {
+export default async function CicloOnboardingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
   const context = await requireCicloContext()
   const rows = await listCicloOnboardingRows()
 
@@ -20,7 +25,7 @@ export default async function CicloOnboardingPage() {
         title="Implantacoes"
         description="Status dos clientes em onboarding e pontos que exigem acompanhamento."
       >
-        <CicloOnboardingOverview rows={rows} />
+        <CicloOnboardingOverview filters={buildCicloListFilters(params)} rows={rows} />
       </CicloSection>
     </CicloShell>
   )

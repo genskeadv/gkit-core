@@ -1,9 +1,14 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
+import { buildCicloListFilters, CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloAtaRows, requireCicloContext } from '@/features/ciclo/queries'
 
-export default async function CicloAtasPage() {
+export default async function CicloAtasPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
   const context = await requireCicloContext()
   const rows = await listCicloAtaRows(context)
   const canWrite = canAccess(context.permissions, 'ciclo.clientes.write')
@@ -34,6 +39,7 @@ export default async function CicloAtasPage() {
           description="Atas cadastradas no schema Ciclo."
           detailHrefBase={canWrite ? '/modulos/gkit-ciclo/atas' : undefined}
           emptyLabel="Nenhuma ata encontrada."
+          filters={buildCicloListFilters(params)}
           rows={rows}
         />
       </CicloSection>

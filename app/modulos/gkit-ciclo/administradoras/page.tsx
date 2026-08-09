@@ -1,9 +1,14 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
+import { buildCicloListFilters, CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloAdministradoraRows, requireCicloContext } from '@/features/ciclo/queries'
 
-export default async function CicloAdministradorasPage() {
+export default async function CicloAdministradorasPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
   const context = await requireCicloContext()
   const rows = await listCicloAdministradoraRows()
   const canWrite = canAccess(context.permissions, 'ciclo.clientes.write')
@@ -34,6 +39,7 @@ export default async function CicloAdministradorasPage() {
           description="Administradoras disponíveis no schema Ciclo."
           detailHrefBase="/modulos/gkit-ciclo/administradoras"
           emptyLabel="Nenhuma administradora encontrada."
+          filters={buildCicloListFilters(params)}
           rows={rows}
         />
       </CicloSection>

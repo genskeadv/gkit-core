@@ -330,18 +330,91 @@ export function CicloDocumentSignal({ documentos }: { documentos: CicloDocumento
   )
 }
 
-export function CicloAlertList({ alertas, canWrite = false }: { alertas: CicloAlerta[]; canWrite?: boolean }) {
-  const rows = alertas.filter((alerta) => alerta.status !== 'resolvido' && alerta.status !== 'cancelado').slice(0, 8)
+function filterCicloAlertas(alertas: CicloAlerta[], filters: CicloListFilters) {
+  const search = normalizeListSearch(filters.q)
+  const hasDateFilter = Boolean(filters.de || filters.ate)
+
+  return alertas.filter((alerta) => {
+    if (filters.status && alerta.status !== filters.status) return false
+    if (filters.categoria && alerta.tipo !== filters.categoria) return false
+
+    if (search) {
+      const haystack = normalizeListSearch([
+        alerta.titulo,
+        alerta.cliente,
+        alerta.descricao,
+        alerta.tipo,
+        alerta.status,
+        alerta.severidade,
+      ].join(' '))
+      if (!haystack.includes(search)) return false
+    }
+
+    if (hasDateFilter) {
+      const date = listDateKey(alerta.vencimentoEm)
+      if (!date) return false
+      if (filters.de && date < filters.de) return false
+      if (filters.ate && date > filters.ate) return false
+    }
+
+    return true
+  })
+}
+
+export function CicloAlertList({
+  alertas,
+  canWrite = false,
+  filters = buildCicloListFilters(),
+}: {
+  alertas: CicloAlerta[]
+  canWrite?: boolean
+  filters?: CicloListFilters
+}) {
+  const rows = filterCicloAlertas(alertas, filters)
+  const statusOptions = uniqueListOptions(alertas.map((alerta) => alerta.status))
+  const categoryOptions = uniqueListOptions(alertas.map((alerta) => alerta.tipo))
+  const hasFilters = Boolean(filters.q || filters.status || filters.categoria || filters.de || filters.ate)
 
   return (
     <section className="card ciclo-panel">
       <div className="ciclo-panel-heading">
         <div>
           <h2>Alertas recentes</h2>
-          <p>Fila de risco operacional, documentação e acompanhamento.</p>
+          <p>{rows.length} de {alertas.length} alertas</p>
         </div>
         <Link className="button secondary" href="/modulos/gkit-ciclo/alertas">Ver alertas</Link>
       </div>
+
+      <form className="ciclo-list-filter-bar" method="get">
+        <label className="ciclo-list-search">
+          <span>Busca</span>
+          <input className="input" name="q" placeholder="Cliente, alerta, descricao..." defaultValue={filters.q} />
+        </label>
+        <label>
+          <span>Status</span>
+          <select className="select" name="status" defaultValue={filters.status}>
+            <option value="">Todos</option>
+            {statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Tipo</span>
+          <select className="select" name="categoria" defaultValue={filters.categoria}>
+            <option value="">Todos</option>
+            {categoryOptions.map((category) => <option key={category} value={category}>{category}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Vencimento de</span>
+          <input className="input" name="de" type="date" defaultValue={filters.de} />
+        </label>
+        <label>
+          <span>Vencimento ate</span>
+          <input className="input" name="ate" type="date" defaultValue={filters.ate} />
+        </label>
+        <button className="button secondary" type="submit">Filtrar</button>
+        {hasFilters ? <Link className="button secondary" href="?">Limpar</Link> : null}
+      </form>
 
       {rows.length ? (
         <div className="ciclo-alert-list">
@@ -512,13 +585,23 @@ function workflowTone(status: CicloOnboardingDetail['atividades'][number]['statu
   return 'danger'
 }
 
-export function CicloOnboardingOverview({ rows }: { rows: CicloListRow[] }) {
-  const novos = rows.filter((row) => row.status === 'novo').length
-  const implantacao = rows.filter((row) => row.status === 'implantacao').length
-  const concluidos = rows.filter((row) => onboardingPercent(row.value) >= 100).length
-  const semChecklist = rows.filter((row) => onboardingPercent(row.value) === 0).length
-  const progressoMedio = rows.length
-    ? Math.round(rows.reduce((total, row) => total + onboardingPercent(row.value), 0) / rows.length)
+export function CicloOnboardingOverview({
+  filters = buildCicloListFilters(),
+  rows,
+}: {
+  filters?: CicloListFilters
+  rows: CicloListRow[]
+}) {
+  const filteredRows = filterCicloListRows(rows, filters)
+  const statusOptions = uniqueListOptions(rows.map((row) => row.status))
+  const categoryOptions = uniqueListOptions(rows.map((row) => row.category ?? ''))
+  const hasFilters = Boolean(filters.q || filters.status || filters.categoria || filters.de || filters.ate)
+  const novos = filteredRows.filter((row) => row.status === 'novo').length
+  const implantacao = filteredRows.filter((row) => row.status === 'implantacao').length
+  const concluidos = filteredRows.filter((row) => onboardingPercent(row.value) >= 100).length
+  const semChecklist = filteredRows.filter((row) => onboardingPercent(row.value) === 0).length
+  const progressoMedio = filteredRows.length
+    ? Math.round(filteredRows.reduce((total, row) => total + onboardingPercent(row.value), 0) / filteredRows.length)
     : 0
 
   return (
@@ -526,7 +609,7 @@ export function CicloOnboardingOverview({ rows }: { rows: CicloListRow[] }) {
       <section className="ciclo-atendimento-kpis ciclo-onboarding-kpis">
         <article>
           <span>Total</span>
-          <strong>{rows.length}</strong>
+          <strong>{filteredRows.length}</strong>
           <small>clientes na fila</small>
         </article>
         <article>
@@ -557,7 +640,31 @@ export function CicloOnboardingOverview({ rows }: { rows: CicloListRow[] }) {
       </section>
 
       <section className="ciclo-clientes-surface">
-        {rows.length ? (
+        <form className="ciclo-list-filter-bar" method="get">
+          <label className="ciclo-list-search">
+            <span>Busca</span>
+            <input className="input" name="q" placeholder="Cliente, carteira, documento..." defaultValue={filters.q} />
+          </label>
+          <label>
+            <span>Status</span>
+            <select className="select" name="status" defaultValue={filters.status}>
+              <option value="">Todos</option>
+              {statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Carteira</span>
+            <select className="select" name="categoria" defaultValue={filters.categoria}>
+              <option value="">Todas</option>
+              {categoryOptions.map((category) => <option key={category} value={category}>{category}</option>)}
+            </select>
+          </label>
+          <button className="button secondary" type="submit">Filtrar</button>
+          {hasFilters ? <Link className="button secondary" href="?">Limpar</Link> : null}
+          <span className="ciclo-list-count">{filteredRows.length} de {rows.length}</span>
+        </form>
+
+        {filteredRows.length ? (
           <div className="ciclo-table-list ciclo-onboarding-list">
             <div className="ciclo-onboarding-head">
               <span>Cliente</span>
@@ -566,7 +673,7 @@ export function CicloOnboardingOverview({ rows }: { rows: CicloListRow[] }) {
               <span>Carteira</span>
               <span>Ações</span>
             </div>
-            {rows.map((row) => {
+            {filteredRows.map((row) => {
               const progress = onboardingPercent(row.value)
               const meta = onboardingMeta(row.meta)
               return (
@@ -1954,31 +2061,155 @@ export function CicloListKpis({
   )
 }
 
+export type CicloListFilters = {
+  ate: string
+  categoria: string
+  de: string
+  q: string
+  status: string
+}
+
+function singleFilterParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? '' : value ?? ''
+}
+
+function dateFilterParam(value: string | string[] | undefined) {
+  const date = singleFilterParam(value)
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : ''
+}
+
+export function buildCicloListFilters(params?: Record<string, string | string[] | undefined>): CicloListFilters {
+  return {
+    ate: dateFilterParam(params?.ate),
+    categoria: singleFilterParam(params?.categoria),
+    de: dateFilterParam(params?.de),
+    q: singleFilterParam(params?.q).trim(),
+    status: singleFilterParam(params?.status),
+  }
+}
+
+function normalizeListSearch(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+function listDateKey(value?: string) {
+  return value && /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : ''
+}
+
+function filterCicloListRows(rows: CicloListRow[], filters: CicloListFilters) {
+  const search = normalizeListSearch(filters.q)
+  const hasDateFilter = Boolean(filters.de || filters.ate)
+
+  return rows.filter((row) => {
+    if (filters.status && row.status !== filters.status) return false
+    if (filters.categoria && row.category !== filters.categoria) return false
+
+    if (search) {
+      const haystack = normalizeListSearch([
+        row.title,
+        row.subtitle,
+        row.status,
+        row.value,
+        row.meta,
+        row.category ?? '',
+      ].join(' '))
+      if (!haystack.includes(search)) return false
+    }
+
+    if (hasDateFilter) {
+      const date = listDateKey(row.date)
+      if (!date) return false
+      if (filters.de && date < filters.de) return false
+      if (filters.ate && date > filters.ate) return false
+    }
+
+    return true
+  })
+}
+
+function uniqueListOptions(values: string[]) {
+  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b))
+}
+
 export function CicloGenericList({
   description,
   detailHrefBase,
   emptyLabel,
+  filters = buildCicloListFilters(),
+  hiddenInputs,
   rows,
   title,
 }: {
   description: string
   detailHrefBase?: string
   emptyLabel: string
+  filters?: CicloListFilters
+  hiddenInputs?: Record<string, string>
   rows: CicloListRow[]
   title: string
 }) {
+  const filteredRows = filterCicloListRows(rows, filters)
+  const statusOptions = uniqueListOptions(rows.map((row) => row.status))
+  const categoryOptions = uniqueListOptions(rows.map((row) => row.category ?? ''))
+  const hasDates = rows.some((row) => listDateKey(row.date))
+  const hasFilters = Boolean(filters.q || filters.status || filters.categoria || filters.de || filters.ate)
+
   return (
     <section className="card ciclo-panel">
       <div className="ciclo-panel-heading">
         <div>
           <h2>{title}</h2>
-          <p>{description}</p>
+          <p>{description} {rows.length ? `(${filteredRows.length} de ${rows.length})` : ''}</p>
         </div>
       </div>
 
-      {rows.length ? (
+      <form className="ciclo-list-filter-bar" method="get">
+        {hiddenInputs ? Object.entries(hiddenInputs).map(([name, value]) => (
+          <input key={name} name={name} type="hidden" value={value} />
+        )) : null}
+        <label className="ciclo-list-search">
+          <span>Busca</span>
+          <input className="input" name="q" placeholder="Cliente, descricao, carteira..." defaultValue={filters.q} />
+        </label>
+        <label>
+          <span>Status</span>
+          <select className="select" name="status" defaultValue={filters.status}>
+            <option value="">Todos</option>
+            {statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}
+          </select>
+        </label>
+        {categoryOptions.length ? (
+          <label>
+            <span>Categoria</span>
+            <select className="select" name="categoria" defaultValue={filters.categoria}>
+              <option value="">Todas</option>
+              {categoryOptions.map((category) => <option key={category} value={category}>{category}</option>)}
+            </select>
+          </label>
+        ) : null}
+        {hasDates ? (
+          <>
+            <label>
+              <span>Data de</span>
+              <input className="input" name="de" type="date" defaultValue={filters.de} />
+            </label>
+            <label>
+              <span>Data ate</span>
+              <input className="input" name="ate" type="date" defaultValue={filters.ate} />
+            </label>
+          </>
+        ) : null}
+        <button className="button secondary" type="submit">Filtrar</button>
+        {hasFilters ? <Link className="button secondary" href="?">Limpar</Link> : null}
+      </form>
+
+      {filteredRows.length ? (
         <div className="ciclo-table-list">
-          {rows.map((row) => (
+          {filteredRows.map((row) => (
             <article key={row.id}>
               <div>
                 <h3>{row.title}</h3>
@@ -1994,7 +2225,7 @@ export function CicloGenericList({
           ))}
         </div>
       ) : (
-        <EmptyBlock label={emptyLabel} />
+        <EmptyBlock label={hasFilters ? 'Nenhum registro encontrado com os filtros atuais.' : emptyLabel} />
       )}
     </section>
   )

@@ -1,9 +1,14 @@
 import Link from 'next/link'
 import { canAccess } from '@/lib/auth/permissions'
-import { CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
+import { buildCicloListFilters, CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloOcorrenciaRows, requireCicloContext } from '@/features/ciclo/queries'
 
-export default async function CicloOcorrenciasPage() {
+export default async function CicloOcorrenciasPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
   const context = await requireCicloContext()
   const rows = await listCicloOcorrenciaRows(context)
   const canWrite = canAccess(context.permissions, 'ciclo.alertas.write')
@@ -34,6 +39,7 @@ export default async function CicloOcorrenciasPage() {
           description="Ocorrências cadastradas no schema Ciclo."
           detailHrefBase={canWrite ? '/modulos/gkit-ciclo/ocorrencias' : undefined}
           emptyLabel="Nenhuma ocorrência encontrada."
+          filters={buildCicloListFilters(params)}
           rows={rows}
         />
       </CicloSection>
