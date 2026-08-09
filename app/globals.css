@@ -22693,6 +22693,70 @@ a.button {
   overflow-wrap: anywhere;
 }
 
+.gkit-ate-task-form {
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  display: grid;
+  gap: 10px;
+  margin-top: 2px;
+  padding-top: 12px;
+}
+
+.gkit-ate-task-form-heading {
+  display: grid;
+  gap: 3px;
+}
+
+.gkit-ate-task-form-heading span,
+.gkit-ate-task-form label span {
+  color: var(--gkit-ate-muted);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+.gkit-ate-task-form-heading p {
+  color: var(--gkit-ate-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.gkit-ate-task-form label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.gkit-ate-task-form input {
+  background: #fff !important;
+  border: 1px solid var(--gkit-ate-line-strong) !important;
+  min-height: 36px !important;
+  padding: 8px 10px !important;
+  width: 100% !important;
+}
+
+.gkit-ate-task-form input:focus {
+  border-color: var(--suite-module-accent) !important;
+  box-shadow: 0 0 0 3px var(--suite-module-accent-soft) !important;
+  outline: none;
+}
+
+.gkit-ate-task-fields {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(150px, 0.7fr);
+}
+
+.gkit-ate-task-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.gkit-ate-task-actions .button {
+  min-width: 138px;
+}
+
 .gkit-ate-filter-bar {
   background: rgba(249, 250, 252, 0.82);
   border: 1px solid var(--gkit-ate-line);
@@ -22896,6 +22960,10 @@ a.button {
 
   .gkit-ate-detail-actions {
     justify-content: flex-start;
+  }
+
+  .gkit-ate-task-fields {
+    grid-template-columns: 1fr;
   }
 }
 

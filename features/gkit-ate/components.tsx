@@ -359,25 +359,31 @@ export function GkitAteAtendimentoDetailView({
         />
 
         {canWrite ? (
-          <form action={action} className="module-form-grid">
+          <form action={action} className="gkit-ate-task-form">
             <input type="hidden" name="atendimento_id" value={atendimento.id} />
-            <label className="module-form-wide">
+            <div className="gkit-ate-task-form-heading">
+              <span>Nova tarefa</span>
+              <p>Inclua a próxima ação operacional vinculada a este atendimento.</p>
+            </div>
+            <label className="gkit-ate-task-description">
               <span>Descrição</span>
-              <input name="descricao" required />
+              <input name="descricao" placeholder="Ex.: Revisar minuta enviada pelo cliente" required />
             </label>
-            <label>
-              <span>Tipo de tarefa</span>
-              <input name="tipo_tarefa" placeholder="Ex.: Analisar contrato" />
-            </label>
-            <label>
-              <span>Responsável</span>
-              <input name="responsavel" defaultValue={atendimento.responsavel ?? ''} />
-            </label>
-            <label>
-              <span>Data prevista</span>
-              <input name="data_prevista" type="date" />
-            </label>
-            <div className="form-actions module-form-wide">
+            <div className="gkit-ate-task-fields">
+              <label>
+                <span>Tipo de tarefa</span>
+                <input name="tipo_tarefa" placeholder="Ex.: Analisar contrato" />
+              </label>
+              <label>
+                <span>Responsável</span>
+                <input name="responsavel" defaultValue={atendimento.responsavel ?? ''} />
+              </label>
+              <label>
+                <span>Data prevista</span>
+                <input name="data_prevista" type="date" />
+              </label>
+            </div>
+            <div className="gkit-ate-task-actions">
               <button className="button" type="submit">Adicionar tarefa</button>
             </div>
           </form>
