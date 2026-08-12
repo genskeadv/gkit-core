@@ -3,12 +3,15 @@
 import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { canAccess } from '@/lib/auth/permissions'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { getGkitFlexProfileByEmail, requireColabContext } from '@/features/colab/queries'
+import { getGkitFlexProfileByEmail, requireColabContext, requireUberContext } from '@/features/colab/queries'
 
 const RECEIPT_BUCKET = 'colab-uber-recibos'
 const MAX_RECEIPT_SIZE = 10 * 1024 * 1024
 const ALLOWED_RECEIPT_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp'])
+
+type UberContext = Awaited<ReturnType<typeof requireColabContext>>
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -44,8 +47,8 @@ function safeFileName(value: string) {
   return base || 'recibo-uber'
 }
 
-function fail(message: string): never {
-  redirect(`/modulos/colab/uber?erro=${encodeURIComponent(message)}`)
+function fail(message: string, targetPath: string): never {
+  redirect(`${targetPath}?erro=${encodeURIComponent(message)}`)
 }
 
 async function logUberEvent(
@@ -55,10 +58,11 @@ async function logUberEvent(
     competencia?: string | null
     entidadeId?: string | null
     detalhe?: Record<string, unknown>
+    modulo?: string
   },
 ) {
   const { error } = await supabase.from('gkit_eventos').insert({
-    modulo: 'colab',
+    modulo: params.modulo || 'colab',
     competencia: params.competencia || null,
     action: params.action,
     entidade_tipo: 'colab_uber_despesa',
@@ -67,14 +71,29 @@ async function logUberEvent(
   })
 
   if (error) {
-    console.warn('[colab_uber] falha ao registrar auditoria:', error.message)
+    console.warn('[uber] falha ao registrar auditoria:', error.message)
   }
 }
 
-export async function createColabUberExpenseAction(formData: FormData) {
-  const context = await requireColabContext()
+async function createUberExpense(
+  formData: FormData,
+  options: {
+    context: UberContext
+    eventModule: 'colab' | 'uber'
+    permission: string
+    targetPath: string
+  },
+) {
+  const { context, eventModule, permission, targetPath } = options
+
+  if (!canAccess(context.permissions, permission)) {
+    fail('Usuario sem permissao para lancar despesas Uber.', targetPath)
+  }
+
   const profileResult = await getGkitFlexProfileByEmail(context.usuario.email)
-  if (profileResult.error || !profileResult.data) fail('Cadastro de colaborador não localizado no GKIT Flex.')
+  if (profileResult.error || !profileResult.data) {
+    fail('Cadastro de colaborador nao localizado no GKIT Flex.', targetPath)
+  }
 
   const clienteId = text(formData, 'cliente_id')
   const descricao = text(formData, 'descricao')
@@ -82,12 +101,12 @@ export async function createColabUberExpenseAction(formData: FormData) {
   const valor = money(formData, 'valor')
   const receipt = formData.get('recibo')
 
-  if (!clienteId) fail('Selecione o cliente do Ciclo.')
-  if (!descricao) fail('Informe a descrição da corrida.')
-  if (valor <= 0) fail('Informe um valor maior que zero.')
-  if (!(receipt instanceof File) || !receipt.size) fail('Anexe o recibo da Uber.')
-  if (receipt.size > MAX_RECEIPT_SIZE) fail('O recibo deve ter até 10 MB.')
-  if (receipt.type && !ALLOWED_RECEIPT_TYPES.has(receipt.type)) fail('Use recibo em PDF, JPG, PNG ou WEBP.')
+  if (!clienteId) fail('Selecione o cliente do Ciclo.', targetPath)
+  if (!descricao) fail('Informe a descricao da corrida.', targetPath)
+  if (valor <= 0) fail('Informe um valor maior que zero.', targetPath)
+  if (!(receipt instanceof File) || !receipt.size) fail('Anexe o recibo da Uber.', targetPath)
+  if (receipt.size > MAX_RECEIPT_SIZE) fail('O recibo deve ter ate 10 MB.', targetPath)
+  if (receipt.type && !ALLOWED_RECEIPT_TYPES.has(receipt.type)) fail('Use recibo em PDF, JPG, PNG ou WEBP.', targetPath)
 
   const supabase = admin()
   const { data: cliente, error: clienteError } = await supabase
@@ -97,7 +116,7 @@ export async function createColabUberExpenseAction(formData: FormData) {
     .eq('id', clienteId)
     .single()
 
-  if (clienteError || !cliente || cliente.ativo === false) fail('Cliente do Ciclo não localizado ou inativo.')
+  if (clienteError || !cliente || cliente.ativo === false) fail('Cliente do Ciclo nao localizado ou inativo.', targetPath)
 
   const competencia = competenciaFromDate(dataDespesa)
   const { data: duplicate, error: duplicateError } = await supabase
@@ -111,12 +130,13 @@ export async function createColabUberExpenseAction(formData: FormData) {
     .limit(1)
     .maybeSingle()
 
-  if (duplicateError) fail(`Não foi possível validar duplicidade: ${duplicateError.message}`)
+  if (duplicateError) fail(`Nao foi possivel validar duplicidade: ${duplicateError.message}`, targetPath)
   if (duplicate) {
     await logUberEvent(supabase, {
       action: 'bloquear_despesa_uber_duplicada',
       competencia,
       entidadeId: String(duplicate.id || ''),
+      modulo: eventModule,
       detalhe: {
         cliente_id: cliente.id,
         cliente: cliente.nome,
@@ -125,7 +145,7 @@ export async function createColabUberExpenseAction(formData: FormData) {
         status_existente: duplicate.status,
       },
     })
-    fail('Já existe um lançamento de Uber com o mesmo cliente, data e valor.')
+    fail('Ja existe um lancamento de Uber com o mesmo cliente, data e valor.', targetPath)
   }
 
   const profile = profileResult.data as Record<string, unknown>
@@ -142,6 +162,7 @@ export async function createColabUberExpenseAction(formData: FormData) {
     await logUberEvent(supabase, {
       action: 'falha_upload_recibo_uber',
       competencia,
+      modulo: eventModule,
       detalhe: {
         cliente_id: cliente.id,
         cliente: cliente.nome,
@@ -151,7 +172,7 @@ export async function createColabUberExpenseAction(formData: FormData) {
         erro: upload.error.message,
       },
     })
-    fail(`Não foi possível anexar o recibo: ${upload.error.message}`)
+    fail(`Nao foi possivel anexar o recibo: ${upload.error.message}`, targetPath)
   }
 
   const { error: insertError } = await supabase.from('colab_uber_despesas').insert({
@@ -176,6 +197,7 @@ export async function createColabUberExpenseAction(formData: FormData) {
     await logUberEvent(supabase, {
       action: 'falha_gravar_despesa_uber',
       competencia,
+      modulo: eventModule,
       detalhe: {
         cliente_id: cliente.id,
         cliente: cliente.nome,
@@ -185,16 +207,36 @@ export async function createColabUberExpenseAction(formData: FormData) {
         erro: insertError.message,
       },
     })
-    fail(`Não foi possível gravar a despesa: ${insertError.message}`)
+    fail(`Nao foi possivel gravar a despesa: ${insertError.message}`, targetPath)
   }
 
   await logUberEvent(supabase, {
     action: 'lancar_despesa_uber',
     competencia,
+    modulo: eventModule,
     detalhe: { cliente_id: cliente.id, cliente: cliente.nome, valor },
   })
 
   revalidatePath('/modulos/colab')
   revalidatePath('/modulos/colab/uber')
-  redirect('/modulos/colab/uber?ok=1')
+  revalidatePath('/modulos/uber')
+  redirect(`${targetPath}?ok=1`)
+}
+
+export async function createColabUberExpenseAction(formData: FormData) {
+  return createUberExpense(formData, {
+    context: await requireColabContext(),
+    eventModule: 'colab',
+    permission: 'colab.uber.write',
+    targetPath: '/modulos/colab/uber',
+  })
+}
+
+export async function createStandaloneUberExpenseAction(formData: FormData) {
+  return createUberExpense(formData, {
+    context: await requireUberContext(),
+    eventModule: 'uber',
+    permission: 'uber.write',
+    targetPath: '/modulos/uber',
+  })
 }

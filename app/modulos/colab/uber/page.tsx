@@ -1,6 +1,7 @@
 import { ColabShell, ColabUberExpenses } from '@/features/colab/components'
 import { createColabUberExpenseAction } from '@/features/colab/actions'
 import { getColabUberData, requireColabContext } from '@/features/colab/queries'
+import { canAccess } from '@/lib/auth/permissions'
 
 export default async function ColabUberPage({
   searchParams,
@@ -9,7 +10,7 @@ export default async function ColabUberPage({
 }) {
   const context = await requireColabContext()
   const [uberData, params] = await Promise.all([
-    getColabUberData(context.usuario.email),
+    getColabUberData(context.usuario.email, canAccess(context.permissions, 'colab.uber.write')),
     searchParams ?? Promise.resolve({} as { ok?: string; erro?: string }),
   ])
 

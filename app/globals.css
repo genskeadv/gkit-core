@@ -27634,6 +27634,10 @@ body:has(.gkit-flex-operational-shell) {
   flex: 0 0 auto !important;
 }
 
+.uber-mobile-dock {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
 @media (max-width: 980px) {
   .colab-home-hero {
     grid-template-columns: 1fr !important;
@@ -27731,6 +27735,10 @@ body:has(.gkit-flex-operational-shell) {
 
   .colab-mobile-dock {
     grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  }
+
+  .uber-mobile-dock {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
   .colab-mobile-dock a {

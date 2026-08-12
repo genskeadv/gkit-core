@@ -919,7 +919,11 @@ export function ColabUberExpenses({
             <h2>Lançar despesa</h2>
           </div>
         </div>
-        <ColabUberExpenseForm action={action} clients={data.clients} />
+        {data.canCreate ? (
+          <ColabUberExpenseForm action={action} clients={data.clients} />
+        ) : (
+          <div className="suite-empty-block warning">Seu acesso permite acompanhar despesas Uber, mas nao lancar novos recibos.</div>
+        )}
       </section>
 
       <section className="card suite-panel colab-list-panel">

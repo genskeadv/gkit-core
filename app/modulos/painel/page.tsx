@@ -14,6 +14,7 @@ const moduleArea: Record<string, string> = {
   'gkit-money': 'Financial Xperience',
   ciclo: 'Governanca',
   colab: 'Portal do colaborador',
+  uber: 'Reembolsos',
 }
 
 const shortcutGroups = [
@@ -132,6 +133,15 @@ const shortcutGroups = [
     ],
     pending: [],
   },
+  {
+    codigo: 'uber',
+    title: 'GKIT Uber',
+    description: 'Lancamento independente de corridas para reembolso.',
+    links: [
+      { href: '/modulos/uber', label: 'Lancar despesa' },
+    ],
+    pending: [],
+  },
 ]
 
 const executiveFlow = [
@@ -141,6 +151,7 @@ const executiveFlow = [
   { codigo: 'gkit-jur', title: 'Executar', description: 'GKIT Jur organiza processos, prazos e documentos jurídicos.' },
   { codigo: 'ciclo', title: 'Acompanhar', description: 'GKIT Ciclo assume onboarding e vida diária do cliente.' },
   { codigo: 'gkit-flex', title: 'Comissionar', description: 'GKIT Flex calcula comissões, contas a pagar e auditoria financeira.' },
+  { codigo: 'uber', title: 'Reembolsar', description: 'Uber registra despesas de corrida sem exigir acesso ao Colab.' },
   { codigo: 'colab', title: 'Publicar', description: 'Colab mostra pagamentos e comissões para cada colaborador.' },
 ]
 

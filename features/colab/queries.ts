@@ -224,6 +224,10 @@ export async function requireColabContext() {
   return requireModuleAccess('colab')
 }
 
+export async function requireUberContext() {
+  return requireModuleAccess('uber', '/modulos/uber')
+}
+
 export async function getGkitFlexProfileByEmail(normalizedEmail: string) {
   const usuarioResult = await admin()
     .schema('security')
@@ -391,7 +395,7 @@ export async function getColabData(userEmail: string): Promise<ColabData> {
   }
 }
 
-export async function getColabUberData(userEmail: string): Promise<ColabUberData> {
+export async function getColabUberData(userEmail: string, canCreate = true): Promise<ColabUberData> {
   const flexProfileResult = await getGkitFlexProfileByEmail(userEmail.trim())
 
   if (flexProfileResult.error || !flexProfileResult.data) {
@@ -425,6 +429,6 @@ export async function getColabUberData(userEmail: string): Promise<ColabUberData
     collaborator,
     clients,
     expenses,
-    canCreate: true,
+    canCreate,
   }
 }

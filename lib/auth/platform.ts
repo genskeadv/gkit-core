@@ -45,6 +45,7 @@ const MODULE_PATHS: Record<string, string> = {
   colab: '/modulos/colab',
   painel: '/modulos/painel',
   sind: '/modulos/sind',
+  uber: '/modulos/uber',
 }
 
 function admin() {

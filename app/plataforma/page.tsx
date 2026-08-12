@@ -49,6 +49,7 @@ const moduleArea: Record<string, string> = {
   colab: 'Portal do colaborador',
   painel: 'Entrada unificada',
   sind: 'Portal do sindico',
+  uber: 'Reembolsos',
 }
 
 const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'area'> & { href?: string }> = {
@@ -117,6 +118,12 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
     descricao: 'Portal individual de colaboradores, pagamentos, comissões, benefícios e reembolsos.',
     area: 'Portal do colaborador',
     href: '/modulos/colab',
+  },
+  uber: {
+    nome: 'GKIT Uber',
+    descricao: 'Lancamento e acompanhamento de corridas para reembolso, sem depender do Colab.',
+    area: 'Reembolsos',
+    href: '/modulos/uber',
   },
 }
 
