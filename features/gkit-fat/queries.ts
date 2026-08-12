@@ -137,7 +137,8 @@ export async function requireGkitFatContext(target = '/modulos/gkit-fat') {
   const hasAccess =
     canAccess(context.permissions, 'gkit_fat.dashboard.read') ||
     canAccess(context.permissions, 'gkit_fat.contratos.read') ||
-    canAccess(context.permissions, 'gkit_fat.faturas.read')
+    canAccess(context.permissions, 'gkit_fat.faturas.read') ||
+    canAccess(context.permissions, 'gkit_fat.uber.read')
 
   if (!hasAccess) redirect('/plataforma')
   return context

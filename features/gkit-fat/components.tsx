@@ -6,12 +6,13 @@ import type { PlatformUsuario } from '@/lib/auth/platform'
 import { statusLabel, tone } from '@/features/gkit-fat/queries'
 import type { GkitFatContrato, GkitFatDashboardData, GkitFatEmpresaEmissora, GkitFatFormData, GkitFatHealth, GkitFatOrdemServico, GkitFatOrdemServicoDetail } from '@/features/gkit-fat/types'
 
-type GkitFatTab = 'cockpit' | 'contratos' | 'faturas' | 'configuracoes'
+type GkitFatTab = 'cockpit' | 'contratos' | 'faturas' | 'uber' | 'configuracoes'
 
 const activeHref: Record<GkitFatTab, string> = {
   cockpit: '/modulos/gkit-fat',
   contratos: '/modulos/gkit-fat/contratos',
   faturas: '/modulos/gkit-fat/faturas',
+  uber: '/modulos/gkit-fat/uber',
   configuracoes: '/modulos/gkit-fat/configuracoes',
 }
 
@@ -19,6 +20,7 @@ const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-fat', title: 'Cockpit' },
   { href: '/modulos/gkit-fat/contratos', title: 'Contratos' },
   { href: '/modulos/gkit-fat/faturas', title: 'OS e Faturas' },
+  { href: '/modulos/gkit-fat/uber', title: 'Uber' },
   { href: '/modulos/gkit-fat/configuracoes', title: 'Configuracoes' },
 ]
 

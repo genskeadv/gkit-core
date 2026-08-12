@@ -70,7 +70,19 @@ function expenseNeedsAction(expense: UberDashboardExpense) {
   return !['reembolsado', 'rejeitado'].includes(expense.status)
 }
 
-export function UberPage({ initialData }: { initialData: UberDashboardData }) {
+export function UberPage({
+  apiBasePath = '/api/gkit-fat/uber',
+  auditHref = '/modulos/gkit-fat',
+  headerDescription = 'Importe o relatório de vouchers, acompanhe lançamentos do Colab e marque reembolsos.',
+  headerTitle = 'Conciliação Uber',
+  initialData,
+}: {
+  apiBasePath?: string
+  auditHref?: string
+  headerDescription?: string
+  headerTitle?: string
+  initialData: UberDashboardData
+}) {
   const [competencia, setCompetencia] = useState(monthFromCompetencia(initialData.competencia))
   const [file, setFile] = useState<File | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)
@@ -85,7 +97,7 @@ export function UberPage({ initialData }: { initialData: UberDashboardData }) {
     setError('')
 
     try {
-      const response = await fetch(`/api/gkit-flex/uber/importar?competencia=${encodeURIComponent(nextCompetencia)}`, { cache: 'no-store' })
+      const response = await fetch(`${apiBasePath}/importar?competencia=${encodeURIComponent(nextCompetencia)}`, { cache: 'no-store' })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error || 'Não foi possível carregar a conciliação Uber.')
       setData(payload)
@@ -114,7 +126,7 @@ export function UberPage({ initialData }: { initialData: UberDashboardData }) {
       formData.append('competencia', competenciaParam)
       formData.append('uberReport', file)
 
-      const response = await fetch('/api/gkit-flex/uber/importar', { method: 'POST', body: formData })
+      const response = await fetch(`${apiBasePath}/importar`, { method: 'POST', body: formData })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error || 'Não foi possível importar o relatório.')
 
@@ -132,7 +144,7 @@ export function UberPage({ initialData }: { initialData: UberDashboardData }) {
     setError('')
 
     try {
-      const response = await fetch(`/api/gkit-flex/uber/despesas/${expense.id}`, {
+      const response = await fetch(`${apiBasePath}/despesas/${expense.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -150,8 +162,8 @@ export function UberPage({ initialData }: { initialData: UberDashboardData }) {
   return (
     <main className="page-shell audit-page flex-uber-page">
       <MonthContextHeader
-        title="Conciliação Uber"
-        description="Importe o relatório de vouchers, acompanhe lançamentos do Colab e marque reembolsos."
+        title={headerTitle}
+        description={headerDescription}
         competencia={competencia}
         onCompetenciaChange={changeCompetencia}
         primaryStatus={{ label: 'Relatório', status: data.reports.length ? 'ok' : 'nao_aberto' }}
@@ -160,7 +172,7 @@ export function UberPage({ initialData }: { initialData: UberDashboardData }) {
         <button className="secondary-button" disabled={loading} onClick={() => loadDashboard()} type="button">
           {loading ? 'Atualizando...' : 'Atualizar'}
         </button>
-        <a className="secondary-button" href="/modulos/gkit-flex/auditoria">Auditoria</a>
+        {auditHref ? <a className="secondary-button" href={auditHref}>Auditoria</a> : null}
       </MonthContextHeader>
 
       {error ? <div className="error">{error}</div> : null}

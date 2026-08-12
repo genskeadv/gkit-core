@@ -9,13 +9,12 @@ import type { PlatformUsuario } from '@/lib/auth/platform';
 const FLEX_COMPETENCIA_STORAGE_KEY = 'gkit-flex:competencia';
 const FLEX_COMPETENCIA_EVENT = 'gkit-flex:competencia-change';
 
-const navItems = [
+const navItems: Array<{ href: string; label: string; permission?: string }> = [
   { href: '/modulos/gkit-flex', label: 'Cockpit' },
   { href: '/modulos/gkit-flex/previsoes', label: 'Previsões' },
   { href: '/modulos/gkit-flex/receitas', label: 'Receitas' },
   { href: '/modulos/gkit-flex/pagamentos', label: 'Pagamentos' },
   { href: '/modulos/gkit-flex/saneamento', label: 'Saneamento' },
-  { href: '/modulos/gkit-flex/uber', label: 'Uber', permission: 'gkit_flex.uber.read' },
   { href: '/modulos/gkit-flex/colaboradores', label: 'Colaboradores' },
   { href: '/modulos/gkit-flex/comissoes', label: 'Comiss\u00f5es' },
   { href: '/modulos/gkit-flex/cadastros', label: 'Cadastros' },
