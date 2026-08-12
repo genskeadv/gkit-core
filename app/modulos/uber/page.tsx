@@ -38,7 +38,7 @@ export default async function UberPage({
             <div>
               <p className="platform-kicker">GKIT Uber</p>
               <h1>Despesas de Uber</h1>
-              <p>Lancamento de corridas vinculadas a clientes do Ciclo, com recibo para pedido de reembolso.</p>
+              <p>Lancamento de corridas vinculadas a clientes do Ciclo, com recibo ou quilometragem para reembolso.</p>
             </div>
           </div>
           <nav className="suite-tabs" aria-label="Navegacao do GKIT Uber">

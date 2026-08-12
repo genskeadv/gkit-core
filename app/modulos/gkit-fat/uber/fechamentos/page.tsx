@@ -85,7 +85,16 @@ export default async function GkitFatUberFechamentosPage({
                     <strong>{expense.collaboratorName}</strong>
                     <span>{expense.collaboratorEmail || '-'}</span>
                   </td>
-                  <td>{expense.description}</td>
+                  <td>
+                    {expense.description}
+                    {expense.privateVehicle ? (
+                      <span>
+                        Veiculo proprio
+                        {expense.kilometers ? ` - ${expense.kilometers.toLocaleString('pt-BR')} km` : ''}
+                        {expense.costPerKm ? ` - ${formatMoney(expense.costPerKm)}/km` : ''}
+                      </span>
+                    ) : null}
+                  </td>
                   <td>{expense.receiptName}</td>
                   <td className="text-right">{formatMoney(expense.amount)}</td>
                 </tr>

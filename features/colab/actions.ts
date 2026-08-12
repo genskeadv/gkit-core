@@ -10,6 +10,7 @@ import { getGkitFlexProfileByEmail, requireColabContext, requireUberContext } fr
 const RECEIPT_BUCKET = 'colab-uber-recibos'
 const MAX_RECEIPT_SIZE = 10 * 1024 * 1024
 const ALLOWED_RECEIPT_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp'])
+const PRIVATE_VEHICLE_COST_PER_KM = 0.8
 
 type UberContext = Awaited<ReturnType<typeof requireColabContext>>
 
@@ -23,6 +24,13 @@ function text(formData: FormData, key: string) {
 
 function money(formData: FormData, key: string) {
   const raw = text(formData, key).replace(/R\$/gi, '').replace(/\s/g, '')
+  const normalized = raw.includes(',') ? raw.replace(/\./g, '').replace(',', '.') : raw
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0
+}
+
+function decimal(formData: FormData, key: string) {
+  const raw = text(formData, key).replace(/\s/g, '')
   const normalized = raw.includes(',') ? raw.replace(/\./g, '').replace(',', '.') : raw
   const parsed = Number(normalized)
   return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0
@@ -98,15 +106,22 @@ async function createUberExpense(
   const clienteId = text(formData, 'cliente_id')
   const descricao = text(formData, 'descricao')
   const dataDespesa = safeDate(text(formData, 'data_despesa'))
-  const valor = money(formData, 'valor')
+  const veiculoProprio = text(formData, 'veiculo_proprio') === 'on'
+  const quilometragem = veiculoProprio ? decimal(formData, 'quilometragem') : null
+  const valor = veiculoProprio
+    ? Math.round(Number(quilometragem || 0) * PRIVATE_VEHICLE_COST_PER_KM * 100) / 100
+    : money(formData, 'valor')
   const receipt = formData.get('recibo')
 
   if (!clienteId) fail('Selecione o cliente do Ciclo.', targetPath)
   if (!descricao) fail('Informe a descricao da corrida.', targetPath)
+  if (veiculoProprio && (!quilometragem || quilometragem <= 0)) fail('Informe a quilometragem do veiculo proprio.', targetPath)
   if (valor <= 0) fail('Informe um valor maior que zero.', targetPath)
-  if (!(receipt instanceof File) || !receipt.size) fail('Anexe o recibo da Uber.', targetPath)
-  if (receipt.size > MAX_RECEIPT_SIZE) fail('O recibo deve ter ate 10 MB.', targetPath)
-  if (receipt.type && !ALLOWED_RECEIPT_TYPES.has(receipt.type)) fail('Use recibo em PDF, JPG, PNG ou WEBP.', targetPath)
+  if (!veiculoProprio) {
+    if (!(receipt instanceof File) || !receipt.size) fail('Anexe o recibo da Uber.', targetPath)
+    if (receipt.size > MAX_RECEIPT_SIZE) fail('O recibo deve ter ate 10 MB.', targetPath)
+    if (receipt.type && !ALLOWED_RECEIPT_TYPES.has(receipt.type)) fail('Use recibo em PDF, JPG, PNG ou WEBP.', targetPath)
+  }
 
   const supabase = admin()
   const { data: cliente, error: clienteError } = await supabase
@@ -149,30 +164,40 @@ async function createUberExpense(
   }
 
   const profile = profileResult.data as Record<string, unknown>
-  const receiptName = safeFileName(receipt.name)
-  const receiptPath = `${context.usuario.id}/${randomUUID()}-${receiptName}`
-  const receiptBuffer = Buffer.from(await receipt.arrayBuffer())
+  let receiptName: string | null = null
+  let receiptPath: string | null = null
+  let receiptType: string | null = null
+  let receiptSize: number | null = null
 
-  const upload = await supabase.storage.from(RECEIPT_BUCKET).upload(receiptPath, receiptBuffer, {
-    contentType: receipt.type || 'application/octet-stream',
-    upsert: false,
-  })
+  if (!veiculoProprio && receipt instanceof File) {
+    const safeReceiptName = safeFileName(receipt.name)
+    receiptName = receipt.name || safeReceiptName
+    receiptPath = `${context.usuario.id}/${randomUUID()}-${safeReceiptName}`
+    receiptType = receipt.type || null
+    receiptSize = receipt.size
+    const receiptBuffer = Buffer.from(await receipt.arrayBuffer())
 
-  if (upload.error) {
-    await logUberEvent(supabase, {
-      action: 'falha_upload_recibo_uber',
-      competencia,
-      modulo: eventModule,
-      detalhe: {
-        cliente_id: cliente.id,
-        cliente: cliente.nome,
-        data_despesa: dataDespesa,
-        valor,
-        recibo_nome: receipt.name || receiptName,
-        erro: upload.error.message,
-      },
+    const upload = await supabase.storage.from(RECEIPT_BUCKET).upload(receiptPath, receiptBuffer, {
+      contentType: receipt.type || 'application/octet-stream',
+      upsert: false,
     })
-    fail(`Nao foi possivel anexar o recibo: ${upload.error.message}`, targetPath)
+
+    if (upload.error) {
+      await logUberEvent(supabase, {
+        action: 'falha_upload_recibo_uber',
+        competencia,
+        modulo: eventModule,
+        detalhe: {
+          cliente_id: cliente.id,
+          cliente: cliente.nome,
+          data_despesa: dataDespesa,
+          valor,
+          recibo_nome: receipt.name || receiptName,
+          erro: upload.error.message,
+        },
+      })
+      fail(`Nao foi possivel anexar o recibo: ${upload.error.message}`, targetPath)
+    }
   }
 
   const { error: insertError } = await supabase.from('colab_uber_despesas').insert({
@@ -184,16 +209,20 @@ async function createUberExpense(
     competencia,
     descricao,
     valor,
+    veiculo_proprio: veiculoProprio,
+    quilometragem,
+    custo_por_km: veiculoProprio ? PRIVATE_VEHICLE_COST_PER_KM : null,
     recibo_bucket: RECEIPT_BUCKET,
     recibo_path: receiptPath,
-    recibo_nome: receipt.name || receiptName,
-    recibo_tipo: receipt.type || null,
-    recibo_tamanho: receipt.size,
+    recibo_nome: receiptName,
+    recibo_tipo: receiptType,
+    recibo_tamanho: receiptSize,
+    status: veiculoProprio ? 'reembolso_solicitado' : 'lancado',
     created_by: context.authUser.id,
   })
 
   if (insertError) {
-    await supabase.storage.from(RECEIPT_BUCKET).remove([receiptPath])
+    if (receiptPath) await supabase.storage.from(RECEIPT_BUCKET).remove([receiptPath])
     await logUberEvent(supabase, {
       action: 'falha_gravar_despesa_uber',
       competencia,
@@ -204,6 +233,8 @@ async function createUberExpense(
         data_despesa: dataDespesa,
         valor,
         recibo_path: receiptPath,
+        veiculo_proprio: veiculoProprio,
+        quilometragem,
         erro: insertError.message,
       },
     })
@@ -214,7 +245,14 @@ async function createUberExpense(
     action: 'lancar_despesa_uber',
     competencia,
     modulo: eventModule,
-    detalhe: { cliente_id: cliente.id, cliente: cliente.nome, valor },
+    detalhe: {
+      cliente_id: cliente.id,
+      cliente: cliente.nome,
+      valor,
+      veiculo_proprio: veiculoProprio,
+      quilometragem,
+      custo_por_km: veiculoProprio ? PRIVATE_VEHICLE_COST_PER_KM : null,
+    },
   })
 
   revalidatePath('/modulos/colab')

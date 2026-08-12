@@ -78,6 +78,7 @@ const uberStatusFlow = [
 function uberStatusIndex(status: string) {
   if (status === 'rejeitado') return -1
   if (status === 'reembolsado') return 3
+  if (status === 'reembolso_solicitado') return 2
   if (status === 'conciliado') return 2
   if (['em_conferencia', 'em_processamento', 'pendente'].includes(status)) return 1
   return 0
@@ -85,6 +86,7 @@ function uberStatusIndex(status: string) {
 
 function uberStatusHint(status: string) {
   if (status === 'reembolsado') return 'Reembolso concluído.'
+  if (status === 'reembolso_solicitado') return 'Reembolso solicitado ao financeiro.'
   if (status === 'conciliado') return 'Corrida conciliada com o relatório Uber.'
   if (status === 'rejeitado') return 'Lançamento rejeitado na conferência.'
   if (['em_conferencia', 'em_processamento', 'pendente'].includes(status)) return 'Lançamento em conferência pelo financeiro.'
@@ -878,7 +880,7 @@ export function ColabUberExpenses({
       {success ? (
         <div className="suite-empty-block success">
           <strong>Despesa enviada</strong>
-          <span>O recibo foi anexado e o lançamento ficou disponível para conciliação.</span>
+          <span>O lancamento ficou disponivel para acompanhamento e reembolso.</span>
         </div>
       ) : null}
       {error ? (
@@ -942,6 +944,13 @@ export function ColabUberExpenses({
                 <div className="colab-list-main">
                   <h3>{expense.client}</h3>
                   <p>{expense.description}</p>
+                  {expense.privateVehicle ? (
+                    <small className="colab-uber-private-label">
+                      Veiculo proprio
+                      {expense.kilometers ? ` - ${expense.kilometers.toLocaleString('pt-BR')} km` : ''}
+                      {expense.costPerKm ? ` - ${currency(expense.costPerKm)}/km` : ''}
+                    </small>
+                  ) : null}
                 </div>
                 <span className={`suite-pill ${pillTone(expense.status)}`}>{readableStatus(expense.status)}</span>
                 <strong className="colab-card-amount">{currency(expense.amount)}</strong>
@@ -954,7 +963,7 @@ export function ColabUberExpenses({
                     <ExternalLink aria-hidden="true" size={13} strokeWidth={2.2} />
                     Recibo
                   </a>
-                ) : <span>Sem recibo</span>}
+                ) : <span>{expense.privateVehicle ? 'Veiculo proprio' : 'Sem recibo'}</span>}
               </div>
               <div className="colab-uber-detail-body">
                 <ColabUberStatusTrail status={expense.status} />

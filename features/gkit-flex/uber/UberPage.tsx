@@ -411,6 +411,16 @@ export function UberPage({
                       <strong>{expense.client}</strong>
                       <br />
                       <span className="muted small-text">{expense.description}</span>
+                      {expense.privateVehicle ? (
+                        <>
+                          <br />
+                          <span className="muted small-text">
+                            Veiculo proprio
+                            {expense.kilometers ? ` - ${expense.kilometers.toLocaleString('pt-BR')} km` : ''}
+                            {expense.costPerKm ? ` - ${formatMoney(expense.costPerKm)}/km` : ''}
+                          </span>
+                        </>
+                      ) : null}
                     </td>
                     <td>{formatDate(expense.date)}</td>
                     <td>
@@ -424,7 +434,7 @@ export function UberPage({
                         </>
                       ) : null}
                     </td>
-                    <td>{expense.receiptUrl ? <a href={expense.receiptUrl} rel="noreferrer" target="_blank">{expense.receiptName}</a> : '-'}</td>
+                    <td>{expense.receiptUrl ? <a href={expense.receiptUrl} rel="noreferrer" target="_blank">{expense.receiptName}</a> : expense.privateVehicle ? 'Veiculo proprio' : '-'}</td>
                     <td className="text-right"><strong>{formatMoney(expense.amount)}</strong></td>
                     <td>
                       {expenseNeedsAction(expense) ? (

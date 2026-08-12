@@ -18,7 +18,7 @@ export default async function ColabUberPage({
     <ColabShell
       active="uber"
       title="Despesas de Uber"
-      description="Lançamento de corridas vinculadas a clientes do Ciclo, com recibo para pedido de reembolso."
+      description="Lancamento de corridas vinculadas a clientes do Ciclo, com recibo ou quilometragem para reembolso."
       usuario={context.usuario}
     >
       <ColabUberExpenses

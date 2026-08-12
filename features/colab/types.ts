@@ -54,6 +54,9 @@ export type ColabUberExpense = {
   competence: string
   amount: number
   status: string
+  privateVehicle: boolean
+  kilometers: number | null
+  costPerKm: number | null
   receiptName: string
   receiptUrl: string | null
   createdAt: string

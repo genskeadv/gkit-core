@@ -47,6 +47,9 @@ export type UberDashboardExpense = {
   amount: number
   status: string
   observation: string | null
+  privateVehicle: boolean
+  kilometers: number | null
+  costPerKm: number | null
   receiptName: string
   receiptUrl: string | null
   reportRideId: string | null
@@ -115,6 +118,9 @@ export type UberClosingReportExpense = {
   description: string
   amount: number
   status: string
+  privateVehicle: boolean
+  kilometers: number | null
+  costPerKm: number | null
   receiptName: string
 }
 
@@ -177,14 +183,24 @@ function parseUberCreationDate(value: string) {
 }
 
 async function listExpensesForCompetencia(supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>, competencia: string): Promise<UberExpenseForMatch[]> {
-  const { data: expenses, error } = await supabase
+  let { data: expenses, error } = await supabase
     .from('colab_uber_despesas')
-    .select('id, colaborador_usuario_id, valor, status')
+    .select('id, colaborador_usuario_id, valor, status, veiculo_proprio')
     .eq('competencia', competencia)
+  let expenseRowsData = expenses as Array<Record<string, unknown>> | null
+
+  if (error && isMissingSchemaError(error)) {
+    const fallback = await supabase
+      .from('colab_uber_despesas')
+      .select('id, colaborador_usuario_id, valor, status')
+      .eq('competencia', competencia)
+    expenseRowsData = fallback.data as Array<Record<string, unknown>> | null
+    error = fallback.error
+  }
 
   if (error) throw new Error(`Erro ao consultar lançamentos Uber: ${error.message}`)
 
-  const rows = (expenses ?? []) as Array<Record<string, unknown>>
+  const rows = (expenseRowsData ?? []).filter((row) => !Boolean(row.veiculo_proprio))
   const userIds = [...new Set(rows.map((row) => String(row.colaborador_usuario_id || '')).filter(Boolean))]
   const usersResult = userIds.length
     ? await supabase.schema('security').from('usuarios').select('id,email').in('id', userIds)
@@ -346,7 +362,7 @@ export async function getUberDashboard(competenciaInput?: string | null): Promis
       .limit(8),
     supabase
       .from('colab_uber_despesas')
-      .select('id, colaborador_usuario_id, cliente_id, cliente_nome_snapshot, data_despesa, competencia, descricao, valor, recibo_bucket, recibo_path, recibo_nome, status, observacao, uber_relatorio_corrida_id, uber_fechamento_id, created_at, updated_at')
+      .select('id, colaborador_usuario_id, cliente_id, cliente_nome_snapshot, data_despesa, competencia, descricao, valor, veiculo_proprio, quilometragem, custo_por_km, recibo_bucket, recibo_path, recibo_nome, status, observacao, uber_relatorio_corrida_id, uber_fechamento_id, created_at, updated_at')
       .eq('competencia', competencia)
       .order('created_at', { ascending: false })
       .limit(200),
@@ -434,7 +450,10 @@ export async function getUberDashboard(competenciaInput?: string | null): Promis
       amount: roundMoney(Number(row.valor || 0)),
       status: text(row.status, 'lancado'),
       observation: text(row.observacao) || null,
-      receiptName: text(row.recibo_nome, 'Recibo'),
+      privateVehicle: Boolean(row.veiculo_proprio),
+      kilometers: row.quilometragem === null || row.quilometragem === undefined ? null : roundMoney(Number(row.quilometragem || 0)),
+      costPerKm: row.custo_por_km === null || row.custo_por_km === undefined ? null : roundMoney(Number(row.custo_por_km || 0)),
+      receiptName: text(row.recibo_nome, Boolean(row.veiculo_proprio) ? 'Veiculo proprio' : 'Recibo'),
       receiptUrl: signed.data?.signedUrl || null,
       reportRideId: text(row.uber_relatorio_corrida_id) || null,
       closingId: text(row.uber_fechamento_id) || null,
@@ -651,7 +670,7 @@ export async function getUberClosingReports(idsInput: string[]): Promise<UberClo
 
   const { data: expenseRows, error: expenseError } = await supabase
     .from('colab_uber_despesas')
-    .select('id, colaborador_usuario_id, data_despesa, descricao, valor, recibo_nome, status, uber_fechamento_id')
+    .select('id, colaborador_usuario_id, data_despesa, descricao, valor, veiculo_proprio, quilometragem, custo_por_km, recibo_nome, status, uber_fechamento_id')
     .in('uber_fechamento_id', closings.map((closing) => closing.id))
     .order('data_despesa', { ascending: true })
     .order('created_at', { ascending: true })
@@ -685,7 +704,10 @@ export async function getUberClosingReports(idsInput: string[]): Promise<UberClo
         description: text(row.descricao, 'Corrida Uber'),
         amount: roundMoney(Number(row.valor || 0)),
         status: text(row.status, 'reembolso_solicitado'),
-        receiptName: text(row.recibo_nome, 'Recibo'),
+        privateVehicle: Boolean(row.veiculo_proprio),
+        kilometers: row.quilometragem === null || row.quilometragem === undefined ? null : roundMoney(Number(row.quilometragem || 0)),
+        costPerKm: row.custo_por_km === null || row.custo_por_km === undefined ? null : roundMoney(Number(row.custo_por_km || 0)),
+        receiptName: text(row.recibo_nome, Boolean(row.veiculo_proprio) ? 'Veiculo proprio' : 'Recibo'),
       },
     ])
   }

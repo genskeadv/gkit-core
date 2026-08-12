@@ -24,6 +24,19 @@ function numberValue(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+function isMissingSchemaError(error?: { code?: string; message?: string } | null) {
+  if (!error) return false
+  const message = `${error.code || ''} ${error.message || ''}`.toLowerCase()
+  return (
+    message.includes('42p01') ||
+    message.includes('42703') ||
+    message.includes('pgrst204') ||
+    message.includes('could not find') ||
+    message.includes('does not exist') ||
+    message.includes('schema cache')
+  )
+}
+
 function roundMoney(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100
 }
@@ -277,27 +290,42 @@ export async function getGkitFlexProfileByEmail(normalizedEmail: string) {
 }
 
 function mapUberExpense(row: Record<string, unknown>, signedUrl?: string | null): ColabUberExpense {
+  const privateVehicle = Boolean(row.veiculo_proprio)
   return {
     id: text(row.id),
     client: text(row.cliente_nome_snapshot, 'Cliente'),
-    description: text(row.descricao, 'Despesa Uber'),
+    description: text(row.descricao, privateVehicle ? 'Reembolso de veiculo proprio' : 'Despesa Uber'),
     date: dateValue(row.data_despesa),
     competence: competenceLabel(row.competencia),
     amount: numberValue(row.valor),
     status: text(row.status, 'lancado'),
-    receiptName: text(row.recibo_nome, 'Recibo'),
+    privateVehicle,
+    kilometers: privateVehicle ? numberValue(row.quilometragem) : null,
+    costPerKm: privateVehicle ? numberValue(row.custo_por_km) : null,
+    receiptName: text(row.recibo_nome, privateVehicle ? 'Veiculo proprio' : 'Recibo'),
     receiptUrl: signedUrl || null,
     createdAt: dateValue(row.created_at),
   }
 }
 
 async function listUberExpensesForUser(usuarioId: string): Promise<ColabUberExpense[]> {
-  const { data, error } = await admin()
+  let { data, error } = await admin()
     .from('colab_uber_despesas')
-    .select('id, cliente_nome_snapshot, data_despesa, competencia, descricao, valor, recibo_bucket, recibo_path, recibo_nome, status, created_at')
+    .select('id, cliente_nome_snapshot, data_despesa, competencia, descricao, valor, veiculo_proprio, quilometragem, custo_por_km, recibo_bucket, recibo_path, recibo_nome, status, created_at')
     .eq('colaborador_usuario_id', usuarioId)
     .order('created_at', { ascending: false })
     .limit(50)
+
+  if (error && isMissingSchemaError(error)) {
+    const fallback = await admin()
+      .from('colab_uber_despesas')
+      .select('id, cliente_nome_snapshot, data_despesa, competencia, descricao, valor, recibo_bucket, recibo_path, recibo_nome, status, created_at')
+      .eq('colaborador_usuario_id', usuarioId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    data = fallback.data
+    error = fallback.error
+  }
 
   if (error) return []
 
