@@ -25023,6 +25023,215 @@ a.button {
   padding: 6px 9px;
 }
 
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-page,
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-closing-panel {
+  gap: 18px;
+}
+
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-closing-controls {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(150px, 180px)) auto;
+}
+
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-closing-controls label {
+  display: grid;
+  gap: 6px;
+}
+
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-closing-controls label span {
+  color: #53627a;
+  font-size: 12px;
+}
+
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-closing-controls input {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 10px;
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-closing-result {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-stack {
+  display: grid;
+  gap: 10px;
+}
+
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-report-card,
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-missing-card {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+}
+
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-report-card {
+  grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(88px, 0.5fr));
+}
+
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-report-card strong,
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-missing-card strong {
+  color: #162033;
+  display: block;
+  font-size: 14px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-report-card span,
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-report-card small,
+:is(.gkit-flex-shell, .gkit-fat-shell) .flex-uber-missing-card span {
+  color: #64748b;
+  display: block;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.uber-closing-print-page {
+  background: #f6f8fb;
+  color: #162033;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.uber-closing-print-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin: 0 auto 16px;
+  max-width: 960px;
+}
+
+.uber-closing-print-actions a,
+.uber-closing-print-actions button {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+  color: #351b40;
+  cursor: pointer;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.uber-closing-sheet {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  break-after: page;
+  margin: 0 auto 18px;
+  max-width: 960px;
+  min-height: 1000px;
+  padding: 36px;
+}
+
+.uber-closing-header {
+  align-items: start;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  padding-bottom: 20px;
+}
+
+.uber-closing-header p,
+.uber-closing-header span,
+.uber-closing-header dt,
+.uber-closing-table span,
+.uber-closing-footer {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.uber-closing-header h1 {
+  font-size: 28px;
+  font-weight: 500;
+  margin: 4px 0;
+}
+
+.uber-closing-header dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.uber-closing-header dl div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.uber-closing-header dd {
+  font-weight: 600;
+  margin: 0;
+}
+
+.uber-closing-table {
+  border-collapse: collapse;
+  margin-top: 24px;
+  width: 100%;
+}
+
+.uber-closing-table th,
+.uber-closing-table td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+  padding: 10px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.uber-closing-table th {
+  color: #53627a;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.uber-closing-table tfoot td {
+  font-weight: 700;
+}
+
+.uber-closing-table .text-right,
+.uber-closing-sheet .text-right {
+  text-align: right;
+}
+
+.uber-closing-footer {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 32px;
+}
+
+@media print {
+  .uber-closing-print-page {
+    background: #fff;
+    padding: 0;
+  }
+
+  .uber-closing-print-actions {
+    display: none;
+  }
+
+  .uber-closing-sheet {
+    border: 0;
+    border-radius: 0;
+    margin: 0;
+    max-width: none;
+    min-height: auto;
+    padding: 18mm 14mm;
+  }
+}
+
 .gkit-flex-shell .forecast-workspace,
 .gkit-flex-shell .forecast-section {
   display: grid;

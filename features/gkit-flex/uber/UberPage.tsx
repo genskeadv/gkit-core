@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { MetricCard, MonthContextHeader, StatusBadge } from '../ui/FlexUI'
-import type { UberDashboardData, UberDashboardExpense } from './uberPersistence'
+import type { UberClosingSummary, UberDashboardData, UberDashboardExpense } from './uberPersistence'
 
 type MissingRow = {
   line: number
@@ -28,6 +28,13 @@ type ImportResult = {
   missing: MissingRow[]
 }
 
+type ClosingResult = {
+  periodStart: string
+  periodEnd: string
+  closings: UberClosingSummary[]
+  reportUrl: string
+}
+
 const statusActions = [
   { label: 'Em conferência', value: 'em_conferencia' },
   { label: 'Reembolso solicitado', value: 'reembolso_solicitado' },
@@ -38,6 +45,19 @@ const statusActions = [
 function currentMonthValue() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function currentWeekStartValue() {
+  const now = new Date()
+  const day = now.getDay() || 7
+  now.setDate(now.getDate() - day + 1)
+  return now.toISOString().slice(0, 10)
+}
+
+function weekEndValue(periodStart: string) {
+  const date = new Date(`${periodStart}T12:00:00.000Z`)
+  date.setUTCDate(date.getUTCDate() + 6)
+  return date.toISOString().slice(0, 10)
 }
 
 function monthFromCompetencia(value?: string | null) {
@@ -59,8 +79,12 @@ function readableStatus(status: string) {
   return status.replaceAll('_', ' ')
 }
 
+function readableExpenseStatus(expense: UberDashboardExpense) {
+  return expense.closingId ? 'gerado para reembolso' : readableStatus(expense.status)
+}
+
 function statusTone(status: string) {
-  if (['conciliado', 'reembolsado'].includes(status)) return 'ok'
+  if (['conciliado', 'reembolsado', 'gerado_reembolso'].includes(status)) return 'ok'
   if (status === 'rejeitado') return 'bloqueio'
   if (['lancado', 'em_conferencia', 'reembolso_solicitado'].includes(status)) return 'aviso'
   return 'nao_aberto'
@@ -84,10 +108,15 @@ export function UberPage({
   initialData: UberDashboardData
 }) {
   const [competencia, setCompetencia] = useState(monthFromCompetencia(initialData.competencia))
+  const initialWeekStart = currentWeekStartValue()
+  const [periodStart, setPeriodStart] = useState(initialWeekStart)
+  const [periodEnd, setPeriodEnd] = useState(weekEndValue(initialWeekStart))
   const [file, setFile] = useState<File | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)
+  const [closingResult, setClosingResult] = useState<ClosingResult | null>(null)
   const [data, setData] = useState(initialData)
   const [loading, setLoading] = useState(false)
+  const [closingLoading, setClosingLoading] = useState(false)
   const [savingId, setSavingId] = useState('')
   const [error, setError] = useState('')
   const competenciaParam = useMemo(() => `${competencia}-01`, [competencia])
@@ -136,6 +165,29 @@ export function UberPage({
       setError(err instanceof Error ? err.message : 'Erro inesperado ao importar relatório Uber.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function generateWeeklyClosing() {
+    setClosingLoading(true)
+    setError('')
+    setClosingResult(null)
+
+    try {
+      const response = await fetch(`${apiBasePath}/fechamentos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ periodStart, periodEnd }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || 'Nao foi possivel gerar o fechamento semanal.')
+
+      setClosingResult(payload)
+      await loadDashboard(competenciaParam)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro inesperado ao gerar fechamento semanal.')
+    } finally {
+      setClosingLoading(false)
     }
   }
 
@@ -198,6 +250,67 @@ export function UberPage({
         <MetricCard label="Aberto para tratar" value={formatMoney(data.summary.openAmount)} help="lançado, conferência ou reembolso solicitado" tone={data.summary.openAmount ? 'warning' : 'good'} />
         <MetricCard label="Reembolsado" value={formatMoney(data.summary.reimbursedAmount)} help={`${data.summary.reimbursedExpenses} lançamento(s)`} />
         <MetricCard label="Sem lançamento" value={data.summary.missingRides} help={formatMoney(data.summary.missingAmount)} tone={data.summary.missingRides ? 'warning' : 'good'} />
+      </section>
+
+      <section className="card flex-uber-closing-panel">
+        <div className="header-row">
+          <div>
+            <p className="eyebrow">Fechamento semanal</p>
+            <h2>Gerar pedido de reembolso por cliente</h2>
+            <p className="muted small-text">Inclui corridas conciliadas ainda sem fechamento. Cada cliente sai em uma pagina do relatorio.</p>
+          </div>
+        </div>
+        <div className="flex-uber-closing-controls">
+          <label>
+            <span>Inicio</span>
+            <input
+              type="date"
+              value={periodStart}
+              onChange={(event) => {
+                setPeriodStart(event.target.value)
+                setPeriodEnd(weekEndValue(event.target.value))
+              }}
+            />
+          </label>
+          <label>
+            <span>Fim</span>
+            <input type="date" value={periodEnd} onChange={(event) => setPeriodEnd(event.target.value)} />
+          </label>
+          <button className="primary-button" disabled={closingLoading || !data.summary.readyForClosing} onClick={generateWeeklyClosing} type="button">
+            {closingLoading ? 'Gerando...' : 'Gerar fechamento'}
+          </button>
+        </div>
+        {closingResult ? (
+          <div className="success flex-uber-closing-result">
+            <span>
+              {closingResult.closings.length} cliente(s) e {closingResult.closings.reduce((sum, closing) => sum + closing.rideCount, 0)} corrida(s) marcados para reembolso.
+            </span>
+            <a className="secondary-button compact-button" href={closingResult.reportUrl} target="_blank" rel="noreferrer">Abrir relatorio</a>
+          </div>
+        ) : null}
+        {data.closings.length ? (
+          <div className="flex-uber-stack">
+            {data.closings.slice(0, 4).map((closing) => (
+              <article className="flex-uber-report-card" key={closing.id}>
+                <div>
+                  <strong>{closing.client}</strong>
+                  <span>{formatDate(closing.periodStart)} a {formatDate(closing.periodEnd)} - {closing.code}</span>
+                </div>
+                <div>
+                  <small>Corridas</small>
+                  <strong>{closing.rideCount}</strong>
+                </div>
+                <div>
+                  <small>Total</small>
+                  <strong>{formatMoney(closing.totalAmount)}</strong>
+                </div>
+                <div>
+                  <a className="secondary-button compact-button" href={`/modulos/gkit-fat/uber/fechamentos?ids=${closing.id}`} target="_blank" rel="noreferrer">Relatorio</a>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="card flex-uber-split">
@@ -300,7 +413,17 @@ export function UberPage({
                       <span className="muted small-text">{expense.description}</span>
                     </td>
                     <td>{formatDate(expense.date)}</td>
-                    <td><StatusBadge status={statusTone(expense.status)} label={readableStatus(expense.status)} compact /></td>
+                    <td>
+                      <StatusBadge status={statusTone(expense.closingId ? 'gerado_reembolso' : expense.status)} label={readableExpenseStatus(expense)} compact />
+                      {expense.closingId ? (
+                        <>
+                          <br />
+                          <a className="muted small-text" href={`/modulos/gkit-fat/uber/fechamentos?ids=${expense.closingId}`} target="_blank" rel="noreferrer">
+                            {expense.closingCode || 'Fechamento'}
+                          </a>
+                        </>
+                      ) : null}
+                    </td>
                     <td>{expense.receiptUrl ? <a href={expense.receiptUrl} rel="noreferrer" target="_blank">{expense.receiptName}</a> : '-'}</td>
                     <td className="text-right"><strong>{formatMoney(expense.amount)}</strong></td>
                     <td>

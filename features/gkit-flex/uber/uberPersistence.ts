@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { getSupabaseAdmin, logEvent } from '../audit'
 import {
   parseUberVoucherCsv,
@@ -36,6 +37,7 @@ export type UberDashboardReport = {
 
 export type UberDashboardExpense = {
   id: string
+  clientId: string
   collaboratorName: string
   collaboratorEmail: string
   client: string
@@ -48,8 +50,25 @@ export type UberDashboardExpense = {
   receiptName: string
   receiptUrl: string | null
   reportRideId: string | null
+  closingId: string | null
+  closingCode: string | null
+  closingCreatedAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+export type UberClosingSummary = {
+  id: string
+  code: string
+  competencia: string
+  periodStart: string
+  periodEnd: string
+  clientId: string
+  client: string
+  rideCount: number
+  totalAmount: number
+  status: string
+  createdAt: string
 }
 
 export type UberDashboardMissingRide = {
@@ -70,6 +89,7 @@ export type UberDashboardData = {
   competencia: string
   reports: UberDashboardReport[]
   expenses: UberDashboardExpense[]
+  closings: UberClosingSummary[]
   missing: UberDashboardMissingRide[]
   summary: {
     totalExpenses: number
@@ -77,15 +97,34 @@ export type UberDashboardData = {
     reconciledExpenses: number
     reimbursedExpenses: number
     rejectedExpenses: number
+    generatedReimbursements: number
+    readyForClosing: number
     openAmount: number
     reimbursedAmount: number
+    readyForClosingAmount: number
     missingRides: number
     missingAmount: number
   }
 }
 
+export type UberClosingReportExpense = {
+  id: string
+  collaboratorName: string
+  collaboratorEmail: string
+  date: string
+  description: string
+  amount: number
+  status: string
+  receiptName: string
+}
+
+export type UberClosingReport = UberClosingSummary & {
+  expenses: UberClosingReportExpense[]
+}
+
 const ALLOWED_EXPENSE_STATUS = new Set(['lancado', 'em_conferencia', 'conciliado', 'reembolso_solicitado', 'reembolsado', 'rejeitado'])
 const OPEN_EXPENSE_STATUSES = new Set(['lancado', 'em_conferencia', 'reembolso_solicitado'])
+const READY_FOR_CLOSING_STATUSES = new Set(['conciliado', 'reembolso_solicitado'])
 
 function roundMoney(value: number) {
   return Math.round(Number(value || 0) * 100) / 100
@@ -96,11 +135,39 @@ function text(value: unknown, fallback = '') {
   return String(value)
 }
 
+function idList(values: string[]) {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))]
+}
+
+function isMissingSchemaError(error?: { code?: string; message?: string } | null) {
+  if (!error) return false
+  const message = `${error.code || ''} ${error.message || ''}`.toLowerCase()
+  return (
+    message.includes('42p01') ||
+    message.includes('42703') ||
+    message.includes('pgrst204') ||
+    message.includes('could not find') ||
+    message.includes('does not exist') ||
+    message.includes('schema cache')
+  )
+}
+
 export function sanitizeCompetencia(value?: string | null) {
   if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value.slice(0, 10)
   if (value && /^\d{4}-\d{2}$/.test(value)) return `${value}-01`
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+}
+
+export function sanitizeDate(value?: string | null, fallback?: string) {
+  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  return fallback || sanitizeCompetencia(value)
+}
+
+export function weekEndDate(periodStart: string) {
+  const date = new Date(`${periodStart}T12:00:00.000Z`)
+  date.setUTCDate(date.getUTCDate() + 6)
+  return date.toISOString().slice(0, 10)
 }
 
 function parseUberCreationDate(value: string) {
@@ -250,6 +317,7 @@ export async function getUberDashboard(competenciaInput?: string | null): Promis
     competencia,
     reports: [],
     expenses: [],
+    closings: [],
     missing: [],
     summary: {
       totalExpenses: 0,
@@ -257,8 +325,11 @@ export async function getUberDashboard(competenciaInput?: string | null): Promis
       reconciledExpenses: 0,
       reimbursedExpenses: 0,
       rejectedExpenses: 0,
+      generatedReimbursements: 0,
+      readyForClosing: 0,
       openAmount: 0,
       reimbursedAmount: 0,
+      readyForClosingAmount: 0,
       missingRides: 0,
       missingAmount: 0,
     },
@@ -266,7 +337,7 @@ export async function getUberDashboard(competenciaInput?: string | null): Promis
 
   if (!supabase) return empty
 
-  const [reportsResult, expensesResult, missingResult] = await Promise.all([
+  const [reportsResult, expensesResult, closingsResult, missingResult] = await Promise.all([
     supabase
       .from('colab_uber_relatorios')
       .select('id, competencia, arquivo_nome, linhas_lidas, corridas_identificadas, corridas_sem_lancamento, valor_total, valor_sem_lancamento, created_at')
@@ -275,10 +346,16 @@ export async function getUberDashboard(competenciaInput?: string | null): Promis
       .limit(8),
     supabase
       .from('colab_uber_despesas')
-      .select('id, colaborador_usuario_id, cliente_nome_snapshot, data_despesa, competencia, descricao, valor, recibo_bucket, recibo_path, recibo_nome, status, observacao, uber_relatorio_corrida_id, created_at, updated_at')
+      .select('id, colaborador_usuario_id, cliente_id, cliente_nome_snapshot, data_despesa, competencia, descricao, valor, recibo_bucket, recibo_path, recibo_nome, status, observacao, uber_relatorio_corrida_id, uber_fechamento_id, created_at, updated_at')
       .eq('competencia', competencia)
       .order('created_at', { ascending: false })
       .limit(200),
+    supabase
+      .from('colab_uber_fechamentos')
+      .select('id, codigo, competencia, periodo_inicio, periodo_fim, cliente_id, cliente_nome_snapshot, quantidade_corridas, valor_total, status, created_at')
+      .eq('competencia', competencia)
+      .order('created_at', { ascending: false })
+      .limit(20),
     supabase
       .from('colab_uber_relatorio_corridas')
       .select('id, relatorio_id, linha, creation_date, voucher_link, guest_name, guest_email, voucher_status, amount_spent, orders_trips')
@@ -288,11 +365,28 @@ export async function getUberDashboard(competenciaInput?: string | null): Promis
       .limit(200),
   ])
 
-  if (reportsResult.error) throw new Error(`Erro ao consultar relatórios Uber: ${reportsResult.error.message}`)
-  if (expensesResult.error) throw new Error(`Erro ao consultar lançamentos Uber: ${expensesResult.error.message}`)
-  if (missingResult.error) throw new Error(`Erro ao consultar pendências Uber: ${missingResult.error.message}`)
+  let expenseRowsData = expensesResult.data as Array<Record<string, unknown>> | null
+  let expenseRowsError = expensesResult.error
+  if (expenseRowsError && isMissingSchemaError(expenseRowsError)) {
+    const fallbackExpensesResult = await supabase
+      .from('colab_uber_despesas')
+      .select('id, colaborador_usuario_id, cliente_nome_snapshot, data_despesa, competencia, descricao, valor, recibo_bucket, recibo_path, recibo_nome, status, observacao, uber_relatorio_corrida_id, created_at, updated_at')
+      .eq('competencia', competencia)
+      .order('created_at', { ascending: false })
+      .limit(200)
 
-  const expenseRows = (expensesResult.data ?? []) as Array<Record<string, unknown>>
+    expenseRowsData = fallbackExpensesResult.data
+    expenseRowsError = fallbackExpensesResult.error
+  }
+
+  if (reportsResult.error) throw new Error(`Erro ao consultar relatórios Uber: ${reportsResult.error.message}`)
+  if (expenseRowsError) throw new Error(`Erro ao consultar lançamentos Uber: ${expenseRowsError.message}`)
+  if (missingResult.error) throw new Error(`Erro ao consultar pendências Uber: ${missingResult.error.message}`)
+  if (closingsResult.error && !isMissingSchemaError(closingsResult.error)) {
+    throw new Error(`Erro ao consultar fechamentos Uber: ${closingsResult.error.message}`)
+  }
+
+  const expenseRows = (expenseRowsData ?? []) as Array<Record<string, unknown>>
   const userIds = [...new Set(expenseRows.map((row) => text(row.colaborador_usuario_id)).filter(Boolean))]
   const usersResult = userIds.length
     ? await supabase.schema('security').from('usuarios').select('id,nome,email').in('id', userIds)
@@ -305,6 +399,21 @@ export async function getUberDashboard(competenciaInput?: string | null): Promis
     { email: text(row.email), name: text(row.nome, 'Colaborador') },
   ]))
 
+  const closings: UberClosingSummary[] = ((closingsResult.error ? [] : closingsResult.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    id: text(row.id),
+    code: text(row.codigo, 'FECHAMENTO'),
+    competencia: text(row.competencia),
+    periodStart: text(row.periodo_inicio),
+    periodEnd: text(row.periodo_fim),
+    clientId: text(row.cliente_id),
+    client: text(row.cliente_nome_snapshot, 'Cliente'),
+    rideCount: Number(row.quantidade_corridas || 0),
+    totalAmount: roundMoney(Number(row.valor_total || 0)),
+    status: text(row.status, 'gerado'),
+    createdAt: text(row.created_at),
+  }))
+  const closingsById = new Map(closings.map((closing) => [closing.id, closing]))
+
   const expenses: UberDashboardExpense[] = await Promise.all(expenseRows.map(async (row) => {
     const bucket = text(row.recibo_bucket, 'colab-uber-recibos')
     const path = text(row.recibo_path)
@@ -315,6 +424,7 @@ export async function getUberDashboard(competenciaInput?: string | null): Promis
 
     return {
       id: text(row.id),
+      clientId: text(row.cliente_id),
       collaboratorName: user?.name || 'Colaborador',
       collaboratorEmail: user?.email || '',
       client: text(row.cliente_nome_snapshot, 'Cliente'),
@@ -327,6 +437,9 @@ export async function getUberDashboard(competenciaInput?: string | null): Promis
       receiptName: text(row.recibo_nome, 'Recibo'),
       receiptUrl: signed.data?.signedUrl || null,
       reportRideId: text(row.uber_relatorio_corrida_id) || null,
+      closingId: text(row.uber_fechamento_id) || null,
+      closingCode: closingsById.get(text(row.uber_fechamento_id))?.code || null,
+      closingCreatedAt: closingsById.get(text(row.uber_fechamento_id))?.createdAt || null,
       createdAt: text(row.created_at),
       updatedAt: text(row.updated_at),
     }
@@ -361,12 +474,15 @@ export async function getUberDashboard(competenciaInput?: string | null): Promis
   const reconciledExpenses = expenses.filter((expense) => expense.status === 'conciliado')
   const reimbursedExpenses = expenses.filter((expense) => expense.status === 'reembolsado')
   const rejectedExpenses = expenses.filter((expense) => expense.status === 'rejeitado')
+  const generatedExpenses = expenses.filter((expense) => Boolean(expense.closingId))
+  const readyForClosingExpenses = expenses.filter((expense) => READY_FOR_CLOSING_STATUSES.has(expense.status) && !expense.closingId)
 
   return {
     configured: true,
     competencia,
     reports,
     expenses,
+    closings,
     missing,
     summary: {
       totalExpenses: expenses.length,
@@ -374,12 +490,210 @@ export async function getUberDashboard(competenciaInput?: string | null): Promis
       reconciledExpenses: reconciledExpenses.length,
       reimbursedExpenses: reimbursedExpenses.length,
       rejectedExpenses: rejectedExpenses.length,
+      generatedReimbursements: generatedExpenses.length,
+      readyForClosing: readyForClosingExpenses.length,
       openAmount: roundMoney(openExpenses.reduce((sum, expense) => sum + expense.amount, 0)),
       reimbursedAmount: roundMoney(reimbursedExpenses.reduce((sum, expense) => sum + expense.amount, 0)),
+      readyForClosingAmount: roundMoney(readyForClosingExpenses.reduce((sum, expense) => sum + expense.amount, 0)),
       missingRides: missing.length,
       missingAmount: roundMoney(missing.reduce((sum, ride) => sum + ride.amountSpent, 0)),
     },
   }
+}
+
+export async function generateUberWeeklyClosings(input: {
+  periodStart?: string | null
+  periodEnd?: string | null
+  createdBy?: string | null
+}) {
+  const supabase = getSupabaseAdmin()
+  if (!supabase) throw new Error('Supabase nao configurado.')
+
+  const periodStart = sanitizeDate(input.periodStart)
+  const periodEnd = sanitizeDate(input.periodEnd, weekEndDate(periodStart))
+  if (periodEnd < periodStart) throw new Error('A data final precisa ser maior ou igual a data inicial.')
+
+  const competencia = sanitizeCompetencia(periodStart)
+  const { data: rows, error } = await supabase
+    .from('colab_uber_despesas')
+    .select('id, colaborador_usuario_id, cliente_id, cliente_nome_snapshot, data_despesa, descricao, valor, status, uber_fechamento_id')
+    .gte('data_despesa', periodStart)
+    .lte('data_despesa', periodEnd)
+    .in('status', Array.from(READY_FOR_CLOSING_STATUSES))
+    .is('uber_fechamento_id', null)
+    .order('cliente_nome_snapshot', { ascending: true })
+    .order('data_despesa', { ascending: true })
+
+  if (error) throw new Error(`Erro ao consultar corridas para fechamento: ${error.message}`)
+
+  const expenses = ((rows ?? []) as Array<Record<string, unknown>>)
+    .filter((row) => text(row.cliente_id) && Number(row.valor || 0) > 0)
+
+  if (!expenses.length) {
+    throw new Error('Nenhuma corrida conciliada e ainda nao gerada para reembolso nesse periodo.')
+  }
+
+  const groups = new Map<string, Array<Record<string, unknown>>>()
+  for (const expense of expenses) {
+    const clientId = text(expense.cliente_id)
+    groups.set(clientId, [...(groups.get(clientId) ?? []), expense])
+  }
+
+  const closingPayload = Array.from(groups.entries()).map(([clientId, group], index) => ({
+    codigo: `UBER-${periodStart.replaceAll('-', '')}-${String(index + 1).padStart(2, '0')}-${randomUUID().slice(0, 8).toUpperCase()}`,
+    competencia,
+    periodo_inicio: periodStart,
+    periodo_fim: periodEnd,
+    cliente_id: clientId,
+    cliente_nome_snapshot: text(group[0].cliente_nome_snapshot, 'Cliente'),
+    quantidade_corridas: group.length,
+    valor_total: roundMoney(group.reduce((sum, expense) => sum + Number(expense.valor || 0), 0)),
+    status: 'gerado',
+    created_by: input.createdBy || null,
+  }))
+
+  const { data: insertedClosings, error: insertError } = await supabase
+    .from('colab_uber_fechamentos')
+    .insert(closingPayload)
+    .select('id, codigo, competencia, periodo_inicio, periodo_fim, cliente_id, cliente_nome_snapshot, quantidade_corridas, valor_total, status, created_at')
+
+  if (insertError) throw new Error(`Erro ao gravar fechamento semanal: ${insertError.message}`)
+
+  const closings: UberClosingSummary[] = ((insertedClosings ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    id: text(row.id),
+    code: text(row.codigo),
+    competencia: text(row.competencia),
+    periodStart: text(row.periodo_inicio),
+    periodEnd: text(row.periodo_fim),
+    clientId: text(row.cliente_id),
+    client: text(row.cliente_nome_snapshot, 'Cliente'),
+    rideCount: Number(row.quantidade_corridas || 0),
+    totalAmount: roundMoney(Number(row.valor_total || 0)),
+    status: text(row.status, 'gerado'),
+    createdAt: text(row.created_at),
+  }))
+  const closingByClient = new Map(closings.map((closing) => [closing.clientId, closing]))
+
+  for (const [clientId, group] of groups.entries()) {
+    const closing = closingByClient.get(clientId)
+    if (!closing) continue
+
+    const ids = idList(group.map((expense) => text(expense.id)))
+    if (!ids.length) continue
+
+    const { error: updateError } = await supabase
+      .from('colab_uber_despesas')
+      .update({
+        status: 'reembolso_solicitado',
+        uber_fechamento_id: closing.id,
+        updated_at: new Date().toISOString(),
+      })
+      .in('id', ids)
+
+    if (updateError) throw new Error(`Erro ao marcar corridas do cliente ${closing.client}: ${updateError.message}`)
+  }
+
+  await logEvent({
+    supabase,
+    modulo: 'dashboard',
+    competencia,
+    action: 'gerar_fechamento_semanal_uber',
+    entidadeTipo: 'colab_uber_fechamento',
+    entidadeId: closings.map((closing) => closing.id).join(','),
+    detalhe: {
+      periodoInicio: periodStart,
+      periodoFim: periodEnd,
+      clientes: closings.length,
+      corridas: expenses.length,
+      valorTotal: roundMoney(closings.reduce((sum, closing) => sum + closing.totalAmount, 0)),
+      createdBy: input.createdBy || null,
+    },
+  })
+
+  return {
+    configured: true,
+    periodStart,
+    periodEnd,
+    closings,
+    reportUrl: `/modulos/gkit-fat/uber/fechamentos?ids=${encodeURIComponent(closings.map((closing) => closing.id).join(','))}`,
+  }
+}
+
+export async function getUberClosingReports(idsInput: string[]): Promise<UberClosingReport[]> {
+  const supabase = getSupabaseAdmin()
+  if (!supabase) throw new Error('Supabase nao configurado.')
+
+  const ids = idList(idsInput)
+  if (!ids.length) return []
+
+  const { data: closingRows, error: closingError } = await supabase
+    .from('colab_uber_fechamentos')
+    .select('id, codigo, competencia, periodo_inicio, periodo_fim, cliente_id, cliente_nome_snapshot, quantidade_corridas, valor_total, status, created_at')
+    .in('id', ids)
+
+  if (closingError) throw new Error(`Erro ao consultar fechamentos Uber: ${closingError.message}`)
+
+  const closings: UberClosingSummary[] = ((closingRows ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    id: text(row.id),
+    code: text(row.codigo, 'FECHAMENTO'),
+    competencia: text(row.competencia),
+    periodStart: text(row.periodo_inicio),
+    periodEnd: text(row.periodo_fim),
+    clientId: text(row.cliente_id),
+    client: text(row.cliente_nome_snapshot, 'Cliente'),
+    rideCount: Number(row.quantidade_corridas || 0),
+    totalAmount: roundMoney(Number(row.valor_total || 0)),
+    status: text(row.status, 'gerado'),
+    createdAt: text(row.created_at),
+  }))
+
+  if (!closings.length) return []
+
+  const { data: expenseRows, error: expenseError } = await supabase
+    .from('colab_uber_despesas')
+    .select('id, colaborador_usuario_id, data_despesa, descricao, valor, recibo_nome, status, uber_fechamento_id')
+    .in('uber_fechamento_id', closings.map((closing) => closing.id))
+    .order('data_despesa', { ascending: true })
+    .order('created_at', { ascending: true })
+
+  if (expenseError) throw new Error(`Erro ao consultar corridas do fechamento: ${expenseError.message}`)
+
+  const expensesRaw = (expenseRows ?? []) as Array<Record<string, unknown>>
+  const userIds = idList(expensesRaw.map((row) => text(row.colaborador_usuario_id)))
+  const usersResult = userIds.length
+    ? await supabase.schema('security').from('usuarios').select('id,nome,email').in('id', userIds)
+    : { data: [], error: null }
+
+  if (usersResult.error) throw new Error(`Erro ao consultar colaboradores do fechamento: ${usersResult.error.message}`)
+
+  const users = new Map(((usersResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [
+    text(row.id),
+    { email: text(row.email), name: text(row.nome, 'Colaborador') },
+  ]))
+
+  const expensesByClosing = new Map<string, UberClosingReportExpense[]>()
+  for (const row of expensesRaw) {
+    const closingId = text(row.uber_fechamento_id)
+    const user = users.get(text(row.colaborador_usuario_id))
+    expensesByClosing.set(closingId, [
+      ...(expensesByClosing.get(closingId) ?? []),
+      {
+        id: text(row.id),
+        collaboratorName: user?.name || 'Colaborador',
+        collaboratorEmail: user?.email || '',
+        date: text(row.data_despesa),
+        description: text(row.descricao, 'Corrida Uber'),
+        amount: roundMoney(Number(row.valor || 0)),
+        status: text(row.status, 'reembolso_solicitado'),
+        receiptName: text(row.recibo_nome, 'Recibo'),
+      },
+    ])
+  }
+
+  const order = new Map(ids.map((id, index) => [id, index]))
+  return closings
+    .map((closing) => ({ ...closing, expenses: expensesByClosing.get(closing.id) ?? [] }))
+    .sort((left, right) => (order.get(left.id) ?? 999) - (order.get(right.id) ?? 999) || left.client.localeCompare(right.client))
 }
 
 export async function updateUberExpenseStatus(input: {
