@@ -259,14 +259,39 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   color: #56615b;
   font-size: 0.86rem;
   font-weight: 400;
 }
 
+.gkit-money-list-summary {
+  display: grid;
+  gap: 2px;
+}
+
 .gkit-money-list-head strong {
   color: #15211b;
   font-weight: 400;
+}
+
+.gkit-money-add-payment {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #351b40;
+  border-radius: 8px;
+  background: #351b40;
+  color: #ffffff;
+}
+
+.gkit-money-add-payment:disabled {
+  border-color: rgba(35, 48, 41, 0.12);
+  background: #edf0ea;
+  color: #7a837d;
 }
 
 .gkit-money-payment {

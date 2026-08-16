@@ -128,6 +128,7 @@ export function GkitMoneyPage() {
   const [savingId, setSavingId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<PayableItem | null>(null)
+  const [creatingPayment, setCreatingPayment] = useState(false)
   const [form, setForm] = useState({ descricao: '', vencimento: '', valor: '', moneyContaId: '', moneyDestinoId: '' })
 
   const mainAccount = accounts.find((account) => account.conta_principal) || accounts[0] || null
@@ -228,6 +229,7 @@ export function GkitMoneyPage() {
   }, [competencia, range, selectedRows, visibility])
 
   function openEditor(item: PayableItem) {
+    setCreatingPayment(false)
     setEditing(item)
     setForm({
       descricao: item.descricao,
@@ -236,6 +238,23 @@ export function GkitMoneyPage() {
       moneyContaId: item.money_conta_id || selectedAccount?.id || mainAccountId,
       moneyDestinoId: item.money_conta_destino_id || '',
     })
+  }
+
+  function openNewPayment() {
+    setEditing(null)
+    setCreatingPayment(true)
+    setForm({
+      descricao: '',
+      vencimento: '',
+      valor: '',
+      moneyContaId: selectedAccount?.id || mainAccountId,
+      moneyDestinoId: '',
+    })
+  }
+
+  function closeEditor() {
+    setEditing(null)
+    setCreatingPayment(false)
   }
 
   async function patchPayable(
@@ -261,10 +280,47 @@ export function GkitMoneyPage() {
   }
 
   async function saveEditor() {
-    if (!editing) return
     const sourceId = form.moneyContaId || mainAccountId || null
     const destinoId = form.moneyDestinoId && form.moneyDestinoId !== sourceId ? form.moneyDestinoId : null
 
+    if (creatingPayment) {
+      const descricao = form.descricao.trim()
+      if (!descricao) {
+        setError('Informe a descrição do pagamento.')
+        return
+      }
+
+      setSavingId('new-payment')
+      setError('')
+      try {
+        const response = await fetch('/api/gkit-flex/contas-pagar/itens', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            competencia,
+            descricao,
+            vencimento_dia: dayFromDateInput(form.vencimento),
+            valor_previsto: Number(String(form.valor).replace(',', '.')) || 0,
+            categoria: 'Sem categoria',
+            centro: 'Sem centro',
+            pago: false,
+            money_conta_id: sourceId,
+            money_conta_destino_id: destinoId,
+          }),
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Erro ao criar pagamento.')
+        closeEditor()
+        await loadMoneyData()
+      } catch (saveError) {
+        setError(saveError instanceof Error ? saveError.message : 'Erro ao criar pagamento.')
+      } finally {
+        setSavingId(null)
+      }
+      return
+    }
+
+    if (!editing) return
     await patchPayable(editing.id, {
       descricao: form.descricao,
       vencimento_dia: dayFromDateInput(form.vencimento),
@@ -272,7 +328,7 @@ export function GkitMoneyPage() {
       money_conta_id: sourceId,
       money_conta_destino_id: destinoId,
     })
-    setEditing(null)
+    closeEditor()
   }
 
   async function createAccount() {
@@ -368,8 +424,13 @@ export function GkitMoneyPage() {
 
         <section className="gkit-money-list" aria-label="Pagamentos">
           <div className="gkit-money-list-head">
-            <span>{visibleRows.length} pagamentos</span>
-            <strong>{currency.format(visibleRows.reduce((acc, item) => acc + Number(item.valor_previsto || 0), 0))}</strong>
+            <div className="gkit-money-list-summary">
+              <span>{visibleRows.length} pagamentos</span>
+              <strong>{currency.format(visibleRows.reduce((acc, item) => acc + Number(item.valor_previsto || 0), 0))}</strong>
+            </div>
+            <button type="button" className="gkit-money-add-payment" aria-label="Adicionar pagamento" disabled={loading || status !== 'aberto'} onClick={openNewPayment}>
+              <Plus size={18} />
+            </button>
           </div>
 
           {loading ? (
@@ -461,15 +522,15 @@ export function GkitMoneyPage() {
         </div>
       ) : null}
 
-      {editing ? (
-        <div className="gkit-money-sheet-backdrop" role="presentation" onClick={() => setEditing(null)}>
-          <section className="gkit-money-sheet" role="dialog" aria-modal="true" aria-label="Editar pagamento" onClick={(event) => event.stopPropagation()}>
+      {editing || creatingPayment ? (
+        <div className="gkit-money-sheet-backdrop" role="presentation" onClick={closeEditor}>
+          <section className="gkit-money-sheet" role="dialog" aria-modal="true" aria-label={creatingPayment ? 'Novo pagamento' : 'Editar pagamento'} onClick={(event) => event.stopPropagation()}>
             <header>
               <div>
                 <p>Pagamento</p>
-                <h2>Editar detalhe</h2>
+                <h2>{creatingPayment ? 'Novo pagamento' : 'Editar detalhe'}</h2>
               </div>
-              <button type="button" aria-label="Fechar" onClick={() => setEditing(null)}>
+              <button type="button" aria-label="Fechar" onClick={closeEditor}>
                 <X size={20} />
               </button>
             </header>
@@ -519,9 +580,9 @@ export function GkitMoneyPage() {
               </select>
             </label>
 
-            <button type="button" className="gkit-money-save" disabled={savingId === editing.id} onClick={saveEditor}>
-              <PencilLine size={18} />
-              Salvar
+            <button type="button" className="gkit-money-save" disabled={savingId === (editing?.id || 'new-payment') || (creatingPayment && !form.descricao.trim())} onClick={saveEditor}>
+              {creatingPayment ? <Plus size={18} /> : <PencilLine size={18} />}
+              {creatingPayment ? 'Adicionar' : 'Salvar'}
             </button>
           </section>
         </div>
