@@ -335,9 +335,22 @@ export function DashboardHome() {
   const pagamentosEfetuadosTotal = data?.contasPagar.totalPago || 0;
   const colaboradoresTotal = data?.colaboradores.totalMensal || 0;
   const comparativoSaldo = data?.comparativo.resumo.diferencaSaldo || 0;
-  const monthNotOpened = data?.comissoes.status === 'nao_aberto' && data?.contasPagar.status === 'nao_aberto';
+  const receitasNotOpened = data?.comissoes.status === 'nao_aberto';
+  const pagamentosNotOpened = data?.contasPagar.status === 'nao_aberto';
+  const monthHasMissingArea = receitasNotOpened || pagamentosNotOpened;
   const monthIsOpen = data?.comissoes.status === 'aberto' || data?.contasPagar.status === 'aberto';
   const monthIsClosed = data?.comissoes.status === 'fechado' || data?.contasPagar.status === 'fechado';
+  const canOpenMissingArea = monthHasMissingArea && !monthIsClosed;
+  const openMonthLabel = receitasNotOpened && pagamentosNotOpened
+    ? 'Abrir mês'
+    : receitasNotOpened
+      ? 'Abrir receitas'
+      : 'Abrir pagamentos';
+  const receitasBlockedHelp = data?.comissoes.status === 'nao_aberto'
+    ? 'Receitas ainda não foram abertas nesta competência.'
+    : data?.comissoes.status === 'fechado'
+      ? 'Receitas estão fechadas nesta competência.'
+      : '';
 
   return (
     <main className="page-shell dashboard-page flex-cockpit-page">
@@ -349,7 +362,7 @@ export function DashboardHome() {
         primaryStatus={{ label: 'Receitas', status: data?.comissoes.status || 'nao_aberto' }}
         secondaryStatus={{ label: 'Pagamentos', status: data?.contasPagar.status || 'nao_aberto' }}
       >
-        {monthNotOpened ? <button className="secondary-button" disabled={Boolean(actionLoading)} onClick={() => updateMonth('abrir')}>Abrir mês</button> : null}
+        {canOpenMissingArea ? <button className="secondary-button" disabled={Boolean(actionLoading)} onClick={() => updateMonth('abrir')}>{openMonthLabel}</button> : null}
         {monthIsClosed ? <button className="secondary-button" disabled={Boolean(actionLoading)} onClick={() => updateMonth('reabrir')}>Reabrir mês</button> : null}
         {monthIsOpen ? <button className="primary-button" disabled={Boolean(actionLoading)} onClick={() => updateMonth('fechar')}>Fechar mês</button> : null}
       </MonthContextHeader>
@@ -381,6 +394,7 @@ export function DashboardHome() {
               <button className="secondary-button" disabled={!receivableFile || !data?.comissoes.canProcess || actionLoading === 'preview-receitas'} onClick={previewReceitas}>Gerar prévia</button>
               <button className="primary-button" disabled={!receivablePreview || !data?.comissoes.canProcess || actionLoading === 'save-receitas'} onClick={saveReceitas}>Gravar receita</button>
             </div>
+            {receitasBlockedHelp ? <div className="warning">{receitasBlockedHelp}</div> : null}
             {receivablePreview ? (
               <>
                 <section className="grid-3 dashboard-metrics">
