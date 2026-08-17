@@ -213,7 +213,6 @@ export function GkitMoneyPage() {
     return selectedRows
       .filter((item) => {
         if (visibility === 'abertos' && item.pago) return false
-        if (!item.pago) return true
 
         const dueDate = dueDateFor(item, competencia)
         if (!dueDate) return range === 'mes'
