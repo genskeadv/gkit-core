@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { insertPublicationInboxItemsBestEffort } from './publication-inbox'
+import { classifyGkitJurProcessNature } from './process-nature'
 import { refreshGkitJurProcessSummary } from './summary-service'
 
 export type GkitJurSyncProcessRow = {
@@ -683,6 +684,13 @@ function processUpdatePayload(hit: Record<string, any>, movimentos: Array<{ data
   const sistema = source.sistema ?? {}
   const formato = source.formato ?? {}
   const orgao = source.orgaoJulgador ?? {}
+  const assuntos = Array.isArray(source.assuntos) ? source.assuntos : []
+  const natureza = classifyGkitJurProcessNature({
+    assuntos,
+    classeCodigo: classe.codigo,
+    classeNome: classe.nome,
+    metadataDataJud: source,
+  })
   const now = new Date().toISOString()
   const ultimaMovimentacao = movimentos
     .map((movimento) => movimento.data_hora)
@@ -691,7 +699,7 @@ function processUpdatePayload(hit: Record<string, any>, movimentos: Array<{ data
     .at(-1) ?? null
 
   const payload: Record<string, any> = {
-    assuntos: Array.isArray(source.assuntos) ? source.assuntos : [],
+    assuntos,
     classe_codigo: numberOrNull(classe.codigo),
     classe_nome: text(classe.nome) || null,
     data_ajuizamento: dateOrNull(source.dataAjuizamento),
@@ -708,6 +716,14 @@ function processUpdatePayload(hit: Record<string, any>, movimentos: Array<{ data
       ultima_consulta_em: now,
     },
     nivel_sigilo: numberOrNull(source.nivelSigilo),
+    natureza_operacional: natureza.tipo,
+    natureza_operacional_confianca: natureza.confianca,
+    natureza_operacional_label: natureza.label,
+    natureza_operacional_sinais: {
+      motivo: natureza.motivo,
+      sinais: natureza.sinais,
+      version: 1,
+    },
     orgao_julgador_codigo: numberOrNull(orgao.codigo),
     orgao_julgador_codigo_municipio_ibge: numberOrNull(orgao.codigoMunicípioIBGE),
     orgao_julgador_nome: text(orgao.nome) || null,

@@ -319,6 +319,19 @@ function statusLabel(value: string) {
   return value.replace(/_/g, ' ')
 }
 
+function natureTone(row: GkitJurProcessListItem) {
+  if (row.naturezaOperacional === 'nao_classificado') return 'muted'
+  if (row.naturezaOperacionalConfianca === 'alta') return 'success'
+  if (row.naturezaOperacionalConfianca === 'media') return 'warning'
+  return 'muted'
+}
+
+function natureConfidenceLabel(value: string) {
+  if (value === 'alta') return 'alta'
+  if (value === 'media') return 'média'
+  return 'baixa'
+}
+
 function readinessLabel(value: string | null | undefined) {
   if (value === 'pronto') return 'Pronto'
   if (value === 'parcial') return 'Parcial'
@@ -1248,6 +1261,7 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
     filters.responsavelId ? { label: 'Responsável', value: activeValueLabel(filterOptions.responsaveis, filters.responsavelId) } : null,
     filters.tribunal ? { label: 'Tribunal', value: filters.tribunal } : null,
     filters.etiquetaId ? { label: 'Etiqueta', value: tagOptions(filterOptions.etiquetas).find((option) => option.value === filters.etiquetaId)?.label ?? filters.etiquetaId } : null,
+    filters.natureza ? { label: 'Natureza', value: activeValueLabel(filterOptions.naturezas, filters.natureza) } : null,
     filters.monitoramento ? { label: 'Monitoramento', value: optionLabel(gkitJurMonitoramentoOptions, filters.monitoramento) } : null,
     filters.saneamento ? { label: 'Pendência', value: filters.saneamento.replace('sem_', 'Sem ').replace('_', ' ') } : null,
   ].filter(Boolean) as Array<{ label: string; value: string }>
@@ -1302,6 +1316,13 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
           value={filters.monitoramento}
         />
         <SelectField
+          label="Natureza"
+          name="natureza"
+          options={filterOptions.naturezas}
+          placeholder="Todas"
+          value={filters.natureza}
+        />
+        <SelectField
           label="Pendência"
           name="saneamento"
           options={[
@@ -1322,6 +1343,7 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
             { label: 'Ajuizamento', value: 'data_ajuizamento' },
             { label: 'Cliente', value: 'cliente_nome' },
             { label: 'Tribunal', value: 'tribunal_sigla' },
+            { label: 'Natureza', value: 'natureza_operacional' },
           ]}
           placeholder="Atualização"
           value={filters.sort}
@@ -2397,6 +2419,9 @@ function GkitJurProcessTaggableList({
               <GkitJurEtiquetaPills tags={row.etiquetas} />
             </div>
             <span className="suite-pill primary">{row.tribunalSigla || 'Sem tribunal'}</span>
+            <span className={`suite-pill ${natureTone(row)}`} title={row.naturezaOperacionalMotivo || undefined}>
+              {row.naturezaOperacionalLabel}
+            </span>
             <strong>{row.carteiraNome || 'Sem carteira'}</strong>
             <small>{row.responsavelNome || 'Sem responsável'}</small>
             <div className="gkit-jur-row-stack">
@@ -2428,6 +2453,9 @@ function GkitJurProcessList({ rows }: { rows: GkitJurProcessListItem[] }) {
             <p>{row.clienteNome || 'Cliente não vinculado'}{row.pasta ? ` - Pasta ${row.pasta}` : ''}</p>
           </div>
           <span className="suite-pill primary">{row.tribunalSigla || 'Sem tribunal'}</span>
+          <span className={`suite-pill ${natureTone(row)}`} title={row.naturezaOperacionalMotivo || undefined}>
+            {row.naturezaOperacionalLabel}
+          </span>
           <strong>{row.carteiraNome || 'Sem carteira'}</strong>
           <small>{row.responsavelNome || 'Sem responsável'}</small>
           <div className="gkit-jur-row-stack">
@@ -2874,6 +2902,8 @@ function GkitJurProcessDashboard({
         <span>Status: <strong>{optionLabel(gkitJurStatusOptions, processo.status)}</strong></span>
         <span>Monitoramento: <strong>{optionLabel(gkitJurMonitoramentoOptions, processo.statusMonitoramento)}</strong></span>
         <span>Tribunal: <strong>{processo.tribunalSigla || '-'}</strong></span>
+        <span>Natureza: <strong title={processo.naturezaOperacionalMotivo || undefined}>{processo.naturezaOperacionalLabel}</strong></span>
+        <span>Confiança natureza: <strong>{natureConfidenceLabel(processo.naturezaOperacionalConfianca)}</strong></span>
         <span>Classe: <strong>{processo.classeNome || resumo?.faseProcessual || '-'}</strong></span>
         <span>Órgão: <strong>{processo.orgaoJulgadorNome || '-'}</strong></span>
         <span>Sincronização: <strong>{formatDateTime(processo.ultimaSincronizacaoEm ?? resumo?.baseSincronizacaoEm ?? null)}</strong></span>

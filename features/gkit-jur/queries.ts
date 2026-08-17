@@ -4,6 +4,11 @@ import { requireModuleAccess, type ModuleSearchParams } from '@/lib/auth/platfor
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { DATAJUD_TRIBUNAIS } from './datajud-tribunais'
 import { formatCnj } from './normalizer'
+import {
+  GKIT_JUR_NATURE_OPTIONS,
+  classifyGkitJurProcessNature,
+  normalizeGkitJurProcessNature,
+} from './process-nature'
 import type {
   GkitJurAcordoLembreteEmail,
   GkitJurAcordoLembreteEmailStatus,
@@ -93,7 +98,7 @@ const GKIT_JUR_CRON_TIMEZONE = 'America/Sao_Paulo'
 const GKIT_JUR_CRON_DEFAULT_DATAJUD_LIMIT = 8
 const GKIT_JUR_CRON_DEFAULT_TIME_BUDGET_MS = 240_000
 const MOVEMENT_PROCESS_SCOPE_LIMIT = 5000
-const PROCESS_LIST_SELECT = 'id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,ultima_tentativa_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultimo_status_sincronizacao,proxima_tentativa_sincronizacao_em,falhas_transientes_consecutivas,sem_resultado_consecutivos,status,status_monitoramento'
+const PROCESS_LIST_SELECT = 'id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_codigo,classe_nome,assuntos,natureza_operacional,natureza_operacional_label,natureza_operacional_confianca,natureza_operacional_sinais,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,ultima_tentativa_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultimo_status_sincronizacao,proxima_tentativa_sincronizacao_em,falhas_transientes_consecutivas,sem_resultado_consecutivos,status,status_monitoramento'
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -370,6 +375,7 @@ export function buildGkitJurProcessFilters(params?: ModuleSearchParams | null): 
     dir,
     etiquetaId: singleParam(params?.etiqueta_id),
     monitoramento: singleParam(params?.monitoramento),
+    natureza: singleParam(params?.natureza),
     page: positiveInt(singleParam(params?.page), 1),
     q: singleParam(params?.q).trim(),
     responsavelId: singleParam(params?.responsavel_id),
@@ -519,6 +525,17 @@ function mapProcesso(row: Record<string, unknown>, maps: {
   const carteiraId = text(row.carteira_id)
   const responsavelId = text(row.responsavel_id)
   const clienteSnapshot = text(row.cliente_nome) || null
+  const naturezaCalculada = classifyGkitJurProcessNature({
+    assuntos: row.assuntos,
+    classeCodigo: row.classe_codigo,
+    classeNome: row.classe_nome,
+    metadataDataJud: row.metadata_datajud,
+    titulo: row.titulo,
+  })
+  const naturezaTipo = text(row.natureza_operacional)
+    ? normalizeGkitJurProcessNature(row.natureza_operacional)
+    : naturezaCalculada.tipo
+  const naturezaSinais = recordValue(row.natureza_operacional_sinais)
 
   return {
     id: String(row.id),
@@ -530,6 +547,12 @@ function mapProcesso(row: Record<string, unknown>, maps: {
     responsavelNome: responsavelId ? maps.responsaveis.get(responsavelId) ?? null : null,
     tribunalSigla: text(row.tribunal_sigla) || null,
     classeNome: text(row.classe_nome) || null,
+    naturezaOperacional: naturezaTipo,
+    naturezaOperacionalLabel: text(row.natureza_operacional_label) || naturezaCalculada.label,
+    naturezaOperacionalConfianca: ['alta', 'media', 'baixa'].includes(text(row.natureza_operacional_confianca))
+      ? text(row.natureza_operacional_confianca) as 'alta' | 'media' | 'baixa'
+      : naturezaCalculada.confianca,
+    naturezaOperacionalMotivo: text(naturezaSinais.motivo) || naturezaCalculada.motivo || null,
     orgaoJulgadorNome: text(row.orgao_julgador_nome) || null,
     ultimaMovimentacaoEm: text(row.ultima_movimentacao_em) || null,
     ultimaSincronizacaoEm: text(row.ultima_sincronizacao_em) || null,
@@ -744,6 +767,7 @@ async function getFilterOptions(): Promise<GkitJurProcessFilterOptions> {
   return {
     carteiras: ((carteirasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => optionFromRow(row, ['nome'])),
     etiquetas,
+    naturezas: GKIT_JUR_NATURE_OPTIONS,
     responsaveis: ((responsaveisResult.data ?? []) as Array<Record<string, unknown>>).map((row) => optionFromRow(row, ['nome', 'email'])),
     tribunais: tribunais.map((tribunal) => ({ label: tribunal, value: tribunal })),
   }
@@ -1006,7 +1030,7 @@ export async function getGkitJurSaneamentoSuggestions(limit = 8) {
     admin()
       .schema('gkit_jur')
       .from('processos')
-      .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,metadata_datajud,updated_at')
+      .select(`${PROCESS_LIST_SELECT},metadata_datajud,updated_at`)
       .eq('status', DEFAULT_PROCESS_STATUS)
       .or('cliente_id.is.null,carteira_id.is.null,responsavel_id.is.null')
       .order('updated_at', { ascending: false })
@@ -1083,6 +1107,9 @@ function applyProcessFilters(query: any, filters: GkitJurProcessFilters) {
 
   next = next.eq('status', filters.status || DEFAULT_PROCESS_STATUS)
   if (filters.monitoramento) next = next.eq('status_monitoramento', filters.monitoramento)
+  if (filters.natureza) next = filters.natureza === 'nao_classificado'
+    ? next.or('natureza_operacional.is.null,natureza_operacional.eq.nao_classificado')
+    : next.eq('natureza_operacional', filters.natureza)
   if (filters.tribunal) next = next.eq('tribunal_sigla', filters.tribunal)
   if (filters.carteiraId) next = next.eq('carteira_id', filters.carteiraId)
   if (filters.responsavelId) next = next.eq('responsavel_id', filters.responsavelId)
@@ -1167,7 +1194,7 @@ async function resolveEtiquetaProcessIds(etiquetaId: string) {
 }
 
 function sortColumn(sort: string) {
-  if (['cliente_nome', 'tribunal_sigla', 'data_ajuizamento', 'ultima_movimentacao_em', 'updated_at'].includes(sort)) return sort
+  if (['cliente_nome', 'tribunal_sigla', 'natureza_operacional', 'data_ajuizamento', 'ultima_movimentacao_em', 'updated_at'].includes(sort)) return sort
   return 'updated_at'
 }
 
@@ -1226,7 +1253,7 @@ export async function listGkitJurProcesses(filters: GkitJurProcessFilters = buil
   let query = admin()
     .schema('gkit_jur')
     .from('processos')
-    .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,updated_at,data_ajuizamento', { count: 'exact' })
+    .select(`${PROCESS_LIST_SELECT},updated_at,data_ajuizamento`, { count: 'exact' })
 
   query = applyProcessFilters(query, filters)
   if (etiquetaProcessIds) query = etiquetaProcessIds.length ? query.in('id', etiquetaProcessIds) : null
@@ -1275,7 +1302,7 @@ export async function getGkitJurProcessCockpitData(): Promise<GkitJurProcessList
     admin()
       .schema('gkit_jur')
       .from('processos')
-      .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,updated_at,data_ajuizamento', { count: 'exact' })
+      .select(`${PROCESS_LIST_SELECT},updated_at,data_ajuizamento`, { count: 'exact' })
       .eq('status', DEFAULT_PROCESS_STATUS)
       .order('updated_at', { ascending: false })
       .limit(1200),
@@ -1583,6 +1610,10 @@ function emptyProcessForAcordo(processoId: string): GkitJurProcessListItem {
     responsavelNome: null,
     tribunalSigla: null,
     classeNome: null,
+    naturezaOperacional: 'nao_classificado',
+    naturezaOperacionalLabel: 'Não classificado',
+    naturezaOperacionalConfianca: 'baixa',
+    naturezaOperacionalMotivo: null,
     orgaoJulgadorNome: null,
     ultimaMovimentacaoEm: null,
     ultimaSincronizacaoEm: null,
@@ -1983,7 +2014,7 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
     admin()
       .schema('gkit_jur')
       .from('processos')
-      .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,tribunal_alias,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,ultima_tentativa_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultimo_status_sincronizacao,proxima_tentativa_sincronizacao_em,falhas_transientes_consecutivas,sem_resultado_consecutivos,status,status_monitoramento,data_ajuizamento,observacoes,url_processo,origem_modulo,importado_de,created_at,updated_at')
+      .select(`${PROCESS_LIST_SELECT},metadata_datajud,tribunal_alias,data_ajuizamento,observacoes,url_processo,origem_modulo,importado_de,created_at,updated_at`)
       .eq('id', id)
       .single(),
     getGkitJurFormData(),

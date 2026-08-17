@@ -4,6 +4,20 @@ export type GkitJurMonitoramentoStatus = 'monitorando' | 'pausado' | 'erro' | 'n
 
 export type GkitJurSyncStatus = 'sucesso' | 'erro' | 'sem_resultado' | 'parcial' | 'timeout';
 
+export type GkitJurNaturezaOperacional =
+  | 'execucao_titulo_extrajudicial'
+  | 'execucao_fiscal'
+  | 'cumprimento_sentenca'
+  | 'cobranca_condominial'
+  | 'cobranca_conhecimento'
+  | 'acao_monitoria'
+  | 'despejo_cobranca'
+  | 'incidente_recurso'
+  | 'conhecimento_civel'
+  | 'nao_classificado';
+
+export type GkitJurNaturezaConfianca = 'alta' | 'media' | 'baixa';
+
 export type GkitJurInboxFilaId = 'hoje' | 'tarefas' | 'criticos' | 'pendencias' | 'automacao' | 'sem-retorno';
 
 export type GkitJurInboxPrioridade = 'critica' | 'alta' | 'media' | 'baixa';
@@ -116,6 +130,10 @@ export type GkitJurProcessListItem = {
   responsavelNome: string | null;
   tribunalSigla: string | null;
   classeNome: string | null;
+  naturezaOperacional: GkitJurNaturezaOperacional;
+  naturezaOperacionalLabel: string;
+  naturezaOperacionalConfianca: GkitJurNaturezaConfianca;
+  naturezaOperacionalMotivo: string | null;
   orgaoJulgadorNome: string | null;
   ultimaMovimentacaoEm: string | null;
   ultimaSincronizacaoEm: string | null;
@@ -135,6 +153,7 @@ export type GkitJurProcessFilters = {
   dir: 'asc' | 'desc';
   etiquetaId: string;
   monitoramento: string;
+  natureza: string;
   page: number;
   q: string;
   responsavelId: string;
@@ -147,6 +166,7 @@ export type GkitJurProcessFilters = {
 export type GkitJurProcessFilterOptions = {
   carteiras: GkitJurSelectOption[];
   etiquetas: GkitJurEtiqueta[];
+  naturezas: GkitJurSelectOption[];
   responsaveis: GkitJurSelectOption[];
   tribunais: GkitJurSelectOption[];
 };
