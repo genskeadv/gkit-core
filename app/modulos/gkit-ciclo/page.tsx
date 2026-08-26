@@ -7,7 +7,7 @@ import {
   updateCicloCockpitDocumentacaoAction,
 } from '@/features/ciclo/actions'
 import { CicloCockpit } from '@/features/ciclo/cockpit'
-import { CicloShell } from '@/features/ciclo/components'
+import { buildCicloListFilters, CicloShell } from '@/features/ciclo/components'
 import { getCicloCockpitData, requireCicloContext } from '@/features/ciclo/queries'
 import { moduleTarget } from '@/lib/auth/platform'
 
@@ -50,6 +50,7 @@ export default async function CicloPage({
         createClienteAction={createCicloClienteAction}
         createOcorrenciaAction={createCicloOcorrenciaAction}
         data={data}
+        filters={buildCicloListFilters(params)}
         initialPanel={panel}
         permissions={permissions}
         startOnboardingAction={startCicloOnboardingAction}

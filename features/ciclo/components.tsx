@@ -134,7 +134,6 @@ const navGroups: ModuleNavGroup[] = [
   {
     title: 'Operação',
     items: [
-      { href: '/modulos/gkit-ciclo/alertas', label: 'Alertas' },
       { href: '/modulos/gkit-ciclo/onboarding', label: 'Onboarding' },
       { href: '/modulos/gkit-ciclo/regularidade', label: 'Regularidade' },
       { href: '/modulos/gkit-ciclo/timeline', label: 'Timeline' },

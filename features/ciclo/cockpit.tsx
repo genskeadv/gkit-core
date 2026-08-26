@@ -2,7 +2,9 @@
 
 import Link from 'next/link'
 import { useEffect, useId, useMemo, useState } from 'react'
-import type { CicloCockpitData, CicloListRow } from '@/features/ciclo/types'
+import type { CicloListFilters } from '@/features/ciclo/components'
+import { formatDate, riskTone } from '@/features/ciclo/scoring'
+import type { CicloAlerta, CicloCockpitData } from '@/features/ciclo/types'
 import { CicloSubmitButton } from '@/features/ciclo/submit-button'
 
 type CockpitPanel = 'cliente' | 'onboarding' | 'documentacao' | 'ocorrencia'
@@ -30,7 +32,7 @@ const documentoStatusLabel: Record<string, string> = {
   vencido: 'Vencido',
 }
 
-const clientesDocumentacaoPageSize = 5
+const alertasPageSize = 20
 
 function panelTitle(panel: CockpitPanel) {
   return panels.find((item) => item.id === panel)?.title ?? 'Cockpit'
@@ -140,55 +142,148 @@ function SearchableClienteField({
   )
 }
 
-function PendingDocumentClientList({ rows }: { rows: CicloListRow[] }) {
-  const [page, setPage] = useState(1)
-  const pageCount = Math.max(1, Math.ceil(rows.length / clientesDocumentacaoPageSize))
-  const currentPage = Math.min(page, pageCount)
-  const start = (currentPage - 1) * clientesDocumentacaoPageSize
-  const visibleRows = rows.slice(start, start + clientesDocumentacaoPageSize)
+function listDateKey(value?: string) {
+  return value && /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : ''
+}
 
-  if (!rows.length) return <div className="suite-empty-block">Nenhum cliente com documentação pendente no momento.</div>
+function uniqueListOptions(values: string[]) {
+  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+}
+
+function filterCockpitAlertas(alertas: CicloAlerta[], filters: CicloListFilters) {
+  const search = searchText(filters.q)
+  const hasDateFilter = Boolean(filters.de || filters.ate)
+
+  return alertas.filter((alerta) => {
+    if (filters.status && alerta.status !== filters.status) return false
+    if (filters.categoria && alerta.tipo !== filters.categoria) return false
+
+    if (search) {
+      const haystack = searchText([
+        alerta.titulo,
+        alerta.cliente,
+        alerta.descricao,
+        alerta.tipo,
+        alerta.status,
+        alerta.severidade,
+      ].join(' '))
+      if (!haystack.includes(search)) return false
+    }
+
+    if (hasDateFilter) {
+      const date = listDateKey(alerta.vencimentoEm)
+      if (!date) return false
+      if (filters.de && date < filters.de) return false
+      if (filters.ate && date > filters.ate) return false
+    }
+
+    return true
+  })
+}
+
+function cockpitAlertHref(page: number, filters: CicloListFilters) {
+  const params = new URLSearchParams()
+  if (filters.q) params.set('q', filters.q)
+  if (filters.status) params.set('status', filters.status)
+  if (filters.categoria) params.set('categoria', filters.categoria)
+  if (filters.de) params.set('de', filters.de)
+  if (filters.ate) params.set('ate', filters.ate)
+  if (page > 1) params.set('pagina', String(page))
+  const query = params.toString()
+  return query ? `?${query}` : '?'
+}
+
+function CockpitAlertList({ alertas, filters }: { alertas: CicloAlerta[]; filters: CicloListFilters }) {
+  const rows = filterCockpitAlertas(alertas, filters)
+  const grouped = [...rows.reduce((acc, alerta) => {
+    const cliente = alerta.cliente || 'Cliente não vinculado'
+    acc.set(cliente, [...(acc.get(cliente) ?? []), alerta])
+    return acc
+  }, new Map<string, CicloAlerta[]>())]
+    .sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
+    .map(([cliente, items]) => ({
+      cliente,
+      items: items.sort((a, b) => (listDateKey(a.vencimentoEm) || '9999-12-31').localeCompare(listDateKey(b.vencimentoEm) || '9999-12-31') || a.titulo.localeCompare(b.titulo, 'pt-BR')),
+    }))
+  const totalPages = Math.max(1, Math.ceil(grouped.length / alertasPageSize))
+  const currentPage = Math.min(Math.max(filters.pagina, 1), totalPages)
+  const visibleGroups = grouped.slice((currentPage - 1) * alertasPageSize, currentPage * alertasPageSize)
+  const statusOptions = uniqueListOptions(alertas.map((alerta) => alerta.status))
+  const categoryOptions = uniqueListOptions(alertas.map((alerta) => alerta.tipo))
+  const hasFilters = Boolean(filters.q || filters.status || filters.categoria || filters.de || filters.ate)
 
   return (
-    <>
-      <div className="suite-table-list compact ciclo-cockpit-table-list" role="list">
-        {visibleRows.map((row) => {
-          const content = (
-            <>
-              <div>
-                <h3>{row.title}</h3>
-                <p>{row.subtitle}</p>
-              </div>
-              <strong>{row.value}</strong>
-              <small>{row.meta}</small>
-            </>
-          )
+    <section className="card ciclo-panel">
+      <form className="ciclo-list-filter-bar" method="get">
+        <label className="ciclo-list-search">
+          <span>Busca</span>
+          <input className="input" name="q" placeholder="Cliente, alerta, descricao..." defaultValue={filters.q} />
+        </label>
+        <label>
+          <span>Status</span>
+          <select className="select" name="status" defaultValue={filters.status}>
+            <option value="">Todos</option>
+            {statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Tipo</span>
+          <select className="select" name="categoria" defaultValue={filters.categoria}>
+            <option value="">Todos</option>
+            {categoryOptions.map((category) => <option key={category} value={category}>{category}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Vencimento de</span>
+          <input className="input" name="de" type="date" defaultValue={filters.de} />
+        </label>
+        <label>
+          <span>Vencimento ate</span>
+          <input className="input" name="ate" type="date" defaultValue={filters.ate} />
+        </label>
+        <button className="button secondary" type="submit">Filtrar</button>
+        {hasFilters ? <Link className="button secondary" href="?">Limpar</Link> : null}
+      </form>
 
-          return row.detailHref ? (
-            <Link className="ciclo-cockpit-row" href={row.detailHref} key={row.id} role="listitem">
-              {content}
-            </Link>
-          ) : (
-            <article className="ciclo-cockpit-row" key={row.id} role="listitem">
-              {content}
-            </article>
-          )
-        })}
-      </div>
-      {pageCount > 1 ? (
-        <div className="ciclo-cockpit-pagination">
-          <span>{start + 1}-{Math.min(start + clientesDocumentacaoPageSize, rows.length)} de {rows.length}</span>
-          <div>
-            <button disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} type="button">
-              Anterior
-            </button>
-            <button disabled={currentPage === pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))} type="button">
-              Próxima
-            </button>
+      {visibleGroups.length ? (
+        <div className="ciclo-client-group-list">
+          <div className="ciclo-list-pagination">
+            <span>{grouped.length} cliente(s) · página {currentPage} de {totalPages}</span>
+            <div>
+              <Link aria-disabled={currentPage === 1} className="button secondary" href={cockpitAlertHref(currentPage - 1, filters)}>
+                Anterior
+              </Link>
+              <Link aria-disabled={currentPage === totalPages} className="button secondary" href={cockpitAlertHref(currentPage + 1, filters)}>
+                Próxima
+              </Link>
+            </div>
           </div>
+          {visibleGroups.map((group) => (
+            <details className="ciclo-client-group" key={group.cliente}>
+              <summary>
+                <span aria-hidden="true">+</span>
+                <strong>{group.cliente}</strong>
+                <small>{group.items.length} alerta(s)</small>
+              </summary>
+              <div className="ciclo-alert-list">
+                {group.items.map((alerta) => (
+                  <article key={alerta.id}>
+                    <span className={`ciclo-pill ${riskTone(alerta.severidade)}`}>{alerta.severidade}</span>
+                    <div className="ciclo-clientes-main">
+                      <h3>{alerta.titulo}</h3>
+                      <p>{alerta.descricao || alerta.tipo}</p>
+                    </div>
+                    <small>{formatDate(alerta.vencimentoEm)}</small>
+                  </article>
+                ))}
+              </div>
+            </details>
+          ))}
         </div>
-      ) : null}
-    </>
+      ) : (
+        <div className="suite-empty-block">Nenhum alerta encontrado.</div>
+      )}
+    </section>
   )
 }
 
@@ -196,6 +291,7 @@ export function CicloCockpit({
   createClienteAction,
   createOcorrenciaAction,
   data,
+  filters,
   initialPanel = null,
   permissions,
   startOnboardingAction,
@@ -204,6 +300,7 @@ export function CicloCockpit({
   createClienteAction: (formData: FormData) => Promise<void>
   createOcorrenciaAction: (formData: FormData) => Promise<void>
   data: CicloCockpitData
+  filters: CicloListFilters
   initialPanel?: CockpitPanel | null
   permissions: CockpitPermissions
   startOnboardingAction: (formData: FormData) => Promise<void>
@@ -225,7 +322,7 @@ export function CicloCockpit({
         <div className="suite-panel-heading">
           <div>
             <h2>Ordem do fluxo</h2>
-            <p>Escolha uma etapa para abrir o formulario; por padrão, o cockpit mostra clientes com documentação pendente.</p>
+            <p>Escolha uma etapa para abrir o formulario; por padrão, o cockpit mostra a fila de alertas por cliente.</p>
           </div>
         </div>
 
@@ -249,12 +346,12 @@ export function CicloCockpit({
       <section className="suite-panel ciclo-cockpit-form-panel">
         <div className="suite-panel-heading">
           <div>
-            <h2>{activePanel ? panelTitle(activePanel) : 'Clientes com documentação pendente'}</h2>
-            <p>{activePanel ? panelDescription(activePanel) : 'Clientes com checklist documental pendente ou vencido.'}</p>
+            <h2>{activePanel ? panelTitle(activePanel) : 'Alertas recentes'}</h2>
+            <p>{activePanel ? panelDescription(activePanel) : 'Fila operacional agrupada por cliente.'}</p>
           </div>
         </div>
 
-        {!activePanel ? <PendingDocumentClientList rows={data.clientesDocumentacaoPendente} /> : null}
+        {!activePanel ? <CockpitAlertList alertas={data.alertas} filters={filters} /> : null}
 
         {activePanel === 'cliente' ? (
           <form action={createClienteAction} className="card module-form module-form-grid">

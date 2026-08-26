@@ -164,6 +164,7 @@ export type CicloCockpitDocumento = {
 }
 
 export type CicloCockpitData = {
+  alertas: CicloAlerta[]
   clienteFormData: CicloClienteFormData
   clientesDocumentacaoPendente: CicloListRow[]
   documentoFormData: CicloDocumentoFormData

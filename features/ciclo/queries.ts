@@ -1198,12 +1198,42 @@ async function buildCicloCockpitDocumentos(documentoFormData: CicloDocumentoForm
   return documentos
 }
 
+async function buildCicloCockpitAlertas(documentoFormData: CicloDocumentoFormData) {
+  const clienteIds = documentoFormData.clientes.map((cliente) => cliente.id)
+  if (!clienteIds.length) return []
+
+  const clienteMap = new Map(documentoFormData.clientes.map((cliente) => [cliente.id, cliente.shortLabel ?? cliente.label]))
+
+  const rows = await safeLoadRowsByChunks(clienteIds, (chunk) => admin()
+    .schema('ciclo')
+    .from('alertas_cliente')
+    .select('id,cliente_id,tipo,titulo,descricao,status,severidade,vencimento_em,created_at')
+    .in('cliente_id', chunk)
+    .order('created_at', { ascending: false }))
+
+  return rows.map((row): CicloAlerta => {
+    const clienteId = text(row.cliente_id)
+    return {
+      id: text(row.id),
+      cliente: clienteMap.get(clienteId) ?? 'Cliente não vinculado',
+      titulo: text(row.titulo, 'Alerta operacional'),
+      descricao: text(row.descricao),
+      tipo: text(row.tipo, 'operacional'),
+      status: normalizeAlertaStatus(row.status),
+      severidade: normalizeSeveridade(row.severidade),
+      vencimentoEm: text(row.vencimento_em),
+    }
+  })
+}
+
 export async function getCicloCockpitData(context: CicloContext, activePanel: CicloCockpitPanel | null = null): Promise<CicloCockpitData> {
+  const emptyAlertas: CicloAlerta[] = []
   const emptyClienteFormData: CicloClienteFormData = { administradoras: [], carteiras: [] }
   const emptyDocumentoFormData: CicloDocumentoFormData = { clientes: [] }
 
   if (activePanel === 'cliente') {
     return {
+      alertas: emptyAlertas,
       clienteFormData: await getCicloClienteFormData(context),
       clientesDocumentacaoPendente: [],
       documentoFormData: emptyDocumentoFormData,
@@ -1213,6 +1243,7 @@ export async function getCicloCockpitData(context: CicloContext, activePanel: Ci
 
   if (activePanel === 'onboarding' || activePanel === 'ocorrencia') {
     return {
+      alertas: emptyAlertas,
       clienteFormData: emptyClienteFormData,
       clientesDocumentacaoPendente: [],
       documentoFormData: await getCicloDocumentoFormData(context),
@@ -1230,6 +1261,7 @@ export async function getCicloCockpitData(context: CicloContext, activePanel: Ci
 
   if (activePanel === 'documentacao') {
     return {
+      alertas: emptyAlertas,
       clienteFormData,
       clientesDocumentacaoPendente: [],
       documentoFormData,
@@ -1273,7 +1305,10 @@ export async function getCicloCockpitData(context: CicloContext, activePanel: Ci
     return toneRank(a) - toneRank(b) || Number.parseInt(b.value, 10) - Number.parseInt(a.value, 10) || a.title.localeCompare(b.title)
   })
 
+  const alertas = (await buildCicloCockpitAlertas(documentoFormData))
+
   return {
+    alertas,
     clienteFormData,
     clientesDocumentacaoPendente,
     documentoFormData,
