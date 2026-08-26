@@ -1,5 +1,6 @@
 'use client'
 
+import { LogOut, Plus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { PlatformUsuario } from '@/lib/auth/platform'
@@ -11,6 +12,20 @@ type AreaListFilter = {
   field: ListFilterField;
   order: ListOrder;
   query: string;
+}
+type ManualCreateField = {
+  label: string;
+  name: string;
+  placeholder: string;
+  type?: string;
+  multiline?: boolean;
+}
+type ManualCreateConfig = {
+  title: string;
+  eyebrow: string;
+  description: string;
+  href: string;
+  fields: ManualCreateField[];
 }
 
 const STORAGE_VIEW_KEY = 'gkit-jur-novo-jur-view'
@@ -88,6 +103,75 @@ const areaOrderOptions: Record<GkitJurCockpitArea, Record<ListOrder, string>> = 
   },
 }
 
+const manualCreateConfig: Record<GkitJurCockpitArea, ManualCreateConfig> = {
+  processos: {
+    eyebrow: 'Processo',
+    title: 'Inserção manual de processo',
+    description: 'Registre o ponto de partida do processo e avance para completar dados de cliente, carteira e monitoramento.',
+    href: '/modulos/gkit-jur/processos',
+    fields: [
+      { label: 'Número CNJ', name: 'numero_cnj', placeholder: 'Digite o número do processo' },
+      { label: 'Cliente', name: 'cliente', placeholder: 'Digite o cliente' },
+      { label: 'Carteira', name: 'carteira', placeholder: 'Digite a carteira' },
+    ],
+  },
+  pre_juridico: {
+    eyebrow: 'Pré-jurídico',
+    title: 'Inserção manual de pré-jurídico',
+    description: 'Abra uma triagem manual com cliente, assunto e descrição inicial para qualificação antes do processo.',
+    href: '/modulos/gkit-jur/pre-juridico',
+    fields: [
+      { label: 'Título', name: 'titulo', placeholder: 'Digite o assunto' },
+      { label: 'Cliente', name: 'cliente', placeholder: 'Digite o cliente' },
+      { label: 'Resumo', name: 'descricao', placeholder: 'Descreva a demanda inicial', multiline: true },
+    ],
+  },
+  tarefas: {
+    eyebrow: 'Tarefa',
+    title: 'Inserção manual de tarefa',
+    description: 'Crie a base da tarefa operacional e direcione para a fila correta do jurídico.',
+    href: '/modulos/gkit-jur/inbox?fila=tarefas',
+    fields: [
+      { label: 'Processo ou cliente', name: 'referencia', placeholder: 'Digite uma referência' },
+      { label: 'Tarefa', name: 'titulo', placeholder: 'Digite a tarefa' },
+      { label: 'Prazo', name: 'prazo', placeholder: 'Selecione o prazo', type: 'date' },
+    ],
+  },
+  publicacoes: {
+    eyebrow: 'Publicação',
+    title: 'Inserção manual de publicação',
+    description: 'Cadastre uma publicação avulsa para conferência e vinculação posterior.',
+    href: '/modulos/gkit-jur/publicacoes',
+    fields: [
+      { label: 'Processo', name: 'processo', placeholder: 'Digite o processo' },
+      { label: 'Fonte', name: 'fonte', placeholder: 'Digite a fonte' },
+      { label: 'Texto', name: 'texto', placeholder: 'Cole o teor da publicação', multiline: true },
+    ],
+  },
+  acordos: {
+    eyebrow: 'Acordo',
+    title: 'Inserção manual de acordo',
+    description: 'Inicie um acordo judicial ou extrajudicial com vínculo, valor e vencimento base.',
+    href: '/modulos/gkit-jur/acordos',
+    fields: [
+      { label: 'Processo ou cliente', name: 'referencia', placeholder: 'Digite uma referência' },
+      { label: 'Valor', name: 'valor', placeholder: '0,00' },
+      { label: 'Primeiro vencimento', name: 'vencimento', placeholder: 'Selecione a data', type: 'date' },
+    ],
+  },
+  agenda: {
+    eyebrow: 'Agenda',
+    title: 'Inserção manual de agenda',
+    description: 'Inclua prazo, audiência ou compromisso para acompanhamento da operação jurídica.',
+    href: '/modulos/gkit-jur/novo-jur?area=agenda',
+    fields: [
+      { label: 'Processo ou cliente', name: 'referencia', placeholder: 'Digite uma referência' },
+      { label: 'Evento', name: 'titulo', placeholder: 'Digite o evento' },
+      { label: 'Data', name: 'data', placeholder: 'Selecione a data', type: 'date' },
+    ],
+  },
+}
+
 function isArea(value: string | null): value is GkitJurCockpitArea {
   return Boolean(value && areaOrder.includes(value as GkitJurCockpitArea))
 }
@@ -140,6 +224,7 @@ export function GkitJurNovoJurPage({
 }) {
   const [activeArea, setActiveArea] = useState<GkitJurCockpitArea>(() => isArea(initialArea ?? null) ? initialArea as GkitJurCockpitArea : 'tarefas')
   const [dashboardCollapsed, setDashboardCollapsed] = useState(false)
+  const [manualPanelOpen, setManualPanelOpen] = useState(false)
   const [areaFilters, setAreaFilters] = useState(createAreaFilters)
 
   useEffect(() => {
@@ -159,6 +244,7 @@ export function GkitJurNovoJurPage({
   }, [dashboardCollapsed])
 
   const data = cockpitData[activeArea]
+  const manualConfig = manualCreateConfig[activeArea]
   const listCaption = useMemo(() => `${areaLabels[activeArea]} da carteira`, [activeArea])
   const activeFilter = areaFilters[activeArea]
   const [visibleGroupLimit, setVisibleGroupLimit] = useState(CLIENT_GROUP_PAGE_SIZE)
@@ -216,26 +302,62 @@ export function GkitJurNovoJurPage({
   return (
     <main className="gkit-jur-novo-jur">
       <header className="gkit-jur-novo-jur-header">
-        <div className="gkit-jur-novo-jur-brand">
-          <span>GKIT Jur</span>
-          <strong>Novo Jur</strong>
-        </div>
+        <button
+          aria-expanded={manualPanelOpen}
+          aria-label={`Inserir ${manualConfig.eyebrow.toLowerCase()}`}
+          className="gkit-jur-novo-jur-create"
+          onClick={() => setManualPanelOpen((current) => !current)}
+          title={`Inserir ${manualConfig.eyebrow.toLowerCase()}`}
+          type="button"
+        >
+          <Plus aria-hidden="true" size={21} strokeWidth={2.3} />
+        </button>
 
         <form action="/modulos/gkit-jur/busca" className="gkit-jur-novo-jur-search" method="get">
-          <label htmlFor="gkit-jur-cockpit-search">Busca geral</label>
           <div>
-          <input id="gkit-jur-cockpit-search" name="q" placeholder="Processo, pré-jurídico, publicação, tarefa..." type="search" />
+            <input id="gkit-jur-cockpit-search" name="q" placeholder="Processo, pré-jurídico, publicação, tarefa..." type="search" />
             <button type="submit">Buscar</button>
           </div>
         </form>
 
-        <div className="gkit-jur-novo-jur-operator">
-          <span>{usuario.nome}</span>
-          <small>ID {usuario.id.slice(0, 8)} - {usuario.tipo.replace('_', ' ')}</small>
+        <div className="gkit-jur-novo-jur-right">
+          <div className="gkit-jur-novo-jur-operator">
+            <span>{usuario.nome}</span>
+            <small>ID {usuario.id.slice(0, 8)} - {usuario.tipo.replace('_', ' ')}</small>
+          </div>
+          <a className="gkit-jur-novo-jur-settings" href="/modulos/gkit-jur/configuracoes">Configurações</a>
+          <a aria-label="Sair" className="gkit-jur-novo-jur-logout" href="/logout" title="Sair">
+            <LogOut aria-hidden="true" size={18} strokeWidth={2.2} />
+            <span>Sair</span>
+          </a>
         </div>
-
-        <a className="gkit-jur-novo-jur-settings" href="/modulos/gkit-jur/configuracoes">Configurações</a>
       </header>
+
+      {manualPanelOpen ? (
+        <section className="gkit-jur-novo-jur-manual-panel" aria-label={manualConfig.title}>
+          <div className="gkit-jur-novo-jur-manual-copy">
+            <span>{manualConfig.eyebrow}</span>
+            <strong>{manualConfig.title}</strong>
+            <p>{manualConfig.description}</p>
+          </div>
+          <form action={manualConfig.href} className="gkit-jur-novo-jur-manual-form" method="get">
+            {manualConfig.fields.map((field) => (
+              <label key={field.name}>
+                <span>{field.label}</span>
+                {field.multiline ? (
+                  <textarea name={field.name} placeholder={field.placeholder} rows={3} />
+                ) : (
+                  <input name={field.name} placeholder={field.placeholder} type={field.type ?? 'text'} />
+                )}
+              </label>
+            ))}
+            <div className="gkit-jur-novo-jur-manual-actions">
+              <button type="submit">Continuar</button>
+              <button type="button" onClick={() => setManualPanelOpen(false)}>Fechar</button>
+            </div>
+          </form>
+        </section>
+      ) : null}
 
       <details
         className="gkit-jur-cockpit-dashboard"
