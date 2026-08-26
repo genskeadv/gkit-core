@@ -541,6 +541,7 @@
 }
 
 .gkit-jur-novo-jur {
+  align-content: start;
   background: #edf0f3;
   color: #111827;
   display: grid;
@@ -1013,6 +1014,7 @@
 
 .gkit-jur-cockpit-actions {
   align-items: stretch;
+  align-content: start;
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(6, minmax(0, 1fr));
