@@ -1,7 +1,4 @@
-import { CicloAtendimentoDashboardView, CicloSection, CicloShell } from '@/features/ciclo/components'
-import { getCicloAtendimentoDashboard, requireCicloContext } from '@/features/ciclo/queries'
-import { moduleTarget } from '@/lib/auth/platform'
-import type { CicloAtendimentoStatus, CicloAtendimentoTab } from '@/features/ciclo/types'
+import { redirect } from 'next/navigation'
 
 type CicloAtendimentoPageProps = {
   searchParams?: Promise<{
@@ -12,46 +9,14 @@ type CicloAtendimentoPageProps = {
   }>
 }
 
-function activeTab(value?: string): CicloAtendimentoTab {
-  if (value === 'responsavel' || value === 'carteira' || value === 'tipo') return value
-  return 'cliente'
-}
-
-function statusFilter(value?: string): '' | CicloAtendimentoStatus {
-  if (value === 'aberto' || value === 'encerrado') return value
-  return ''
-}
-
-function dateFilter(value?: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value ?? '') ? value : ''
-}
-
 export default async function CicloAtendimentoPage({ searchParams }: CicloAtendimentoPageProps) {
   const params = await searchParams
-  const context = await requireCicloContext(moduleTarget('/modulos/gkit-ciclo/atendimento', params))
-  const tab = activeTab(params?.aba)
-  const filters = {
-    dataDe: dateFilter(params?.de),
-    dataAte: dateFilter(params?.ate),
-    status: statusFilter(params?.status),
-  }
-  const data = await getCicloAtendimentoDashboard(context, filters)
+  const query = new URLSearchParams()
 
-  return (
-    <CicloShell
-      active="atendimento"
-      eyebrow="ASTREA"
-      title="Atendimento"
-      description="Dashboard consultivo com visões por cliente, responsável, carteira e tipo de atendimento."
-      usuario={context.usuario}
-    >
-      <CicloSection
-        eyebrow="Consultivo"
-        title="Atendimentos ASTREA"
-        description="Filtre por período e status para acompanhar volume, responsáveis, carteiras e etiquetas."
-      >
-        <CicloAtendimentoDashboardView activeTab={tab} data={data} filters={filters} />
-      </CicloSection>
-    </CicloShell>
-  )
+  for (const key of ['aba', 'de', 'ate', 'status']) {
+    const value = params?.[key as 'aba' | 'de' | 'ate' | 'status']
+    if (typeof value === 'string' && value) query.set(key, value)
+  }
+
+  redirect(`/modulos/gkit-ate/dashboard${query.size ? `?${query.toString()}` : ''}`)
 }

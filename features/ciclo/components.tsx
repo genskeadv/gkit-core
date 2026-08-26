@@ -97,7 +97,7 @@ const activeHref: Record<CicloTab, string> = {
   cockpit: '/modulos/gkit-ciclo',
   dashboard: '/modulos/gkit-ciclo/dashboard',
   clientes: '/modulos/gkit-ciclo/clientes',
-  atendimento: '/modulos/gkit-ciclo/atendimento',
+  atendimento: '/modulos/gkit-ate/dashboard',
   administradoras: '/modulos/gkit-ciclo/administradoras',
   importacoes: '/modulos/gkit-ciclo/importacoes',
   documentos: '/modulos/gkit-ciclo/documentos',
@@ -122,7 +122,6 @@ const navGroups: ModuleNavGroup[] = [
     title: 'Dados',
     items: [
       { href: '/modulos/gkit-ciclo/importacoes', label: 'Importações' },
-      { href: '/modulos/gkit-ciclo/atendimento', label: 'Atendimento' },
     ],
   },
   {
@@ -156,7 +155,6 @@ const navTitleByHref: Record<string, string> = {
   '/modulos/gkit-ciclo': 'Cockpit',
   '/modulos/gkit-ciclo/dashboard': 'Gestão',
   '/modulos/gkit-ciclo/clientes': 'Clientes',
-  '/modulos/gkit-ciclo/atendimento': 'Atendimento',
   '/modulos/gkit-ciclo/documentos': 'Documentos',
   '/modulos/gkit-ciclo/contratos': 'Contratos',
   '/modulos/gkit-ciclo/atas': 'Atas',
@@ -172,7 +170,6 @@ const navOrder = [
   '/modulos/gkit-ciclo',
   '/modulos/gkit-ciclo/importacoes',
   '/modulos/gkit-ciclo/clientes',
-  '/modulos/gkit-ciclo/atendimento',
   '/modulos/gkit-ciclo/documentos',
   '/modulos/gkit-ciclo/contratos',
   '/modulos/gkit-ciclo/atas',
@@ -577,7 +574,7 @@ function atendimentoHref(tab: CicloAtendimentoTab, filters: { dataDe?: string; d
   if (filters.dataDe) params.set('de', filters.dataDe)
   if (filters.dataAte) params.set('ate', filters.dataAte)
   if (filters.status) params.set('status', filters.status)
-  return `/modulos/gkit-ciclo/atendimento?${params.toString()}`
+  return `/modulos/gkit-ate/dashboard?${params.toString()}`
 }
 
 function onboardingPercent(value: string) {
@@ -769,7 +766,7 @@ export function CicloAtendimentoDashboardView({
           </select>
         </label>
         <button className="button secondary" type="submit">Filtrar</button>
-        <Link className="button secondary" href="/modulos/gkit-ciclo/atendimento">Limpar</Link>
+        <Link className="button secondary" href="/modulos/gkit-ate/dashboard">Limpar</Link>
       </form>
 
       <section className="ciclo-atendimento-kpis">

@@ -55,6 +55,7 @@ const shortcutGroups = [
     description: 'Atendimentos consultivos importados do ASTREA com tarefas vinculadas.',
     links: [
       { href: '/modulos/gkit-ate', label: 'Cockpit' },
+      { href: '/modulos/gkit-ate/dashboard', label: 'Dashboard' },
       { href: '/modulos/gkit-ate/atendimentos', label: 'Atendimentos' },
       { href: '/modulos/gkit-ate/tarefas', label: 'Tarefas' },
       { href: '/modulos/gkit-ate/importacoes', label: 'Importações' },

@@ -3,12 +3,21 @@ import type { ReactNode } from 'react'
 import { ModuleShell, type ModuleNavGroup } from '@/features/shared/module-shell'
 import { OperationalKpiGrid, OperationalQuickLinks, type OperationalQuickLink } from '@/features/shared/operational-ui'
 import type { PlatformUsuario } from '@/lib/auth/platform'
-import type { GkitAteAtendimentoDetail, GkitAteDashboardData, GkitAteHealth, GkitAteListRow, GkitAteTarefa } from '@/features/gkit-ate/types'
+import type {
+  GkitAteAtendimentoDashboardData,
+  GkitAteAtendimentoDetail,
+  GkitAteDashboardData,
+  GkitAteDashboardTab,
+  GkitAteHealth,
+  GkitAteListRow,
+  GkitAteTarefa,
+} from '@/features/gkit-ate/types'
 
-type GkitAteTab = 'cockpit' | 'atendimentos' | 'tarefas' | 'importacoes' | 'cadastros'
+type GkitAteTab = 'cockpit' | 'dashboard' | 'atendimentos' | 'tarefas' | 'importacoes' | 'cadastros'
 
 const activeHref: Record<GkitAteTab, string> = {
   cockpit: '/modulos/gkit-ate',
+  dashboard: '/modulos/gkit-ate/dashboard',
   atendimentos: '/modulos/gkit-ate/atendimentos',
   tarefas: '/modulos/gkit-ate/tarefas',
   importacoes: '/modulos/gkit-ate/importacoes',
@@ -17,6 +26,7 @@ const activeHref: Record<GkitAteTab, string> = {
 
 const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-ate', title: 'Cockpit' },
+  { href: '/modulos/gkit-ate/dashboard', title: 'Dashboard' },
   { href: '/modulos/gkit-ate/atendimentos', title: 'Atendimentos' },
   { href: '/modulos/gkit-ate/tarefas', title: 'Tarefas' },
   { href: '/modulos/gkit-ate/importacoes', title: 'Importações' },
@@ -89,6 +99,153 @@ export function GkitAteKpis({ data }: { data: GkitAteDashboardData }) {
 
 export function GkitAteQuickLinks({ items }: { items: OperationalQuickLink[] }) {
   return <OperationalQuickLinks classPrefix="gkit-ate" defaultLabel="Fluxo" items={items} />
+}
+
+function atendimentoDashboardTabLabel(tab: GkitAteDashboardTab) {
+  if (tab === 'responsavel') return 'Responsável'
+  if (tab === 'carteira') return 'Carteira'
+  if (tab === 'tipo') return 'Tipo de atendimento'
+  return 'Cliente'
+}
+
+function atendimentoDashboardHref(tab: GkitAteDashboardTab, filters: { dataDe?: string; dataAte?: string; status?: string }) {
+  const params = new URLSearchParams()
+  params.set('aba', tab)
+  if (filters.dataDe) params.set('de', filters.dataDe)
+  if (filters.dataAte) params.set('ate', filters.dataAte)
+  if (filters.status) params.set('status', filters.status)
+  return `/modulos/gkit-ate/dashboard?${params.toString()}`
+}
+
+export function GkitAteAtendimentoDashboard({
+  activeTab,
+  data,
+  filters,
+}: {
+  activeTab: GkitAteDashboardTab
+  data: GkitAteAtendimentoDashboardData
+  filters: { dataDe?: string; dataAte?: string; status?: string }
+}) {
+  const groups = data.groups[activeTab] ?? []
+  const topGroups = groups.slice(0, 10)
+  const maxGroup = Math.max(...topGroups.map((item) => item.total), 1)
+  const maxMonth = Math.max(...data.months.map((item) => item.total), 1)
+
+  if (!data.databaseReady) {
+    return <GkitAteHealthNotice health={data.health} />
+  }
+
+  return (
+    <div className="gkit-ate-dashboard">
+      <form className="gkit-ate-dashboard-filters" method="get">
+        <input name="aba" type="hidden" value={activeTab} />
+        <label>
+          <span>Criação de</span>
+          <input className="input" name="de" type="date" defaultValue={filters.dataDe ?? ''} />
+        </label>
+        <label>
+          <span>Criação até</span>
+          <input className="input" name="ate" type="date" defaultValue={filters.dataAte ?? ''} />
+        </label>
+        <label>
+          <span>Status</span>
+          <select className="select" name="status" defaultValue={filters.status ?? ''}>
+            <option value="">Todos</option>
+            <option value="aberto">Aberto</option>
+            <option value="encerrado">Encerrado</option>
+          </select>
+        </label>
+        <button className="button secondary" type="submit">Filtrar</button>
+        <Link className="button secondary" href="/modulos/gkit-ate/dashboard">Limpar</Link>
+      </form>
+
+      <section className="gkit-ate-dashboard-kpis">
+        <article>
+          <span>Total</span>
+          <strong>{data.kpis.total}</strong>
+          <small>atendimentos ASTREA</small>
+        </article>
+        <article>
+          <span>Abertos</span>
+          <strong>{data.kpis.abertos}</strong>
+          <small>em acompanhamento</small>
+        </article>
+        <article>
+          <span>Encerrados</span>
+          <strong>{data.kpis.encerrados}</strong>
+          <small>finalizados</small>
+        </article>
+        <article>
+          <span>Clientes</span>
+          <strong>{data.kpis.clientes}</strong>
+          <small>com atendimento</small>
+        </article>
+        <article>
+          <span>Responsáveis</span>
+          <strong>{data.kpis.responsaveis}</strong>
+          <small>na operação</small>
+        </article>
+        <article>
+          <span>Tipos</span>
+          <strong>{data.kpis.tipos}</strong>
+          <small>por etiqueta</small>
+        </article>
+      </section>
+
+      <nav className="suite-tabs gkit-ate-dashboard-tabs" aria-label="Visões de atendimento">
+        {(['cliente', 'responsavel', 'carteira', 'tipo'] as GkitAteDashboardTab[]).map((tab) => (
+          <Link className={activeTab === tab ? 'active' : ''} href={atendimentoDashboardHref(tab, filters)} key={tab}>
+            {atendimentoDashboardTabLabel(tab)}
+          </Link>
+        ))}
+      </nav>
+
+      <section className="gkit-ate-dashboard-grid">
+        <article className="gkit-ate-dashboard-panel">
+          <div className="gkit-ate-panel-heading">
+            <div>
+              <h2>Top 10 por {atendimentoDashboardTabLabel(activeTab).toLowerCase()}</h2>
+              <p>Volume, abertos e encerrados dentro do filtro atual.</p>
+            </div>
+          </div>
+          <div className="gkit-ate-dashboard-ranking">
+            {topGroups.map((item) => (
+              <div key={item.label}>
+                <div>
+                  <strong>{item.label}</strong>
+                  <span>{item.abertos} abertos - {item.encerrados} encerrados</span>
+                </div>
+                <div className="gkit-ate-dashboard-bar" aria-hidden="true">
+                  <span style={{ width: `${Math.max(6, Math.round((item.total / maxGroup) * 100))}%` }} />
+                </div>
+                <b>{item.total}</b>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="gkit-ate-dashboard-panel">
+          <div className="gkit-ate-panel-heading">
+            <div>
+              <h2>Mês a mês</h2>
+              <p>Atendimentos por data de criação.</p>
+            </div>
+          </div>
+          <div className="gkit-ate-dashboard-months">
+            {data.months.map((item) => (
+              <div key={item.label}>
+                <span>{item.label}</span>
+                <div className="gkit-ate-dashboard-column" title={`${item.total} atendimentos`}>
+                  <i style={{ height: `${Math.max(8, Math.round((item.total / maxMonth) * 100))}%` }} />
+                </div>
+                <strong>{item.total}</strong>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+    </div>
+  )
 }
 
 export type GkitAteFilterField = {

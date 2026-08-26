@@ -4,9 +4,11 @@ import { requireModuleAccess } from '@/lib/auth/platform'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import type {
   GkitAteAtendimento,
+  GkitAteAtendimentoDashboardData,
   GkitAteAtendimentoDetail,
   GkitAteAtendimentoTipo,
   GkitAteDashboardData,
+  GkitAteDashboardTab,
   GkitAteFormData,
   GkitAteHealth,
   GkitAteImportacao,
@@ -60,6 +62,12 @@ function atendimentoStatus(value: unknown): GkitAteStatus {
 function tarefaStatus(value: unknown): GkitAteTarefaStatus {
   if (value === 'em_andamento' || value === 'concluida' || value === 'cancelada') return value
   return 'pendente'
+}
+
+export type GkitAteAtendimentoDashboardFilters = {
+  dataDe?: string
+  dataAte?: string
+  status?: '' | GkitAteStatus
 }
 
 function statusLabel(status: string) {
@@ -264,6 +272,116 @@ export function tarefaRows(tarefas: GkitAteTarefa[]): GkitAteListRow[] {
     detailHref: `/modulos/gkit-ate/tarefas/${item.id}`,
     tone: tone(item.status),
   }))
+}
+
+function emptyAtendimentoDashboard(health?: GkitAteHealth): GkitAteAtendimentoDashboardData {
+  return {
+    rows: [],
+    groups: {
+      cliente: [],
+      responsavel: [],
+      carteira: [],
+      tipo: [],
+    },
+    months: [],
+    kpis: {
+      total: 0,
+      abertos: 0,
+      encerrados: 0,
+      clientes: 0,
+      responsaveis: 0,
+      tipos: 0,
+    },
+    databaseReady: health?.ok ?? false,
+    health,
+  }
+}
+
+function atendimentoMonthKey(value: string | null) {
+  if (!value) return 'Sem data'
+  return value.slice(0, 7)
+}
+
+function atendimentoMonthLabel(key: string) {
+  if (key === 'Sem data') return key
+  const [year, month] = key.split('-').map(Number)
+  if (!year || !month) return key
+  return new Intl.DateTimeFormat('pt-BR', { month: 'short', year: '2-digit' }).format(new Date(year, month - 1, 1))
+}
+
+function atendimentoGroupLabel(item: GkitAteAtendimento, key: GkitAteDashboardTab) {
+  if (key === 'cliente') return item.cliente_nome
+  if (key === 'responsavel') return item.responsavel || 'Sem responsável'
+  if (key === 'carteira') return item.acesso || 'Sem carteira'
+  return item.tipo || 'Sem etiqueta'
+}
+
+function groupGkitAteAtendimentos(rows: GkitAteAtendimento[], key: GkitAteDashboardTab) {
+  const map = new Map<string, { label: string; total: number; abertos: number; encerrados: number; percentual: number }>()
+
+  for (const row of rows) {
+    const label = atendimentoGroupLabel(row, key)
+    const item = map.get(label) ?? { label, total: 0, abertos: 0, encerrados: 0, percentual: 0 }
+    item.total += 1
+    if (row.status === 'aberto') item.abertos += 1
+    else item.encerrados += 1
+    map.set(label, item)
+  }
+
+  return [...map.values()]
+    .map((item) => ({ ...item, percentual: rows.length ? Math.round((item.total / rows.length) * 100) : 0 }))
+    .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label, 'pt-BR'))
+}
+
+function filterDashboardAtendimentos(rows: GkitAteAtendimento[], filters: GkitAteAtendimentoDashboardFilters) {
+  return rows.filter((row) => {
+    if (filters.status && row.status !== filters.status) return false
+
+    const date = row.data_criacao?.slice(0, 10) ?? ''
+    if (filters.dataDe && (!date || date < filters.dataDe)) return false
+    if (filters.dataAte && (!date || date > filters.dataAte)) return false
+
+    return true
+  })
+}
+
+export async function getGkitAteAtendimentoDashboard(filters: GkitAteAtendimentoDashboardFilters): Promise<GkitAteAtendimentoDashboardData> {
+  const health = await getGkitAteHealth()
+  if (!health.ok) return emptyAtendimentoDashboard(health)
+
+  const rows = filterDashboardAtendimentos(await listGkitAteAtendimentos(), filters)
+  const groups = {
+    cliente: groupGkitAteAtendimentos(rows, 'cliente').slice(0, 50),
+    responsavel: groupGkitAteAtendimentos(rows, 'responsavel').slice(0, 50),
+    carteira: groupGkitAteAtendimentos(rows, 'carteira').slice(0, 50),
+    tipo: groupGkitAteAtendimentos(rows, 'tipo').slice(0, 50),
+  }
+  const monthMap = new Map<string, { label: string; total: number; abertos: number; encerrados: number }>()
+
+  for (const row of rows) {
+    const key = atendimentoMonthKey(row.data_criacao)
+    const item = monthMap.get(key) ?? { label: atendimentoMonthLabel(key), total: 0, abertos: 0, encerrados: 0 }
+    item.total += 1
+    if (row.status === 'aberto') item.abertos += 1
+    else item.encerrados += 1
+    monthMap.set(key, item)
+  }
+
+  return {
+    rows,
+    groups,
+    months: [...monthMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, item]) => item),
+    kpis: {
+      total: rows.length,
+      abertos: rows.filter((row) => row.status === 'aberto').length,
+      encerrados: rows.filter((row) => row.status === 'encerrado').length,
+      clientes: new Set(rows.map((row) => row.cliente_nome)).size,
+      responsaveis: new Set(rows.map((row) => row.responsavel || 'Sem responsável')).size,
+      tipos: new Set(rows.map((row) => row.tipo || 'Sem etiqueta')).size,
+    },
+    databaseReady: true,
+    health,
+  }
 }
 
 export async function getGkitAteDashboardData(): Promise<GkitAteDashboardData> {

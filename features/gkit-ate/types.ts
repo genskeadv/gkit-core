@@ -4,6 +4,8 @@ export type GkitAteStatus = 'aberto' | 'encerrado'
 
 export type GkitAteTarefaStatus = 'pendente' | 'em_andamento' | 'concluida' | 'cancelada'
 
+export type GkitAteDashboardTab = 'cliente' | 'responsavel' | 'carteira' | 'tipo'
+
 export type GkitAteListRow = {
   id: string
   title: string
@@ -118,6 +120,37 @@ export type GkitAteDashboardData = {
   atendimentos: GkitAteListRow[]
   tarefas: GkitAteListRow[]
   porResponsavel: GkitAteListRow[]
+  health?: GkitAteHealth
+}
+
+export type GkitAteAtendimentoDashboardGroup = {
+  label: string
+  total: number
+  abertos: number
+  encerrados: number
+  percentual: number
+}
+
+export type GkitAteAtendimentoDashboardMonth = {
+  label: string
+  total: number
+  abertos: number
+  encerrados: number
+}
+
+export type GkitAteAtendimentoDashboardData = {
+  rows: GkitAteAtendimento[]
+  groups: Record<GkitAteDashboardTab, GkitAteAtendimentoDashboardGroup[]>
+  months: GkitAteAtendimentoDashboardMonth[]
+  kpis: {
+    total: number
+    abertos: number
+    encerrados: number
+    clientes: number
+    responsaveis: number
+    tipos: number
+  }
+  databaseReady: boolean
   health?: GkitAteHealth
 }
 

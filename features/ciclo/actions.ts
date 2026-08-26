@@ -2073,7 +2073,7 @@ export async function importarAtendimentosAstreaXlsx(formData: FormData): Promis
   await finalizarLoteImportacaoAtendimentos(loteId, result, analysis, finalStatus)
 
   revalidatePath('/modulos/gkit-ciclo')
-  revalidatePath('/modulos/gkit-ciclo/atendimento')
+  revalidatePath('/modulos/gkit-ate/dashboard')
   revalidatePath('/modulos/gkit-ciclo/importacoes')
   return result
 }
