@@ -3,7 +3,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { PlatformUsuario } from '@/lib/auth/platform'
-import type { GkitJurCockpitArea, GkitJurCockpitUnicoData } from './types'
+import type { GkitJurCockpitArea, GkitJurCockpitRow, GkitJurCockpitUnicoData } from './types'
+
+type ListFilterField = 'cliente' | 'carteira' | 'ordenacao'
+type ListOrder = 'recentes' | 'antigas' | 'sem_data'
+type AreaListFilter = {
+  field: ListFilterField;
+  order: ListOrder;
+  query: string;
+}
 
 const STORAGE_VIEW_KEY = 'gkit-jur-novo-jur-view'
 const STORAGE_DASHBOARD_KEY = 'gkit-jur-novo-jur-dashboard-collapsed'
@@ -37,37 +45,45 @@ const areaEmptyLabel: Record<GkitJurCockpitArea, string> = {
   agenda: 'Nenhum vencimento, prazo jurídico ou compromisso apareceu neste recorte.',
 }
 
-const areaFilterHrefs: Record<GkitJurCockpitArea, Record<string, string>> = {
-  processos: {},
+const areaOrderLabel: Record<GkitJurCockpitArea, string> = {
+  processos: 'Movimentação',
+  pre_juridico: 'Prazo de análise',
+  tarefas: 'Prazo',
+  publicacoes: 'Publicação',
+  acordos: 'Vencimento',
+  agenda: 'Vencimento',
+}
+
+const areaOrderOptions: Record<GkitJurCockpitArea, Record<ListOrder, string>> = {
+  processos: {
+    recentes: 'Última movimentação recente',
+    antigas: 'Última movimentação antiga',
+    sem_data: 'Sem movimentação primeiro',
+  },
   pre_juridico: {
-    'Em análise': '/modulos/gkit-jur/pre-juridico?status=em_analise',
-    Documentos: '/modulos/gkit-jur/pre-juridico?status=aguardando_documentos',
-    'Alta prioridade': '/modulos/gkit-jur/pre-juridico?prioridade=alta',
-    Aprovados: '/modulos/gkit-jur/pre-juridico?status=aprovado',
+    recentes: 'Prazo mais recente',
+    antigas: 'Prazo mais antigo',
+    sem_data: 'Sem prazo primeiro',
   },
   tarefas: {
-    Críticas: '/modulos/gkit-jur/inbox?fila=criticos',
-    Hoje: '/modulos/gkit-jur/inbox?fila=tarefas&ordenacao=prioridade',
-    'Sem responsável': '/modulos/gkit-jur/inbox?fila=tarefas&ordenacao=responsavel',
-    Automação: '/modulos/gkit-jur/agente',
+    recentes: 'Prazo mais recente',
+    antigas: 'Prazo mais antigo',
+    sem_data: 'Sem prazo primeiro',
   },
   publicacoes: {
-    'Não tratadas': '/modulos/gkit-jur/publicacoes/lista?status=pendente',
-    'Viraram prazo': '/modulos/gkit-jur/publicacoes/lista?status=triada_ia',
-    'Exigem leitura': '/modulos/gkit-jur/publicacoes',
-    'Baixo risco': '/modulos/gkit-jur/publicacoes/lista?status=dispensada',
+    recentes: 'Publicação mais recente',
+    antigas: 'Publicação mais antiga',
+    sem_data: 'Sem data primeiro',
   },
   acordos: {
-    Ativos: '/modulos/gkit-jur/acordos/lista?status=ativo',
-    Atrasados: '/modulos/gkit-jur/acordos',
-    Quebrados: '/modulos/gkit-jur/acordos/lista?status=quebrado',
-    Cumpridos: '/modulos/gkit-jur/acordos/lista?status=cumprido',
+    recentes: 'Vencimento mais recente',
+    antigas: 'Vencimento mais antigo',
+    sem_data: 'Sem vencimento primeiro',
   },
   agenda: {
-    Vencidas: '/modulos/gkit-jur/inbox?fila=tarefas&ordenacao=prioridade',
-    Hoje: '/modulos/gkit-jur/inbox?fila=tarefas&ordenacao=prioridade',
-    Semana: '/modulos/gkit-jur/inbox?fila=tarefas&ordenacao=prioridade',
-    Eventos: '/modulos/gkit-jur/movimentacoes',
+    recentes: 'Vencimento mais recente',
+    antigas: 'Vencimento mais antigo',
+    sem_data: 'Sem vencimento primeiro',
   },
 }
 
@@ -75,8 +91,41 @@ function isArea(value: string | null): value is GkitJurCockpitArea {
   return Boolean(value && areaOrder.includes(value as GkitJurCockpitArea))
 }
 
-function filterHref(area: GkitJurCockpitArea, filter: string) {
-  return areaFilterHrefs[area][filter] ?? areaEntryHref[area]
+function createAreaFilters(): Record<GkitJurCockpitArea, AreaListFilter> {
+  return areaOrder.reduce((filters, area) => {
+    filters[area] = {
+      field: 'cliente',
+      order: 'recentes',
+      query: '',
+    }
+    return filters
+  }, {} as Record<GkitJurCockpitArea, AreaListFilter>)
+}
+
+function normalizeFilterText(value?: string | null) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+function rowClientGroup(row: GkitJurCockpitRow) {
+  return row.meta?.clienteNome?.trim() || 'Sem cliente definido'
+}
+
+function uniqueFilterOptions(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.map((value) => value?.trim()).filter(Boolean) as string[]))
+    .sort((left, right) => left.localeCompare(right, 'pt-BR'))
+}
+
+function rowDateTime(row: GkitJurCockpitRow, area: GkitJurCockpitArea) {
+  const source = area === 'processos' ? row.meta?.ultimaMovimentacaoEm : row.due
+  const brazilianDate = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(source ?? '')
+  const parsed = brazilianDate
+    ? Date.parse(`${brazilianDate[3]}-${brazilianDate[2]}-${brazilianDate[1]}T00:00:00`)
+    : Date.parse(source ?? '')
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 export function GkitJurNovoJurPage({
@@ -90,11 +139,7 @@ export function GkitJurNovoJurPage({
 }) {
   const [activeArea, setActiveArea] = useState<GkitJurCockpitArea>(() => isArea(initialArea ?? null) ? initialArea as GkitJurCockpitArea : 'tarefas')
   const [dashboardCollapsed, setDashboardCollapsed] = useState(false)
-  const [processFilters, setProcessFilters] = useState({
-    carteira: '',
-    cliente: '',
-    movimento: 'recentes',
-  })
+  const [areaFilters, setAreaFilters] = useState(createAreaFilters)
 
   useEffect(() => {
     const storedArea = window.localStorage.getItem(STORAGE_VIEW_KEY)
@@ -114,34 +159,52 @@ export function GkitJurNovoJurPage({
 
   const data = cockpitData[activeArea]
   const listCaption = useMemo(() => `${areaLabels[activeArea]} da carteira`, [activeArea])
+  const activeFilter = areaFilters[activeArea]
+  const searchOptions = useMemo(() => {
+    if (activeFilter.field === 'ordenacao') return []
+    const options = activeFilter.field === 'carteira'
+      ? data.filterOptions?.carteiras ?? uniqueFilterOptions(data.rows.map((row) => row.meta?.carteiraNome))
+      : data.filterOptions?.clientes ?? uniqueFilterOptions(data.rows.map((row) => row.meta?.clienteNome))
+    return options
+  }, [activeFilter.field, data.filterOptions?.carteiras, data.filterOptions?.clientes, data.rows])
   const visibleRows = useMemo(() => {
-    if (activeArea !== 'processos') return data.rows
-
-    const rows = data.rows
-      .filter((row) => !processFilters.carteira || row.meta?.carteiraNome === processFilters.carteira)
-      .filter((row) => !processFilters.cliente || row.meta?.clienteNome === processFilters.cliente)
-
-    const movementTime = (value?: string | null) => {
-      const parsed = Date.parse(value ?? '')
-      return Number.isFinite(parsed) ? parsed : null
-    }
+    const search = normalizeFilterText(activeFilter.query)
+    const rows = data.rows.filter((row) => {
+      if (!search || activeFilter.field === 'ordenacao') return true
+      const value = activeFilter.field === 'carteira'
+        ? row.meta?.carteiraNome
+        : row.meta?.clienteNome
+      return normalizeFilterText(value).includes(search)
+    })
 
     return [...rows].sort((left, right) => {
-      const leftTime = movementTime(left.meta?.ultimaMovimentacaoEm)
-      const rightTime = movementTime(right.meta?.ultimaMovimentacaoEm)
+      const leftTime = rowDateTime(left, activeArea)
+      const rightTime = rowDateTime(right, activeArea)
 
-      if (processFilters.movimento === 'sem_movimento') {
+      if (activeFilter.order === 'sem_data') {
         if (leftTime === null && rightTime !== null) return -1
         if (leftTime !== null && rightTime === null) return 1
       }
 
-      if (processFilters.movimento === 'antigas') {
+      if (activeFilter.order === 'antigas') {
         return (leftTime ?? Number.MAX_SAFE_INTEGER) - (rightTime ?? Number.MAX_SAFE_INTEGER)
       }
 
       return (rightTime ?? 0) - (leftTime ?? 0)
     })
-  }, [activeArea, data.rows, processFilters])
+  }, [activeArea, activeFilter, data.rows])
+  const groupedRows = useMemo(() => {
+    const groups = new Map<string, GkitJurCockpitRow[]>()
+
+    visibleRows.forEach((row) => {
+      const groupName = rowClientGroup(row)
+      const group = groups.get(groupName) ?? []
+      group.push(row)
+      groups.set(groupName, group)
+    })
+
+    return Array.from(groups, ([client, rows]) => ({ client, rows }))
+  }, [visibleRows])
 
   return (
     <main className="gkit-jur-novo-jur">
@@ -245,61 +308,93 @@ export function GkitJurNovoJurPage({
             <span>{listCaption}</span>
             <strong>{data.description}</strong>
           </div>
-          {activeArea === 'processos' ? (
-            <div className="gkit-jur-cockpit-process-filters" aria-label="Filtros de processos">
-              <label>
-                <span>Carteira</span>
-                <select value={processFilters.carteira} onChange={(event) => setProcessFilters((current) => ({ ...current, carteira: event.target.value }))}>
-                  <option value="">Todas</option>
-                  {(data.filterOptions?.carteiras ?? []).map((carteira) => (
-                    <option value={carteira} key={carteira}>{carteira}</option>
-                  ))}
+          <div className="gkit-jur-cockpit-list-filters" aria-label={`Filtros de ${areaLabels[activeArea]}`}>
+            <label>
+              <span>Pesquisar por</span>
+              <select
+                value={activeFilter.field}
+                onChange={(event) => setAreaFilters((current) => ({
+                  ...current,
+                  [activeArea]: {
+                    ...current[activeArea],
+                    field: event.target.value as ListFilterField,
+                    query: '',
+                  },
+                }))}
+              >
+                <option value="cliente">Cliente</option>
+                <option value="carteira">Carteira</option>
+                <option value="ordenacao">{areaOrderLabel[activeArea]}</option>
+              </select>
+            </label>
+            <label>
+              <span>{activeFilter.field === 'ordenacao' ? 'Ordenar por' : 'Busca'}</span>
+              {activeFilter.field === 'ordenacao' ? (
+                <select
+                  value={activeFilter.order}
+                  onChange={(event) => setAreaFilters((current) => ({
+                    ...current,
+                    [activeArea]: {
+                      ...current[activeArea],
+                      order: event.target.value as ListOrder,
+                    },
+                  }))}
+                >
+                  <option value="recentes">{areaOrderOptions[activeArea].recentes}</option>
+                  <option value="antigas">{areaOrderOptions[activeArea].antigas}</option>
+                  <option value="sem_data">{areaOrderOptions[activeArea].sem_data}</option>
                 </select>
-              </label>
-              <label>
-                <span>Cliente</span>
-                <select value={processFilters.cliente} onChange={(event) => setProcessFilters((current) => ({ ...current, cliente: event.target.value }))}>
-                  <option value="">Todos</option>
-                  {(data.filterOptions?.clientes ?? []).map((cliente) => (
-                    <option value={cliente} key={cliente}>{cliente}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>Movimentação</span>
-                <select value={processFilters.movimento} onChange={(event) => setProcessFilters((current) => ({ ...current, movimento: event.target.value }))}>
-                  <option value="recentes">Mais recentes</option>
-                  <option value="antigas">Mais antigas</option>
-                  <option value="sem_movimento">Sem movimento primeiro</option>
-                </select>
-              </label>
-              <a href={areaEntryHref[activeArea]}>Abrir área</a>
-            </div>
-          ) : (
-            <div className="gkit-jur-cockpit-filterchips">
-              {data.filters.map((filter, index) => (
-                <a className={index === 0 ? 'active' : ''} href={filterHref(activeArea, filter)} key={filter}>{filter}</a>
-              ))}
-              <a href={areaEntryHref[activeArea]}>Abrir área</a>
-            </div>
-          )}
+              ) : (
+                <>
+                  <input
+                    list={`gkit-jur-${activeArea}-${activeFilter.field}-options`}
+                    placeholder={activeFilter.field === 'carteira' ? 'Digite a carteira' : 'Digite o cliente'}
+                    type="search"
+                    value={activeFilter.query}
+                    onChange={(event) => setAreaFilters((current) => ({
+                      ...current,
+                      [activeArea]: {
+                        ...current[activeArea],
+                        query: event.target.value,
+                      },
+                    }))}
+                  />
+                  <datalist id={`gkit-jur-${activeArea}-${activeFilter.field}-options`}>
+                    {searchOptions.map((option) => (
+                      <option value={option} key={option} />
+                    ))}
+                  </datalist>
+                </>
+              )}
+            </label>
+          </div>
         </div>
 
         <div className="gkit-jur-cockpit-list">
-          {visibleRows.length ? (
-            visibleRows.map((row) => (
-              <a className={`gkit-jur-cockpit-row ${row.tone}`} href={row.href} key={`${row.href}-${row.id}`}>
+          {groupedRows.length ? (
+            groupedRows.map((group) => (
+              <details className="gkit-jur-cockpit-client-group" key={group.client} open>
+                <summary>
+                  <strong>{group.client}</strong>
+                  <small>{group.rows.length} {group.rows.length === 1 ? 'item' : 'itens'}</small>
+                </summary>
                 <div>
-                  <span>{row.id}</span>
-                  <strong>{row.title}</strong>
-                  <small>{row.subtitle}</small>
+                  {group.rows.map((row) => (
+                    <a className={`gkit-jur-cockpit-row ${row.tone}`} href={row.href} key={`${row.href}-${row.id}`}>
+                      <div>
+                        <span>{row.id}</span>
+                        <strong>{row.title}</strong>
+                        <small>{row.subtitle}</small>
+                      </div>
+                      <div>
+                        <span>{row.owner}</span>
+                        <strong>{row.status}</strong>
+                        <small>{row.due}</small>
+                      </div>
+                    </a>
+                  ))}
                 </div>
-                <div>
-                  <span>{row.owner}</span>
-                  <strong>{row.status}</strong>
-                  <small>{row.due}</small>
-                </div>
-              </a>
+              </details>
             ))
           ) : (
             <div className="gkit-jur-cockpit-empty">

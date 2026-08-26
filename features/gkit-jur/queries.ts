@@ -98,6 +98,7 @@ const GKIT_JUR_CRON_TIMEZONE = 'America/Sao_Paulo'
 const GKIT_JUR_CRON_DEFAULT_DATAJUD_LIMIT = 8
 const GKIT_JUR_CRON_DEFAULT_TIME_BUDGET_MS = 240_000
 const MOVEMENT_PROCESS_SCOPE_LIMIT = 5000
+const COCKPIT_LIST_LIMIT = 20
 const PROCESS_LIST_SELECT = 'id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_codigo,classe_nome,assuntos,natureza_operacional,natureza_operacional_label,natureza_operacional_confianca,natureza_operacional_sinais,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,ultima_tentativa_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultimo_status_sincronizacao,proxima_tentativa_sincronizacao_em,falhas_transientes_consecutivas,sem_resultado_consecutivos,status,status_monitoramento'
 
 function admin() {
@@ -2382,7 +2383,7 @@ async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData>
       .eq('status', DEFAULT_PROCESS_STATUS)
       .order('ultima_movimentacao_em', { ascending: false, nullsFirst: false })
       .order('updated_at', { ascending: false })
-      .limit(50),
+      .limit(COCKPIT_LIST_LIMIT),
     getGkitJurLabReadiness(),
   ])
 
@@ -2445,7 +2446,7 @@ async function getGkitJurCockpitPreJuridicoArea(): Promise<GkitJurCockpitAreaDat
       .in('status', ['em_analise', 'aguardando_documentos', 'aprovado'])
       .order('prazo_analise', { ascending: true, nullsFirst: false })
       .order('updated_at', { ascending: false })
-      .limit(5),
+      .limit(COCKPIT_LIST_LIMIT),
     getGkitJurPreJuridicoMetrics(),
   ])
 
@@ -2477,6 +2478,10 @@ async function getGkitJurCockpitPreJuridicoArea(): Promise<GkitJurCockpitAreaDat
       due: item.prazoAnalise ? cockpitDate(item.prazoAnalise) : cockpitDate(item.updatedAt || item.dataEntrada || item.createdAt),
       tone: preJuridicoCockpitTone(item),
       href: `/modulos/gkit-jur/pre-juridico?q=${encodeURIComponent(item.titulo)}`,
+      meta: {
+        carteiraNome: item.carteiraNome,
+        clienteNome: item.clienteNome || item.clienteSnapshotNome || item.titulo,
+      },
     })),
   }
 }
@@ -2490,7 +2495,7 @@ async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
       .in('status', OPEN_TASK_STATUSES)
       .order('prazo_at', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false })
-      .limit(5),
+      .limit(COCKPIT_LIST_LIMIT),
     countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'critica')),
     countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'alta')),
     countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'media')),
@@ -2536,6 +2541,10 @@ async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
         due: tarefa.prazoAt ? cockpitDate(tarefa.prazoAt) : cockpitDate(tarefa.createdAt),
         tone: cockpitTone(tarefa.prioridade, tarefa.status),
         href: `/modulos/gkit-jur/processos/${tarefa.processoId}#tarefas`,
+        meta: {
+          carteiraNome: tarefa.carteiraNome || processo?.carteiraNome || null,
+          clienteNome: processo?.clienteNome || processo?.titulo || processo?.pasta || 'Sem processo vinculado',
+        },
       }
     }),
   }
@@ -2551,7 +2560,7 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
       .in('status', actionableStatuses)
       .order('data_disponibilizacao', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
-      .limit(5),
+      .limit(COCKPIT_LIST_LIMIT),
     countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'pendente'), true),
     countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'triada_ia'), true),
     countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'em_tratamento'), true),
@@ -2626,6 +2635,10 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
       due: cockpitDate(item.dataDisponibilizacao || item.dataPublicacao || item.createdAt),
       tone: cockpitTone('', item.status),
       href: item.processoBaseId ? `/modulos/gkit-jur/processos/${item.processoBaseId}` : `/modulos/gkit-jur/publicacoes/lista?q=${encodeURIComponent(item.numeroCnj || item.id)}`,
+      meta: {
+        carteiraNome: item.carteiraNome,
+        clienteNome: item.clienteNome || item.numeroCnj || 'Publicação sem cliente vinculado',
+      },
     })),
   }
 }
@@ -2648,7 +2661,7 @@ async function getGkitJurCockpitAcordosArea(): Promise<GkitJurCockpitAreaData> {
       { label: 'Cumprido', count: cumpridos.length, tone: 'green' },
     ]),
     trend: cockpitTrend([cumpridos.length, ativos.length, data.metrics.atrasados, quebrados.length, data.metrics.total]),
-    rows: data.acordos.slice(0, 5).map((acordo) => ({
+    rows: data.acordos.slice(0, COCKPIT_LIST_LIMIT).map((acordo) => ({
       id: acordo.id,
       title: acordo.numeroCnj || 'Acordo judicial',
       subtitle: acordo.clienteNome || acordo.observacoes || 'Acordo vinculado ao processo',
@@ -2657,6 +2670,10 @@ async function getGkitJurCockpitAcordosArea(): Promise<GkitJurCockpitAreaData> {
       due: acordo.proximoVencimento ? cockpitDate(acordo.proximoVencimento) : cockpitDate(acordo.updatedAt),
       tone: cockpitTone('', acordo.parcelasAtrasadas > 0 ? 'atrasado' : acordo.status),
       href: `/modulos/gkit-jur/processos/${acordo.processoId}#acordos`,
+      meta: {
+        carteiraNome: acordo.carteiraNome,
+        clienteNome: acordo.clienteNome || acordo.numeroCnj || 'Acordo sem cliente vinculado',
+      },
     })),
   }
 }
@@ -2676,7 +2693,7 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
       .gte('data_evento', todayIso)
       .order('data_evento', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false })
-      .limit(5),
+      .limit(COCKPIT_LIST_LIMIT),
     admin()
       .schema('gkit_jur')
       .from('tarefas')
@@ -2684,7 +2701,7 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
       .in('status', ['aberta', 'em_andamento'])
       .not('prazo_at', 'is', null)
       .order('prazo_at', { ascending: true, nullsFirst: false })
-      .limit(5),
+      .limit(COCKPIT_LIST_LIMIT),
     countRows(admin().schema('gkit_jur').from('eventos_processo').select('id', { count: 'exact', head: true }).gte('data_evento', todayIso), true),
     countRows(admin().schema('gkit_jur').from('eventos_processo').select('id', { count: 'exact', head: true }).gte('data_evento', todayIso).eq('tipo', 'audiencia'), true),
     countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', ['aberta', 'em_andamento']).lt('prazo_at', todayIso)),
@@ -2739,6 +2756,10 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
           due: cockpitDate(tarefa.prazoAt),
           tone: cockpitTone(tarefa.prioridade, vencida ? 'vencida' : tarefa.status),
           href: `/modulos/gkit-jur/processos/${tarefa.processoId}#tarefas`,
+          meta: {
+            carteiraNome: tarefa.carteiraNome || processo?.carteiraNome || null,
+            clienteNome: processo?.clienteNome || processo?.titulo || processo?.pasta || 'Sem processo vinculado',
+          },
         },
       }
     }),
@@ -2755,10 +2776,14 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
           due: cockpitDate(evento.dataEvento),
           tone: cockpitTone('', evento.tipo),
           href: `/modulos/gkit-jur/processos/${evento.processoId}#timeline`,
+          meta: {
+            carteiraNome: evento.carteiraNome || processo?.carteiraNome || null,
+            clienteNome: processo?.clienteNome || processo?.titulo || processo?.pasta || 'Sem processo vinculado',
+          },
         },
       }
     }),
-  ].sort((a, b) => a.sort.localeCompare(b.sort)).slice(0, 5).map((item) => item.row)
+  ].sort((a, b) => a.sort.localeCompare(b.sort)).slice(0, COCKPIT_LIST_LIMIT).map((item) => item.row)
 
   return {
     action: 'Vencimentos e prazos',
