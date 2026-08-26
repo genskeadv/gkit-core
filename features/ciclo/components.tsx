@@ -85,6 +85,8 @@ type CicloTab =
   | 'administradoras'
   | 'importacoes'
   | 'documentos'
+  | 'contratos'
+  | 'atas'
   | 'alertas'
   | 'onboarding'
   | 'regularidade'
@@ -99,6 +101,8 @@ const activeHref: Record<CicloTab, string> = {
   administradoras: '/modulos/gkit-ciclo/administradoras',
   importacoes: '/modulos/gkit-ciclo/importacoes',
   documentos: '/modulos/gkit-ciclo/documentos',
+  contratos: '/modulos/gkit-ciclo/contratos',
+  atas: '/modulos/gkit-ciclo/atas',
   alertas: '/modulos/gkit-ciclo/alertas',
   onboarding: '/modulos/gkit-ciclo/onboarding',
   regularidade: '/modulos/gkit-ciclo/regularidade',
@@ -115,6 +119,13 @@ const navGroups: ModuleNavGroup[] = [
     ],
   },
   {
+    title: 'Dados',
+    items: [
+      { href: '/modulos/gkit-ciclo/importacoes', label: 'Importações' },
+      { href: '/modulos/gkit-ciclo/atendimento', label: 'Atendimento' },
+    ],
+  },
+  {
     title: 'Base cadastral',
     items: [
       { href: '/modulos/gkit-ciclo/clientes', label: 'Clientes' },
@@ -122,9 +133,16 @@ const navGroups: ModuleNavGroup[] = [
     ],
   },
   {
-    title: 'Operação',
+    title: 'Documentos',
     items: [
       { href: '/modulos/gkit-ciclo/documentos', label: 'Documentos' },
+      { href: '/modulos/gkit-ciclo/contratos', label: 'Contratos' },
+      { href: '/modulos/gkit-ciclo/atas', label: 'Atas' },
+    ],
+  },
+  {
+    title: 'Operação',
+    items: [
       { href: '/modulos/gkit-ciclo/alertas', label: 'Alertas' },
       { href: '/modulos/gkit-ciclo/onboarding', label: 'Onboarding' },
       { href: '/modulos/gkit-ciclo/regularidade', label: 'Regularidade' },
@@ -140,6 +158,8 @@ const navTitleByHref: Record<string, string> = {
   '/modulos/gkit-ciclo/clientes': 'Clientes',
   '/modulos/gkit-ciclo/atendimento': 'Atendimento',
   '/modulos/gkit-ciclo/documentos': 'Documentos',
+  '/modulos/gkit-ciclo/contratos': 'Contratos',
+  '/modulos/gkit-ciclo/atas': 'Atas',
   '/modulos/gkit-ciclo/alertas': 'Alertas',
   '/modulos/gkit-ciclo/onboarding': 'Onboarding',
   '/modulos/gkit-ciclo/regularidade': 'Regularidade',
@@ -154,6 +174,8 @@ const navOrder = [
   '/modulos/gkit-ciclo/clientes',
   '/modulos/gkit-ciclo/atendimento',
   '/modulos/gkit-ciclo/documentos',
+  '/modulos/gkit-ciclo/contratos',
+  '/modulos/gkit-ciclo/atas',
   '/modulos/gkit-ciclo/alertas',
   '/modulos/gkit-ciclo/onboarding',
   '/modulos/gkit-ciclo/regularidade',

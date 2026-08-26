@@ -1,9 +1,13 @@
+import { redirect } from 'next/navigation'
+import { canAccess } from '@/lib/auth/permissions'
 import { updateCicloAdministradoraAction } from '@/features/ciclo/actions'
 import { CicloAdministradoraForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloAdministradora, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function EditarAdministradoraPage({ params }: { params: Promise<{ id: string }> }) {
   const context = await requireCicloContext()
+  if (!canAccess(context.permissions, 'ciclo.clientes.write')) redirect('/modulos/gkit-ciclo/administradoras')
+
   const { id } = await params
   const administradora = await getCicloAdministradora(id)
 

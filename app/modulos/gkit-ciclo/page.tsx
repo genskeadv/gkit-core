@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation'
+import { canAccess } from '@/lib/auth/permissions'
 import {
   createCicloClienteAction,
   createCicloOcorrenciaAction,
@@ -24,6 +26,15 @@ export default async function CicloPage({
 }) {
   const params = await searchParams
   const context = await requireCicloContext(moduleTarget('/modulos/gkit-ciclo', params))
+  const permissions = {
+    cliente: canAccess(context.permissions, 'ciclo.clientes.write'),
+    onboarding: canAccess(context.permissions, 'ciclo.clientes.write'),
+    documentacao: canAccess(context.permissions, 'ciclo.documentos.write'),
+    ocorrencia: canAccess(context.permissions, 'ciclo.alertas.write'),
+  }
+  const panel = initialPanel(params?.panel)
+  if (panel && !permissions[panel]) redirect('/modulos/gkit-ciclo')
+
   const data = await getCicloCockpitData(context)
 
   return (
@@ -38,7 +49,8 @@ export default async function CicloPage({
         createClienteAction={createCicloClienteAction}
         createOcorrenciaAction={createCicloOcorrenciaAction}
         data={data}
-        initialPanel={initialPanel(params?.panel)}
+        initialPanel={panel}
+        permissions={permissions}
         startOnboardingAction={startCicloOnboardingAction}
         updateDocumentacaoAction={updateCicloCockpitDocumentacaoAction}
       />

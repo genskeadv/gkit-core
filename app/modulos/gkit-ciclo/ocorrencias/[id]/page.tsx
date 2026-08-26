@@ -1,9 +1,13 @@
+import { redirect } from 'next/navigation'
+import { canAccess } from '@/lib/auth/permissions'
 import { updateCicloOcorrenciaAction } from '@/features/ciclo/actions'
 import { CicloOcorrenciaForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloDocumentoFormData, getCicloOcorrencia, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function EditarOcorrenciaPage({ params }: { params: Promise<{ id: string }> }) {
   const context = await requireCicloContext()
+  if (!canAccess(context.permissions, 'ciclo.alertas.write')) redirect('/modulos/gkit-ciclo/ocorrencias')
+
   const { id } = await params
   const [ocorrencia, formData] = await Promise.all([
     getCicloOcorrencia(id, context),

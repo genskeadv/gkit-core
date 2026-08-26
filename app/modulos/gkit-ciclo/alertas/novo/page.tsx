@@ -1,9 +1,13 @@
+import { redirect } from 'next/navigation'
+import { canAccess } from '@/lib/auth/permissions'
 import { createCicloAlertaAction } from '@/features/ciclo/actions'
 import { CicloAlertaForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloDocumentoFormData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function NovoAlertaPage() {
   const context = await requireCicloContext()
+  if (!canAccess(context.permissions, 'ciclo.alertas.write')) redirect('/modulos/gkit-ciclo/alertas')
+
   const formData = await getCicloDocumentoFormData(context)
 
   return (

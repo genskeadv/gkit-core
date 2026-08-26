@@ -1,8 +1,12 @@
+import { redirect } from 'next/navigation'
+import { canAccess } from '@/lib/auth/permissions'
 import { CicloOnboardingWorkflowConfig, CicloShell } from '@/features/ciclo/components'
 import { listCicloOnboardingWorkflowAtividades, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function CicloOnboardingWorkflowPage() {
   const context = await requireCicloContext()
+  if (!canAccess(context.permissions, 'ciclo.clientes.write')) redirect('/modulos/gkit-ciclo/onboarding')
+
   const atividades = await listCicloOnboardingWorkflowAtividades()
 
   return (

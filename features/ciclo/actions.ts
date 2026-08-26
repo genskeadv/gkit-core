@@ -94,8 +94,25 @@ type PreparedAtendimentoRow = {
   acao: 'criar' | 'atualizar'
 }
 
+const CICLO_ACTION_QUERY_PAGE_SIZE = 1000
+
 function admin() {
   return createSupabaseAdminClient() as any
+}
+
+async function loadCicloActionRows(buildQuery: () => any) {
+  const rows: Array<Record<string, any>> = []
+
+  for (let from = 0; ; from += CICLO_ACTION_QUERY_PAGE_SIZE) {
+    const { data, error } = await buildQuery().range(from, from + CICLO_ACTION_QUERY_PAGE_SIZE - 1)
+    if (error) throw new Error(error.message)
+
+    const batch = (data ?? []) as Array<Record<string, any>>
+    rows.push(...batch)
+    if (batch.length < CICLO_ACTION_QUERY_PAGE_SIZE) break
+  }
+
+  return rows
 }
 
 function text(formData: FormData, key: string) {
@@ -686,19 +703,16 @@ function astreaSourceKey(row: Record<string, string>, line: number) {
 }
 
 async function loadAtendimentoClienteMap(context: Awaited<ReturnType<typeof requireCicloWrite>>) {
-  const { data, error } = await admin()
+  const rows = await loadCicloActionRows(() => admin()
     .schema('ciclo')
     .from('clientes')
-    .select('id,carteira_id,nome,nome_fantasia,razao_social')
-    .limit(3000)
-
-  if (error) throw new Error(`Clientes Ciclo: ${error.message}`)
+    .select('id,carteira_id,nome,nome_fantasia,razao_social'))
 
   const carteiras = await allowedCarteirasFor(context.usuario.id, context.usuario.tipo)
   const allowedCarteiraIds = context.usuario.tipo === 'admin_global' ? null : new Set([...carteiras.values()].map((carteira) => carteira.id))
   const map = new Map<string, { id: string; carteira_id: string | null }>()
 
-  for (const cliente of (data ?? []) as Array<Record<string, any>>) {
+  for (const cliente of rows) {
     const carteiraId = typeof cliente.carteira_id === 'string' ? cliente.carteira_id : null
     if (allowedCarteiraIds && carteiraId && !allowedCarteiraIds.has(carteiraId)) continue
     for (const name of [cliente.nome, cliente.nome_fantasia, cliente.razao_social]) {

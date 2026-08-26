@@ -15,7 +15,7 @@ export default async function CicloAtasPage({
 
   return (
     <CicloShell
-      active="documentos"
+      active="atas"
       eyebrow="Documentos"
       title="Atas"
       description="Atas, assembleias, validade e observações operacionais."

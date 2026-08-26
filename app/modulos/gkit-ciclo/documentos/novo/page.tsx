@@ -1,9 +1,13 @@
+import { redirect } from 'next/navigation'
+import { canAccess } from '@/lib/auth/permissions'
 import { createCicloDocumentoAction } from '@/features/ciclo/actions'
 import { CicloDocumentoForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloDocumentoFormData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function NovoDocumentoPage() {
   const context = await requireCicloContext()
+  if (!canAccess(context.permissions, 'ciclo.documentos.write')) redirect('/modulos/gkit-ciclo/documentos')
+
   const formData = await getCicloDocumentoFormData(context)
 
   return (

@@ -49,6 +49,9 @@ const cicloDocumentoPadrao = [
   { tipoDocumento: 'cadastro_unidade', titulo: 'Cadastro de unidade' },
 ]
 
+const CICLO_QUERY_PAGE_SIZE = 1000
+const CICLO_LOOKUP_CHUNK_SIZE = 500
+
 type CicloContext = Awaited<ReturnType<typeof requireModuleAccess>>
 
 function admin() {
@@ -114,16 +117,60 @@ function filterByCarteiraScope(rows: Array<Record<string, any>>, allowedCarteira
   return rows.filter((row) => rowInCarteiraScope(row, allowedCarteiraIds))
 }
 
+async function loadCicloRows(buildQuery: () => any) {
+  const rows: Array<Record<string, any>> = []
+
+  for (let from = 0; ; from += CICLO_QUERY_PAGE_SIZE) {
+    const { data, error } = await buildQuery().range(from, from + CICLO_QUERY_PAGE_SIZE - 1)
+    if (error) throw new Error(error.message)
+
+    const batch = (data ?? []) as Array<Record<string, any>>
+    rows.push(...batch)
+    if (batch.length < CICLO_QUERY_PAGE_SIZE) break
+  }
+
+  return rows
+}
+
+async function safeLoadCicloRows(buildQuery: () => any) {
+  try {
+    return { ok: true, rows: await loadCicloRows(buildQuery) }
+  } catch {
+    return { ok: false, rows: [] as Array<Record<string, any>> }
+  }
+}
+
+async function loadRowsByChunks(values: string[], buildQuery: (chunk: string[]) => any) {
+  const rows: Array<Record<string, any>> = []
+  const uniqueValues = [...new Set(values.filter(Boolean))]
+
+  for (let index = 0; index < uniqueValues.length; index += CICLO_LOOKUP_CHUNK_SIZE) {
+    const chunk = uniqueValues.slice(index, index + CICLO_LOOKUP_CHUNK_SIZE)
+    const { data, error } = await buildQuery(chunk)
+    if (error) throw new Error(error.message)
+    rows.push(...((data ?? []) as Array<Record<string, any>>))
+  }
+
+  return rows
+}
+
+async function safeLoadRowsByChunks(values: string[], buildQuery: (chunk: string[]) => any) {
+  try {
+    return await loadRowsByChunks(values, buildQuery)
+  } catch {
+    return [] as Array<Record<string, any>>
+  }
+}
+
 async function safeCicloList(context: CicloContext, table: string, orderColumn = 'created_at') {
-  const { data, error } = await admin()
+  const result = await safeLoadCicloRows(() => admin()
     .schema('ciclo')
     .from(table)
     .select('*')
-    .order(orderColumn, { ascending: false })
-    .limit(300)
+    .order(orderColumn, { ascending: false }))
 
-  if (error) return [] as Array<Record<string, any>>
-  const rows = (data ?? []) as Array<Record<string, any>>
+  if (!result.ok) return [] as Array<Record<string, any>>
+  const rows = result.rows
   if (!rows.length || !('carteira_id' in rows[0])) return rows
   return filterByCarteiraScope(rows, await getAllowedCarteiraIds(context))
 }
@@ -203,70 +250,67 @@ export async function getCicloData(context: CicloContext): Promise<CicloData> {
   const supabase = admin()
 
   const [clientesResult, documentosResult, alertasResult, timelineResult] = await Promise.all([
-    supabase
+    safeLoadCicloRows(() => supabase
       .schema('ciclo')
       .from('clientes')
       .select('id,carteira_id,administradora_id,nome,nome_fantasia,razao_social,documento,cnpj_normalizado,email,telefone,cidade,estado,tipo_cliente,tipo_pessoa,status_operacional,score_atual,risco_atual,temperatura,ativo,created_at,updated_at')
-      .order('created_at', { ascending: false })
-      .limit(300),
-    supabase
+      .order('created_at', { ascending: false })),
+    safeLoadCicloRows(() => supabase
       .schema('ciclo')
       .from('cliente_documentos')
       .select('id,cliente_id,carteira_id,tipo_documento,titulo,status,obrigatorio,validado,data_renovacao,updated_at')
-      .order('updated_at', { ascending: false })
-      .limit(500),
-    supabase
+      .order('updated_at', { ascending: false })),
+    safeLoadCicloRows(() => supabase
       .schema('ciclo')
       .from('alertas_cliente')
       .select('id,cliente_id,carteira_id,tipo,titulo,descricao,status,severidade,vencimento_em,created_at')
-      .order('created_at', { ascending: false })
-      .limit(120),
-    supabase
+      .order('created_at', { ascending: false })),
+    safeLoadCicloRows(() => supabase
       .schema('ciclo')
       .from('timeline_cliente')
       .select('id,cliente_id,carteira_id,tipo,titulo,descricao,created_at')
-      .order('created_at', { ascending: false })
-      .limit(80),
+      .order('created_at', { ascending: false })),
   ])
 
-  if (clientesResult.error || documentosResult.error || alertasResult.error || timelineResult.error) {
+  if (!clientesResult.ok || !documentosResult.ok || !alertasResult.ok || !timelineResult.ok) {
     return emptyCicloData(false)
   }
 
   const allowedCarteiraIds = await getAllowedCarteiraIds(context)
-  const clienteRows = filterByCarteiraScope((clientesResult.data ?? []) as Array<Record<string, any>>, allowedCarteiraIds)
+  const clienteRows = filterByCarteiraScope(clientesResult.rows, allowedCarteiraIds)
   const clienteIds = new Set(clienteRows.map((row) => text(row.id)))
-  const documentoRows = filterByCarteiraScope((documentosResult.data ?? []) as Array<Record<string, any>>, allowedCarteiraIds)
+  const documentoRows = filterByCarteiraScope(documentosResult.rows, allowedCarteiraIds)
     .filter((row) => clienteIds.has(text(row.cliente_id)))
-  const alertaRows = filterByCarteiraScope((alertasResult.data ?? []) as Array<Record<string, any>>, allowedCarteiraIds)
+  const alertaRows = filterByCarteiraScope(alertasResult.rows, allowedCarteiraIds)
     .filter((row) => !text(row.cliente_id) || clienteIds.has(text(row.cliente_id)))
-  const timelineRows = filterByCarteiraScope((timelineResult.data ?? []) as Array<Record<string, any>>, allowedCarteiraIds)
+  const timelineRows = filterByCarteiraScope(timelineResult.rows, allowedCarteiraIds)
     .filter((row) => clienteIds.has(text(row.cliente_id)))
 
-  const carteiraIds = [...new Set(clienteRows.map((row) => row.carteira_id).filter(Boolean))]
-  const administradoraIds = [...new Set(clienteRows.map((row) => row.administradora_id).filter(Boolean))]
+  const carteiraIds = [...new Set(clienteRows.map((row) => text(row.carteira_id)).filter(Boolean))]
+  const administradoraIds = [...new Set(clienteRows.map((row) => text(row.administradora_id)).filter(Boolean))]
+  const clienteIdList = [...clienteIds]
 
   const [carteirasResult, administradorasResult, regularidadeResult, contatosResult] = await Promise.all([
     carteiraIds.length
-      ? supabase.schema('core').from('carteiras').select('id,nome').in('id', carteiraIds)
-      : { data: [], error: null },
+      ? safeLoadRowsByChunks(carteiraIds, (chunk) => supabase.schema('core').from('carteiras').select('id,nome').in('id', chunk))
+      : [],
     administradoraIds.length
-      ? supabase.schema('ciclo').from('administradoras').select('id,nome').in('id', administradoraIds)
-      : { data: [], error: null },
+      ? safeLoadRowsByChunks(administradoraIds, (chunk) => supabase.schema('ciclo').from('administradoras').select('id,nome').in('id', chunk))
+      : [],
     clienteRows.length
-      ? supabase.schema('ciclo').from('regularidade_cliente').select('cliente_id,percentual_regularidade,percentual_pagamentos').in('cliente_id', clienteRows.map((row) => row.id))
-      : { data: [], error: null },
+      ? safeLoadRowsByChunks(clienteIdList, (chunk) => supabase.schema('ciclo').from('regularidade_cliente').select('cliente_id,percentual_regularidade,percentual_pagamentos').in('cliente_id', chunk))
+      : [],
     clienteRows.length
-      ? supabase.schema('ciclo').from('cliente_contatos').select('cliente_id,nome,email,telefone,principal,ativo').in('cliente_id', clienteRows.map((row) => row.id)).eq('ativo', true)
-      : { data: [], error: null },
+      ? safeLoadRowsByChunks(clienteIdList, (chunk) => supabase.schema('ciclo').from('cliente_contatos').select('cliente_id,nome,email,telefone,principal,ativo').in('cliente_id', chunk).eq('ativo', true))
+      : [],
   ])
 
-  const carteiraMap = new Map<string, string>((carteirasResult.data ?? []).map((row: any) => [String(row.id), String(row.nome)]))
-  const administradoraMap = new Map<string, string>((administradorasResult.data ?? []).map((row: any) => [String(row.id), String(row.nome)]))
-  const regularidadeMap = new Map<string, number>((regularidadeResult.data ?? []).map((row: any) => [String(row.cliente_id), regularidadePrincipal(row)]))
+  const carteiraMap = new Map<string, string>(carteirasResult.map((row) => [String(row.id), String(row.nome)]))
+  const administradoraMap = new Map<string, string>(administradorasResult.map((row) => [String(row.id), String(row.nome)]))
+  const regularidadeMap = new Map<string, number>(regularidadeResult.map((row) => [String(row.cliente_id), regularidadePrincipal(row)]))
   const contatoMap = new Map<string, string>()
 
-  for (const contato of (contatosResult.data ?? []) as Array<Record<string, any>>) {
+  for (const contato of contatosResult) {
     const clienteId = String(contato.cliente_id)
     if (contato.principal || !contatoMap.has(clienteId)) {
       contatoMap.set(clienteId, String(contato.nome ?? ''))
@@ -424,27 +468,29 @@ function groupAtendimentos(rows: CicloAtendimentoRecord[], key: CicloAtendimento
 
 export async function getCicloAtendimentoDashboard(context: CicloContext, filters: CicloAtendimentoFilters): Promise<CicloAtendimentoDashboard> {
   const supabase = admin()
-  const query = supabase
+  const query = () => supabase
     .schema('ciclo')
     .from('atendimentos_consultivos')
     .select('id,source_key,astrea_codigo,titulo,cliente_nome,cliente_id,carteira_id,responsavel,etiquetas,tipo_atendimento,status,data_criacao,data_encerramento,data_ultimo_historico,objeto,ultimo_historico,url_processo')
     .order('data_criacao', { ascending: false })
-    .limit(5000)
 
-  if (filters.dataDe) query.gte('data_criacao', filters.dataDe)
-  if (filters.dataAte) query.lte('data_criacao', filters.dataAte)
-  if (filters.status) query.eq('status', filters.status)
+  const result = await safeLoadCicloRows(() => {
+    const scopedQuery = query()
+    if (filters.dataDe) scopedQuery.gte('data_criacao', filters.dataDe)
+    if (filters.dataAte) scopedQuery.lte('data_criacao', filters.dataAte)
+    if (filters.status) scopedQuery.eq('status', filters.status)
+    return scopedQuery
+  })
 
-  const { data, error } = await query
-  if (error) return emptyAtendimentoDashboard(false)
+  if (!result.ok) return emptyAtendimentoDashboard(false)
 
   const allowedCarteiraIds = await getAllowedCarteiraIds(context)
-  const scopedRows = filterByCarteiraScope((data ?? []) as Array<Record<string, any>>, allowedCarteiraIds)
+  const scopedRows = filterByCarteiraScope(result.rows, allowedCarteiraIds)
   const carteiraIds = [...new Set(scopedRows.map((row) => text(row.carteira_id)).filter(Boolean))]
-  const carteirasResult = carteiraIds.length
-    ? await supabase.schema('core').from('carteiras').select('id,nome').in('id', carteiraIds)
-    : { data: [], error: null }
-  const carteiraMap = new Map<string, string>((carteirasResult.data ?? []).map((row: any) => [text(row.id), text(row.nome)]))
+  const carteirasRows = carteiraIds.length
+    ? await safeLoadRowsByChunks(carteiraIds, (chunk) => supabase.schema('core').from('carteiras').select('id,nome').in('id', chunk))
+    : []
+  const carteiraMap = new Map<string, string>(carteirasRows.map((row) => [text(row.id), text(row.nome)]))
 
   const rows: CicloAtendimentoRecord[] = scopedRows.map((row) => ({
     id: text(row.id),
@@ -510,27 +556,27 @@ export async function getCicloAtendimentoDashboard(context: CicloContext, filter
 }
 
 export async function listCicloAdministradoraRows(): Promise<CicloListRow[]> {
-  const { data, error } = await admin()
+  const rows = await safeLoadCicloRows(() => admin()
     .schema('ciclo')
     .from('administradoras')
     .select('*')
-    .order('nome', { ascending: true })
-    .limit(300)
-  const rows = error ? [] : ((data ?? []) as Array<Record<string, any>>)
-  const counts = rows.length
-    ? await admin()
+    .order('nome', { ascending: true }))
+  const administradoras = rows.ok ? rows.rows : []
+  const administradoraIds = administradoras.map((row) => text(row.id)).filter(Boolean)
+  const counts = administradoraIds.length
+    ? await safeLoadRowsByChunks(administradoraIds, (chunk) => admin()
       .schema('ciclo')
       .from('clientes')
       .select('administradora_id')
-      .in('administradora_id', rows.map((row) => row.id).filter(Boolean))
-    : { data: [], error: null }
+      .in('administradora_id', chunk))
+    : []
   const countMap = new Map<string, number>()
-  for (const cliente of (counts.data ?? []) as Array<Record<string, any>>) {
+  for (const cliente of counts) {
     const administradoraId = text(cliente.administradora_id)
     countMap.set(administradoraId, (countMap.get(administradoraId) ?? 0) + 1)
   }
 
-  return rows.map((row) => {
+  return administradoras.map((row) => {
     const status = row.ativo === false ? 'inativa' : 'ativa'
     return {
       id: text(row.id),
@@ -546,13 +592,12 @@ export async function listCicloAdministradoraRows(): Promise<CicloListRow[]> {
 }
 
 export async function listCicloImportacaoRows(context: CicloContext): Promise<CicloListRow[]> {
-  const { data, error } = await admin()
+  const result = await safeLoadCicloRows(() => admin()
     .schema('ciclo')
     .from('importacao_lotes')
     .select('*')
-    .order('created_at', { ascending: false })
-    .limit(300)
-  const rawRows = error ? [] : ((data ?? []) as Array<Record<string, any>>)
+    .order('created_at', { ascending: false }))
+  const rawRows = result.ok ? result.rows : []
   const allowedCarteiraIds = await getAllowedCarteiraIds(context)
   const rows = allowedCarteiraIds === null
     ? rawRows
@@ -769,16 +814,15 @@ export async function getCicloImportacaoLote(id: string, context: CicloContext):
 }
 
 export async function listCicloImportacaoItens(loteId: string, context: CicloContext): Promise<CicloImportacaoItem[]> {
-  const { data, error } = await admin()
+  const result = await safeLoadCicloRows(() => admin()
     .schema('ciclo')
     .from('importacao_lote_itens')
     .select('id,linha,carteira_id,acao,status,cnpj_normalizado,cliente_nome,mensagem,created_at')
     .eq('lote_id', loteId)
-    .order('linha', { ascending: true })
-    .limit(500)
+    .order('linha', { ascending: true }))
 
-  if (error) return []
-  const rows = (data ?? []) as Array<Record<string, any>>
+  if (!result.ok) return []
+  const rows = result.rows
   return filterByCarteiraScope(rows, await getAllowedCarteiraIds(context)) as CicloImportacaoItem[]
 }
 
@@ -1009,36 +1053,37 @@ export async function getCicloClienteIntegral(id: string, context: CicloContext)
 export async function getCicloDocumentoFormData(context: CicloContext): Promise<CicloDocumentoFormData> {
   const formData = await getCicloClienteFormData(context)
   const carteiraMap = new Map(formData.carteiras.map((carteira) => [carteira.id, carteira.label]))
-  const clientesResult = context.usuario.tipo === 'admin_global'
-    ? await admin()
+
+  const clienteRows = context.usuario.tipo === 'admin_global'
+    ? (await safeLoadCicloRows(() => admin()
       .schema('ciclo')
       .from('clientes')
       .select('id,nome,nome_fantasia,razao_social,documento,carteira_id')
       .eq('ativo', true)
-      .order('nome', { ascending: true })
-      .limit(500)
+      .order('nome', { ascending: true }))).rows
     : formData.carteiras.length
-      ? await admin()
+      ? (await safeLoadRowsByChunks(formData.carteiras.map((carteira) => carteira.id), (chunk) => admin()
         .schema('ciclo')
         .from('clientes')
         .select('id,nome,nome_fantasia,razao_social,documento,carteira_id')
-        .in('carteira_id', formData.carteiras.map((carteira) => carteira.id))
+        .in('carteira_id', chunk)
         .eq('ativo', true)
-        .order('nome', { ascending: true })
-        .limit(500)
-      : { data: [], error: null }
+        .order('nome', { ascending: true })))
+      : []
 
   return {
-    clientes: ((clientesResult.data ?? []) as Array<Record<string, any>>).map((row) => {
-      const carteiraId = text(row.carteira_id)
-      const nome = text(row.nome_fantasia ?? row.nome ?? row.razao_social, 'Cliente')
-      return {
-        id: text(row.id),
-        label: `${nome} - ${text(row.documento, 'sem documento')}`,
-        meta: carteiraMap.get(carteiraId) ?? 'Sem carteira',
-        shortLabel: nome,
-      }
-    }),
+    clientes: clienteRows
+      .sort((a, b) => text(a.nome_fantasia ?? a.nome ?? a.razao_social).localeCompare(text(b.nome_fantasia ?? b.nome ?? b.razao_social)))
+      .map((row) => {
+        const carteiraId = text(row.carteira_id)
+        const nome = text(row.nome_fantasia ?? row.nome ?? row.razao_social, 'Cliente')
+        return {
+          id: text(row.id),
+          label: `${nome} - ${text(row.documento, 'sem documento')}`,
+          meta: carteiraMap.get(carteiraId) ?? 'Sem carteira',
+          shortLabel: nome,
+        }
+      }),
   }
 }
 
@@ -1050,20 +1095,28 @@ export async function getCicloCockpitData(context: CicloContext): Promise<CicloC
   const clienteIds = documentoFormData.clientes.map((cliente) => cliente.id)
   const allowedClienteIds = new Set(clienteIds)
 
-  const documentosResult = clienteIds.length
-    ? await admin()
-      .schema('ciclo')
-      .from('cliente_documentos')
-      .select('id,cliente_id,tipo_documento,titulo,status,validado,data_renovacao,observacoes')
-      .in('cliente_id', clienteIds)
-    : { data: [], error: null }
+  let documentosResult = { ok: true, rows: [] as Array<Record<string, any>> }
+  if (clienteIds.length) {
+    try {
+      documentosResult = {
+        ok: true,
+        rows: await loadRowsByChunks(clienteIds, (chunk) => admin()
+          .schema('ciclo')
+          .from('cliente_documentos')
+          .select('id,cliente_id,tipo_documento,titulo,status,validado,data_renovacao,observacoes')
+          .in('cliente_id', chunk)),
+      }
+    } catch {
+      documentosResult = { ok: false, rows: [] }
+    }
+  }
 
-  if (documentosResult.error) throw new Error(documentosResult.error.message)
+  if (!documentosResult.ok) throw new Error('Não foi possível carregar documentos do Ciclo.')
 
   const clienteMap = new Map(documentoFormData.clientes.map((cliente) => [cliente.id, cliente.shortLabel ?? cliente.label]))
   const documentosByCliente = new Map<string, Map<string, Record<string, any>>>()
 
-  for (const row of (documentosResult.data ?? []) as Array<Record<string, any>>) {
+  for (const row of documentosResult.rows) {
     const clienteId = text(row.cliente_id)
     if (!allowedClienteIds.has(clienteId)) continue
     const byTipo = documentosByCliente.get(clienteId) ?? new Map<string, Record<string, any>>()

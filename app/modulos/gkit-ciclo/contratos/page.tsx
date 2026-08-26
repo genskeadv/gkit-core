@@ -15,7 +15,7 @@ export default async function CicloContratosPage({
 
   return (
     <CicloShell
-      active="documentos"
+      active="contratos"
       eyebrow="Documentos"
       title="Contratos"
       description="Contratos, vigências, valores e reajustes vinculados aos clientes."

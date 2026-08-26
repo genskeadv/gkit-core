@@ -6,6 +6,7 @@ import type { CicloCockpitData, CicloListRow } from '@/features/ciclo/types'
 import { CicloSubmitButton } from '@/features/ciclo/submit-button'
 
 type CockpitPanel = 'cliente' | 'onboarding' | 'documentacao' | 'ocorrencia'
+type CockpitPermissions = Record<CockpitPanel, boolean>
 
 const panels: Array<{ description: string; id: CockpitPanel; label: string; title: string }> = [
   { id: 'cliente', label: '1. Cliente', title: 'Criar cliente', description: 'Cadastre a entrada operacional.' },
@@ -95,6 +96,7 @@ export function CicloCockpit({
   createOcorrenciaAction,
   data,
   initialPanel = null,
+  permissions,
   startOnboardingAction,
   updateDocumentacaoAction,
 }: {
@@ -102,10 +104,12 @@ export function CicloCockpit({
   createOcorrenciaAction: (formData: FormData) => Promise<void>
   data: CicloCockpitData
   initialPanel?: CockpitPanel | null
+  permissions: CockpitPermissions
   startOnboardingAction: (formData: FormData) => Promise<void>
   updateDocumentacaoAction: (formData: FormData) => Promise<void>
 }) {
   const activePanel = initialPanel
+  const availablePanels = panels.filter((panel) => permissions[panel.id])
   const [documentacaoClienteId, setDocumentacaoClienteId] = useState('')
   const documentos = useMemo(
     () => data.documentos.filter((documento) => documento.clienteId === documentacaoClienteId),
@@ -123,7 +127,7 @@ export function CicloCockpit({
         </div>
 
         <div className="ciclo-quick-grid ciclo-cockpit-flow">
-          {panels.map((panel) => (
+          {availablePanels.map((panel) => (
             <Link
               aria-current={activePanel === panel.id ? 'page' : undefined}
               className={activePanel === panel.id ? 'ciclo-quick-card active' : 'ciclo-quick-card'}
@@ -135,6 +139,7 @@ export function CicloCockpit({
               <p>{panel.description}</p>
             </Link>
           ))}
+          {!availablePanels.length ? <div className="suite-empty-block">Seu perfil tem acesso de consulta ao Ciclo.</div> : null}
         </div>
       </section>
 

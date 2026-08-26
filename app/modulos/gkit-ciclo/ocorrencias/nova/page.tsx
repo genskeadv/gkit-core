@@ -1,9 +1,13 @@
+import { redirect } from 'next/navigation'
+import { canAccess } from '@/lib/auth/permissions'
 import { createCicloOcorrenciaAction } from '@/features/ciclo/actions'
 import { CicloOcorrenciaForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloDocumentoFormData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function NovaOcorrenciaPage() {
   const context = await requireCicloContext()
+  if (!canAccess(context.permissions, 'ciclo.alertas.write')) redirect('/modulos/gkit-ciclo/ocorrencias')
+
   const formData = await getCicloDocumentoFormData(context)
 
   return (

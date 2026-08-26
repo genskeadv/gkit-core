@@ -1,14 +1,18 @@
+import { redirect } from 'next/navigation'
+import { canAccess } from '@/lib/auth/permissions'
 import { createCicloContratoAction } from '@/features/ciclo/actions'
 import { CicloContratoForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloDocumentoFormData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function NovoContratoPage() {
   const context = await requireCicloContext()
+  if (!canAccess(context.permissions, 'ciclo.clientes.write')) redirect('/modulos/gkit-ciclo/contratos')
+
   const formData = await getCicloDocumentoFormData(context)
 
   return (
     <CicloShell
-      active="documentos"
+      active="contratos"
       eyebrow="Documentos"
       title="Novo contrato"
       description="Contrato vinculado ao cliente, vigência, valor e próximo reajuste."

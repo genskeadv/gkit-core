@@ -1,9 +1,12 @@
+import { redirect } from 'next/navigation'
+import { canAccess } from '@/lib/auth/permissions'
 import { createCicloAdministradoraAction } from '@/features/ciclo/actions'
 import { CicloAdministradoraForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function NovaAdministradoraPage() {
   const context = await requireCicloContext()
+  if (!canAccess(context.permissions, 'ciclo.clientes.write')) redirect('/modulos/gkit-ciclo/administradoras')
 
   return (
     <CicloShell

@@ -1,9 +1,13 @@
+import { redirect } from 'next/navigation'
+import { canAccess } from '@/lib/auth/permissions'
 import { updateCicloDocumentoAction } from '@/features/ciclo/actions'
 import { CicloDocumentoForm, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloDocumento, getCicloDocumentoFormData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function EditarDocumentoPage({ params }: { params: Promise<{ id: string }> }) {
   const context = await requireCicloContext()
+  if (!canAccess(context.permissions, 'ciclo.documentos.write')) redirect('/modulos/gkit-ciclo/documentos')
+
   const { id } = await params
   const [documento, formData] = await Promise.all([
     getCicloDocumento(id, context),
