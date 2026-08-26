@@ -267,7 +267,6 @@ export function GkitJurNovoJurPage({
 
   const data = cockpitData[activeArea]
   const manualConfig = manualCreateConfig[activeArea]
-  const listCaption = useMemo(() => `${areaLabels[activeArea]} da carteira`, [activeArea])
   const activeFilter = areaFilters[activeArea]
   const [visibleGroupLimit, setVisibleGroupLimit] = useState(CLIENT_GROUP_PAGE_SIZE)
   const searchOptions = useMemo(() => {
@@ -456,10 +455,6 @@ export function GkitJurNovoJurPage({
 
       <section className="gkit-jur-cockpit-workspace">
         <div className="gkit-jur-cockpit-filterbar">
-          <div>
-            <span>{listCaption}</span>
-            <strong>{data.description}</strong>
-          </div>
           <div className="gkit-jur-cockpit-list-filters" aria-label={`Filtros de ${areaLabels[activeArea]}`}>
             <label>
               <select

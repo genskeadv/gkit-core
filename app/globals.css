@@ -1083,20 +1083,8 @@
   border-bottom: 1px solid rgba(53, 27, 64, 0.18);
   display: flex;
   gap: 12px;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding-bottom: 10px;
-}
-
-.gkit-jur-cockpit-filterbar div:first-child {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.gkit-jur-cockpit-filterbar strong {
-  color: #111827;
-  font-size: 14px;
-  font-weight: 520;
 }
 
 .gkit-jur-cockpit-filterchips {
