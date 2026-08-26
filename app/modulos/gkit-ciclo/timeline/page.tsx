@@ -35,6 +35,7 @@ export default async function CicloTimelinePage({
           description="Timeline operacional registrada no Ciclo."
           emptyLabel="Nenhum evento encontrado."
           filters={buildCicloListFilters(params)}
+          groupByCliente
           rows={rows}
         />
       </CicloSection>

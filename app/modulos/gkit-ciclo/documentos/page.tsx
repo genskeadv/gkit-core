@@ -24,6 +24,7 @@ export default async function CicloDocumentosPage({ searchParams }: CicloDocumen
   const filters = {
     ate: dateParam(params?.ate),
     de: dateParam(params?.de),
+    pagina: Number(singleParam(params?.pagina)) > 0 ? Number(singleParam(params?.pagina)) : 1,
     status: singleParam(params?.status),
     tipo: singleParam(params?.tipo),
   }

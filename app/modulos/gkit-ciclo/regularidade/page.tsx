@@ -36,6 +36,7 @@ export default async function CicloRegularidadePage({
           detailHrefBase="/modulos/gkit-ciclo/clientes"
           emptyLabel="Nenhum cliente encontrado para regularidade."
           filters={buildCicloListFilters(params)}
+          groupByCliente
           rows={rows}
         />
       </CicloSection>

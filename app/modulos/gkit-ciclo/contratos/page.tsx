@@ -40,6 +40,7 @@ export default async function CicloContratosPage({
           detailHrefBase={canWrite ? '/modulos/gkit-ciclo/contratos' : undefined}
           emptyLabel="Nenhum contrato encontrado."
           filters={buildCicloListFilters(params)}
+          groupByCliente
           rows={rows}
         />
       </CicloSection>

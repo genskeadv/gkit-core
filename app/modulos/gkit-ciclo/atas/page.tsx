@@ -40,6 +40,7 @@ export default async function CicloAtasPage({
           detailHrefBase={canWrite ? '/modulos/gkit-ciclo/atas' : undefined}
           emptyLabel="Nenhuma ata encontrada."
           filters={buildCicloListFilters(params)}
+          groupByCliente
           rows={rows}
         />
       </CicloSection>

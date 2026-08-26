@@ -174,6 +174,22 @@ async function safeCicloList(context: CicloContext, table: string, orderColumn =
   return filterByCarteiraScope(rows, await getAllowedCarteiraIds(context))
 }
 
+async function clienteNomeMapFromRows(rows: Array<Record<string, any>>) {
+  const clienteIds = [...new Set(rows.map((row) => text(row.cliente_id)).filter(Boolean))]
+  const clienteRows = clienteIds.length
+    ? await safeLoadRowsByChunks(clienteIds, (chunk) => admin()
+      .schema('ciclo')
+      .from('clientes')
+      .select('id,nome,nome_fantasia,razao_social')
+      .in('id', chunk))
+    : []
+
+  return new Map(clienteRows.map((row) => [
+    text(row.id),
+    text(row.nome) || text(row.nome_fantasia) || text(row.razao_social) || 'Cliente não informado',
+  ]))
+}
+
 function emptyCicloData(databaseReady = false): CicloData {
   return {
     clientes: [],
@@ -623,8 +639,10 @@ export async function listCicloImportacaoRows(context: CicloContext): Promise<Ci
 
 export async function listCicloContratoRows(context: CicloContext): Promise<CicloListRow[]> {
   const rows = await safeCicloList(context, 'contratos', 'created_at')
+  const clienteMap = await clienteNomeMapFromRows(rows)
   return rows.map((row) => {
     const status = text(row.status, row.ativo === false ? 'inativo' : 'ativo')
+    const cliente = clienteMap.get(text(row.cliente_id)) ?? 'Cliente não informado'
     return {
       id: text(row.id),
       title: text(row.numero_contrato ?? row.titulo, 'Contrato sem numero'),
@@ -633,6 +651,7 @@ export async function listCicloContratoRows(context: CicloContext): Promise<Cicl
       value: formatBRL(numberValue(row.valor)),
       meta: `Reajuste: ${dateLabel(row.proximo_reajuste)}`,
       category: text(row.indice_reajuste, 'Contrato'),
+      cliente,
       date: text(row.data_fim ?? row.proximo_reajuste).slice(0, 10),
       tone: listTone(status),
     }
@@ -641,8 +660,10 @@ export async function listCicloContratoRows(context: CicloContext): Promise<Cicl
 
 export async function listCicloAtaRows(context: CicloContext): Promise<CicloListRow[]> {
   const rows = await safeCicloList(context, 'atas', 'created_at')
+  const clienteMap = await clienteNomeMapFromRows(rows)
   return rows.map((row) => {
     const status = text(row.status, 'vigente')
+    const cliente = clienteMap.get(text(row.cliente_id)) ?? 'Cliente não informado'
     return {
       id: text(row.id),
       title: text(row.tipo ?? row.titulo, 'Ata'),
@@ -651,6 +672,7 @@ export async function listCicloAtaRows(context: CicloContext): Promise<CicloList
       value: dateLabel(row.data_ata),
       meta: `Validade: ${dateLabel(row.data_validade)}`,
       category: text(row.tipo, 'Ata'),
+      cliente,
       date: text(row.data_validade ?? row.data_ata).slice(0, 10),
       tone: listTone(status),
     }
@@ -693,6 +715,7 @@ export async function listCicloOnboardingRows(): Promise<CicloListRow[]> {
       value: `${percentual}%`,
       meta: `${cliente.carteira} - risco ${cliente.risco}`,
       category: cliente.carteira,
+      cliente: cliente.nome,
       tone: listTone(cliente.status),
       }
     })
@@ -737,6 +760,7 @@ export async function listCicloRegularidadeRows(context: CicloContext): Promise<
       value: `${cliente.regularidade}%`,
       meta: `${cliente.carteira} · risco ${cliente.risco}`,
       category: cliente.carteira,
+      cliente: cliente.nome,
       tone: listTone(status),
     }
   })
@@ -752,6 +776,7 @@ export async function listCicloTimelineRows(context: CicloContext): Promise<Cicl
     value: dateLabel(row.createdAt),
     meta: row.cliente,
     category: row.tipo,
+    cliente: row.cliente,
     date: text(row.createdAt).slice(0, 10),
     tone: 'primary',
   }))
@@ -759,9 +784,11 @@ export async function listCicloTimelineRows(context: CicloContext): Promise<Cicl
 
 export async function listCicloOcorrenciaRows(context: CicloContext): Promise<CicloListRow[]> {
   const rows = await safeCicloList(context, 'ocorrencias', 'created_at')
+  const clienteMap = await clienteNomeMapFromRows(rows)
   return rows.map((row) => {
     const tipo = text(row.tipo, 'ocorrencia')
     const metadata = (row.metadata ?? {}) as Record<string, any>
+    const cliente = clienteMap.get(text(row.cliente_id)) ?? 'Cliente não informado'
     return {
       id: text(row.id),
       title: text(row.titulo, 'Ocorrencia operacional'),
@@ -770,6 +797,7 @@ export async function listCicloOcorrenciaRows(context: CicloContext): Promise<Ci
       value: dateLabel(row.data_ocorrencia ?? row.created_at),
       meta: `${text(metadata.responsavel, 'Sem responsável')} - impacto ${text(row.impacto, 'medio')}`,
       category: tipo,
+      cliente,
       date: text(row.data_ocorrencia ?? row.created_at).slice(0, 10),
       tone: listTone(text(row.impacto, tipo)),
     }
@@ -778,8 +806,10 @@ export async function listCicloOcorrenciaRows(context: CicloContext): Promise<Ci
 
 export async function listCicloAlertaRows(context: CicloContext): Promise<CicloListRow[]> {
   const rows = await safeCicloList(context, 'alertas_cliente', 'created_at')
+  const clienteMap = await clienteNomeMapFromRows(rows)
   return rows.map((row) => {
     const status = normalizeAlertaStatus(row.status)
+    const cliente = clienteMap.get(text(row.cliente_id)) ?? 'Cliente não informado'
     return {
       id: text(row.id),
       title: text(row.titulo, 'Alerta operacional'),
@@ -788,6 +818,7 @@ export async function listCicloAlertaRows(context: CicloContext): Promise<CicloL
       value: dateLabel(row.vencimento_em ?? row.created_at),
       meta: `Severidade ${text(row.severidade, 'media')}`,
       category: text(row.tipo, 'alerta'),
+      cliente,
       date: text(row.vencimento_em ?? row.created_at).slice(0, 10),
       tone: listTone(status === 'aberto' ? text(row.severidade, status) : status),
     }

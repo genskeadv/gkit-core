@@ -40,6 +40,7 @@ export default async function CicloOcorrenciasPage({
           detailHrefBase={canWrite ? '/modulos/gkit-ciclo/ocorrencias' : undefined}
           emptyLabel="Nenhuma ocorrência encontrada."
           filters={buildCicloListFilters(params)}
+          groupByCliente
           rows={rows}
         />
       </CicloSection>

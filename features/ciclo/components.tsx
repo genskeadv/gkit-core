@@ -390,6 +390,12 @@ export function CicloAlertList({
   filters?: CicloListFilters
 }) {
   const rows = filterCicloAlertas(alertas, filters)
+  const grouped = paginatedClientGroups(
+    rows,
+    filters.pagina,
+    (alerta) => alerta.cliente,
+    (a, b) => (listDateKey(a.vencimentoEm) || '9999-12-31').localeCompare(listDateKey(b.vencimentoEm) || '9999-12-31') || a.titulo.localeCompare(b.titulo, 'pt-BR'),
+  )
   const statusOptions = uniqueListOptions(alertas.map((alerta) => alerta.status))
   const categoryOptions = uniqueListOptions(alertas.map((alerta) => alerta.tipo))
   const hasFilters = Boolean(filters.q || filters.status || filters.categoria || filters.de || filters.ate)
@@ -399,7 +405,7 @@ export function CicloAlertList({
       <div className="ciclo-panel-heading">
         <div>
           <h2>Alertas recentes</h2>
-          <p>{rows.length} de {alertas.length} alertas</p>
+          <p>{rows.length} de {alertas.length} alertas · {grouped.totalClients} cliente(s)</p>
         </div>
         <Link className="button secondary" href="/modulos/gkit-ciclo/alertas">Ver alertas</Link>
       </div>
@@ -435,24 +441,41 @@ export function CicloAlertList({
         {hasFilters ? <Link className="button secondary" href="?">Limpar</Link> : null}
       </form>
 
-      {rows.length ? (
-        <div className="ciclo-alert-list">
-          {rows.map((alerta) => (
-            <article key={alerta.id}>
-              <span className={`ciclo-pill ${riskTone(alerta.severidade)}`}>{alerta.severidade}</span>
-              <div className="ciclo-clientes-main">
-                <h3>{alerta.titulo}</h3>
-                <p>{alerta.cliente} · {alerta.descricao || alerta.tipo}</p>
+      {grouped.groups.length ? (
+        <div className="ciclo-client-group-list">
+          <CicloClientGroupPagination
+            currentPage={grouped.currentPage}
+            hrefForPage={(page) => genericListHref(page, filters)}
+            totalClients={grouped.totalClients}
+            totalPages={grouped.totalPages}
+          />
+          {grouped.groups.map((group) => (
+            <details className="ciclo-client-group" key={group.cliente}>
+              <summary>
+                <span aria-hidden="true">+</span>
+                <strong>{group.cliente}</strong>
+                <small>{group.items.length} alerta(s)</small>
+              </summary>
+              <div className="ciclo-alert-list">
+                {group.items.map((alerta) => (
+                  <article key={alerta.id}>
+                    <span className={`ciclo-pill ${riskTone(alerta.severidade)}`}>{alerta.severidade}</span>
+                    <div className="ciclo-clientes-main">
+                      <h3>{alerta.titulo}</h3>
+                      <p>{alerta.descricao || alerta.tipo}</p>
+                    </div>
+                    <small>{formatDate(alerta.vencimentoEm)}</small>
+                    {canWrite ? (
+                      <form action={resolveCicloAlertaAction}>
+                        <input type="hidden" name="id" value={alerta.id} />
+                        <input type="hidden" name="titulo" value={alerta.titulo} />
+                        <button className="button secondary" type="submit">Resolver</button>
+                      </form>
+                    ) : null}
+                  </article>
+                ))}
               </div>
-              <small>{formatDate(alerta.vencimentoEm)}</small>
-              {canWrite ? (
-                <form action={resolveCicloAlertaAction}>
-                  <input type="hidden" name="id" value={alerta.id} />
-                  <input type="hidden" name="titulo" value={alerta.titulo} />
-                  <button className="button secondary" type="submit">Resolver</button>
-                </form>
-              ) : null}
-            </article>
+            </details>
           ))}
         </div>
       ) : (
@@ -612,6 +635,12 @@ export function CicloOnboardingOverview({
   rows: CicloListRow[]
 }) {
   const filteredRows = filterCicloListRows(rows, filters)
+  const grouped = paginatedClientGroups(
+    filteredRows,
+    filters.pagina,
+    (row) => row.cliente ?? row.title,
+    (a, b) => a.title.localeCompare(b.title, 'pt-BR'),
+  )
   const statusOptions = uniqueListOptions(rows.map((row) => row.status))
   const categoryOptions = uniqueListOptions(rows.map((row) => row.category ?? ''))
   const hasFilters = Boolean(filters.q || filters.status || filters.categoria || filters.de || filters.ate)
@@ -683,41 +712,51 @@ export function CicloOnboardingOverview({
           <span className="ciclo-list-count">{filteredRows.length} de {rows.length}</span>
         </form>
 
-        {filteredRows.length ? (
-          <div className="ciclo-table-list ciclo-onboarding-list">
-            <div className="ciclo-onboarding-head">
-              <span>Cliente</span>
-              <span>Etapa</span>
-              <span>Progresso</span>
-              <span>Carteira</span>
-              <span>Ações</span>
-            </div>
-            {filteredRows.map((row) => {
-              const progress = onboardingPercent(row.value)
-              const meta = onboardingMeta(row.meta)
-              return (
-                <article key={row.id}>
-                  <div className="ciclo-clientes-main">
-                    <h3>{row.title}</h3>
-                    <p>{row.subtitle}</p>
-                  </div>
-                  <div className="ciclo-clientes-type">
-                    <span className={`ciclo-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
-                  </div>
-                  <div className="ciclo-onboarding-progress">
-                    <strong>{row.value}</strong>
-                    <div aria-hidden="true"><span style={{ width: `${Math.max(4, progress)}%` }} /></div>
-                  </div>
-                  <div className="ciclo-clientes-meta">
-                    <strong>{meta.carteira}</strong>
-                    <span>risco {meta.risco}</span>
-                  </div>
-                  <div className="ciclo-clientes-actions">
-                    <Link className="button secondary" href={`/modulos/gkit-ciclo/onboarding/${row.id}`}>Checklist</Link>
-                  </div>
-                </article>
-              )
-            })}
+        {grouped.groups.length ? (
+          <div className="ciclo-client-group-list">
+            <CicloClientGroupPagination
+              currentPage={grouped.currentPage}
+              hrefForPage={(page) => genericListHref(page, filters)}
+              totalClients={grouped.totalClients}
+              totalPages={grouped.totalPages}
+            />
+            {grouped.groups.map((group) => (
+              <details className="ciclo-client-group" key={group.cliente}>
+                <summary>
+                  <span aria-hidden="true">+</span>
+                  <strong>{group.cliente}</strong>
+                  <small>{group.items.length} item(ns)</small>
+                </summary>
+                <div className="ciclo-table-list ciclo-onboarding-list">
+                  {group.items.map((row) => {
+                    const progress = onboardingPercent(row.value)
+                    const meta = onboardingMeta(row.meta)
+                    return (
+                      <article key={row.id}>
+                        <div className="ciclo-clientes-main">
+                          <h3>{row.title}</h3>
+                          <p>{row.subtitle}</p>
+                        </div>
+                        <div className="ciclo-clientes-type">
+                          <span className={`ciclo-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+                        </div>
+                        <div className="ciclo-onboarding-progress">
+                          <strong>{row.value}</strong>
+                          <div aria-hidden="true"><span style={{ width: `${Math.max(4, progress)}%` }} /></div>
+                        </div>
+                        <div className="ciclo-clientes-meta">
+                          <strong>{meta.carteira}</strong>
+                          <span>risco {meta.risco}</span>
+                        </div>
+                        <div className="ciclo-clientes-actions">
+                          <Link className="button secondary" href={`/modulos/gkit-ciclo/onboarding/${row.id}`}>Checklist</Link>
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              </details>
+            ))}
           </div>
         ) : (
           <EmptyBlock label="Nenhum onboarding encontrado." />
@@ -861,6 +900,7 @@ export function CicloAtendimentoDashboardView({
 type CicloDocumentoFilters = {
   ate?: string
   de?: string
+  pagina?: number
   status?: string
   tipo?: string
 }
@@ -899,26 +939,74 @@ function filteredDocumentos(documentos: CicloDocumento[], filters: CicloDocument
   })
 }
 
-function groupDocumentosByTipo(documentos: CicloDocumento[]) {
-  const groups = new Map<string, CicloDocumento[]>()
+const CICLO_CLIENT_GROUP_PAGE_SIZE = 20
 
-  for (const documento of documentos) {
-    const tipo = documento.tipo || 'Sem tipo'
-    const items = groups.get(tipo) ?? []
-    items.push(documento)
-    groups.set(tipo, items)
+function pageFilterParam(value: string | string[] | undefined) {
+  const page = Number(singleFilterParam(value))
+  return Number.isInteger(page) && page > 0 ? page : 1
+}
+
+function paginatedClientGroups<T>(items: T[], page: number, getClient: (item: T) => string, sortItems: (a: T, b: T) => number) {
+  const groups = new Map<string, T[]>()
+
+  for (const item of items) {
+    const cliente = getClient(item).trim() || 'Cliente não informado'
+    const groupItems = groups.get(cliente) ?? []
+    groupItems.push(item)
+    groups.set(cliente, groupItems)
   }
 
-  return [...groups.entries()]
-    .map(([tipo, items]) => ({
-      items: items.sort((a, b) => {
-        const dateA = documentoDateKey(a.dataRenovacao) || '9999-12-31'
-        const dateB = documentoDateKey(b.dataRenovacao) || '9999-12-31'
-        return dateA.localeCompare(dateB) || a.cliente.localeCompare(b.cliente) || a.titulo.localeCompare(b.titulo)
-      }),
-      tipo,
+  const orderedGroups = [...groups.entries()]
+    .map(([cliente, groupItems]) => ({
+      cliente,
+      items: groupItems.sort(sortItems),
     }))
-    .sort((a, b) => documentTypeLabel(a.tipo).localeCompare(documentTypeLabel(b.tipo)))
+    .sort((a, b) => a.cliente.localeCompare(b.cliente, 'pt-BR'))
+  const totalPages = Math.max(1, Math.ceil(orderedGroups.length / CICLO_CLIENT_GROUP_PAGE_SIZE))
+  const currentPage = Math.min(Math.max(page, 1), totalPages)
+  const start = (currentPage - 1) * CICLO_CLIENT_GROUP_PAGE_SIZE
+
+  return {
+    currentPage,
+    groups: orderedGroups.slice(start, start + CICLO_CLIENT_GROUP_PAGE_SIZE),
+    totalClients: orderedGroups.length,
+    totalPages,
+  }
+}
+
+function CicloClientGroupPagination({
+  currentPage,
+  hrefForPage,
+  totalClients,
+  totalPages,
+}: {
+  currentPage: number
+  hrefForPage: (page: number) => string
+  totalClients: number
+  totalPages: number
+}) {
+  if (totalPages <= 1) return <span className="ciclo-client-group-count">{totalClients} cliente(s)</span>
+
+  return (
+    <div className="ciclo-client-group-pagination">
+      <span>{totalClients} cliente(s) · página {currentPage} de {totalPages}</span>
+      <div>
+        <Link className="button secondary" aria-disabled={currentPage <= 1} href={hrefForPage(Math.max(1, currentPage - 1))}>Anterior</Link>
+        <Link className="button secondary" aria-disabled={currentPage >= totalPages} href={hrefForPage(Math.min(totalPages, currentPage + 1))}>Próxima</Link>
+      </div>
+    </div>
+  )
+}
+
+function documentListHref(page: number, filters: CicloDocumentoFilters) {
+  const params = new URLSearchParams()
+  if (filters.tipo) params.set('tipo', filters.tipo)
+  if (filters.status) params.set('status', filters.status)
+  if (filters.de) params.set('de', filters.de)
+  if (filters.ate) params.set('ate', filters.ate)
+  if (page > 1) params.set('pagina', String(page))
+  const query = params.toString()
+  return query ? `/modulos/gkit-ciclo/documentos?${query}` : '/modulos/gkit-ciclo/documentos'
 }
 
 export function CicloDocumentoList({
@@ -933,7 +1021,16 @@ export function CicloDocumentoList({
   const tipoOptions = [...new Set(documentos.map((documento) => documento.tipo).filter(Boolean))]
     .sort((a, b) => documentTypeLabel(a).localeCompare(documentTypeLabel(b)))
   const rows = filteredDocumentos(documentos, filters)
-  const groups = groupDocumentosByTipo(rows)
+  const grouped = paginatedClientGroups(
+    rows,
+    filters.pagina ?? 1,
+    (documento) => documento.cliente,
+    (a, b) => {
+      const dateA = documentoDateKey(a.dataRenovacao) || '9999-12-31'
+      const dateB = documentoDateKey(b.dataRenovacao) || '9999-12-31'
+      return dateA.localeCompare(dateB) || documentTypeLabel(a.tipo).localeCompare(documentTypeLabel(b.tipo)) || a.titulo.localeCompare(b.titulo)
+    },
+  )
   const hasFilters = Boolean(filters.tipo || filters.status || filters.de || filters.ate)
 
   return (
@@ -941,7 +1038,7 @@ export function CicloDocumentoList({
       <div className="ciclo-panel-heading">
         <div>
           <h2>Documentos operacionais</h2>
-          <p>{rows.length} de {documentos.length} documentos</p>
+          <p>{rows.length} de {documentos.length} documentos · {grouped.totalClients} cliente(s)</p>
         </div>
       </div>
 
@@ -972,20 +1069,27 @@ export function CicloDocumentoList({
         {hasFilters ? <Link className="button secondary" href="/modulos/gkit-ciclo/documentos">Limpar</Link> : null}
       </form>
 
-      {groups.length ? (
-        <div className="ciclo-document-groups">
-          {groups.map((group) => (
-            <section className="ciclo-document-group" key={group.tipo}>
-              <div className="ciclo-document-group-heading">
-                <h3>{documentTypeLabel(group.tipo)}</h3>
-                <span>{group.items.length}</span>
-              </div>
+      {grouped.groups.length ? (
+        <div className="ciclo-client-group-list">
+          <CicloClientGroupPagination
+            currentPage={grouped.currentPage}
+            hrefForPage={(page) => documentListHref(page, filters)}
+            totalClients={grouped.totalClients}
+            totalPages={grouped.totalPages}
+          />
+          {grouped.groups.map((group) => (
+            <details className="ciclo-client-group" key={group.cliente}>
+              <summary>
+                <span aria-hidden="true">+</span>
+                <strong>{group.cliente}</strong>
+                <small>{group.items.length} documento(s)</small>
+              </summary>
               <div className="ciclo-table-list docs">
                 {group.items.map((documento) => (
                   <article key={documento.id}>
                     <div>
                       <h3>{documento.titulo}</h3>
-                      <p>{documento.cliente}</p>
+                      <p>{documentTypeLabel(documento.tipo)}</p>
                     </div>
                     <span className={`ciclo-pill ${riskTone(documento.status)}`}>{documento.status}</span>
                     <strong>{documento.obrigatorio ? 'Obrigatório' : 'Opcional'}</strong>
@@ -996,7 +1100,7 @@ export function CicloDocumentoList({
                   </article>
                 ))}
               </div>
-            </section>
+            </details>
           ))}
         </div>
       ) : (
@@ -2084,6 +2188,7 @@ export type CicloListFilters = {
   ate: string
   categoria: string
   de: string
+  pagina: number
   q: string
   status: string
 }
@@ -2102,6 +2207,7 @@ export function buildCicloListFilters(params?: Record<string, string | string[] 
     ate: dateFilterParam(params?.ate),
     categoria: singleFilterParam(params?.categoria),
     de: dateFilterParam(params?.de),
+    pagina: pageFilterParam(params?.pagina),
     q: singleFilterParam(params?.q).trim(),
     status: singleFilterParam(params?.status),
   }
@@ -2135,6 +2241,7 @@ function filterCicloListRows(rows: CicloListRow[], filters: CicloListFilters) {
         row.value,
         row.meta,
         row.category ?? '',
+        row.cliente ?? '',
       ].join(' '))
       if (!haystack.includes(search)) return false
     }
@@ -2154,11 +2261,29 @@ function uniqueListOptions(values: string[]) {
   return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b))
 }
 
+function genericListHref(page: number, filters: CicloListFilters, hiddenInputs?: Record<string, string>) {
+  const params = new URLSearchParams()
+  if (filters.q) params.set('q', filters.q)
+  if (filters.status) params.set('status', filters.status)
+  if (filters.categoria) params.set('categoria', filters.categoria)
+  if (filters.de) params.set('de', filters.de)
+  if (filters.ate) params.set('ate', filters.ate)
+  if (page > 1) params.set('pagina', String(page))
+  if (hiddenInputs) {
+    Object.entries(hiddenInputs).forEach(([name, value]) => {
+      if (value) params.set(name, value)
+    })
+  }
+  const query = params.toString()
+  return query ? `?${query}` : '?'
+}
+
 export function CicloGenericList({
   description,
   detailHrefBase,
   emptyLabel,
   filters = buildCicloListFilters(),
+  groupByCliente = false,
   hiddenInputs,
   rows,
   title,
@@ -2167,11 +2292,18 @@ export function CicloGenericList({
   detailHrefBase?: string
   emptyLabel: string
   filters?: CicloListFilters
+  groupByCliente?: boolean
   hiddenInputs?: Record<string, string>
   rows: CicloListRow[]
   title: string
 }) {
   const filteredRows = filterCicloListRows(rows, filters)
+  const grouped = paginatedClientGroups(
+    filteredRows,
+    filters.pagina,
+    (row) => row.cliente ?? row.title,
+    (a, b) => (listDateKey(a.date) || '9999-12-31').localeCompare(listDateKey(b.date) || '9999-12-31') || a.title.localeCompare(b.title, 'pt-BR'),
+  )
   const statusOptions = uniqueListOptions(rows.map((row) => row.status))
   const categoryOptions = uniqueListOptions(rows.map((row) => row.category ?? ''))
   const hasDates = rows.some((row) => listDateKey(row.date))
@@ -2182,7 +2314,7 @@ export function CicloGenericList({
       <div className="ciclo-panel-heading">
         <div>
           <h2>{title}</h2>
-          <p>{description} {rows.length ? `(${filteredRows.length} de ${rows.length})` : ''}</p>
+          <p>{description} {rows.length ? `(${filteredRows.length} de ${rows.length})` : ''}{groupByCliente ? ` · ${grouped.totalClients} cliente(s)` : ''}</p>
         </div>
       </div>
 
@@ -2226,7 +2358,41 @@ export function CicloGenericList({
         {hasFilters ? <Link className="button secondary" href="?">Limpar</Link> : null}
       </form>
 
-      {filteredRows.length ? (
+      {groupByCliente && grouped.groups.length ? (
+        <div className="ciclo-client-group-list">
+          <CicloClientGroupPagination
+            currentPage={grouped.currentPage}
+            hrefForPage={(page) => genericListHref(page, filters, hiddenInputs)}
+            totalClients={grouped.totalClients}
+            totalPages={grouped.totalPages}
+          />
+          {grouped.groups.map((group) => (
+            <details className="ciclo-client-group" key={group.cliente}>
+              <summary>
+                <span aria-hidden="true">+</span>
+                <strong>{group.cliente}</strong>
+                <small>{group.items.length} item(ns)</small>
+              </summary>
+              <div className="ciclo-table-list">
+                {group.items.map((row) => (
+                  <article key={row.id}>
+                    <div>
+                      <h3>{row.title}</h3>
+                      <p>{row.subtitle}</p>
+                    </div>
+                    <span className={`ciclo-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+                    <strong>{row.value}</strong>
+                    <small>
+                      {row.meta}
+                      {detailHrefBase ? <Link className="button secondary" href={`${detailHrefBase}/${row.id}`}>Detalhes</Link> : null}
+                    </small>
+                  </article>
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
+      ) : filteredRows.length ? (
         <div className="ciclo-table-list">
           {filteredRows.map((row) => (
             <article key={row.id}>
