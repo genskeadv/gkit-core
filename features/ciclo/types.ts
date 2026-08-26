@@ -73,6 +73,7 @@ export type CicloListRow = {
   value: string
   meta: string
   category?: string
+  carteira?: string
   cliente?: string
   date?: string
   detailHref?: string

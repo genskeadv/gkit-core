@@ -23,6 +23,7 @@ export default async function CicloOcorrenciasPage({
       actions={canWrite ? <Link className="button" href="/modulos/gkit-ciclo/ocorrencias/nova">Nova ocorrência</Link> : null}
     >
       <CicloSection
+        className="ciclo-clientes-summary"
         eyebrow="Resumo"
         title="Impactos operacionais"
         description="Volume de ocorrências positivas, em atenção e em risco."
@@ -40,7 +41,7 @@ export default async function CicloOcorrenciasPage({
           detailHrefBase={canWrite ? '/modulos/gkit-ciclo/ocorrencias' : undefined}
           emptyLabel="Nenhuma ocorrência encontrada."
           filters={buildCicloListFilters(params)}
-          groupByCliente
+          groupBy="carteira"
           rows={rows}
         />
       </CicloSection>

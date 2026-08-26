@@ -190,6 +190,22 @@ async function clienteNomeMapFromRows(rows: Array<Record<string, any>>) {
   ]))
 }
 
+async function carteiraNomeMapFromRows(rows: Array<Record<string, any>>) {
+  const carteiraIds = [...new Set(rows.map((row) => text(row.carteira_id)).filter(Boolean))]
+  const carteiraRows = carteiraIds.length
+    ? await safeLoadRowsByChunks(carteiraIds, (chunk) => admin()
+      .schema('core')
+      .from('carteiras')
+      .select('id,nome')
+      .in('id', chunk))
+    : []
+
+  return new Map(carteiraRows.map((row) => [
+    text(row.id),
+    text(row.nome, 'Sem carteira'),
+  ]))
+}
+
 function emptyCicloData(databaseReady = false): CicloData {
   return {
     clientes: [],
@@ -784,11 +800,15 @@ export async function listCicloTimelineRows(context: CicloContext): Promise<Cicl
 
 export async function listCicloOcorrenciaRows(context: CicloContext): Promise<CicloListRow[]> {
   const rows = await safeCicloList(context, 'ocorrencias', 'created_at')
-  const clienteMap = await clienteNomeMapFromRows(rows)
+  const [clienteMap, carteiraMap] = await Promise.all([
+    clienteNomeMapFromRows(rows),
+    carteiraNomeMapFromRows(rows),
+  ])
   return rows.map((row) => {
     const tipo = text(row.tipo, 'ocorrencia')
     const metadata = (row.metadata ?? {}) as Record<string, any>
     const cliente = clienteMap.get(text(row.cliente_id)) ?? 'Cliente não informado'
+    const carteira = carteiraMap.get(text(row.carteira_id)) ?? 'Sem carteira'
     return {
       id: text(row.id),
       title: text(row.titulo, 'Ocorrencia operacional'),
@@ -797,6 +817,7 @@ export async function listCicloOcorrenciaRows(context: CicloContext): Promise<Ci
       value: dateLabel(row.data_ocorrencia ?? row.created_at),
       meta: `${text(metadata.responsavel, 'Sem responsável')} - impacto ${text(row.impacto, 'medio')}`,
       category: tipo,
+      carteira,
       cliente,
       date: text(row.data_ocorrencia ?? row.created_at).slice(0, 10),
       tone: listTone(text(row.impacto, tipo)),

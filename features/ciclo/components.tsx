@@ -2308,7 +2308,7 @@ export function CicloGenericList({
   const grouped = paginatedClientGroups(
     filteredRows,
     filters.pagina,
-    (row) => activeGroup === 'carteira' ? (row.category ?? 'Sem carteira') : (row.cliente ?? row.title),
+    (row) => activeGroup === 'carteira' ? (row.carteira ?? row.category ?? 'Sem carteira') : (row.cliente ?? row.title),
     (a, b) => (listDateKey(a.date) || '9999-12-31').localeCompare(listDateKey(b.date) || '9999-12-31') || a.title.localeCompare(b.title, 'pt-BR'),
   )
   const statusOptions = uniqueListOptions(rows.map((row) => row.status))
