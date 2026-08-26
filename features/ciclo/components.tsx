@@ -119,12 +119,6 @@ const navGroups: ModuleNavGroup[] = [
     ],
   },
   {
-    title: 'Dados',
-    items: [
-      { href: '/modulos/gkit-ciclo/importacoes', label: 'Importações' },
-    ],
-  },
-  {
     title: 'Base cadastral',
     items: [
       { href: '/modulos/gkit-ciclo/clientes', label: 'Clientes' },
@@ -135,8 +129,6 @@ const navGroups: ModuleNavGroup[] = [
     title: 'Documentos',
     items: [
       { href: '/modulos/gkit-ciclo/documentos', label: 'Documentos' },
-      { href: '/modulos/gkit-ciclo/contratos', label: 'Contratos' },
-      { href: '/modulos/gkit-ciclo/atas', label: 'Atas' },
     ],
   },
   {
