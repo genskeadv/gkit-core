@@ -22203,8 +22203,14 @@ a.button {
   margin-bottom: 0;
 }
 
+.ciclo-clientes-summary .ciclo-document-kpis {
+  grid-template-columns: repeat(3, minmax(104px, 1fr));
+}
+
 .ciclo-clientes-summary .metric-card,
-.ciclo-clientes-summary .metric-card + .metric-card {
+.ciclo-clientes-summary .metric-card + .metric-card,
+.ciclo-clientes-summary .ciclo-atendimento-kpis article,
+.ciclo-clientes-summary .ciclo-atendimento-kpis article + article {
   gap: 8px;
   height: 64px !important;
   justify-content: center;
@@ -22213,19 +22219,22 @@ a.button {
   padding: 8px 10px !important;
 }
 
-.ciclo-clientes-summary .metric-label {
+.ciclo-clientes-summary .metric-label,
+.ciclo-clientes-summary .ciclo-atendimento-kpis span {
   font-size: 11px !important;
   line-height: 1.2;
   margin: 0;
 }
 
-.ciclo-clientes-summary .metric-value {
+.ciclo-clientes-summary .metric-value,
+.ciclo-clientes-summary .ciclo-atendimento-kpis strong {
   font-size: 21px !important;
   line-height: 1;
   margin: 0;
 }
 
-.ciclo-clientes-summary .metric-hint {
+.ciclo-clientes-summary .metric-hint,
+.ciclo-clientes-summary .ciclo-atendimento-kpis small {
   display: none;
 }
 
@@ -27936,6 +27945,37 @@ body:has(.gkit-flex-operational-shell) {
   line-height: 1 !important;
   margin: 6px 0 !important;
   overflow-wrap: anywhere !important;
+}
+
+.ciclo-shell .ciclo-clientes-summary .metric-card,
+.ciclo-shell .ciclo-clientes-summary .metric-card + .metric-card,
+.ciclo-shell .ciclo-clientes-summary .ciclo-atendimento-kpis article,
+.ciclo-shell .ciclo-clientes-summary .ciclo-atendimento-kpis article + article {
+  gap: 8px !important;
+  height: 64px !important;
+  justify-content: center !important;
+  min-height: 64px !important;
+  overflow: hidden !important;
+  padding: 8px 10px !important;
+}
+
+.ciclo-shell .ciclo-clientes-summary .metric-hint,
+.ciclo-shell .ciclo-clientes-summary .ciclo-atendimento-kpis small {
+  display: none !important;
+}
+
+.ciclo-shell .ciclo-clientes-summary .metric-label,
+.ciclo-shell .ciclo-clientes-summary .ciclo-atendimento-kpis span {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+}
+
+.ciclo-shell .ciclo-clientes-summary .metric-value,
+.ciclo-shell .ciclo-clientes-summary .ciclo-atendimento-kpis strong {
+  font-size: 21px !important;
+  line-height: 1 !important;
+  margin: 0 !important;
 }
 
 :is(.gkit-new-quick-grid, .ciclo-quick-grid, .gkit-ate-quick-grid, .gkit-fat-quick-grid),

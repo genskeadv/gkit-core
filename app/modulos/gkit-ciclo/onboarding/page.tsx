@@ -26,6 +26,7 @@ export default async function CicloOnboardingPage({
       usuario={context.usuario}
     >
       <CicloSection
+        className="ciclo-clientes-summary"
         eyebrow="Resumo"
         title="Implantacoes"
         description="Status dos clientes em onboarding e pontos que exigem acompanhamento."

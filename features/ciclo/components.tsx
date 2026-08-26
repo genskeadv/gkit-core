@@ -330,23 +330,13 @@ export function CicloDocumentSignal({ documentos }: { documentos: CicloDocumento
   const pendentes = documentos.filter((doc) => doc.status === 'pendente' || doc.status === 'vencido')
   const obrigatorios = documentos.filter((doc) => doc.obrigatorio)
   const validos = documentos.filter((doc) => doc.status === 'validado' || doc.validado)
-  const cards = [
-    { title: 'Pendentes', value: pendentes.length, tone: 'warning', desc: 'exigem regularização' },
-    { title: 'Obrigatórios', value: obrigatorios.length, tone: 'primary', desc: 'na matriz documental' },
-    { title: 'Validados', value: validos.length, tone: 'success', desc: 'prontos para operação' },
+  const items = [
+    { label: 'Pendentes', value: String(pendentes.length), hint: 'exigem regularização' },
+    { label: 'Obrigatórios', value: String(obrigatorios.length), hint: 'na matriz documental' },
+    { label: 'Validados', value: String(validos.length), hint: 'prontos para operação' },
   ]
 
-  return (
-    <section className="ciclo-signal-grid">
-      {cards.map((card) => (
-        <article className="card ciclo-signal-card" key={card.title}>
-          <span className={`ciclo-pill ${card.tone}`}>{card.title}</span>
-          <strong>{card.value}</strong>
-          <p>{card.desc}</p>
-        </article>
-      ))}
-    </section>
-  )
+  return <OperationalKpiGrid className="ciclo-kpi-grid ciclo-document-kpis" items={items} />
 }
 
 function filterCicloAlertas(alertas: CicloAlerta[], filters: CicloListFilters) {
