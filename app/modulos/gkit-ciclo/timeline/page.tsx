@@ -19,18 +19,12 @@ export default async function CicloTimelinePage({
       usuario={context.usuario}
     >
       <CicloSection
+        className="ciclo-clientes-summary"
         eyebrow="Resumo"
         title="Movimentações recentes"
         description="Volume e sinais da memória operacional registrada no Ciclo."
       >
         <CicloListKpis rows={rows} secondaryLabel="Eventos" />
-      </CicloSection>
-      <CicloSection
-        eyebrow="Histórico"
-        hideHeader
-        title="Eventos recentes"
-        description="Timeline operacional registrada por cliente e rotina."
-      >
         <CicloGenericList
           title="Eventos recentes"
           description="Timeline operacional registrada no Ciclo."
@@ -38,6 +32,7 @@ export default async function CicloTimelinePage({
           filters={buildCicloListFilters(params)}
           groupByCliente
           rows={rows}
+          surface
         />
       </CicloSection>
     </CicloShell>

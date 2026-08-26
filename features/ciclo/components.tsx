@@ -1008,10 +1008,12 @@ export function CicloDocumentoList({
   canWrite = false,
   documentos,
   filters = {},
+  surface = false,
 }: {
   canWrite?: boolean
   documentos: CicloDocumento[]
   filters?: CicloDocumentoFilters
+  surface?: boolean
 }) {
   const tipoOptions = [...new Set(documentos.map((documento) => documento.tipo).filter(Boolean))]
     .sort((a, b) => documentTypeLabel(a).localeCompare(documentTypeLabel(b)))
@@ -1029,7 +1031,7 @@ export function CicloDocumentoList({
   const hasFilters = Boolean(filters.tipo || filters.status || filters.de || filters.ate)
 
   return (
-    <section className="card ciclo-panel">
+    <div className={surface ? 'ciclo-clientes-surface' : 'card ciclo-panel'}>
       <form className="ciclo-document-filter-bar" method="get">
         <label>
           <span>Tipo</span>
@@ -1094,7 +1096,7 @@ export function CicloDocumentoList({
       ) : (
         <EmptyBlock label={hasFilters ? 'Nenhum documento encontrado com os filtros atuais.' : 'Nenhum documento cadastrado.'} />
       )}
-    </section>
+    </div>
   )
 }
 
@@ -2276,6 +2278,7 @@ export function CicloGenericList({
   groupItemLabel = 'item(ns)',
   hiddenInputs,
   rows,
+  surface = false,
 }: {
   description: string
   categoryLabel?: string
@@ -2287,6 +2290,7 @@ export function CicloGenericList({
   groupItemLabel?: string
   hiddenInputs?: Record<string, string>
   rows: CicloListRow[]
+  surface?: boolean
   title: string
 }) {
   const filteredRows = filterCicloListRows(rows, filters)
@@ -2304,7 +2308,7 @@ export function CicloGenericList({
   const hasFilters = Boolean(filters.q || filters.status || filters.categoria || filters.de || filters.ate)
 
   return (
-    <section className="card ciclo-panel">
+    <div className={surface ? 'ciclo-clientes-surface' : 'card ciclo-panel'}>
       <form className="ciclo-list-filter-bar" method="get">
         {hiddenInputs ? Object.entries(hiddenInputs).map(([name, value]) => (
           <input key={name} name={name} type="hidden" value={value} />
@@ -2400,7 +2404,7 @@ export function CicloGenericList({
       ) : (
         <EmptyBlock label={hasFilters ? 'Nenhum registro encontrado com os filtros atuais.' : emptyLabel} />
       )}
-    </section>
+    </div>
   )
 }
 

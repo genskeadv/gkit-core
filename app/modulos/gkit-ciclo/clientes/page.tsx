@@ -46,13 +46,6 @@ export default async function CicloClientesPage({ searchParams }: CicloClientesP
         description="Clientes ativos, implantações, risco, alertas, score e regularidade média."
       >
         <CicloKpis data={data} />
-      </CicloSection>
-      <CicloSection
-        eyebrow="Cadastro"
-        hideHeader
-        title="Lista de clientes"
-        description="Cadastro mestre com carteira, administradora, risco e regularidade."
-      >
         <CicloClienteList
           canWrite={canWrite}
           carteiraOptions={carteiraOptions}

@@ -25,13 +25,6 @@ export default async function CicloRegularidadePage({
         description="Distribuição da regularidade por cliente, risco e acompanhamento."
       >
         <CicloListKpis rows={rows} secondaryLabel="Saudaveis" />
-      </CicloSection>
-      <CicloSection
-        eyebrow="Governanca"
-        hideHeader
-        title="Regularidade por cliente"
-        description="Percentual de regularidade e indicadores de risco."
-      >
         <CicloGenericList
           title="Regularidade por cliente"
           categoryLabel="Carteira"
@@ -42,6 +35,7 @@ export default async function CicloRegularidadePage({
           groupBy="carteira"
           groupItemLabel="cliente(s)"
           rows={rows}
+          surface
         />
       </CicloSection>
     </CicloShell>

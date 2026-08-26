@@ -29,13 +29,6 @@ export default async function CicloOcorrenciasPage({
         description="Volume de ocorrências positivas, em atenção e em risco."
       >
         <CicloListKpis rows={rows} secondaryLabel="Positivas" />
-      </CicloSection>
-      <CicloSection
-        eyebrow="Operação"
-        hideHeader
-        title="Lista de ocorrências"
-        description="Registros que impactam score, risco e rotina dos clientes."
-      >
         <CicloGenericList
           title="Lista de ocorrências"
           description="Ocorrências cadastradas no schema Ciclo."
@@ -45,6 +38,7 @@ export default async function CicloOcorrenciasPage({
           groupBy="carteira"
           groupItemLabel="ocorrência(s)"
           rows={rows}
+          surface
         />
       </CicloSection>
     </CicloShell>

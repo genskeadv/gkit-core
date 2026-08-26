@@ -29,13 +29,6 @@ export default async function CicloAdministradorasPage({
         description="Volume e status das administradoras vinculadas aos clientes."
       >
         <CicloListKpis rows={rows} />
-      </CicloSection>
-      <CicloSection
-        eyebrow="Cadastro"
-        hideHeader
-        title="Lista de administradoras"
-        description="Administradoras disponíveis para vínculo no cadastro mestre."
-      >
         <CicloGenericList
           title="Lista de administradoras"
           categoryLabel="Carteira"
@@ -46,6 +39,7 @@ export default async function CicloAdministradorasPage({
           groupBy="carteira"
           groupItemLabel="administradora(s)"
           rows={rows}
+          surface
         />
       </CicloSection>
     </CicloShell>

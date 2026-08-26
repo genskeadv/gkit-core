@@ -39,19 +39,13 @@ export default async function CicloDocumentosPage({ searchParams }: CicloDocumen
       actions={canWrite ? <Link className="button" href="/modulos/gkit-ciclo/documentos/novo">Novo documento</Link> : null}
     >
       <CicloSection
+        className="ciclo-clientes-summary"
         eyebrow="Resumo"
         title="Sinal documental"
         description="Pendências, obrigatórios e documentos validados na base."
       >
         <CicloDocumentSignal documentos={data.documentos} />
-      </CicloSection>
-      <CicloSection
-        eyebrow="Matriz"
-        hideHeader
-        title="Documentos operacionais"
-        description="Contrato, cartão CNPJ, atas, documentos do síndico, convenção, regulamento e cadastro de unidade."
-      >
-        <CicloDocumentoList canWrite={canWrite} documentos={data.documentos} filters={filters} />
+        <CicloDocumentoList canWrite={canWrite} documentos={data.documentos} filters={filters} surface />
       </CicloSection>
     </CicloShell>
   )
