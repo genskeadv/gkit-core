@@ -146,9 +146,7 @@ async function loadRowsByChunks(values: string[], buildQuery: (chunk: string[]) 
 
   for (let index = 0; index < uniqueValues.length; index += CICLO_LOOKUP_CHUNK_SIZE) {
     const chunk = uniqueValues.slice(index, index + CICLO_LOOKUP_CHUNK_SIZE)
-    const { data, error } = await buildQuery(chunk)
-    if (error) throw new Error(error.message)
-    rows.push(...((data ?? []) as Array<Record<string, any>>))
+    rows.push(...await loadCicloRows(() => buildQuery(chunk)))
   }
 
   return rows
@@ -1111,12 +1109,10 @@ export async function getCicloCockpitData(context: CicloContext): Promise<CicloC
     }
   }
 
-  if (!documentosResult.ok) throw new Error('Não foi possível carregar documentos do Ciclo.')
-
   const clienteMap = new Map(documentoFormData.clientes.map((cliente) => [cliente.id, cliente.shortLabel ?? cliente.label]))
   const documentosByCliente = new Map<string, Map<string, Record<string, any>>>()
 
-  for (const row of documentosResult.rows) {
+  for (const row of documentosResult.ok ? documentosResult.rows : []) {
     const clienteId = text(row.cliente_id)
     if (!allowedClienteIds.has(clienteId)) continue
     const byTipo = documentosByCliente.get(clienteId) ?? new Map<string, Record<string, any>>()
