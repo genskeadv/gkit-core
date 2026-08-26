@@ -566,7 +566,7 @@
   align-items: center;
   display: grid;
   gap: 10px;
-  grid-template-columns: auto minmax(260px, 1fr) auto;
+  grid-template-columns: auto minmax(340px, 680px) minmax(260px, 1fr);
   padding: 11px;
 }
 
@@ -620,6 +620,7 @@
 
 .gkit-jur-novo-jur-search {
   display: grid;
+  justify-self: stretch;
   min-width: 0;
 }
 
