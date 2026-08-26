@@ -323,13 +323,12 @@ export function GkitJurNovoJurPage({
         <div className="gkit-jur-novo-jur-right">
           <div className="gkit-jur-novo-jur-operator">
             <span>{usuario.nome}</span>
-            <small>ID {usuario.id.slice(0, 8)} - {usuario.tipo.replace('_', ' ')}</small>
+            <a aria-label="Sair" className="gkit-jur-novo-jur-logout" href="/logout" title="Sair">
+              <LogOut aria-hidden="true" size={13} strokeWidth={2} />
+              <span>Sair</span>
+            </a>
           </div>
           <a className="gkit-jur-novo-jur-settings" href="/modulos/gkit-jur/configuracoes">Configurações</a>
-          <a aria-label="Sair" className="gkit-jur-novo-jur-logout" href="/logout" title="Sair">
-            <LogOut aria-hidden="true" size={18} strokeWidth={2.2} />
-            <span>Sair</span>
-          </a>
         </div>
       </header>
 

@@ -576,7 +576,6 @@
   min-width: 0;
 }
 
-.gkit-jur-novo-jur-operator small,
 .gkit-jur-cockpit-dashboard-head span,
 .gkit-jur-cockpit-filterbar span,
 .gkit-jur-cockpit-row span {
@@ -585,17 +584,16 @@
   text-transform: uppercase;
 }
 
-.gkit-jur-novo-jur-operator small,
 .gkit-jur-cockpit-filterbar span,
 .gkit-jur-cockpit-row span,
 .gkit-jur-cockpit-row small {
   color: #5b6472;
 }
 
-.gkit-jur-novo-jur-operator span {
+.gkit-jur-novo-jur-operator > span {
   color: #111827;
   font-size: 15px;
-  font-weight: 580;
+  font-weight: 540;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -671,7 +669,6 @@
 }
 
 .gkit-jur-novo-jur-settings,
-.gkit-jur-novo-jur-logout,
 .gkit-jur-cockpit-dashboard-toggle,
 .gkit-jur-cockpit-filterchips a {
   align-items: center;
@@ -692,16 +689,26 @@
 }
 
 .gkit-jur-novo-jur-logout {
-  background: #fff;
-  border: 1px solid rgba(53, 27, 64, 0.28);
-  color: #351b40;
-  gap: 7px;
-  padding: 0 11px;
+  align-items: center;
+  color: #667085;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 400;
+  gap: 5px;
+  justify-self: start;
+  line-height: 1.1;
+  min-height: 0;
+  text-decoration: none;
+  width: fit-content;
 }
 
 .gkit-jur-novo-jur-logout:hover {
-  border-color: rgba(53, 27, 64, 0.48);
-  box-shadow: 0 7px 16px rgba(53, 27, 64, 0.1);
+  color: #351b40;
+}
+
+.gkit-jur-novo-jur-logout span {
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 .gkit-jur-novo-jur-manual-panel {
@@ -1349,8 +1356,7 @@
   }
 
   .gkit-jur-novo-jur-right,
-  .gkit-jur-novo-jur-settings,
-  .gkit-jur-novo-jur-logout {
+  .gkit-jur-novo-jur-settings {
     width: 100%;
   }
 
