@@ -27998,6 +27998,32 @@ body:has(.gkit-flex-operational-shell) {
   margin: 0 !important;
 }
 
+@media (min-width: 921px) {
+  .ciclo-shell .ciclo-clientes-summary .ciclo-kpi-grid[data-count="1"] {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+
+  .ciclo-shell .ciclo-clientes-summary .ciclo-kpi-grid[data-count="2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .ciclo-shell .ciclo-clientes-summary .ciclo-kpi-grid[data-count="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .ciclo-shell .ciclo-clientes-summary .ciclo-kpi-grid[data-count="4"] {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .ciclo-shell .ciclo-clientes-summary .ciclo-kpi-grid[data-count="5"] {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+
+  .ciclo-shell .ciclo-clientes-summary .ciclo-kpi-grid[data-count="6"] {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  }
+}
+
 .ciclo-shell .module-page-hero {
   box-sizing: border-box !important;
   margin: 0 auto 10px !important;
