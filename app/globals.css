@@ -22204,7 +22204,7 @@ a.button {
 }
 
 .ciclo-clientes-summary .ciclo-document-kpis {
-  grid-template-columns: repeat(3, minmax(104px, 1fr));
+  grid-template-columns: repeat(4, minmax(104px, 1fr));
 }
 
 .ciclo-clientes-summary .metric-card,

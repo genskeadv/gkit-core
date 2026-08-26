@@ -327,11 +327,13 @@ export function CicloPriorityList({ clientes }: { clientes: CicloCliente[] }) {
 }
 
 export function CicloDocumentSignal({ documentos }: { documentos: CicloDocumento[] }) {
-  const pendentes = documentos.filter((doc) => doc.status === 'pendente' || doc.status === 'vencido')
+  const pendentes = documentos.filter((doc) => doc.status === 'pendente')
+  const vencidos = documentos.filter((doc) => doc.status === 'vencido')
   const obrigatorios = documentos.filter((doc) => doc.obrigatorio)
   const validos = documentos.filter((doc) => doc.status === 'validado' || doc.validado)
   const items = [
     { label: 'Pendentes', value: String(pendentes.length), hint: 'exigem regularização' },
+    { label: 'Vencidos', value: String(vencidos.length), hint: 'atenção imediata' },
     { label: 'Obrigatórios', value: String(obrigatorios.length), hint: 'na matriz documental' },
     { label: 'Validados', value: String(validos.length), hint: 'prontos para operação' },
   ]
