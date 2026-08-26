@@ -228,7 +228,6 @@ export function CicloSection({
   action,
   children,
   className,
-  description,
   eyebrow,
   title,
 }: {
@@ -240,7 +239,7 @@ export function CicloSection({
   title: string
 }) {
   return (
-    <OperationalSection action={action} className={className} classPrefix="ciclo" description={description} eyebrow={eyebrow} title={title}>
+    <OperationalSection action={action} className={className} classPrefix="ciclo" eyebrow={eyebrow} title={title}>
       {children}
     </OperationalSection>
   )
