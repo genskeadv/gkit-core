@@ -22199,12 +22199,32 @@ a.button {
 }
 
 .ciclo-clientes-summary .ciclo-kpi-grid {
-  grid-template-columns: repeat(6, minmax(104px, 1fr));
+  grid-template-columns: repeat(var(--ciclo-kpi-count, 6), minmax(104px, 1fr));
   margin-bottom: 0;
 }
 
-.ciclo-clientes-summary .ciclo-document-kpis {
-  grid-template-columns: repeat(4, minmax(104px, 1fr));
+.ciclo-clientes-summary .ciclo-kpi-grid[data-count="1"] {
+  --ciclo-kpi-count: 1;
+}
+
+.ciclo-clientes-summary .ciclo-kpi-grid[data-count="2"] {
+  --ciclo-kpi-count: 2;
+}
+
+.ciclo-clientes-summary .ciclo-kpi-grid[data-count="3"] {
+  --ciclo-kpi-count: 3;
+}
+
+.ciclo-clientes-summary .ciclo-kpi-grid[data-count="4"] {
+  --ciclo-kpi-count: 4;
+}
+
+.ciclo-clientes-summary .ciclo-kpi-grid[data-count="5"] {
+  --ciclo-kpi-count: 5;
+}
+
+.ciclo-clientes-summary .ciclo-kpi-grid[data-count="6"] {
+  --ciclo-kpi-count: 6;
 }
 
 .ciclo-clientes-summary .metric-card,
@@ -22739,7 +22759,7 @@ a.button {
   }
 
   .ciclo-clientes-summary .ciclo-kpi-grid {
-    grid-template-columns: repeat(6, minmax(104px, 1fr));
+    grid-template-columns: repeat(var(--ciclo-kpi-count, 6), minmax(104px, 1fr));
     overflow-x: auto;
     padding-bottom: 2px;
   }

@@ -78,7 +78,7 @@ export function OperationalKpiGrid({
   items: OperationalKpi[]
 }) {
   return (
-    <section className={className}>
+    <section className={className} data-count={items.length}>
       {items.map((item) => (
         <article className="card metric-card" key={item.label}>
           <p className="metric-label">{item.label}</p>
