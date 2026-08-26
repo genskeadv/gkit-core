@@ -947,6 +947,44 @@
   justify-content: flex-end;
 }
 
+.gkit-jur-cockpit-process-filters {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(130px, 0.8fr) minmax(170px, 1fr) minmax(160px, 0.9fr) auto;
+  max-width: min(100%, 820px);
+  min-width: 0;
+}
+
+.gkit-jur-cockpit-process-filters label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.gkit-jur-cockpit-process-filters select {
+  appearance: none;
+  background:
+    linear-gradient(45deg, transparent 50%, #351b40 50%) right 13px top 16px / 6px 6px no-repeat,
+    linear-gradient(135deg, #351b40 50%, transparent 50%) right 8px top 16px / 6px 6px no-repeat,
+    #fff;
+  border: 1px solid rgba(53, 27, 64, 0.24);
+  border-radius: 8px;
+  color: #111827;
+  font: inherit;
+  min-height: 38px;
+  min-width: 0;
+  outline: 0;
+  padding: 0 28px 0 10px;
+  width: 100%;
+}
+
+.gkit-jur-cockpit-process-filters select:focus {
+  border-color: #351b40;
+  box-shadow: 0 0 0 3px rgba(53, 27, 64, 0.12);
+}
+
+.gkit-jur-cockpit-process-filters a,
 .gkit-jur-cockpit-filterchips a {
   background: #fff;
   border: 1px solid rgba(53, 27, 64, 0.28);
@@ -959,6 +997,10 @@
 .gkit-jur-cockpit-filterchips a.active {
   background: #351b40;
   color: #fff;
+}
+
+.gkit-jur-cockpit-process-filters a {
+  white-space: nowrap;
 }
 
 .gkit-jur-cockpit-list {
@@ -1075,10 +1117,16 @@
   }
 
   .gkit-jur-cockpit-filterchips,
+  .gkit-jur-cockpit-process-filters,
   .gkit-jur-cockpit-empty,
   .gkit-jur-cockpit-row div:last-child {
     justify-content: flex-start;
     text-align: left;
+  }
+
+  .gkit-jur-cockpit-process-filters {
+    grid-template-columns: 1fr;
+    max-width: none;
   }
 
   .gkit-jur-cockpit-dashboard-chart div {

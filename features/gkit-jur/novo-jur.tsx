@@ -38,12 +38,7 @@ const areaEmptyLabel: Record<GkitJurCockpitArea, string> = {
 }
 
 const areaFilterHrefs: Record<GkitJurCockpitArea, Record<string, string>> = {
-  processos: {
-    'Sem dono': '/modulos/gkit-jur/processos?saneamento=sem_responsavel',
-    'Sem movimento': '/modulos/gkit-jur/processos?sort=ultima_movimentacao_em&dir=asc',
-    'Alta exposição': '/modulos/gkit-jur/inbox?fila=criticos',
-    Prontos: '/modulos/gkit-jur/processos?monitoramento=monitorando',
-  },
+  processos: {},
   pre_juridico: {
     'Em análise': '/modulos/gkit-jur/pre-juridico?status=em_analise',
     Documentos: '/modulos/gkit-jur/pre-juridico?status=aguardando_documentos',
@@ -95,6 +90,11 @@ export function GkitJurNovoJurPage({
 }) {
   const [activeArea, setActiveArea] = useState<GkitJurCockpitArea>(() => isArea(initialArea ?? null) ? initialArea as GkitJurCockpitArea : 'tarefas')
   const [dashboardCollapsed, setDashboardCollapsed] = useState(false)
+  const [processFilters, setProcessFilters] = useState({
+    carteira: '',
+    cliente: '',
+    movimento: 'recentes',
+  })
 
   useEffect(() => {
     const storedArea = window.localStorage.getItem(STORAGE_VIEW_KEY)
@@ -114,6 +114,34 @@ export function GkitJurNovoJurPage({
 
   const data = cockpitData[activeArea]
   const listCaption = useMemo(() => `${areaLabels[activeArea]} da carteira`, [activeArea])
+  const visibleRows = useMemo(() => {
+    if (activeArea !== 'processos') return data.rows
+
+    const rows = data.rows
+      .filter((row) => !processFilters.carteira || row.meta?.carteiraNome === processFilters.carteira)
+      .filter((row) => !processFilters.cliente || row.meta?.clienteNome === processFilters.cliente)
+
+    const movementTime = (value?: string | null) => {
+      const parsed = Date.parse(value ?? '')
+      return Number.isFinite(parsed) ? parsed : null
+    }
+
+    return [...rows].sort((left, right) => {
+      const leftTime = movementTime(left.meta?.ultimaMovimentacaoEm)
+      const rightTime = movementTime(right.meta?.ultimaMovimentacaoEm)
+
+      if (processFilters.movimento === 'sem_movimento') {
+        if (leftTime === null && rightTime !== null) return -1
+        if (leftTime !== null && rightTime === null) return 1
+      }
+
+      if (processFilters.movimento === 'antigas') {
+        return (leftTime ?? Number.MAX_SAFE_INTEGER) - (rightTime ?? Number.MAX_SAFE_INTEGER)
+      }
+
+      return (rightTime ?? 0) - (leftTime ?? 0)
+    })
+  }, [activeArea, data.rows, processFilters])
 
   return (
     <main className="gkit-jur-novo-jur">
@@ -217,17 +245,49 @@ export function GkitJurNovoJurPage({
             <span>{listCaption}</span>
             <strong>{data.description}</strong>
           </div>
-          <div className="gkit-jur-cockpit-filterchips">
-            {data.filters.map((filter, index) => (
-              <a className={index === 0 ? 'active' : ''} href={filterHref(activeArea, filter)} key={filter}>{filter}</a>
-            ))}
-            <a href={areaEntryHref[activeArea]}>Abrir área</a>
-          </div>
+          {activeArea === 'processos' ? (
+            <div className="gkit-jur-cockpit-process-filters" aria-label="Filtros de processos">
+              <label>
+                <span>Carteira</span>
+                <select value={processFilters.carteira} onChange={(event) => setProcessFilters((current) => ({ ...current, carteira: event.target.value }))}>
+                  <option value="">Todas</option>
+                  {(data.filterOptions?.carteiras ?? []).map((carteira) => (
+                    <option value={carteira} key={carteira}>{carteira}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Cliente</span>
+                <select value={processFilters.cliente} onChange={(event) => setProcessFilters((current) => ({ ...current, cliente: event.target.value }))}>
+                  <option value="">Todos</option>
+                  {(data.filterOptions?.clientes ?? []).map((cliente) => (
+                    <option value={cliente} key={cliente}>{cliente}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Movimentação</span>
+                <select value={processFilters.movimento} onChange={(event) => setProcessFilters((current) => ({ ...current, movimento: event.target.value }))}>
+                  <option value="recentes">Mais recentes</option>
+                  <option value="antigas">Mais antigas</option>
+                  <option value="sem_movimento">Sem movimento primeiro</option>
+                </select>
+              </label>
+              <a href={areaEntryHref[activeArea]}>Abrir área</a>
+            </div>
+          ) : (
+            <div className="gkit-jur-cockpit-filterchips">
+              {data.filters.map((filter, index) => (
+                <a className={index === 0 ? 'active' : ''} href={filterHref(activeArea, filter)} key={filter}>{filter}</a>
+              ))}
+              <a href={areaEntryHref[activeArea]}>Abrir área</a>
+            </div>
+          )}
         </div>
 
         <div className="gkit-jur-cockpit-list">
-          {data.rows.length ? (
-            data.rows.map((row) => (
+          {visibleRows.length ? (
+            visibleRows.map((row) => (
               <a className={`gkit-jur-cockpit-row ${row.tone}`} href={row.href} key={`${row.href}-${row.id}`}>
                 <div>
                   <span>{row.id}</span>

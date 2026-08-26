@@ -828,6 +828,11 @@ export type GkitJurCockpitRow = {
   due: string;
   tone: 'critical' | 'medium' | 'ok';
   href: string;
+  meta?: {
+    carteiraNome?: string | null;
+    clienteNome?: string | null;
+    ultimaMovimentacaoEm?: string | null;
+  };
 };
 
 export type GkitJurCockpitAreaData = {
@@ -835,6 +840,10 @@ export type GkitJurCockpitAreaData = {
   count: number;
   description: string;
   filters: string[];
+  filterOptions?: {
+    carteiras?: string[];
+    clientes?: string[];
+  };
   bars: GkitJurCockpitBar[];
   trend: number[];
   rows: GkitJurCockpitRow[];

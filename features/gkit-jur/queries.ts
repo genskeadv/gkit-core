@@ -2338,6 +2338,11 @@ function cockpitDate(value: string | null | undefined) {
   return value ? formatDate(value) : 'Sem data'
 }
 
+function uniqueSorted(values: Array<string | null | undefined>) {
+  return [...new Set(values.map((value) => text(value)).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right, 'pt-BR'))
+}
+
 function preJuridicoCockpitId(item: GkitJurPreJuridico) {
   return `PRE-${item.id.slice(0, 8).toUpperCase()}`
 }
@@ -2375,8 +2380,9 @@ async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData>
       .from('processos')
       .select(`${PROCESS_LIST_SELECT},updated_at`, { count: 'exact' })
       .eq('status', DEFAULT_PROCESS_STATUS)
+      .order('ultima_movimentacao_em', { ascending: false, nullsFirst: false })
       .order('updated_at', { ascending: false })
-      .limit(5),
+      .limit(50),
     getGkitJurLabReadiness(),
   ])
 
@@ -2397,7 +2403,11 @@ async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData>
     action: 'Carteira processual',
     count,
     description: 'Processos ativos da carteira, com dono, prontidão e movimento.',
-    filters: ['Sem dono', 'Sem movimento', 'Alta exposição', 'Prontos'],
+    filters: [],
+    filterOptions: {
+      carteiras: uniqueSorted(processos.map((processo) => processo.carteiraNome)),
+      clientes: uniqueSorted(processos.map((processo) => processo.clienteNome || processo.titulo || processo.pasta)),
+    },
     bars: cockpitBars([
       { label: 'Pronto', count: readinessValues.pronto, tone: 'green' },
       { label: 'Parcial', count: readinessValues.parcial, tone: 'blue' },
@@ -2413,9 +2423,14 @@ async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData>
         subtitle: [processo.classeNome, processo.tribunalSigla, processo.orgaoJulgadorNome].filter(Boolean).join(' | ') || 'Sem classificacao completa',
         owner: cockpitOwner(processo.responsavelNome, processo.carteiraNome),
         status: processo.statusMonitoramento,
-        due: cockpitDate(text(raw.updated_at) || processo.ultimaMovimentacaoEm || processo.ultimaSincronizacaoEm),
+        due: cockpitDate(processo.ultimaMovimentacaoEm || text(raw.updated_at) || processo.ultimaSincronizacaoEm),
         tone: cockpitTone('', processo.statusMonitoramento),
         href: `/modulos/gkit-jur/processos/${processo.id}`,
+        meta: {
+          carteiraNome: processo.carteiraNome,
+          clienteNome: processo.clienteNome || processo.titulo || processo.pasta,
+          ultimaMovimentacaoEm: processo.ultimaMovimentacaoEm,
+        },
       }
     }),
   }
