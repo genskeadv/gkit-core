@@ -23,6 +23,7 @@ export default async function CicloAlertasPage({
       actions={canWrite ? <Link className="button" href="/modulos/gkit-ciclo/alertas/novo">Novo alerta</Link> : null}
     >
       <CicloSection
+        className="ciclo-clientes-summary"
         eyebrow="Resumo"
         title="Fila de risco"
         description="Contexto geral da carteira antes de tratar os alertas abertos."
