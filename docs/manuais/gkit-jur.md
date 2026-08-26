@@ -15,6 +15,7 @@ auditoria e agente de apoio.
 
 ## Como acessar
 
+- Novo Jur: `/modulos/gkit-jur/novo-jur`
 - Inbox operacional: `/modulos/gkit-jur/inbox`
 - Processos: `/modulos/gkit-jur/processos`
 - Lista de processos: `/modulos/gkit-jur/processos/lista`
@@ -46,10 +47,15 @@ auditoria e agente de apoio.
 
 ## Telas principais
 
+### Novo Jur
+
+Use como primeira tela da rotina juridica. O Novo Jur reúne processos,
+pré-jurídico, tarefas, publicações, acordos e agenda em uma interface única.
+
 ### Inbox operacional
 
-Use como primeira tela da rotina juridica. O inbox prioriza sinais operacionais:
-publicacoes abertas, itens criticos, prazos, pendencias e automacoes. Quando
+Use como fila operacional dentro da rotina juridica. O inbox prioriza sinais
+operacionais: publicacoes abertas, itens criticos, prazos, pendencias e automacoes. Quando
 houver uma chamada principal, trate o item antes de navegar por listas longas.
 
 ### Processos
@@ -105,7 +111,7 @@ regras que transformam movimentacoes em tarefas e acompanhamento de e-mails.
 
 ## Rotina recomendada
 
-1. Comece pelo Inbox.
+1. Comece pelo Novo Jur.
 2. Trate publicacoes urgentes e itens criticos.
 3. Abra Pendencias e saneie processos sem dono operacional.
 4. Revise Processos quando precisar filtrar por carteira, responsavel ou status.

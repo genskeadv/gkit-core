@@ -16,7 +16,7 @@ O modulo nao deve recriar cadastros transversais. Sempre que possivel, deve refe
 - Pasta de UI e regras: `features/gkit-jur`.
 - Schema de banco recomendado: `gkit_jur`.
 - Menu inicial: Cockpit, Processos, Prazos, Agenda, Documentos, Relatorios e Cadastros.
-- Entrada operacional: cockpit em `/modulos/gkit-jur`.
+- Entrada operacional padrão: interface Novo Jur em `/modulos/gkit-jur/novo-jur`, com redirecionamento a partir de `/modulos/gkit-jur`.
 - Integracao inicial: API Publica DataJud/CNJ.
 - Direcao de publicacoes: caixa de entrada com IA sugerindo providencias e humano confirmando tratamento.
 - Permissoes devem seguir o padrao `gkit_jur.recurso.acao`.
@@ -74,9 +74,9 @@ Documento-base: `docs/modulos/gkit-jur-caixa-publicacoes.md`.
 
 ### Cockpit
 
-Rota: `/modulos/gkit-jur`
+Rota padrão: `/modulos/gkit-jur` -> `/modulos/gkit-jur/novo-jur`
 
-Objetivo: entrada operacional do modulo, com atalhos para as principais tarefas juridicas e uma fila resumida dos processos/prioridades.
+Objetivo: entrada operacional do modulo pela interface Novo Jur, com visão unificada de processos, pré-jurídico, tarefas, publicações, acordos e agenda.
 
 Cards de acao iniciais:
 

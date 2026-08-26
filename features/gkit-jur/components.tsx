@@ -73,8 +73,8 @@ const activeHref: Record<GkitJurTab, string> = {
 }
 
 const navGroups: ModuleNavGroup[] = [
-  { href: '/modulos/gkit-jur/inbox', title: 'Inbox' },
   { href: '/modulos/gkit-jur/novo-jur', title: 'Novo Jur' },
+  { href: '/modulos/gkit-jur/inbox', title: 'Inbox' },
   { href: '/modulos/gkit-jur/publicacoes', title: 'Publicações' },
   { href: '/modulos/gkit-jur/acordos', title: 'Acordos Judiciais' },
   { href: '/modulos/gkit-jur/pre-juridico', title: 'Pré-jurídico' },
