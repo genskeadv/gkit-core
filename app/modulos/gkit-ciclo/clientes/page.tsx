@@ -6,7 +6,7 @@ import { CicloClienteList, CicloKpis, CicloSection, CicloShell } from '@/feature
 import { getCicloData, requireCicloContext } from '@/features/ciclo/queries'
 
 type CicloClientesPageProps = {
-  searchParams?: Promise<{ carteira?: string; dir?: string; q?: string; sort?: string; tipo?: string }>
+  searchParams?: Promise<{ carteira?: string; dir?: string; pagina?: string; q?: string; sort?: string; tipo?: string }>
 }
 
 export default async function CicloClientesPage({ searchParams }: CicloClientesPageProps) {

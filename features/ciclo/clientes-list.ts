@@ -6,6 +6,7 @@ export type SortDirection = 'asc' | 'desc'
 export type CicloClienteListFilters = {
   carteira: string
   dir: SortDirection
+  pagina: number
   q: string
   sort: ClienteSortKey
   tipo: CicloTipoCliente | ''
@@ -23,6 +24,11 @@ export function sortValue(value?: string): ClienteSortKey {
 
 export function sortDirection(value?: string): SortDirection {
   return value === 'desc' ? 'desc' : 'asc'
+}
+
+export function pageValue(value?: string | null) {
+  const page = Number(value)
+  return Number.isInteger(page) && page > 0 ? page : 1
 }
 
 export function normalizeClienteSearch(value: string) {
@@ -47,6 +53,7 @@ function clienteSortValue(cliente: CicloCliente, sort: ClienteSortKey) {
 export function buildClienteListFilters(params?: {
   carteira?: string | null
   dir?: string | null
+  pagina?: string | null
   q?: string | null
   sort?: string | null
   tipo?: string | null
@@ -54,6 +61,7 @@ export function buildClienteListFilters(params?: {
   return {
     carteira: params?.carteira ?? '',
     dir: sortDirection(params?.dir ?? undefined),
+    pagina: pageValue(params?.pagina ?? undefined),
     q: params?.q?.trim() ?? '',
     sort: sortValue(params?.sort ?? undefined),
     tipo: tipoFilterValue(params?.tipo ?? undefined),

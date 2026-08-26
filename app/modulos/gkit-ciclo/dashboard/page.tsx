@@ -21,27 +21,17 @@ export default async function CicloDashboardPage() {
       usuario={context.usuario}
     >
       <CicloSection
-        eyebrow="Indicadores"
-        title="Visão executiva"
-        description="Clientes, implantações, risco, alertas, score e regularidade documental."
+        className="ciclo-clientes-summary"
+        eyebrow="Resumo"
+        title="Gestão operacional"
       >
         <CicloKpis data={data} />
-      </CicloSection>
-      <CicloSection
-        eyebrow="Regularidade"
-        title="Sinal documental"
-        description="Documentos pendentes, obrigatórios e validados na carteira."
-      >
         <CicloDocumentSignal documentos={data.documentos} />
-      </CicloSection>
-      <section className="ciclo-split-grid">
-        <CicloSection title="Clientes prioritarios" description="Ranking operacional para acompanhamento executivo.">
+        <section className="ciclo-split-grid">
           <CicloPriorityList clientes={data.clientes} />
-        </CicloSection>
-        <CicloSection title="Alertas recentes" description="Fila aberta por risco, documentação e acompanhamento.">
           <CicloAlertList alertas={data.alertas} />
-        </CicloSection>
-      </section>
+        </section>
+      </CicloSection>
     </CicloShell>
   )
 }

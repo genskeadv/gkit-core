@@ -136,7 +136,6 @@ const navGroups: ModuleNavGroup[] = [
     items: [
       { href: '/modulos/gkit-ciclo/onboarding', label: 'Onboarding' },
       { href: '/modulos/gkit-ciclo/regularidade', label: 'Regularidade' },
-      { href: '/modulos/gkit-ciclo/timeline', label: 'Timeline' },
       { href: '/modulos/gkit-ciclo/ocorrencias', label: 'Ocorrências' },
     ],
   },
@@ -479,10 +478,17 @@ export function CicloClienteList({
   canWrite?: boolean
   carteiraOptions: string[]
   clientes: CicloCliente[]
-  filters: { carteira: string; dir: 'asc' | 'desc'; q: string; sort: 'cliente' | 'tipo' | 'carteira' | 'regularidade' | 'risco'; tipo: CicloTipoCliente | '' }
+  filters: { carteira: string; dir: 'asc' | 'desc'; pagina: number; q: string; sort: 'cliente' | 'tipo' | 'carteira' | 'regularidade' | 'risco'; tipo: CicloTipoCliente | '' }
   totalClientes: number
 }) {
   const hasFilters = Boolean(filters.carteira || filters.tipo || filters.q)
+  const clienteOrder = new Map(clientes.map((cliente, index) => [cliente.id, index]))
+  const grouped = paginatedClientGroups(
+    clientes,
+    filters.pagina,
+    (cliente) => cliente.carteira || 'Sem carteira',
+    (a, b) => (clienteOrder.get(a.id) ?? 0) - (clienteOrder.get(b.id) ?? 0),
+  )
   const sortHref = (sort: typeof filters.sort) => {
     const params = new URLSearchParams()
     if (filters.q) params.set('q', filters.q)
@@ -493,6 +499,16 @@ export function CicloClienteList({
     return `/modulos/gkit-ciclo/clientes?${params.toString()}`
   }
   const sortLabel = (sort: typeof filters.sort) => (filters.sort === sort ? (filters.dir === 'asc' ? '↑' : '↓') : '')
+  const pageHref = (page: number) => {
+    const params = new URLSearchParams()
+    if (filters.q) params.set('q', filters.q)
+    if (filters.tipo) params.set('tipo', filters.tipo)
+    if (filters.carteira) params.set('carteira', filters.carteira)
+    params.set('sort', filters.sort)
+    params.set('dir', filters.dir)
+    if (page > 1) params.set('pagina', String(page))
+    return `/modulos/gkit-ciclo/clientes?${params.toString()}`
+  }
 
   return (
     <div className="ciclo-clientes-surface">
@@ -524,41 +540,59 @@ export function CicloClienteList({
         <span className="ciclo-clientes-count">{clientes.length} de {totalClientes}</span>
       </form>
 
-      {clientes.length ? (
-        <div className="ciclo-table-list ciclo-clientes-list">
-          <div className="ciclo-clientes-head">
-            <Link href={sortHref('cliente')}>Cliente {sortLabel('cliente')}</Link>
-            <Link href={sortHref('tipo')}>Tipo {sortLabel('tipo')}</Link>
-            <Link href={sortHref('carteira')}>Carteira {sortLabel('carteira')}</Link>
-            <Link href={sortHref('regularidade')}>Regularidade {sortLabel('regularidade')}</Link>
-            <Link href={sortHref('risco')}>Risco {sortLabel('risco')}</Link>
-            <span>Ações</span>
-          </div>
-          {clientes.map((cliente) => (
-            <article key={cliente.id}>
-              <div className="ciclo-clientes-main">
-                <h3>{cliente.nome}</h3>
-                <p>{cliente.documento} · {cliente.razaoSocial || 'Cadastro mestre'}</p>
+      {grouped.groups.length ? (
+        <div className="ciclo-client-group-list">
+          <CicloClientGroupPagination
+            currentPage={grouped.currentPage}
+            entityLabel="carteira"
+            hrefForPage={pageHref}
+            totalClients={grouped.totalClients}
+            totalPages={grouped.totalPages}
+          />
+          {grouped.groups.map((group) => (
+            <details className="ciclo-client-group" key={group.cliente}>
+              <summary>
+                <span aria-hidden="true">+</span>
+                <strong>{group.cliente}</strong>
+                <small>{group.items.length} cliente(s)</small>
+              </summary>
+              <div className="ciclo-table-list ciclo-clientes-list">
+                <div className="ciclo-clientes-head">
+                  <Link href={sortHref('cliente')}>Cliente {sortLabel('cliente')}</Link>
+                  <Link href={sortHref('tipo')}>Tipo {sortLabel('tipo')}</Link>
+                  <Link href={sortHref('carteira')}>Carteira {sortLabel('carteira')}</Link>
+                  <Link href={sortHref('regularidade')}>Regularidade {sortLabel('regularidade')}</Link>
+                  <Link href={sortHref('risco')}>Risco {sortLabel('risco')}</Link>
+                  <span>Ações</span>
+                </div>
+                {group.items.map((cliente) => (
+                  <article key={cliente.id}>
+                    <div className="ciclo-clientes-main">
+                      <h3>{cliente.nome}</h3>
+                      <p>{cliente.documento} · {cliente.razaoSocial || 'Cadastro mestre'}</p>
+                    </div>
+                    <div className="ciclo-clientes-type">
+                      <span className="ciclo-pill primary">{tipoClienteLabel(cliente.tipoCliente)}</span>
+                      <span className="ciclo-pill">{tipoPessoaLabel(cliente.tipoPessoa)}</span>
+                    </div>
+                    <div className="ciclo-clientes-meta">
+                      <strong>{cliente.carteira}</strong>
+                      <span>{cliente.administradora}</span>
+                    </div>
+                    <div className="ciclo-clientes-score">
+                      <strong>{cliente.regularidade}%</strong>
+                    </div>
+                    <div className="ciclo-clientes-risk">
+                      <span className={`ciclo-pill ${riskTone(cliente.risco)}`}>{cliente.risco}</span>
+                    </div>
+                    <div className="ciclo-clientes-actions">
+                      <Link className="button secondary" href={`/modulos/gkit-ciclo/clientes/${cliente.id}/cockpit`}>Cockpit</Link>
+                      {canWrite ? <Link className="button secondary" href={`/modulos/gkit-ciclo/clientes/${cliente.id}`}>Editar</Link> : null}
+                    </div>
+                  </article>
+                ))}
               </div>
-              <div className="ciclo-clientes-type">
-                <span className="ciclo-pill primary">{tipoClienteLabel(cliente.tipoCliente)}</span>
-                <span className="ciclo-pill">{tipoPessoaLabel(cliente.tipoPessoa)}</span>
-              </div>
-              <div className="ciclo-clientes-meta">
-                <strong>{cliente.carteira}</strong>
-                <span>{cliente.administradora}</span>
-              </div>
-              <div className="ciclo-clientes-score">
-                <strong>{cliente.regularidade}%</strong>
-              </div>
-              <div className="ciclo-clientes-risk">
-                <span className={`ciclo-pill ${riskTone(cliente.risco)}`}>{cliente.risco}</span>
-              </div>
-              <div className="ciclo-clientes-actions">
-                <Link className="button secondary" href={`/modulos/gkit-ciclo/clientes/${cliente.id}/cockpit`}>Cockpit</Link>
-                {canWrite ? <Link className="button secondary" href={`/modulos/gkit-ciclo/clientes/${cliente.id}`}>Editar</Link> : null}
-              </div>
-            </article>
+            </details>
           ))}
         </div>
       ) : (
