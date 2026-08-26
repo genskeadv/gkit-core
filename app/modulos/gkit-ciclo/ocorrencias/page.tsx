@@ -42,6 +42,7 @@ export default async function CicloOcorrenciasPage({
           emptyLabel="Nenhuma ocorrência encontrada."
           filters={buildCicloListFilters(params)}
           groupBy="carteira"
+          groupItemLabel="ocorrência(s)"
           rows={rows}
         />
       </CicloSection>

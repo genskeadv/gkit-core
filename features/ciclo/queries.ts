@@ -598,25 +598,35 @@ export async function listCicloAdministradoraRows(): Promise<CicloListRow[]> {
     ? await safeLoadRowsByChunks(administradoraIds, (chunk) => admin()
       .schema('ciclo')
       .from('clientes')
-      .select('administradora_id')
+      .select('administradora_id,carteira_id')
       .in('administradora_id', chunk))
     : []
+  const carteiraMap = await carteiraNomeMapFromRows(counts)
   const countMap = new Map<string, number>()
+  const carteiraCountMap = new Map<string, Map<string, number>>()
   for (const cliente of counts) {
     const administradoraId = text(cliente.administradora_id)
+    const carteira = carteiraMap.get(text(cliente.carteira_id)) ?? 'Sem carteira'
     countMap.set(administradoraId, (countMap.get(administradoraId) ?? 0) + 1)
+    const currentCarteiras = carteiraCountMap.get(administradoraId) ?? new Map<string, number>()
+    currentCarteiras.set(carteira, (currentCarteiras.get(carteira) ?? 0) + 1)
+    carteiraCountMap.set(administradoraId, currentCarteiras)
   }
 
   return administradoras.map((row) => {
+    const administradoraId = text(row.id)
     const status = row.ativo === false ? 'inativa' : 'ativa'
+    const carteira = [...(carteiraCountMap.get(administradoraId)?.entries() ?? [])]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR'))[0]?.[0] ?? 'Sem carteira'
     return {
-      id: text(row.id),
+      id: administradoraId,
       title: text(row.nome, 'Administradora'),
       subtitle: `${text(row.email, 'Sem e-mail')} · ${text(row.telefone, 'Sem telefone')}`,
       status,
       value: text(row.site, 'Sem site'),
-      meta: `${(countMap.get(text(row.id)) ?? 0).toLocaleString('pt-BR')} cliente(s)`,
-      category: 'Administradora',
+      meta: `${(countMap.get(administradoraId) ?? 0).toLocaleString('pt-BR')} cliente(s)`,
+      category: carteira,
+      carteira,
       tone: listTone(status),
     }
   })

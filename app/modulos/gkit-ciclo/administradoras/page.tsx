@@ -23,6 +23,7 @@ export default async function CicloAdministradorasPage({
       actions={canWrite ? <Link className="button" href="/modulos/gkit-ciclo/administradoras/nova">Nova administradora</Link> : null}
     >
       <CicloSection
+        className="ciclo-clientes-summary"
         eyebrow="Resumo"
         title="Base de administradoras"
         description="Volume e status das administradoras vinculadas aos clientes."
@@ -36,10 +37,13 @@ export default async function CicloAdministradorasPage({
       >
         <CicloGenericList
           title="Lista de administradoras"
+          categoryLabel="Carteira"
           description="Administradoras disponíveis no schema Ciclo."
           detailHrefBase="/modulos/gkit-ciclo/administradoras"
           emptyLabel="Nenhuma administradora encontrada."
           filters={buildCicloListFilters(params)}
+          groupBy="carteira"
+          groupItemLabel="administradora(s)"
           rows={rows}
         />
       </CicloSection>

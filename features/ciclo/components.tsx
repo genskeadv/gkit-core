@@ -2283,21 +2283,25 @@ function genericListHref(page: number, filters: CicloListFilters, hiddenInputs?:
 
 export function CicloGenericList({
   description,
+  categoryLabel = 'Categoria',
   detailHrefBase,
   emptyLabel,
   filters = buildCicloListFilters(),
   groupBy,
   groupByCliente = false,
+  groupItemLabel = 'item(ns)',
   hiddenInputs,
   rows,
   title,
 }: {
   description: string
+  categoryLabel?: string
   detailHrefBase?: string
   emptyLabel: string
   filters?: CicloListFilters
   groupBy?: 'cliente' | 'carteira'
   groupByCliente?: boolean
+  groupItemLabel?: string
   hiddenInputs?: Record<string, string>
   rows: CicloListRow[]
   title: string
@@ -2342,7 +2346,7 @@ export function CicloGenericList({
         </label>
         {categoryOptions.length ? (
           <label>
-            <span>Categoria</span>
+            <span>{categoryLabel}</span>
             <select className="select" name="categoria" defaultValue={filters.categoria}>
               <option value="">Todas</option>
               {categoryOptions.map((category) => <option key={category} value={category}>{category}</option>)}
@@ -2379,7 +2383,7 @@ export function CicloGenericList({
               <summary>
                 <span aria-hidden="true">+</span>
                 <strong>{group.cliente}</strong>
-                <small>{group.items.length} {activeGroup === 'carteira' ? 'cliente(s)' : 'item(ns)'}</small>
+                <small>{group.items.length} {groupItemLabel}</small>
               </summary>
               <div className="ciclo-table-list">
                 {group.items.map((row) => (
