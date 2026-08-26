@@ -2477,7 +2477,7 @@ async function getGkitJurCockpitPreJuridicoArea(): Promise<GkitJurCockpitAreaDat
   const ativos = metrics.emAnalise + metrics.aguardandoDocumentos + metrics.aprovados
 
   return {
-    action: 'Triagem antes do processo',
+    action: 'Triagem pré-processual',
     count: ativos,
     description: 'Casos pré-jurídicos em triagem, documentos e decisão de ajuizamento.',
     filters: ['Em análise', 'Documentos', 'Alta prioridade', 'Aprovados'],
@@ -2537,14 +2537,14 @@ async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
   const total = rowsResult.count ?? rows.length
 
   return {
-    action: 'Fila operacional',
+    action: 'Providências abertas',
     count: total,
     description: 'Tarefas abertas da carteira, priorizadas por vencimento e severidade.',
     filters: ['Críticas', 'Hoje', 'Sem responsável', 'Automação'],
     bars: cockpitBars([
       { label: 'Crítica', count: criticaCount, tone: 'red' },
       { label: 'Alta', count: altaCount, tone: 'yellow' },
-      { label: 'Media', count: mediaCount, tone: 'blue' },
+      { label: 'Média', count: mediaCount, tone: 'blue' },
       { label: 'Baixa', count: baixaCount, tone: 'green' },
     ]),
     trend: cockpitTrend([baixaCount, mediaCount, altaCount, criticaCount, total]),

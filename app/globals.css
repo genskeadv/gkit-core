@@ -1001,6 +1001,7 @@
 }
 
 .gkit-jur-cockpit-actions {
+  align-items: stretch;
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -1013,7 +1014,10 @@
   border-radius: 8px;
   display: grid;
   gap: 4px;
-  min-height: 76px;
+  grid-template-rows: auto minmax(24px, 1fr) auto;
+  height: 96px;
+  min-height: 96px;
+  min-width: 0;
   padding: 9px 10px;
   text-align: left;
   text-decoration: none;
@@ -1028,19 +1032,32 @@
   color: #351b40;
   font-size: 12px;
   font-weight: 560;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gkit-jur-cockpit-actions strong {
+  align-self: center;
   color: #111827;
   font-size: 18px;
   font-weight: 520;
   line-height: 1.05;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gkit-jur-cockpit-actions small {
   color: #5b6472;
+  display: -webkit-box;
   font-size: 11px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   line-height: 1.25;
+  min-height: 28px;
+  overflow: hidden;
 }
 
 .gkit-jur-cockpit-actions a.active :where(span, strong, small) {
