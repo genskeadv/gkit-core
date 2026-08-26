@@ -15,6 +15,7 @@ type AreaListFilter = {
 
 const STORAGE_VIEW_KEY = 'gkit-jur-novo-jur-view'
 const STORAGE_DASHBOARD_KEY = 'gkit-jur-novo-jur-dashboard-collapsed'
+const CLIENT_GROUP_PAGE_SIZE = 20
 
 const areaLabels: Record<GkitJurCockpitArea, string> = {
   processos: 'Processos',
@@ -160,6 +161,7 @@ export function GkitJurNovoJurPage({
   const data = cockpitData[activeArea]
   const listCaption = useMemo(() => `${areaLabels[activeArea]} da carteira`, [activeArea])
   const activeFilter = areaFilters[activeArea]
+  const [visibleGroupLimit, setVisibleGroupLimit] = useState(CLIENT_GROUP_PAGE_SIZE)
   const searchOptions = useMemo(() => {
     if (activeFilter.field === 'ordenacao') return []
     const options = activeFilter.field === 'carteira'
@@ -205,6 +207,11 @@ export function GkitJurNovoJurPage({
 
     return Array.from(groups, ([client, rows]) => ({ client, rows }))
   }, [visibleRows])
+  const visibleGroups = useMemo(() => groupedRows.slice(0, visibleGroupLimit), [groupedRows, visibleGroupLimit])
+
+  useEffect(() => {
+    setVisibleGroupLimit(CLIENT_GROUP_PAGE_SIZE)
+  }, [activeArea, activeFilter.field, activeFilter.order, activeFilter.query])
 
   return (
     <main className="gkit-jur-novo-jur">
@@ -372,8 +379,8 @@ export function GkitJurNovoJurPage({
 
         <div className="gkit-jur-cockpit-list">
           {groupedRows.length ? (
-            groupedRows.map((group) => (
-              <details className="gkit-jur-cockpit-client-group" key={group.client} open>
+            visibleGroups.map((group) => (
+              <details className="gkit-jur-cockpit-client-group" key={group.client}>
                 <summary>
                   <strong>{group.client}</strong>
                   <small>{group.rows.length} {group.rows.length === 1 ? 'item' : 'itens'}</small>
@@ -402,6 +409,14 @@ export function GkitJurNovoJurPage({
               <a href={areaEntryHref[activeArea]}>Abrir área completa</a>
             </div>
           )}
+          {visibleGroups.length < groupedRows.length ? (
+            <div className="gkit-jur-cockpit-list-more">
+              <span>{visibleGroups.length} de {groupedRows.length} clientes</span>
+              <button type="button" onClick={() => setVisibleGroupLimit((current) => current + CLIENT_GROUP_PAGE_SIZE)}>
+                Carregar mais 20 clientes
+              </button>
+            </div>
+          ) : null}
         </div>
       </section>
     </main>

@@ -1079,6 +1079,37 @@
   padding: 0 8px 8px;
 }
 
+.gkit-jur-cockpit-list-more {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 8px 0 2px;
+}
+
+.gkit-jur-cockpit-list-more span {
+  color: #4c5870;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.gkit-jur-cockpit-list-more button {
+  background: #351b40;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.gkit-jur-cockpit-list-more button:hover {
+  background: #230f2b;
+}
+
 .gkit-jur-cockpit-row {
   align-items: center;
   background: #fff;
@@ -1208,6 +1239,11 @@
   .gkit-jur-cockpit-client-group summary small {
     grid-column: 2;
     white-space: normal;
+  }
+
+  .gkit-jur-cockpit-list-more {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .gkit-jur-cockpit-dashboard-chart div {

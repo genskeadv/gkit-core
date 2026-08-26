@@ -99,6 +99,7 @@ const GKIT_JUR_CRON_DEFAULT_DATAJUD_LIMIT = 8
 const GKIT_JUR_CRON_DEFAULT_TIME_BUDGET_MS = 240_000
 const MOVEMENT_PROCESS_SCOPE_LIMIT = 5000
 const COCKPIT_LIST_LIMIT = 20
+const COCKPIT_PROCESS_PAGE_SIZE = 1000
 const PROCESS_LIST_SELECT = 'id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_codigo,classe_nome,assuntos,natureza_operacional,natureza_operacional_label,natureza_operacional_confianca,natureza_operacional_sinais,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,ultima_tentativa_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultimo_status_sincronizacao,proxima_tentativa_sincronizacao_em,falhas_transientes_consecutivas,sem_resultado_consecutivos,status,status_monitoramento'
 
 function admin() {
@@ -2374,25 +2375,43 @@ async function countRows(query: any, missingAsZero = false) {
   return result.count ?? 0
 }
 
-async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData> {
-  const [rowsResult, readiness] = await Promise.all([
-    admin()
+async function loadGkitJurCockpitProcessRows() {
+  const rows: Array<Record<string, unknown>> = []
+  let count: number | null = null
+
+  for (let from = 0; ; from += COCKPIT_PROCESS_PAGE_SIZE) {
+    const result = await admin()
       .schema('gkit_jur')
       .from('processos')
       .select(`${PROCESS_LIST_SELECT},updated_at`, { count: 'exact' })
       .eq('status', DEFAULT_PROCESS_STATUS)
       .order('ultima_movimentacao_em', { ascending: false, nullsFirst: false })
       .order('updated_at', { ascending: false })
-      .limit(COCKPIT_LIST_LIMIT),
+      .range(from, from + COCKPIT_PROCESS_PAGE_SIZE - 1)
+
+    if (result.error) throw new Error(result.error.message)
+
+    const batch = (result.data ?? []) as Array<Record<string, unknown>>
+    rows.push(...batch)
+    count = result.count ?? count
+
+    if (batch.length < COCKPIT_PROCESS_PAGE_SIZE) break
+    if (count !== null && rows.length >= count) break
+  }
+
+  return { count: count ?? rows.length, rows }
+}
+
+async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData> {
+  const [rowsResult, readiness] = await Promise.all([
+    loadGkitJurCockpitProcessRows(),
     getGkitJurLabReadiness(),
   ])
 
-  if (rowsResult.error) throw new Error(rowsResult.error.message)
-
-  const rows = (rowsResult.data ?? []) as Array<Record<string, unknown>>
+  const rows = rowsResult.rows
   const maps = await lookupMaps(rows)
   const processos = rows.map((row) => mapProcesso(row, maps))
-  const count = rowsResult.count ?? processos.length
+  const count = rowsResult.count
   const readinessValues = {
     pronto: readiness.pronto ?? 0,
     parcial: readiness.parcial ?? 0,
