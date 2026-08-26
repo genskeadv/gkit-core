@@ -32,6 +32,7 @@ export default async function CicloOcorrenciasPage({
       </CicloSection>
       <CicloSection
         eyebrow="Operação"
+        hideHeader
         title="Lista de ocorrências"
         description="Registros que impactam score, risco e rotina dos clientes."
       >

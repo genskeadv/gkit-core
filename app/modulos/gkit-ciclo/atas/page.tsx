@@ -31,6 +31,7 @@ export default async function CicloAtasPage({
       </CicloSection>
       <CicloSection
         eyebrow="Documentos"
+        hideHeader
         title="Lista de atas"
         description="Atas, assembleias, validade e observações operacionais."
       >

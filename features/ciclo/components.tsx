@@ -228,6 +228,7 @@ export function CicloSection({
   action,
   children,
   className,
+  hideHeader = false,
   eyebrow,
   title,
 }: {
@@ -235,9 +236,18 @@ export function CicloSection({
   children: ReactNode
   className?: string
   description?: string
+  hideHeader?: boolean
   eyebrow?: string
   title: string
 }) {
+  if (hideHeader) {
+    return (
+      <section className={className ? `ciclo-section ${className}` : 'ciclo-section'}>
+        {children}
+      </section>
+    )
+  }
+
   return (
     <OperationalSection action={action} className={className} classPrefix="ciclo" eyebrow={eyebrow} title={title}>
       {children}
@@ -401,14 +411,6 @@ export function CicloAlertList({
 
   return (
     <section className="card ciclo-panel">
-      <div className="ciclo-panel-heading">
-        <div>
-          <h2>Alertas recentes</h2>
-          <p>{rows.length} de {alertas.length} alertas · {grouped.totalClients} cliente(s)</p>
-        </div>
-        <Link className="button secondary" href="/modulos/gkit-ciclo/alertas">Ver alertas</Link>
-      </div>
-
       <form className="ciclo-list-filter-bar" method="get">
         <label className="ciclo-list-search">
           <span>Busca</span>
@@ -1037,13 +1039,6 @@ export function CicloDocumentoList({
 
   return (
     <section className="card ciclo-panel">
-      <div className="ciclo-panel-heading">
-        <div>
-          <h2>Documentos operacionais</h2>
-          <p>{rows.length} de {documentos.length} documentos · {grouped.totalClients} cliente(s)</p>
-        </div>
-      </div>
-
       <form className="ciclo-document-filter-bar" method="get">
         <label>
           <span>Tipo</span>
@@ -2281,7 +2276,6 @@ function genericListHref(page: number, filters: CicloListFilters, hiddenInputs?:
 }
 
 export function CicloGenericList({
-  description,
   categoryLabel = 'Categoria',
   detailHrefBase,
   emptyLabel,
@@ -2291,7 +2285,6 @@ export function CicloGenericList({
   groupItemLabel = 'item(ns)',
   hiddenInputs,
   rows,
-  title,
 }: {
   description: string
   categoryLabel?: string
@@ -2321,13 +2314,6 @@ export function CicloGenericList({
 
   return (
     <section className="card ciclo-panel">
-      <div className="ciclo-panel-heading">
-        <div>
-          <h2>{title}</h2>
-          <p>{description} {rows.length ? `(${filteredRows.length} de ${rows.length})` : ''}{activeGroup ? ` · ${grouped.totalClients} ${groupEntityLabel}(s)` : ''}</p>
-        </div>
-      </div>
-
       <form className="ciclo-list-filter-bar" method="get">
         {hiddenInputs ? Object.entries(hiddenInputs).map(([name, value]) => (
           <input key={name} name={name} type="hidden" value={value} />

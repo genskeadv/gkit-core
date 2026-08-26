@@ -32,6 +32,7 @@ export default async function CicloAlertasPage({
       </CicloSection>
       <CicloSection
         eyebrow="Operação"
+        hideHeader
         title="Alertas recentes"
         description="Riscos operacionais, documentação e acompanhamentos em aberto."
       >

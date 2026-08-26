@@ -28,6 +28,7 @@ export default async function CicloRegularidadePage({
       </CicloSection>
       <CicloSection
         eyebrow="Governanca"
+        hideHeader
         title="Regularidade por cliente"
         description="Percentual de regularidade e indicadores de risco."
       >

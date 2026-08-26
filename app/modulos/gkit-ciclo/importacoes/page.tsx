@@ -61,6 +61,7 @@ export default async function CicloImportacoesPage({
       ) : null}
       <CicloSection
         eyebrow="Historico"
+        hideHeader
         title="Entradas processadas"
         description="Últimas importações realizadas no Ciclo."
       >

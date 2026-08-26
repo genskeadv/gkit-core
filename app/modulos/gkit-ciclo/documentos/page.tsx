@@ -47,6 +47,7 @@ export default async function CicloDocumentosPage({ searchParams }: CicloDocumen
       </CicloSection>
       <CicloSection
         eyebrow="Matriz"
+        hideHeader
         title="Documentos operacionais"
         description="Contrato, cartão CNPJ, atas, documentos do síndico, convenção, regulamento e cadastro de unidade."
       >

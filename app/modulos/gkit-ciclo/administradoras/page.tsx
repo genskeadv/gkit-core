@@ -32,6 +32,7 @@ export default async function CicloAdministradorasPage({
       </CicloSection>
       <CicloSection
         eyebrow="Cadastro"
+        hideHeader
         title="Lista de administradoras"
         description="Administradoras disponíveis para vínculo no cadastro mestre."
       >

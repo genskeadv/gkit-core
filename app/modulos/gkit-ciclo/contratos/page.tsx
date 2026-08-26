@@ -31,6 +31,7 @@ export default async function CicloContratosPage({
       </CicloSection>
       <CicloSection
         eyebrow="Documentos"
+        hideHeader
         title="Lista de contratos"
         description="Contratos, vigências, valores e reajustes vinculados aos clientes."
       >

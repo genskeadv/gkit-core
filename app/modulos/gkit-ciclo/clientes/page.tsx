@@ -49,6 +49,7 @@ export default async function CicloClientesPage({ searchParams }: CicloClientesP
       </CicloSection>
       <CicloSection
         eyebrow="Cadastro"
+        hideHeader
         title="Lista de clientes"
         description="Cadastro mestre com carteira, administradora, risco e regularidade."
       >

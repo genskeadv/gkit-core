@@ -27,6 +27,7 @@ export default async function CicloTimelinePage({
       </CicloSection>
       <CicloSection
         eyebrow="Histórico"
+        hideHeader
         title="Eventos recentes"
         description="Timeline operacional registrada por cliente e rotina."
       >
