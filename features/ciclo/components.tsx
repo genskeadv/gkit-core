@@ -638,7 +638,7 @@ export function CicloOnboardingOverview({
   const grouped = paginatedClientGroups(
     filteredRows,
     filters.pagina,
-    (row) => row.cliente ?? row.title,
+    (row) => row.category ?? onboardingMeta(row.meta).carteira,
     (a, b) => a.title.localeCompare(b.title, 'pt-BR'),
   )
   const statusOptions = uniqueListOptions(rows.map((row) => row.status))
@@ -716,6 +716,7 @@ export function CicloOnboardingOverview({
           <div className="ciclo-client-group-list">
             <CicloClientGroupPagination
               currentPage={grouped.currentPage}
+              entityLabel="carteira"
               hrefForPage={(page) => genericListHref(page, filters)}
               totalClients={grouped.totalClients}
               totalPages={grouped.totalPages}
@@ -725,7 +726,7 @@ export function CicloOnboardingOverview({
                 <summary>
                   <span aria-hidden="true">+</span>
                   <strong>{group.cliente}</strong>
-                  <small>{group.items.length} item(ns)</small>
+                  <small>{group.items.length} cliente(s)</small>
                 </summary>
                 <div className="ciclo-table-list ciclo-onboarding-list">
                   {group.items.map((row) => {
@@ -976,20 +977,22 @@ function paginatedClientGroups<T>(items: T[], page: number, getClient: (item: T)
 
 function CicloClientGroupPagination({
   currentPage,
+  entityLabel = 'cliente',
   hrefForPage,
   totalClients,
   totalPages,
 }: {
   currentPage: number
+  entityLabel?: string
   hrefForPage: (page: number) => string
   totalClients: number
   totalPages: number
 }) {
-  if (totalPages <= 1) return <span className="ciclo-client-group-count">{totalClients} cliente(s)</span>
+  if (totalPages <= 1) return <span className="ciclo-client-group-count">{totalClients} {entityLabel}(s)</span>
 
   return (
     <div className="ciclo-client-group-pagination">
-      <span>{totalClients} cliente(s) · página {currentPage} de {totalPages}</span>
+      <span>{totalClients} {entityLabel}(s) · página {currentPage} de {totalPages}</span>
       <div>
         <Link className="button secondary" aria-disabled={currentPage <= 1} href={hrefForPage(Math.max(1, currentPage - 1))}>Anterior</Link>
         <Link className="button secondary" aria-disabled={currentPage >= totalPages} href={hrefForPage(Math.min(totalPages, currentPage + 1))}>Próxima</Link>
