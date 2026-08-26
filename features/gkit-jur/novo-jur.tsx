@@ -213,6 +213,28 @@ function rowDateTime(row: GkitJurCockpitRow, area: GkitJurCockpitArea) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function compareText(left?: string | null, right?: string | null) {
+  const normalizedLeft = left?.trim() || '\uffff'
+  const normalizedRight = right?.trim() || '\uffff'
+  return normalizedLeft.localeCompare(normalizedRight, 'pt-BR', { sensitivity: 'base' })
+}
+
+function compareRowsByDate(left: GkitJurCockpitRow, right: GkitJurCockpitRow, area: GkitJurCockpitArea, order: ListOrder) {
+  const leftTime = rowDateTime(left, area)
+  const rightTime = rowDateTime(right, area)
+
+  if (order === 'sem_data') {
+    if (leftTime === null && rightTime !== null) return -1
+    if (leftTime !== null && rightTime === null) return 1
+  }
+
+  if (order === 'antigas') {
+    return (leftTime ?? Number.MAX_SAFE_INTEGER) - (rightTime ?? Number.MAX_SAFE_INTEGER)
+  }
+
+  return (rightTime ?? 0) - (leftTime ?? 0)
+}
+
 export function GkitJurNovoJurPage({
   data: cockpitData,
   initialArea,
@@ -266,19 +288,21 @@ export function GkitJurNovoJurPage({
     })
 
     return [...rows].sort((left, right) => {
-      const leftTime = rowDateTime(left, activeArea)
-      const rightTime = rowDateTime(right, activeArea)
-
-      if (activeFilter.order === 'sem_data') {
-        if (leftTime === null && rightTime !== null) return -1
-        if (leftTime !== null && rightTime === null) return 1
+      if (activeFilter.field === 'cliente') {
+        const clientDiff = compareText(rowClientGroup(left), rowClientGroup(right))
+        if (clientDiff) return clientDiff
+        return compareRowsByDate(left, right, activeArea, 'recentes')
       }
 
-      if (activeFilter.order === 'antigas') {
-        return (leftTime ?? Number.MAX_SAFE_INTEGER) - (rightTime ?? Number.MAX_SAFE_INTEGER)
+      if (activeFilter.field === 'carteira') {
+        const walletDiff = compareText(left.meta?.carteiraNome, right.meta?.carteiraNome)
+        if (walletDiff) return walletDiff
+        const clientDiff = compareText(rowClientGroup(left), rowClientGroup(right))
+        if (clientDiff) return clientDiff
+        return compareRowsByDate(left, right, activeArea, 'recentes')
       }
 
-      return (rightTime ?? 0) - (leftTime ?? 0)
+      return compareRowsByDate(left, right, activeArea, activeFilter.order)
     })
   }, [activeArea, activeFilter, data.rows])
   const groupedRows = useMemo(() => {
@@ -438,8 +462,8 @@ export function GkitJurNovoJurPage({
           </div>
           <div className="gkit-jur-cockpit-list-filters" aria-label={`Filtros de ${areaLabels[activeArea]}`}>
             <label>
-              <span>Pesquisar por</span>
               <select
+                aria-label="Pesquisar por"
                 value={activeFilter.field}
                 onChange={(event) => setAreaFilters((current) => ({
                   ...current,
@@ -456,9 +480,9 @@ export function GkitJurNovoJurPage({
               </select>
             </label>
             <label>
-              <span>{activeFilter.field === 'ordenacao' ? 'Ordenar por' : 'Busca'}</span>
               {activeFilter.field === 'ordenacao' ? (
                 <select
+                  aria-label="Ordenar por"
                   value={activeFilter.order}
                   onChange={(event) => setAreaFilters((current) => ({
                     ...current,
@@ -475,6 +499,7 @@ export function GkitJurNovoJurPage({
               ) : (
                 <>
                   <input
+                    aria-label={activeFilter.field === 'carteira' ? 'Buscar carteira' : 'Buscar cliente'}
                     list={`gkit-jur-${activeArea}-${activeFilter.field}-options`}
                     placeholder={activeFilter.field === 'carteira' ? 'Digite a carteira' : 'Digite o cliente'}
                     type="search"
