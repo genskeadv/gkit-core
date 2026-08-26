@@ -1087,6 +1087,51 @@ async function getClienteAccess(clienteId: string) {
   return data as { id: string; carteira_id: string | null; nome: string; status_operacional: string }
 }
 
+async function resolveClienteAccess(formData: FormData) {
+  const clienteId = text(formData, 'cliente_id')
+  if (clienteId) return getClienteAccess(clienteId)
+
+  const busca = required(text(formData, 'cliente_busca'), 'Cliente')
+  const { data, error } = await admin()
+    .schema('ciclo')
+    .from('clientes')
+    .select('id,carteira_id,nome,nome_fantasia,razao_social,documento,status_operacional')
+    .eq('ativo', true)
+
+  if (error) throw new Error(error.message)
+
+  const normalizedBusca = normalizeText(busca)
+  const buscaDigits = onlyDigits(busca)
+  const rows = ((data ?? []) as Array<Record<string, any>>).map((row) => {
+    const nome = String(row.nome_fantasia ?? row.nome ?? row.razao_social ?? '').trim()
+    const documento = String(row.documento ?? '').trim()
+    const label = `${nome} - ${documento || 'sem documento'}`
+    return {
+      carteira_id: row.carteira_id ? String(row.carteira_id) : null,
+      documentDigits: onlyDigits(documento),
+      id: String(row.id),
+      label,
+      nome,
+      normalized: normalizeText(`${label} ${nome}`),
+      status_operacional: String(row.status_operacional ?? 'ativo'),
+    }
+  })
+
+  const exact = rows.find((row) => row.normalized === normalizedBusca || normalizeText(row.nome) === normalizedBusca)
+  const byDocument = buscaDigits ? rows.find((row) => row.documentDigits === buscaDigits) : null
+  const partialMatches = rows.filter((row) => row.normalized.includes(normalizedBusca))
+  const match = exact ?? byDocument ?? (partialMatches.length === 1 ? partialMatches[0] : null)
+
+  if (!match) throw new Error(partialMatches.length > 1 ? 'Mais de um cliente encontrado. Refine a busca.' : 'Cliente não encontrado.')
+
+  return {
+    id: match.id,
+    carteira_id: match.carteira_id,
+    nome: match.nome,
+    status_operacional: match.status_operacional,
+  }
+}
+
 async function requireCicloAlertWrite(carteiraId: string | null) {
   const context = await requireModuleAccess('ciclo')
   if (!canAccess(context.permissions, 'ciclo.alertas.write')) {
@@ -1535,8 +1580,8 @@ export async function updateCicloAtaAction(formData: FormData) {
 }
 
 export async function startCicloOnboardingAction(formData: FormData) {
-  const clienteId = required(text(formData, 'cliente_id'), 'Cliente')
-  const cliente = await getClienteAccess(clienteId)
+  const cliente = await resolveClienteAccess(formData)
+  const clienteId = cliente.id
   const context = await requireCicloWrite(cliente.carteira_id)
 
   await ensureOnboardingChecklist(clienteId, cliente.carteira_id)
