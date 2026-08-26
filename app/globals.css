@@ -566,7 +566,8 @@
   align-items: center;
   display: grid;
   gap: 10px;
-  grid-template-columns: auto minmax(340px, 680px) minmax(260px, 1fr);
+  grid-template-columns: auto minmax(360px, 760px) auto;
+  justify-content: space-between;
   padding: 11px;
 }
 
@@ -620,8 +621,9 @@
 
 .gkit-jur-novo-jur-search {
   display: grid;
-  justify-self: stretch;
+  justify-self: center;
   min-width: 0;
+  width: min(100%, 760px);
 }
 
 .gkit-jur-novo-jur-search div {
@@ -660,13 +662,14 @@
 .gkit-jur-novo-jur-right {
   align-items: center;
   display: flex;
-  gap: 9px;
+  gap: 10px;
   justify-content: flex-end;
   min-width: 0;
 }
 
 .gkit-jur-novo-jur-right .gkit-jur-novo-jur-operator {
-  min-width: 160px;
+  min-width: 0;
+  width: max-content;
 }
 
 .gkit-jur-novo-jur-settings,
