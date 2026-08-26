@@ -2286,6 +2286,7 @@ export function CicloGenericList({
   detailHrefBase,
   emptyLabel,
   filters = buildCicloListFilters(),
+  groupBy,
   groupByCliente = false,
   hiddenInputs,
   rows,
@@ -2295,16 +2296,19 @@ export function CicloGenericList({
   detailHrefBase?: string
   emptyLabel: string
   filters?: CicloListFilters
+  groupBy?: 'cliente' | 'carteira'
   groupByCliente?: boolean
   hiddenInputs?: Record<string, string>
   rows: CicloListRow[]
   title: string
 }) {
   const filteredRows = filterCicloListRows(rows, filters)
+  const activeGroup = groupBy ?? (groupByCliente ? 'cliente' : undefined)
+  const groupEntityLabel = activeGroup === 'carteira' ? 'carteira' : 'cliente'
   const grouped = paginatedClientGroups(
     filteredRows,
     filters.pagina,
-    (row) => row.cliente ?? row.title,
+    (row) => activeGroup === 'carteira' ? (row.category ?? 'Sem carteira') : (row.cliente ?? row.title),
     (a, b) => (listDateKey(a.date) || '9999-12-31').localeCompare(listDateKey(b.date) || '9999-12-31') || a.title.localeCompare(b.title, 'pt-BR'),
   )
   const statusOptions = uniqueListOptions(rows.map((row) => row.status))
@@ -2317,7 +2321,7 @@ export function CicloGenericList({
       <div className="ciclo-panel-heading">
         <div>
           <h2>{title}</h2>
-          <p>{description} {rows.length ? `(${filteredRows.length} de ${rows.length})` : ''}{groupByCliente ? ` · ${grouped.totalClients} cliente(s)` : ''}</p>
+          <p>{description} {rows.length ? `(${filteredRows.length} de ${rows.length})` : ''}{activeGroup ? ` · ${grouped.totalClients} ${groupEntityLabel}(s)` : ''}</p>
         </div>
       </div>
 
@@ -2361,10 +2365,11 @@ export function CicloGenericList({
         {hasFilters ? <Link className="button secondary" href="?">Limpar</Link> : null}
       </form>
 
-      {groupByCliente && grouped.groups.length ? (
+      {activeGroup && grouped.groups.length ? (
         <div className="ciclo-client-group-list">
           <CicloClientGroupPagination
             currentPage={grouped.currentPage}
+            entityLabel={groupEntityLabel}
             hrefForPage={(page) => genericListHref(page, filters, hiddenInputs)}
             totalClients={grouped.totalClients}
             totalPages={grouped.totalPages}
@@ -2374,7 +2379,7 @@ export function CicloGenericList({
               <summary>
                 <span aria-hidden="true">+</span>
                 <strong>{group.cliente}</strong>
-                <small>{group.items.length} item(ns)</small>
+                <small>{group.items.length} {activeGroup === 'carteira' ? 'cliente(s)' : 'item(ns)'}</small>
               </summary>
               <div className="ciclo-table-list">
                 {group.items.map((row) => (

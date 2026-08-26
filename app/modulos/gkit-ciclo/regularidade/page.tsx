@@ -19,6 +19,7 @@ export default async function CicloRegularidadePage({
       usuario={context.usuario}
     >
       <CicloSection
+        className="ciclo-clientes-summary"
         eyebrow="Resumo"
         title="Conformidade operacional"
         description="Distribuição da regularidade por cliente, risco e acompanhamento."
@@ -36,7 +37,7 @@ export default async function CicloRegularidadePage({
           detailHrefBase="/modulos/gkit-ciclo/clientes"
           emptyLabel="Nenhum cliente encontrado para regularidade."
           filters={buildCicloListFilters(params)}
-          groupByCliente
+          groupBy="carteira"
           rows={rows}
         />
       </CicloSection>
