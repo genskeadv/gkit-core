@@ -53,6 +53,7 @@ const CICLO_QUERY_PAGE_SIZE = 1000
 const CICLO_LOOKUP_CHUNK_SIZE = 500
 
 type CicloContext = Awaited<ReturnType<typeof requireModuleAccess>>
+type CicloCockpitPanel = 'cliente' | 'onboarding' | 'documentacao' | 'ocorrencia'
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -1085,11 +1086,7 @@ export async function getCicloDocumentoFormData(context: CicloContext): Promise<
   }
 }
 
-export async function getCicloCockpitData(context: CicloContext): Promise<CicloCockpitData> {
-  const [clienteFormData, documentoFormData] = await Promise.all([
-    getCicloClienteFormData(context),
-    getCicloDocumentoFormData(context),
-  ])
+async function buildCicloCockpitDocumentos(documentoFormData: CicloDocumentoFormData) {
   const clienteIds = documentoFormData.clientes.map((cliente) => cliente.id)
   const allowedClienteIds = new Set(clienteIds)
 
@@ -1109,7 +1106,6 @@ export async function getCicloCockpitData(context: CicloContext): Promise<CicloC
     }
   }
 
-  const clienteMap = new Map(documentoFormData.clientes.map((cliente) => [cliente.id, cliente.shortLabel ?? cliente.label]))
   const documentosByCliente = new Map<string, Map<string, Record<string, any>>>()
 
   for (const row of documentosResult.ok ? documentosResult.rows : []) {
@@ -1136,6 +1132,48 @@ export async function getCicloCockpitData(context: CicloContext): Promise<CicloC
       }
     })
   })
+
+  return documentos
+}
+
+export async function getCicloCockpitData(context: CicloContext, activePanel: CicloCockpitPanel | null = null): Promise<CicloCockpitData> {
+  const emptyClienteFormData: CicloClienteFormData = { administradoras: [], carteiras: [] }
+  const emptyDocumentoFormData: CicloDocumentoFormData = { clientes: [] }
+
+  if (activePanel === 'cliente') {
+    return {
+      clienteFormData: await getCicloClienteFormData(context),
+      clientesDocumentacaoPendente: [],
+      documentoFormData: emptyDocumentoFormData,
+      documentos: [],
+    }
+  }
+
+  if (activePanel === 'onboarding' || activePanel === 'ocorrencia') {
+    return {
+      clienteFormData: emptyClienteFormData,
+      clientesDocumentacaoPendente: [],
+      documentoFormData: await getCicloDocumentoFormData(context),
+      documentos: [],
+    }
+  }
+
+  const [clienteFormData, documentoFormData] = await Promise.all([
+    getCicloClienteFormData(context),
+    getCicloDocumentoFormData(context),
+  ])
+  const clienteIds = documentoFormData.clientes.map((cliente) => cliente.id)
+  const clienteMap = new Map(documentoFormData.clientes.map((cliente) => [cliente.id, cliente.shortLabel ?? cliente.label]))
+  const documentos = await buildCicloCockpitDocumentos(documentoFormData)
+
+  if (activePanel === 'documentacao') {
+    return {
+      clienteFormData,
+      clientesDocumentacaoPendente: [],
+      documentoFormData,
+      documentos,
+    }
+  }
 
   const clientesDocumentacaoPendente: CicloListRow[] = []
 

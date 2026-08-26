@@ -35,7 +35,7 @@ export default async function CicloPage({
   const panel = initialPanel(params?.panel)
   if (panel && !permissions[panel]) redirect('/modulos/gkit-ciclo')
 
-  const data = await getCicloCockpitData(context)
+  const data = await getCicloCockpitData(context, panel)
 
   return (
     <CicloShell
