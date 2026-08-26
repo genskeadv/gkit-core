@@ -1606,6 +1606,7 @@ export async function startCicloOnboardingAction(formData: FormData) {
   revalidatePath(`/modulos/gkit-ciclo/onboarding/${clienteId}`)
   revalidatePath('/modulos/gkit-ciclo/clientes')
   if (shouldReturnToCockpit(formData)) redirect('/modulos/gkit-ciclo')
+  if (text(formData, 'return_to') === 'onboarding') redirect(`/modulos/gkit-ciclo/onboarding/${clienteId}`)
 }
 
 export async function updateCicloCockpitDocumentacaoAction(formData: FormData) {

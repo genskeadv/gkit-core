@@ -9,9 +9,9 @@ type CockpitPanel = 'cliente' | 'onboarding' | 'documentacao' | 'ocorrencia'
 type CockpitPermissions = Record<CockpitPanel, boolean>
 type ClienteOption = CicloCockpitData['documentoFormData']['clientes'][number]
 
-const panels: Array<{ description: string; id: CockpitPanel; label: string; title: string }> = [
+const panels: Array<{ description: string; href?: string; id: CockpitPanel; label: string; title: string }> = [
   { id: 'cliente', label: '1. Cliente', title: 'Criar cliente', description: 'Cadastre a entrada operacional.' },
-  { id: 'onboarding', label: '2. Onboarding', title: 'Iniciar onboarding', description: 'Crie checklist e workflow.' },
+  { id: 'onboarding', href: '/modulos/gkit-ciclo/onboarding/iniciar', label: '2. Onboarding', title: 'Iniciar onboarding', description: 'Crie checklist e workflow.' },
   { id: 'documentacao', label: '3. Documentação', title: 'Atualizar documentos', description: 'Marque checklist e datas.' },
   { id: 'ocorrencia', label: '4. Ocorrência', title: 'Criar ocorrência', description: 'Registre evento e alerta.' },
 ]
@@ -234,7 +234,7 @@ export function CicloCockpit({
             <Link
               aria-current={activePanel === panel.id ? 'page' : undefined}
               className={activePanel === panel.id ? 'ciclo-quick-card active' : 'ciclo-quick-card'}
-              href={`/modulos/gkit-ciclo?panel=${panel.id}`}
+              href={panel.href ?? `/modulos/gkit-ciclo?panel=${panel.id}`}
               key={panel.id}
             >
               <span>{panel.label}</span>
