@@ -27978,6 +27978,62 @@ body:has(.gkit-flex-operational-shell) {
   margin: 0 !important;
 }
 
+.ciclo-shell .module-page-hero {
+  box-sizing: border-box !important;
+  margin: 0 auto 10px !important;
+  min-height: 154px !important;
+  padding: 14px !important;
+  width: 100% !important;
+}
+
+.ciclo-shell .module-page-hero-main {
+  align-items: center !important;
+  display: grid !important;
+  gap: 16px !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  min-height: 124px !important;
+  width: 100% !important;
+}
+
+.ciclo-shell .module-page-hero-title {
+  min-width: 0 !important;
+}
+
+.ciclo-shell .module-page-actions {
+  align-items: center !important;
+  display: flex !important;
+  flex: 0 0 auto !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  justify-content: flex-end !important;
+  justify-self: end !important;
+  max-width: 360px !important;
+}
+
+.ciclo-shell .module-page-actions .button {
+  min-height: 38px !important;
+  padding: 0 14px !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 760px) {
+  .ciclo-shell .module-page-hero {
+    min-height: 0 !important;
+  }
+
+  .ciclo-shell .module-page-hero-main {
+    align-items: stretch !important;
+    grid-template-columns: 1fr !important;
+    min-height: 0 !important;
+  }
+
+  .ciclo-shell .module-page-actions {
+    justify-content: flex-start !important;
+    justify-self: stretch !important;
+    max-width: none !important;
+  }
+}
+
 :is(.gkit-new-quick-grid, .ciclo-quick-grid, .gkit-ate-quick-grid, .gkit-fat-quick-grid),
 .gkit-flex-operational-shell .flex-cockpit-grid {
   display: grid !important;
