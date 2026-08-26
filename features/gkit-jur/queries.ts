@@ -98,8 +98,8 @@ const GKIT_JUR_CRON_TIMEZONE = 'America/Sao_Paulo'
 const GKIT_JUR_CRON_DEFAULT_DATAJUD_LIMIT = 8
 const GKIT_JUR_CRON_DEFAULT_TIME_BUDGET_MS = 240_000
 const MOVEMENT_PROCESS_SCOPE_LIMIT = 5000
-const COCKPIT_LIST_LIMIT = 20
-const COCKPIT_PROCESS_PAGE_SIZE = 1000
+const COCKPIT_QUERY_PAGE_SIZE = 1000
+const COCKPIT_LOOKUP_CHUNK_SIZE = 500
 const PROCESS_LIST_SELECT = 'id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_codigo,classe_nome,assuntos,natureza_operacional,natureza_operacional_label,natureza_operacional_confianca,natureza_operacional_sinais,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,ultima_tentativa_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultimo_status_sincronizacao,proxima_tentativa_sincronizacao_em,falhas_transientes_consecutivas,sem_resultado_consecutivos,status,status_monitoramento'
 
 function admin() {
@@ -2128,17 +2128,14 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
 }
 
 export async function getGkitJurAcordosData(): Promise<GkitJurAcordosData> {
-  const result = await admin()
+  const result = await loadCockpitRows(() => admin()
     .schema('gkit_jur')
     .from('acordos_judiciais')
     .select('id,processo_id,valor_total,quantidade_parcelas,dia_vencimento,primeiro_vencimento,status,email_lembrete,lembretes_pagamento_ativos,lembrete_dias,observacoes,quebrado_em,quitado_em,created_at,updated_at')
     .in('status', ['ativo', 'quebrado', 'cumprido'])
-    .order('updated_at', { ascending: false })
-    .limit(500)
+    .order('updated_at', { ascending: false }))
 
-  if (result.error) throw new Error(result.error.message)
-
-  const acordos = await hydrateAcordosJudiciais((result.data ?? []) as Array<Record<string, unknown>>)
+  const acordos = await hydrateAcordosJudiciais(result.rows)
   const ativos = acordos.filter((acordo) => acordo.status === 'ativo')
   const atrasados = acordos.filter((acordo) => acordo.status === 'ativo' && acordo.parcelasAtrasadas > 0)
   const lembretesPendentes = ativos.reduce((total, acordo) => total + acordo.lembretesPendentes, 0)
@@ -2375,31 +2372,62 @@ async function countRows(query: any, missingAsZero = false) {
   return result.count ?? 0
 }
 
-async function loadGkitJurCockpitProcessRows() {
+async function loadCockpitRows(buildQuery: () => any, options: { missingAsEmpty?: boolean } = {}) {
   const rows: Array<Record<string, unknown>> = []
   let count: number | null = null
 
-  for (let from = 0; ; from += COCKPIT_PROCESS_PAGE_SIZE) {
-    const result = await admin()
-      .schema('gkit_jur')
-      .from('processos')
-      .select(`${PROCESS_LIST_SELECT},updated_at`, { count: 'exact' })
-      .eq('status', DEFAULT_PROCESS_STATUS)
-      .order('ultima_movimentacao_em', { ascending: false, nullsFirst: false })
-      .order('updated_at', { ascending: false })
-      .range(from, from + COCKPIT_PROCESS_PAGE_SIZE - 1)
+  for (let from = 0; ; from += COCKPIT_QUERY_PAGE_SIZE) {
+    const result = await buildQuery().range(from, from + COCKPIT_QUERY_PAGE_SIZE - 1)
 
-    if (result.error) throw new Error(result.error.message)
+    if (result.error) {
+      if (options.missingAsEmpty && ['42P01', 'PGRST205'].includes(text(result.error.code))) return { count: 0, rows: [] }
+      throw new Error(result.error.message)
+    }
 
     const batch = (result.data ?? []) as Array<Record<string, unknown>>
     rows.push(...batch)
     count = result.count ?? count
 
-    if (batch.length < COCKPIT_PROCESS_PAGE_SIZE) break
+    if (batch.length < COCKPIT_QUERY_PAGE_SIZE) break
     if (count !== null && rows.length >= count) break
   }
 
   return { count: count ?? rows.length, rows }
+}
+
+async function loadRowsByChunks(values: string[], buildQuery: (chunk: string[]) => any) {
+  const rows: Array<Record<string, unknown>> = []
+
+  for (let index = 0; index < values.length; index += COCKPIT_LOOKUP_CHUNK_SIZE) {
+    const chunk = values.slice(index, index + COCKPIT_LOOKUP_CHUNK_SIZE)
+    const result = await buildQuery(chunk)
+    if (result.error) throw new Error(result.error.message)
+    rows.push(...((result.data ?? []) as Array<Record<string, unknown>>))
+  }
+
+  return rows
+}
+
+async function loadProcessRowsByIds(ids: string[]) {
+  const uniqueIds = [...new Set(ids.filter(Boolean))]
+  if (!uniqueIds.length) return []
+  return loadRowsByChunks(uniqueIds, (chunk) => admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('id', chunk))
+}
+
+async function loadProcessRowsByCnjs(cnjs: string[]) {
+  const uniqueCnjs = [...new Set(cnjs.filter(Boolean))]
+  if (!uniqueCnjs.length) return []
+  return loadRowsByChunks(uniqueCnjs, (chunk) => admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('numero_cnj_limpo', chunk))
+}
+
+async function loadGkitJurCockpitProcessRows() {
+  return loadCockpitRows(() => admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select(`${PROCESS_LIST_SELECT},updated_at`, { count: 'exact' })
+    .eq('status', DEFAULT_PROCESS_STATUS)
+    .order('ultima_movimentacao_em', { ascending: false, nullsFirst: false })
+    .order('updated_at', { ascending: false }))
 }
 
 async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData> {
@@ -2458,20 +2486,17 @@ async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData>
 
 async function getGkitJurCockpitPreJuridicoArea(): Promise<GkitJurCockpitAreaData> {
   const [rowsResult, metrics] = await Promise.all([
-    admin()
+    loadCockpitRows(() => admin()
       .schema('gkit_jur')
       .from('pre_juridicos')
       .select('id,titulo,cliente_id,cliente_nome,descricao,carteira_id,responsavel_id,origem,area,valor_estimado,laudo_pdf_url,unidade,bloco,responsavel_unidade,cotas_debito,ata_eleicao_status,ata_prestacao_contas_status,debitos_atualizados_status,procuracao_status,administradora_email,sindico_email,administradora_solicitada_em,administradora_retorno_em,procuracao_gerada_em,procuracao_enviada_em,sindico_retorno_em,pronto_distribuicao_em,probabilidade,prioridade,status,motivo_status,data_entrada,prazo_analise,convertido_processo_id,convertido_em,created_at,updated_at', { count: 'exact' })
       .in('status', ['em_analise', 'aguardando_documentos', 'aprovado'])
       .order('prazo_analise', { ascending: true, nullsFirst: false })
-      .order('updated_at', { ascending: false })
-      .limit(COCKPIT_LIST_LIMIT),
+      .order('updated_at', { ascending: false })),
     getGkitJurPreJuridicoMetrics(),
   ])
 
-  if (rowsResult.error) throw new Error(rowsResult.error.message)
-
-  const rows = (rowsResult.data ?? []) as Array<Record<string, unknown>>
+  const rows = rowsResult.rows
   const maps = await lookupMaps(rows)
   const items = rows.map((row) => mapPreJuridico(row, maps))
   const ativos = metrics.emAnalise + metrics.aguardandoDocumentos + metrics.aprovados
@@ -2507,34 +2532,26 @@ async function getGkitJurCockpitPreJuridicoArea(): Promise<GkitJurCockpitAreaDat
 
 async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
   const [rowsResult, criticaCount, altaCount, mediaCount, baixaCount] = await Promise.all([
-    admin()
+    loadCockpitRows(() => admin()
       .schema('gkit_jur')
       .from('tarefas')
       .select('id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,status,prioridade,prazo_at,origem,payload,created_at', { count: 'exact' })
       .in('status', OPEN_TASK_STATUSES)
       .order('prazo_at', { ascending: true, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(COCKPIT_LIST_LIMIT),
+      .order('created_at', { ascending: false })),
     countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'critica')),
     countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'alta')),
     countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'media')),
     countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'baixa')),
   ])
 
-  if (rowsResult.error) throw new Error(rowsResult.error.message)
-
-  const rows = (rowsResult.data ?? []) as Array<Record<string, unknown>>
+  const rows = rowsResult.rows
   const processoIds = [...new Set(rows.map((row) => text(row.processo_id)).filter(Boolean))]
-  const processosResult = processoIds.length
-    ? await admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('id', processoIds)
-    : { data: [], error: null }
-  if (processosResult.error) throw new Error(processosResult.error.message)
-
-  const processoRows = (processosResult.data ?? []) as Array<Record<string, unknown>>
+  const processoRows = await loadProcessRowsByIds(processoIds)
   const processoMaps = await lookupMaps(processoRows)
   const processoMap = new Map(processoRows.map((row) => [String(row.id), mapProcesso(row, processoMaps)]))
   const tarefaMaps = await lookupTarefaMaps(rows)
-  const total = rowsResult.count ?? rows.length
+  const total = rowsResult.count
 
   return {
     action: 'Providências abertas',
@@ -2572,53 +2589,42 @@ async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
 async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaData> {
   const actionableStatuses = ['pendente', 'triada_ia', 'em_tratamento']
   const [rowsResult, pendentesCount, triadasCount, emTratamentoCount, tratadasCount] = await Promise.all([
-    admin()
+    loadCockpitRows(() => admin()
       .schema('gkit_jur')
       .from('publicacoes_monitoradas')
       .select('id,processo_id,numero_cnj_limpo,fonte,fonte_evento_id,data_disponibilizacao,data_publicacao,jornal,termo,origem_orgao,arq,pub,texto_preview,texto_completo,texto_hash,status,decisao_tratamento,classificacao_ia,confianca_ia,sugestao_ia,tarefa_id,tratado_por,tratado_em,motivo_tratamento,conteudo_removido_em,created_at,updated_at', { count: 'exact' })
       .in('status', actionableStatuses)
       .order('data_disponibilizacao', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(COCKPIT_LIST_LIMIT),
+      .order('created_at', { ascending: false }), { missingAsEmpty: true }),
     countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'pendente'), true),
     countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'triada_ia'), true),
     countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'em_tratamento'), true),
     countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'tratada'), true),
   ])
 
-  if (rowsResult.error) {
-    if (['42P01', 'PGRST205'].includes(text(rowsResult.error.code))) {
-      return {
-        action: 'Inbox de publicações',
-        count: 0,
-        description: 'Publicações dos processos da carteira.',
-        filters: ['Não tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
-        bars: cockpitBars([]),
-        trend: cockpitTrend([0]),
-        rows: [],
-      }
+  if (!rowsResult.count) {
+    return {
+      action: 'Inbox de publicações',
+      count: 0,
+      description: 'Publicações dos processos da carteira.',
+      filters: ['Não tratadas', 'Viraram prazo', 'Exigem leitura', 'Baixo risco'],
+      bars: cockpitBars([]),
+      trend: cockpitTrend([0]),
+      rows: [],
     }
-    throw new Error(rowsResult.error.message)
   }
 
-  const rows = (rowsResult.data ?? []) as Array<Record<string, unknown>>
+  const rows = rowsResult.rows
   const processoIds = [...new Set(rows.map((row) => text(row.processo_id)).filter(Boolean))]
   const cnjs = [...new Set(rows.map((row) => text(row.numero_cnj_limpo)).filter(Boolean))]
-  const processosByIdResult = processoIds.length
-    ? await admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('id', processoIds)
-    : { data: [], error: null }
-  if (processosByIdResult.error) throw new Error(processosByIdResult.error.message)
-  const loadedById = (processosByIdResult.data ?? []) as Array<Record<string, unknown>>
+  const loadedById = await loadProcessRowsByIds(processoIds)
   const loadedCnjs = new Set(loadedById.map((row) => text(row.numero_cnj_limpo)).filter(Boolean))
   const missingCnjs = cnjs.filter((cnj) => !loadedCnjs.has(cnj))
-  const processosByCnjResult = missingCnjs.length
-    ? await admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('numero_cnj_limpo', missingCnjs)
-    : { data: [], error: null }
-  if (processosByCnjResult.error) throw new Error(processosByCnjResult.error.message)
+  const loadedByCnj = await loadProcessRowsByCnjs(missingCnjs)
 
   const processRows = [
     ...loadedById,
-    ...((processosByCnjResult.data ?? []) as Array<Record<string, unknown>>),
+    ...loadedByCnj,
   ]
   const maps = await lookupMaps(processRows)
   const processoMap = new Map<string, GkitJurProcessListItem>()
@@ -2631,7 +2637,7 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
   })
 
   const publicacoes = rows.map((row) => mapPublicacao(row, processoMap, processoCnjMap, maps))
-  const total = rowsResult.count ?? rows.length
+  const total = rowsResult.count
 
   return {
     action: 'Inbox de publicações',
@@ -2680,7 +2686,7 @@ async function getGkitJurCockpitAcordosArea(): Promise<GkitJurCockpitAreaData> {
       { label: 'Cumprido', count: cumpridos.length, tone: 'green' },
     ]),
     trend: cockpitTrend([cumpridos.length, ativos.length, data.metrics.atrasados, quebrados.length, data.metrics.total]),
-    rows: data.acordos.slice(0, COCKPIT_LIST_LIMIT).map((acordo) => ({
+    rows: data.acordos.map((acordo) => ({
       id: acordo.id,
       title: acordo.numeroCnj || 'Acordo judicial',
       subtitle: acordo.clienteNome || acordo.observacoes || 'Acordo vinculado ao processo',
@@ -2705,22 +2711,20 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
   const weekIso = new Date(today.getTime() + 7 * 86_400_000).toISOString()
 
   const [eventRowsResult, taskRowsResult, eventosCount, audienciasCount, tarefasVencidasCount, tarefasHojeCount, tarefasSemanaCount] = await Promise.all([
-    admin()
+    loadCockpitRows(() => admin()
       .schema('gkit_jur')
       .from('eventos_processo')
-      .select('id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,data_evento,origem,created_at')
+      .select('id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,data_evento,origem,created_at', { count: 'exact' })
       .gte('data_evento', todayIso)
       .order('data_evento', { ascending: true, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(COCKPIT_LIST_LIMIT),
-    admin()
+      .order('created_at', { ascending: false }), { missingAsEmpty: true }),
+    loadCockpitRows(() => admin()
       .schema('gkit_jur')
       .from('tarefas')
       .select('id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,status,prioridade,prazo_at,origem,payload,created_at', { count: 'exact' })
       .in('status', ['aberta', 'em_andamento'])
       .not('prazo_at', 'is', null)
-      .order('prazo_at', { ascending: true, nullsFirst: false })
-      .limit(COCKPIT_LIST_LIMIT),
+      .order('prazo_at', { ascending: true, nullsFirst: false })),
     countRows(admin().schema('gkit_jur').from('eventos_processo').select('id', { count: 'exact', head: true }).gte('data_evento', todayIso), true),
     countRows(admin().schema('gkit_jur').from('eventos_processo').select('id', { count: 'exact', head: true }).gte('data_evento', todayIso).eq('tipo', 'audiencia'), true),
     countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', ['aberta', 'em_andamento']).lt('prazo_at', todayIso)),
@@ -2728,20 +2732,10 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
     countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', ['aberta', 'em_andamento']).gte('prazo_at', todayIso).lt('prazo_at', weekIso)),
   ])
 
-  if (eventRowsResult.error && !['42P01', 'PGRST205'].includes(text(eventRowsResult.error.code))) {
-    throw new Error(eventRowsResult.error.message)
-  }
-  if (taskRowsResult.error) throw new Error(taskRowsResult.error.message)
-
-  const eventRows = (eventRowsResult.data ?? []) as Array<Record<string, unknown>>
-  const taskRows = (taskRowsResult.data ?? []) as Array<Record<string, unknown>>
+  const eventRows = eventRowsResult.rows
+  const taskRows = taskRowsResult.rows
   const processoIds = [...new Set([...eventRows, ...taskRows].map((row) => text(row.processo_id)).filter(Boolean))]
-  const processosResult = processoIds.length
-    ? await admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('id', processoIds)
-    : { data: [], error: null }
-  if (processosResult.error) throw new Error(processosResult.error.message)
-
-  const processoRows = (processosResult.data ?? []) as Array<Record<string, unknown>>
+  const processoRows = await loadProcessRowsByIds(processoIds)
   const processoMaps = await lookupMaps(processoRows)
   const processoMap = new Map(processoRows.map((row) => [String(row.id), mapProcesso(row, processoMaps)]))
   const agendaMaps = await lookupTarefaMaps([...eventRows, ...taskRows])
@@ -2802,7 +2796,7 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
         },
       }
     }),
-  ].sort((a, b) => a.sort.localeCompare(b.sort)).slice(0, COCKPIT_LIST_LIMIT).map((item) => item.row)
+  ].sort((a, b) => a.sort.localeCompare(b.sort)).map((item) => item.row)
 
   return {
     action: 'Vencimentos e prazos',
