@@ -1,6 +1,7 @@
 import { getSupabaseAdmin, logEvent } from '../audit';
 import { listGkitFlexColaboradores } from '../colaboradores/queries';
 import { listMoneyAccounts } from '@/features/gkit-money/moneyPersistence';
+import { applyAdvanceDiscounts, isAdvanceCategory, type AdvanceDiscountSource } from '../adiantamentos';
 
 export type RevenueForecastRow = {
   id?: string;
@@ -83,6 +84,12 @@ function previousCompetencia(value: string): string {
   const [year, month] = competencia.split('-').map(Number);
   const date = new Date(Date.UTC(year, month - 2, 1));
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-01`;
+}
+
+export function firstDayDueText(value: string): string {
+  const competencia = sanitizeCompetencia(value);
+  const [year, month] = competencia.split('-');
+  return `01/${month}/${year}`;
 }
 
 function normalizeRevenueRow(row: Record<string, unknown>): RevenueForecastRow {
@@ -526,6 +533,44 @@ async function listAutomaticForecastBlockedCategories(supabase: NonNullable<Retu
   return keys;
 }
 
+async function listPaidAdvancesForPayableMonth(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  competencia: string,
+): Promise<AdvanceDiscountSource[]> {
+  const { data: month, error: monthError } = await supabase
+    .from('contas_pagar_competencias')
+    .select('id')
+    .eq('competencia', competencia)
+    .maybeSingle();
+  if (monthError) throw new Error(`Erro ao consultar mes de adiantamentos: ${monthError.message}`);
+  if (!month?.id) return [];
+
+  const { data, error } = await supabase
+    .from('contas_pagar_itens')
+    .select('id, descricao, categoria, valor_previsto, pago')
+    .eq('competencia_id', month.id)
+    .eq('pago', true);
+  if (error) throw new Error(`Erro ao consultar adiantamentos pagos: ${error.message}`);
+
+  return ((data || []) as Array<Record<string, unknown>>)
+    .filter((row) => isAdvanceCategory(String(row.categoria || '')))
+    .map((row) => ({
+      id: row.id ? String(row.id) : null,
+      descricao: String(row.descricao || ''),
+      categoria: String(row.categoria || ''),
+      valor_previsto: Number(row.valor_previsto || 0),
+      pago: Boolean(row.pago),
+    }));
+}
+
+function collaboratorAdvanceMatchName(row: { usuario_nome: string; chave_pix?: string | null; metadata?: Record<string, unknown> | null }): string {
+  const metadata = row.metadata || {};
+  const aliases = Array.isArray(metadata.adiantamento_aliases)
+    ? metadata.adiantamento_aliases.map((alias) => String(alias || '').trim()).filter(Boolean)
+    : [];
+  return [row.usuario_nome, row.chave_pix, ...aliases].filter(Boolean).join(' ');
+}
+
 async function buildAutomaticPaymentForecast(
   supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
   competencia: string,
@@ -537,21 +582,43 @@ async function buildAutomaticPaymentForecast(
     .filter((row) => row.status === 'ativo' && roundMoney(row.total_mensal) > 0)
     .sort((a, b) => a.usuario_nome.localeCompare(b.usuario_nome, 'pt-BR'));
 
-  const colaboradorRows = colaboradores.map((row, index) => ({
+  const paidAdvances = await listPaidAdvancesForPayableMonth(supabase, commissionCompetencia);
+  const collaboratorBaseRows = colaboradores.map((row, index) => ({
     competencia,
     descricao: `Colaborador - ${row.usuario_nome}`,
-    vencimento_dia: 5,
-    vencimento_texto: '05',
+    vencimento_dia: 1,
+    vencimento_texto: firstDayDueText(competencia),
     valor_previsto: roundMoney(row.total_mensal),
     categoria: 'Colaboradores',
     centro: row.carteira_nome || row.cargo_operacional || 'Pessoal',
-    origem_competencia: competencia,
+    origem_competencia: commissionCompetencia,
     origem_item_id: row.id,
-    observacao: `${AUTOMATIC_COLLABORATOR_FORECAST}. Fonte: cadastro de colaboradores do Flex.`,
+    observacao: `${AUTOMATIC_COLLABORATOR_FORECAST}. Fonte: cadastro de colaboradores do Flex. Pagamento referente a competencia anterior (${commissionCompetencia}).`,
     ordem: initialOrder + index,
     money_conta_id: null,
     money_conta_destino_id: null,
+    matchName: collaboratorAdvanceMatchName(row),
   }));
+  const collaboratorRowsWithAdvances = applyAdvanceDiscounts(collaboratorBaseRows, paidAdvances);
+  const colaboradorRows = collaboratorRowsWithAdvances
+    .filter(({ discountedValue }) => discountedValue > 0)
+    .map(({ item, originalValue, discountedValue, advanceApplied, advanceSourceIds }) => ({
+      competencia: item.competencia,
+      descricao: item.descricao,
+      vencimento_dia: item.vencimento_dia,
+      vencimento_texto: item.vencimento_texto,
+      valor_previsto: discountedValue,
+      categoria: item.categoria,
+      centro: item.centro,
+      origem_competencia: item.origem_competencia,
+      origem_item_id: item.origem_item_id,
+      observacao: advanceApplied > 0
+        ? `${item.observacao} Adiantamento descontado: R$ ${advanceApplied.toFixed(2)} de R$ ${originalValue.toFixed(2)} (${commissionCompetencia}; itens ${advanceSourceIds.join(', ')}).`
+        : item.observacao,
+      ordem: item.ordem,
+      money_conta_id: item.money_conta_id,
+      money_conta_destino_id: item.money_conta_destino_id,
+    }));
 
   const { data: latestExecution, error: executionError } = await supabase
     .from('comissao_execucoes')

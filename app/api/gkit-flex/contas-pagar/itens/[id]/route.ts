@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if ('descricao' in payload) patch.descricao = String(payload.descricao || '');
     if ('vencimento_dia' in payload) {
       patch.vencimento_dia = payload.vencimento_dia === null || payload.vencimento_dia === undefined || payload.vencimento_dia === '' ? null : Number(payload.vencimento_dia);
-      patch.vencimento_texto = patch.vencimento_dia ? String(patch.vencimento_dia).padStart(2, '0') : null;
+      patch.vencimento_texto = payload.vencimento_texto ? String(payload.vencimento_texto) : patch.vencimento_dia ? String(patch.vencimento_dia).padStart(2, '0') : null;
     }
     if ('valor_previsto' in payload) patch.valor_previsto = Number(payload.valor_previsto || 0);
     if ('categoria' in payload) patch.categoria = String(payload.categoria || '');

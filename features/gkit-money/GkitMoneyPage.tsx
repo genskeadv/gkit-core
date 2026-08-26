@@ -65,16 +65,33 @@ function competenciaDate(competencia: string) {
   return new Date(year, month - 1, 1)
 }
 
-function dateInputFromDay(competencia: string, day: number | null | undefined) {
-  if (!day) return ''
+function parseBrazilianDateText(value: string | null | undefined) {
+  const match = String(value || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (!match) return null
+  const [, day, month, year] = match
+  return new Date(Number(year), Number(month) - 1, Number(day))
+}
+
+function dateInputFromPayable(item: PayableItem, competencia: string) {
+  const textDate = parseBrazilianDateText(item.vencimento_texto)
+  if (textDate) {
+    return `${textDate.getFullYear()}-${String(textDate.getMonth() + 1).padStart(2, '0')}-${String(textDate.getDate()).padStart(2, '0')}`
+  }
+  if (!item.vencimento_dia) return ''
   const [year, month] = competencia.split('-')
-  return `${year}-${month}-${String(day).padStart(2, '0')}`
+  return `${year}-${month}-${String(item.vencimento_dia).padStart(2, '0')}`
 }
 
 function dayFromDateInput(value: string) {
   if (!value) return null
   const day = Number(value.slice(-2))
   return Number.isFinite(day) ? day : null
+}
+
+function dueTextFromDateInput(value: string) {
+  if (!value) return null
+  const [year, month, day] = value.split('-')
+  return `${day}/${month}/${year}`
 }
 
 function rangeLimit(range: RangeKey) {
@@ -90,12 +107,15 @@ function rangeLimit(range: RangeKey) {
 }
 
 function dueDateFor(item: PayableItem, competencia: string) {
+  const textDate = parseBrazilianDateText(item.vencimento_texto)
+  if (textDate) return textDate
   if (!item.vencimento_dia) return null
   const [year, month] = competencia.split('-').map(Number)
   return new Date(year, month - 1, Number(item.vencimento_dia))
 }
 
 function dueLabel(item: PayableItem) {
+  if (item.vencimento_texto?.includes('/')) return `Vence ${item.vencimento_texto}`
   if (item.vencimento_dia) return `Vence dia ${String(item.vencimento_dia).padStart(2, '0')}`
   return item.vencimento_texto ? `Vence ${item.vencimento_texto}` : 'Sem vencimento'
 }
@@ -221,9 +241,9 @@ export function GkitMoneyPage() {
         return dueDate >= start && dueDate <= end
       })
       .sort((a, b) => {
-        const dayA = a.vencimento_dia ?? 99
-        const dayB = b.vencimento_dia ?? 99
-        return dayA - dayB || Number(a.pago) - Number(b.pago) || a.descricao.localeCompare(b.descricao, 'pt-BR')
+        const dueA = dueDateFor(a, competencia)?.getTime() ?? Number.MAX_SAFE_INTEGER
+        const dueB = dueDateFor(b, competencia)?.getTime() ?? Number.MAX_SAFE_INTEGER
+        return dueA - dueB || Number(a.pago) - Number(b.pago) || a.descricao.localeCompare(b.descricao, 'pt-BR')
       })
   }, [competencia, range, selectedRows, visibility])
 
@@ -232,7 +252,7 @@ export function GkitMoneyPage() {
     setEditing(item)
     setForm({
       descricao: item.descricao,
-      vencimento: dateInputFromDay(competencia, item.vencimento_dia),
+      vencimento: dateInputFromPayable(item, competencia),
       valor: String(item.valor_previsto || 0),
       moneyContaId: item.money_conta_id || selectedAccount?.id || mainAccountId,
       moneyDestinoId: item.money_conta_destino_id || '',
@@ -258,7 +278,7 @@ export function GkitMoneyPage() {
 
   async function patchPayable(
     id: string,
-    patch: Partial<Pick<PayableItem, 'descricao' | 'vencimento_dia' | 'valor_previsto' | 'pago' | 'money_conta_id' | 'money_conta_destino_id'>>,
+    patch: Partial<Pick<PayableItem, 'descricao' | 'vencimento_dia' | 'vencimento_texto' | 'valor_previsto' | 'pago' | 'money_conta_id' | 'money_conta_destino_id'>>,
   ) {
     setSavingId(id)
     setError('')
@@ -299,6 +319,7 @@ export function GkitMoneyPage() {
             competencia,
             descricao,
             vencimento_dia: dayFromDateInput(form.vencimento),
+            vencimento_texto: dueTextFromDateInput(form.vencimento),
             valor_previsto: Number(String(form.valor).replace(',', '.')) || 0,
             categoria: 'Sem categoria',
             centro: 'Sem centro',
@@ -323,6 +344,7 @@ export function GkitMoneyPage() {
     await patchPayable(editing.id, {
       descricao: form.descricao,
       vencimento_dia: dayFromDateInput(form.vencimento),
+      vencimento_texto: dueTextFromDateInput(form.vencimento),
       valor_previsto: Number(String(form.valor).replace(',', '.')) || 0,
       money_conta_id: sourceId,
       money_conta_destino_id: destinoId,

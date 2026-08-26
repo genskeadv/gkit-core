@@ -16,6 +16,7 @@ import { buildPayablesExportWorkbook } from './payableProcessor';
 import { syncCicloRegularidadePagamentos } from '../regularidade-pagamentos';
 import { getMonthlyForecast } from '../previsoes/forecastPersistence';
 import { buildSlug, normalizeText, suggestCanonicalName } from '../cadastros/normalization';
+import { applyAdvanceDiscounts, isAdvanceCategory, type AdvanceDiscountSource, type AdvanceDiscountTarget } from '../adiantamentos';
 
 function roundMoney(value: number): number {
   return Math.round((value || 0) * 100) / 100;
@@ -1083,7 +1084,43 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
     if (deleteNextError) throw new Error(`Erro ao substituir pagamentos previstos do próximo mês: ${deleteNextError.message}`);
   }
 
-  const itemsToCopy = (currentItems || []) as Array<Record<string, any>>;
+  type PayableCopyCandidate = AdvanceDiscountTarget<Record<string, unknown>> & {
+    id?: string;
+    centro?: string | null;
+    money_conta_id?: string | null;
+    money_conta_destino_id?: string | null;
+    origem_tipo?: string | null;
+    raw?: Record<string, unknown> | null;
+  };
+
+  const currentItemsToEvaluate = ((currentItems || []) as unknown) as PayableCopyCandidate[];
+  const advanceRows = currentItemsToEvaluate
+    .filter((item) => Boolean(item.pago) && isAdvanceCategory(item.categoria))
+    .map((item) => item as AdvanceDiscountSource);
+  const recurringCandidates = currentItemsToEvaluate.filter((item) => !isAdvanceCategory(item.categoria));
+  const discountedItems = applyAdvanceDiscounts(recurringCandidates, advanceRows);
+  const itemsToCopy = discountedItems
+    .filter((entry) => entry.discountedValue > 0)
+    .map((entry) => {
+      const raw = entry.item.raw && typeof entry.item.raw === 'object' && !Array.isArray(entry.item.raw) ? entry.item.raw : {};
+      return {
+        ...entry.item,
+        valor_previsto: entry.discountedValue,
+        raw: entry.advanceApplied > 0
+          ? {
+              ...raw,
+              adiantamento_descontado: {
+                valor_original: entry.originalValue,
+                valor_descontado: entry.advanceApplied,
+                valor_liquido: entry.discountedValue,
+                origem_item_ids: entry.advanceSourceIds,
+                origem_competencia: competencia,
+              },
+            }
+          : raw,
+      };
+    });
+  const fullyDiscountedItems = discountedItems.filter((entry) => entry.originalValue > 0 && entry.discountedValue <= 0);
 
   if (itemsToCopy.length) {
     const copyPayload: Array<Record<string, unknown>> = itemsToCopy.map((item) => ({
@@ -1113,7 +1150,13 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
     if (copyError) throw new Error(`Erro ao copiar pagamentos previstos para o próximo mês: ${copyError.message}`);
   }
 
-  await createPayableSnapshot(supabase, current.row.id as string, 'antes_fechamento_contas_pagar', { proximo_mes: next, itens_copiados: itemsToCopy.length });
+  await createPayableSnapshot(supabase, current.row.id as string, 'antes_fechamento_contas_pagar', {
+    proximo_mes: next,
+    itens_avaliados: currentItemsToEvaluate.length,
+    itens_copiados: itemsToCopy.length,
+    adiantamentos_descontados: advanceRows.length,
+    itens_quitados_por_adiantamento: fullyDiscountedItems.length,
+  });
 
   const { error: closeError } = await supabase
     .from('contas_pagar_competencias')
@@ -1121,7 +1164,18 @@ export async function closePayableMonthAndCreateNext(competenciaInput: string) {
     .eq('id', current.row.id);
 
   if (closeError) throw new Error(`Erro ao fechar pagamentos: ${closeError.message}`);
-  await logEvent({ supabase, modulo: 'contas_pagar', competencia, action: 'fechar_mes', detalhe: { nextCompetencia: next, copied: itemsToCopy.length } });
+  await logEvent({
+    supabase,
+    modulo: 'contas_pagar',
+    competencia,
+    action: 'fechar_mes',
+    detalhe: {
+      nextCompetencia: next,
+      copied: itemsToCopy.length,
+      advanceDiscounts: advanceRows.length,
+      fullyDiscounted: fullyDiscountedItems.length,
+    },
+  });
 
   return { closed: competencia, nextCompetencia: next, copied: itemsToCopy.length, skippedCommissions: 0 };
 }

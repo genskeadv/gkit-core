@@ -91,6 +91,11 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 }
 
+function formatDueText(item: { vencimento_dia: number | null; vencimento_texto: string | null }) {
+  if (item.vencimento_texto?.includes('/')) return item.vencimento_texto;
+  return item.vencimento_dia ? String(item.vencimento_dia).padStart(2, '0') : item.vencimento_texto || '-';
+}
+
 function normalizeMoneyInput(value: string) {
   let cleaned = value.replace(/R\$/gi, '').replace(/\s/g, '');
   const lastComma = cleaned.lastIndexOf(',');
@@ -658,7 +663,7 @@ export function AccountsPayablePage() {
                       onChange={(event) => handlePagoChange(item, event.target.checked)}
                     />
                   </td>
-                  <td>{item.vencimento_dia ? String(item.vencimento_dia).padStart(2, '0') : item.vencimento_texto || '-'}</td>
+                  <td>{formatDueText(item)}</td>
                   <td>
                     <input
                       className="inline-input description-input"

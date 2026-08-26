@@ -109,6 +109,16 @@ function makeBlankPayment(index: number, moneyContaId = ''): PaymentForecastRow 
   return { descricao: '', vencimento_dia: null, vencimento_texto: '', valor_previsto: 0, categoria: 'Sem categoria', centro: '', observacao: '', ordem: index, money_conta_id: moneyContaId || null, money_conta_destino_id: null };
 }
 
+function dueInputValue(row: PaymentForecastRow) {
+  if (row.vencimento_texto?.includes('/')) return row.vencimento_texto;
+  return row.vencimento_dia ? String(row.vencimento_dia).padStart(2, '0') : row.vencimento_texto || '';
+}
+
+function dayFromDueInput(value: string) {
+  const match = value.match(/\d{1,2}/);
+  return match ? Number(match[0]) || null : null;
+}
+
 export function ForecastPage() {
   const [competencia, setCompetencia] = useState(currentMonthValue());
   const [activeTab, setActiveTab] = useState<'receitas' | 'pagamentos' | 'comparativo'>('receitas');
@@ -463,7 +473,7 @@ function PaymentTable({
           {rows.map((row, index) => (
             <tr key={row.id || index}>
               <td><input className="inline-input description-input" value={row.descricao} onChange={(event) => onChange(index, { descricao: event.target.value })} /></td>
-              <td><input className="inline-input short-input" value={row.vencimento_dia ? String(row.vencimento_dia).padStart(2, '0') : row.vencimento_texto || ''} onChange={(event) => onChange(index, { vencimento_dia: Number(event.target.value.replace(/\D/g, '')) || null, vencimento_texto: event.target.value })} /></td>
+              <td><input className="inline-input short-input" value={dueInputValue(row)} onChange={(event) => onChange(index, { vencimento_dia: dayFromDueInput(event.target.value), vencimento_texto: event.target.value })} /></td>
               <td><input className="inline-input" value={row.categoria} onChange={(event) => onChange(index, { categoria: event.target.value })} /></td>
               <td><input className="inline-input" value={row.centro || ''} onChange={(event) => onChange(index, { centro: event.target.value })} /></td>
               <td>

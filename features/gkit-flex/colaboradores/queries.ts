@@ -20,6 +20,10 @@ function text(value: unknown, fallback = '') {
   return value.trim() || fallback;
 }
 
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
 function totalMensal(row: Record<string, unknown>) {
   return (
     money(row.salario) +
@@ -71,6 +75,7 @@ function mapColaborador(
     recebe_outros: Boolean(row.recebe_outros),
     recebe_comissoes: Boolean(row.recebe_comissoes),
     observacoes: text(row.observacoes, '') || null,
+    metadata: record(row.metadata),
     created_at: text(row.created_at),
     updated_at: text(row.updated_at),
     usuario_nome: text(usuario.nome, 'Usuário sem nome'),

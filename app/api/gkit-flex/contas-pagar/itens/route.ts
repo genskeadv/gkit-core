@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
       vencimentoDia: payload?.vencimento_dia === null || payload?.vencimento_dia === undefined || payload?.vencimento_dia === ''
         ? null
         : Number(payload.vencimento_dia),
+      vencimentoTexto: payload?.vencimento_texto ? String(payload.vencimento_texto) : undefined,
       valorPrevisto: Number(payload?.valor_previsto || 0),
       categoria: String(payload?.categoria || ''),
       centro: String(payload?.centro || ''),

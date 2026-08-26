@@ -35,6 +35,7 @@ export type GkitFlexColaborador = {
   recebe_outros: boolean;
   recebe_comissoes: boolean;
   observacoes: string | null;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   usuario_nome: string;
