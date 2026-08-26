@@ -26820,7 +26820,7 @@ a.button {
   align-items: stretch;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(320px, 0.8fr) minmax(280px, 1fr);
+  grid-template-columns: 1fr;
 }
 
 .ciclo-shell .ciclo-onboarding-start-selected {
@@ -26960,6 +26960,146 @@ a.button {
   display: flex;
   justify-content: flex-end;
   margin: 0;
+}
+
+.ciclo-shell .ciclo-onboarding-stage-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ciclo-shell .ciclo-onboarding-stage {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px;
+}
+
+.ciclo-shell .ciclo-onboarding-stage legend {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  padding: 0 0 8px;
+  width: 100%;
+}
+
+.ciclo-shell .ciclo-onboarding-stage legend > span {
+  align-items: center;
+  background: #2d2038;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 13px;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  width: 28px;
+}
+
+.ciclo-shell .ciclo-onboarding-stage legend div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ciclo-shell .ciclo-onboarding-stage legend strong {
+  color: #131927;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.ciclo-shell .ciclo-onboarding-stage legend small {
+  color: #5b6b86;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.ciclo-shell .ciclo-onboarding-stage legend em,
+.ciclo-shell .ciclo-onboarding-task > em {
+  background: rgba(93, 47, 117, 0.08);
+  border: 1px solid rgba(93, 47, 117, 0.13);
+  border-radius: 999px;
+  color: #5d2f75;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.1;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.ciclo-shell .ciclo-onboarding-task-list {
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.ciclo-shell .ciclo-onboarding-task {
+  align-items: center;
+  background: #fbfcff;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  min-height: 42px;
+  padding: 7px 10px;
+}
+
+.ciclo-shell .ciclo-onboarding-task input[type="checkbox"] {
+  appearance: none;
+  background: #fff;
+  border: 1px solid rgba(93, 47, 117, 0.35) !important;
+  border-radius: 5px !important;
+  display: inline-grid !important;
+  height: 18px !important;
+  margin: 0 !important;
+  min-height: 18px !important;
+  padding: 0 !important;
+  place-content: center;
+  width: 18px !important;
+}
+
+.ciclo-shell .ciclo-onboarding-task input[type="checkbox"]::before {
+  background: #fff;
+  clip-path: polygon(14% 44%, 0 60%, 39% 100%, 100% 19%, 84% 4%, 36% 68%);
+  content: "";
+  height: 11px;
+  transform: scale(0);
+  transform-origin: center;
+  transition: transform 120ms ease;
+  width: 11px;
+}
+
+.ciclo-shell .ciclo-onboarding-task input[type="checkbox"]:checked {
+  background: #2d2038;
+  border-color: #2d2038 !important;
+}
+
+.ciclo-shell .ciclo-onboarding-task input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+.ciclo-shell .ciclo-onboarding-task > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ciclo-shell .ciclo-onboarding-task strong {
+  color: #131927;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.ciclo-shell .ciclo-onboarding-task small {
+  color: #5b6b86;
+  font-size: 11px;
+  line-height: 1.25;
 }
 
 .ciclo-shell .ciclo-document-checklist {

@@ -768,7 +768,7 @@ export function CicloOnboardingOverview({
                           <span>risco {meta.risco}</span>
                         </div>
                         <div className="ciclo-clientes-actions">
-                          <Link className="button secondary" href={`/modulos/gkit-ciclo/onboarding/${row.id}`}>Checklist</Link>
+                          <Link className="button secondary" href={`/modulos/gkit-ciclo/onboarding/iniciar?cliente_id=${row.id}`}>Checklist</Link>
                         </div>
                       </article>
                     )

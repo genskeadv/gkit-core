@@ -5,7 +5,12 @@ import { CicloStartOnboardingForm } from '@/features/ciclo/client-picker'
 import { CicloSection, CicloShell } from '@/features/ciclo/components'
 import { getCicloDocumentoFormData, listCicloOnboardingWorkflowAtividades, requireCicloContext } from '@/features/ciclo/queries'
 
-export default async function CicloIniciarOnboardingPage() {
+export default async function CicloIniciarOnboardingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
   const context = await requireCicloContext('/modulos/gkit-ciclo/onboarding/iniciar')
 
   if (!canAccess(context.permissions, 'ciclo.clientes.write')) {
@@ -16,6 +21,8 @@ export default async function CicloIniciarOnboardingPage() {
     getCicloDocumentoFormData(context),
     listCicloOnboardingWorkflowAtividades(),
   ])
+  const rawClienteId = params?.cliente_id
+  const initialClienteId = Array.isArray(rawClienteId) ? rawClienteId[0] : rawClienteId
 
   return (
     <CicloShell
@@ -27,7 +34,7 @@ export default async function CicloIniciarOnboardingPage() {
       usuario={context.usuario}
     >
       <CicloSection hideHeader title="Pacote de onboarding">
-        <CicloStartOnboardingForm clientes={formData.clientes} workflow={workflow} />
+        <CicloStartOnboardingForm clientes={formData.clientes} initialClienteId={initialClienteId} workflow={workflow} />
       </CicloSection>
     </CicloShell>
   )
