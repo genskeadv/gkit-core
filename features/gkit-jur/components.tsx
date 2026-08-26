@@ -756,8 +756,13 @@ export function GkitJurInboxPage({
           </div>
         </form>
 
-        <div className="gkit-jur-inbox-list">
-          {data.items.length ? data.items.map((item, index) => {
+        {data.items.length ? (
+          <GkitJurClientGroupedList
+            className="gkit-jur-inbox-list"
+            clientName={(item) => item.clienteNome || item.subtitulo}
+            rows={data.items}
+          >
+            {(item, index) => {
             const actionableTask = item.tipo === 'tarefa' && item.entidadeId && item.processoId
             return (
               <article className={`gkit-jur-inbox-item ${actionableTask && canWrite ? 'actionable' : ''}`} key={item.id}>
@@ -831,8 +836,9 @@ export function GkitJurInboxPage({
                 ) : null}
               </article>
             )
-          }) : <div className="suite-empty-block success">Nenhum item na fila selecionada.</div>}
-        </div>
+          }}
+          </GkitJurClientGroupedList>
+        ) : <div className="suite-empty-block success">Nenhum item na fila selecionada.</div>}
       </section>
 
       <aside className="suite-panel gkit-jur-inbox-agent-panel">
@@ -1208,6 +1214,56 @@ function GkitJurEtiquetaPills({ empty = 'Sem etiqueta', tags }: { empty?: string
           {tag.nome}
         </span>
       )) : <small>{empty}</small>}
+    </div>
+  )
+}
+
+function clientGroupLabel(value?: string | null) {
+  return value?.trim() || 'Sem cliente definido'
+}
+
+function groupByClient<T>(rows: T[], clientName: (row: T) => string | null | undefined) {
+  const groups = new Map<string, T[]>()
+
+  rows.forEach((row) => {
+    const label = clientGroupLabel(clientName(row))
+    const group = groups.get(label) ?? []
+    group.push(row)
+    groups.set(label, group)
+  })
+
+  return Array.from(groups, ([client, items]) => ({ client, items }))
+}
+
+function GkitJurClientGroupedList<T>({
+  children,
+  className,
+  clientName,
+  rows,
+}: {
+  children: (row: T, index: number) => ReactNode
+  className?: string
+  clientName: (row: T) => string | null | undefined
+  rows: T[]
+}) {
+  let itemIndex = 0
+  return (
+    <div className={`gkit-jur-client-group-list ${className ?? ''}`} role="list">
+      {groupByClient(rows, clientName).map((group) => (
+        <details className="gkit-jur-client-group" key={group.client}>
+          <summary>
+            <strong>{group.client}</strong>
+            <small>{group.items.length} {group.items.length === 1 ? 'item' : 'itens'}</small>
+          </summary>
+          <div>
+            {group.items.map((row) => {
+              const currentIndex = itemIndex
+              itemIndex += 1
+              return children(row, currentIndex)
+            })}
+          </div>
+        </details>
+      ))}
     </div>
   )
 }
@@ -2157,8 +2213,12 @@ function GkitJurPreJuridicoList({
   if (!data.items.length) return <div className="suite-empty-block gkit-jur-pre-empty">Nenhum pré-jurídico encontrado com os filtros atuais.</div>
 
   return (
-    <div className="suite-table-list compact gkit-jur-pre-list" role="list">
-      {data.items.map((item) => {
+    <GkitJurClientGroupedList
+      className="suite-table-list compact gkit-jur-pre-list"
+      clientName={(item) => item.clienteNome || item.clienteSnapshotNome || item.titulo}
+      rows={data.items}
+    >
+      {(item) => {
         const flow = preJuridicoFlowState(item)
         const unidade = [item.unidade ? `Unidade ${item.unidade}` : null, item.bloco ? `Bloco ${item.bloco}` : null].filter(Boolean).join(' - ')
         return (
@@ -2200,8 +2260,8 @@ function GkitJurPreJuridicoList({
           </details>
         </article>
         )
-      })}
-    </div>
+      }}
+    </GkitJurClientGroupedList>
   )
 }
 
@@ -2399,8 +2459,12 @@ function GkitJurProcessTaggableList({
   updateEtiquetaAction: (formData: FormData) => Promise<void>
 }) {
   return (
-    <div className="suite-table-list compact gkit-jur-process-list" role="list">
-      {rows.map((row) => (
+    <GkitJurClientGroupedList
+      className="suite-table-list compact gkit-jur-process-list"
+      clientName={(row) => row.clienteNome || row.titulo}
+      rows={rows}
+    >
+      {(row) => (
         <article className="gkit-jur-process-row" key={row.id} role="listitem">
           {canWrite ? (
             <input
@@ -2438,15 +2502,19 @@ function GkitJurProcessTaggableList({
             />
           ) : null}
         </article>
-      ))}
-    </div>
+      )}
+    </GkitJurClientGroupedList>
   )
 }
 
 function GkitJurProcessList({ rows }: { rows: GkitJurProcessListItem[] }) {
   return (
-    <div className="suite-table-list compact gkit-jur-process-list" role="list">
-      {rows.map((row) => (
+    <GkitJurClientGroupedList
+      className="suite-table-list compact gkit-jur-process-list"
+      clientName={(row) => row.clienteNome || row.titulo}
+      rows={rows}
+    >
+      {(row) => (
         <Link className="suite-row-link" href={`/modulos/gkit-jur/processos/${row.id}`} key={row.id} role="listitem">
           <div>
             <h3>{row.numeroCnj} {row.titulo ? `- ${row.titulo}` : ''}</h3>
@@ -2463,8 +2531,8 @@ function GkitJurProcessList({ rows }: { rows: GkitJurProcessListItem[] }) {
             <small>{row.ultimaMovimentacaoEm ? `Mov. ${formatDate(row.ultimaMovimentacaoEm)}` : 'Sem movimentação'}</small>
           </div>
         </Link>
-      ))}
-    </div>
+      )}
+    </GkitJurClientGroupedList>
   )
 }
 
@@ -3566,8 +3634,12 @@ export function GkitJurAcordosPage({
 
       {atrasados.length ? (
         <GkitJurSection title="Acordos com atraso" description="Prioridade operacional para sinalizar quebra, cobrar parcela ou registrar pagamento.">
-          <div className="gkit-jur-agreement-list" role="list">
-            {atrasados.map((acordo) => (
+          <GkitJurClientGroupedList
+            className="gkit-jur-agreement-list"
+            clientName={(acordo) => acordo.clienteNome || acordo.processoTitulo || acordo.numeroCnj}
+            rows={atrasados}
+          >
+            {(acordo) => (
               <GkitJurAcordoCard
                 acordo={acordo}
                 canWrite={canWrite}
@@ -3578,15 +3650,19 @@ export function GkitJurAcordosPage({
                 updateReguaEmailAction={updateReguaEmailAction}
                 updateStatusAction={updateStatusAction}
               />
-            ))}
-          </div>
+            )}
+          </GkitJurClientGroupedList>
         </GkitJurSection>
       ) : null}
 
       <GkitJurSection title="Controle de acordos" description="Acompanhe parcelas, próximos vencimentos e status dos acordos cadastrados nos processos.">
         {data.acordos.length ? (
-          <div className="gkit-jur-agreement-list" role="list">
-            {data.acordos.map((acordo) => (
+          <GkitJurClientGroupedList
+            className="gkit-jur-agreement-list"
+            clientName={(acordo) => acordo.clienteNome || acordo.processoTitulo || acordo.numeroCnj}
+            rows={data.acordos}
+          >
+            {(acordo) => (
               <GkitJurAcordoCard
                 acordo={acordo}
                 canWrite={canWrite}
@@ -3597,8 +3673,8 @@ export function GkitJurAcordosPage({
                 updateReguaEmailAction={updateReguaEmailAction}
                 updateStatusAction={updateStatusAction}
               />
-            ))}
-          </div>
+            )}
+          </GkitJurClientGroupedList>
         ) : (
           <div className="suite-empty-block">Nenhum acordo judicial cadastrado ainda.</div>
         )}
@@ -4822,8 +4898,12 @@ export function GkitJurPublicacoesPage({
       <GkitJurSection className="gkit-jur-publication-workbench" title="Triagem">
         <GkitJurPublicacaoFilterBar data={data} />
         {data.publicacoes.length ? (
-          <div className="suite-card-list compact">
-            {data.publicacoes.map((item) => (
+          <GkitJurClientGroupedList
+            className="suite-card-list compact gkit-jur-publication-list"
+            clientName={(item) => item.clienteNome || item.processoTitulo || item.numeroCnj}
+            rows={data.publicacoes}
+          >
+            {(item) => (
               <GkitJurPublicacaoCard
                 canWrite={canWrite}
                 item={item}
@@ -4831,8 +4911,8 @@ export function GkitJurPublicacoesPage({
                 returnTo={returnTo}
                 tratamentoAction={tratamentoAction}
               />
-            ))}
-          </div>
+            )}
+          </GkitJurClientGroupedList>
         ) : (
           <div className="suite-empty-block success">
             Nenhuma publicação encontrada para os filtros atuais.
@@ -4846,8 +4926,12 @@ export function GkitJurPublicacoesPage({
 
 function GkitJurMovimentacaoList({ rows }: { rows: GkitJurMovimentacoesData['movimentacoes'] }) {
   return (
-    <div className="suite-table-list compact gkit-jur-movement-list" role="list">
-      {rows.map((row) => (
+    <GkitJurClientGroupedList
+      className="suite-table-list compact gkit-jur-movement-list"
+      clientName={(row) => row.clienteNome}
+      rows={rows}
+    >
+      {(row) => (
         <Link className="suite-row-link" href={`/modulos/gkit-jur/processos/${row.processoId}`} key={row.id} role="listitem">
           <div>
             <h3>{row.nome}</h3>
@@ -4857,8 +4941,8 @@ function GkitJurMovimentacaoList({ rows }: { rows: GkitJurMovimentacoesData['mov
           <strong>{formatDate(row.dataHora)}</strong>
           <small>{row.geraAlerta ? 'gera alerta' : 'sem alerta'}</small>
         </Link>
-      ))}
-    </div>
+      )}
+    </GkitJurClientGroupedList>
   )
 }
 

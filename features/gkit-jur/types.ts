@@ -733,6 +733,7 @@ export type GkitJurInboxItem = {
   dataReferencia: string | null;
   prazoAt: string | null;
   processoId: string | null;
+  clienteNome: string | null;
   carteiraId: string | null;
   responsavelId: string | null;
   responsavelNome: string | null;

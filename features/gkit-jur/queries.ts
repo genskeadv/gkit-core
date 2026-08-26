@@ -89,8 +89,8 @@ import type {
   GkitJurTimelineItem,
 } from './types'
 
-const PAGE_SIZE = 25
-const INBOX_ITEMS_LIMIT = 60
+const PAGE_SIZE = 20
+const INBOX_ITEMS_LIMIT = 20
 const DEFAULT_PROCESS_STATUS = 'ativo'
 const OPEN_TASK_STATUSES = ['aberta', 'em_andamento', 'aguardando_terceiro']
 const GKIT_JUR_CRON_SCHEDULE = '0 6 * * *'
@@ -3442,6 +3442,7 @@ function processInboxItem(
     dataReferencia: processo.ultimaMovimentacaoEm ?? processo.ultimaSincronizacaoEm,
     prazoAt: null,
     processoId: processo.id,
+    clienteNome: processo.clienteNome || processo.titulo || null,
     carteiraId: text(row.carteira_id) || null,
     responsavelId: text(row.responsavel_id) || null,
     responsavelNome: processo.responsavelNome,
@@ -3484,6 +3485,7 @@ function taskInboxItem(task: GkitJurTarefa, processo: GkitJurProcessListItem): G
     dataReferencia: task.prazoAt ?? task.createdAt,
     prazoAt: task.prazoAt,
     processoId: task.processoId,
+    clienteNome: processo.clienteNome || processo.titulo || null,
     carteiraId: task.carteiraId,
     responsavelId: task.responsavelId,
     responsavelNome: task.responsavelNome ?? processo.responsavelNome,
@@ -3618,7 +3620,7 @@ async function listInboxPendenciaItems(): Promise<GkitJurInboxItem[]> {
       ? admin().schema('security').from('usuarios').select('id,nome,email').in('id', responsavelIds)
       : Promise.resolve({ data: [], error: null }),
     processoIds.length
-      ? admin().schema('gkit_jur').from('processos').select('id').eq('status', DEFAULT_PROCESS_STATUS).in('id', processoIds)
+      ? admin().schema('gkit_jur').from('processos').select('id,cliente_nome,titulo').eq('status', DEFAULT_PROCESS_STATUS).in('id', processoIds)
       : Promise.resolve({ data: [], error: null }),
   ])
 
@@ -3628,7 +3630,7 @@ async function listInboxPendenciaItems(): Promise<GkitJurInboxItem[]> {
 
   const carteiras = new Map(((carteirasResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome)]))
   const responsaveis = new Map(((responsaveisResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.nome, text(row.email))]))
-  const processosAtivos = new Set(((processosAtivosResult.data ?? []) as Array<Record<string, unknown>>).map((row) => String(row.id)))
+  const processosAtivos = new Map(((processosAtivosResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.id), text(row.cliente_nome) || text(row.titulo) || null]))
   const scoreByPriority: Record<GkitJurInboxPrioridade, number> = { critica: 90, alta: 72, media: 52, baixa: 28 }
 
   return rows.filter((row) => {
@@ -3652,6 +3654,7 @@ async function listInboxPendenciaItems(): Promise<GkitJurInboxItem[]> {
       dataReferencia: text(row.prazo_limite) || text(row.created_at) || null,
       prazoAt: text(row.prazo_limite) || null,
       processoId: processoId || null,
+      clienteNome: processoId ? processosAtivos.get(processoId) ?? null : null,
       carteiraId: carteiraId || null,
       responsavelId: responsavelId || null,
       responsavelNome: responsavelId ? responsaveis.get(responsavelId) ?? null : null,
@@ -3713,6 +3716,7 @@ async function listInboxAgenteItems(): Promise<GkitJurInboxItem[]> {
       dataReferencia: text(row.updated_at) || text(row.created_at) || null,
       prazoAt: null,
       processoId: null,
+      clienteNome: null,
       carteiraId: carteiraId || null,
       responsavelId: null,
       responsavelNome: null,
