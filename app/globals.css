@@ -26811,6 +26811,157 @@ a.button {
   font-size: 12px;
 }
 
+.ciclo-shell .ciclo-onboarding-start-form {
+  display: grid;
+  gap: 12px;
+}
+
+.ciclo-shell .ciclo-onboarding-start-main {
+  align-items: stretch;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(320px, 0.8fr) minmax(280px, 1fr);
+}
+
+.ciclo-shell .ciclo-onboarding-start-selected {
+  background: linear-gradient(180deg, #fff, #fbfcff);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  min-height: 78px;
+  padding: 11px 12px;
+}
+
+.ciclo-shell .ciclo-onboarding-start-selected span,
+.ciclo-shell .ciclo-onboarding-start-selected small,
+.ciclo-shell .ciclo-onboarding-start-group summary small,
+.ciclo-shell .ciclo-onboarding-start-list small {
+  color: #5b6b86;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.ciclo-shell .ciclo-onboarding-start-selected strong {
+  color: #131927;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.ciclo-shell .ciclo-onboarding-start-groups {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ciclo-shell .ciclo-onboarding-start-group {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ciclo-shell .ciclo-onboarding-start-group summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr);
+  list-style: none;
+  min-height: 54px;
+  padding: 10px 12px;
+}
+
+.ciclo-shell .ciclo-onboarding-start-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.ciclo-shell .ciclo-onboarding-start-group summary > span {
+  align-items: center;
+  background: #2d2038;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 18px;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  transition: transform 160ms ease;
+  width: 28px;
+}
+
+.ciclo-shell .ciclo-onboarding-start-group[open] summary > span {
+  transform: rotate(45deg);
+}
+
+.ciclo-shell .ciclo-onboarding-start-group summary div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.ciclo-shell .ciclo-onboarding-start-group summary strong {
+  color: #131927;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.ciclo-shell .ciclo-onboarding-start-list {
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+}
+
+.ciclo-shell .ciclo-onboarding-start-list article {
+  align-items: center;
+  background: #fbfcff;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 42px;
+  padding: 7px 10px;
+}
+
+.ciclo-shell .ciclo-onboarding-start-list article div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ciclo-shell .ciclo-onboarding-start-list article strong {
+  color: #131927;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.ciclo-shell .ciclo-onboarding-start-list article span {
+  background: rgba(93, 47, 117, 0.08);
+  border: 1px solid rgba(93, 47, 117, 0.13);
+  border-radius: 999px;
+  color: #5d2f75;
+  font-size: 11px;
+  line-height: 1.1;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.ciclo-shell .ciclo-onboarding-start-empty {
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  color: #5b6b86;
+  font-size: 13px;
+  padding: 12px;
+}
+
+.ciclo-shell .ciclo-onboarding-start-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0;
+}
+
 .ciclo-shell .ciclo-document-checklist {
   gap: 8px !important;
 }
@@ -26911,6 +27062,11 @@ a.button {
 
   .ciclo-shell .ciclo-document-checklist article {
     grid-template-columns: minmax(0, 1fr) 82px 82px !important;
+  }
+
+  .ciclo-shell .ciclo-onboarding-start-main,
+  .ciclo-shell .ciclo-onboarding-start-groups {
+    grid-template-columns: 1fr;
   }
 
   .ciclo-shell .ciclo-document-checklist label:not(.checkbox-row) {

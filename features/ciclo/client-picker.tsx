@@ -2,8 +2,9 @@
 
 import { useEffect, useId, useMemo, useState } from 'react'
 import { startCicloOnboardingAction } from '@/features/ciclo/actions'
+import { cicloOnboardingDocumentos } from '@/features/ciclo/onboarding-defaults'
 import { CicloSubmitButton } from '@/features/ciclo/submit-button'
-import type { CicloDocumentoFormData } from '@/features/ciclo/types'
+import type { CicloDocumentoFormData, CicloOnboardingWorkflowAtividade } from '@/features/ciclo/types'
 
 type ClienteOption = CicloDocumentoFormData['clientes'][number]
 
@@ -107,22 +108,78 @@ export function SearchableClienteField({
   )
 }
 
-export function CicloStartOnboardingForm({ clientes }: { clientes: ClienteOption[] }) {
+export function CicloStartOnboardingForm({
+  clientes,
+  workflow,
+}: {
+  clientes: ClienteOption[]
+  workflow: CicloOnboardingWorkflowAtividade[]
+}) {
   const [clienteId, setClienteId] = useState('')
+  const selectedCliente = clientes.find((cliente) => cliente.id === clienteId)
+  const activeWorkflow = workflow.filter((atividade) => atividade.ativo)
 
   return (
-    <form action={startCicloOnboardingAction} className="card module-form module-form-grid">
+    <form action={startCicloOnboardingAction} className="ciclo-onboarding-start-form">
       <input name="return_to" type="hidden" value="onboarding" />
-      <div className="module-form-wide">
+      <div className="ciclo-onboarding-start-main">
         <SearchableClienteField
           clientes={clientes}
           onSelect={setClienteId}
           required
           selectedId={clienteId}
         />
+        <div className="ciclo-onboarding-start-selected">
+          <span>{selectedCliente ? 'Cliente selecionado' : 'Aguardando cliente'}</span>
+          <strong>{selectedCliente?.shortLabel ?? 'Selecione para iniciar'}</strong>
+          <small>{selectedCliente?.meta ?? 'Checklist e workflow serão preparados em conjunto.'}</small>
+        </div>
       </div>
-      <div className="suite-empty-block module-form-wide">O onboarding cria o checklist documental e o workflow operacional padrão.</div>
-      <div className="form-actions module-form-wide">
+      <div className="ciclo-onboarding-start-groups">
+        <details className="ciclo-onboarding-start-group" open>
+          <summary>
+            <span aria-hidden="true">+</span>
+            <div>
+              <strong>Checklist documental</strong>
+              <small>{cicloOnboardingDocumentos.length} documento(s) obrigatórios</small>
+            </div>
+          </summary>
+          <div className="ciclo-onboarding-start-list">
+            {cicloOnboardingDocumentos.map((documento, index) => (
+              <article key={documento.tipo_documento}>
+                <div>
+                  <strong>{documento.titulo}</strong>
+                  <small>Item {index + 1} do checklist</small>
+                </div>
+                <span>Obrigatório</span>
+              </article>
+            ))}
+          </div>
+        </details>
+        <details className="ciclo-onboarding-start-group" open>
+          <summary>
+            <span aria-hidden="true">+</span>
+            <div>
+              <strong>Workflow operacional</strong>
+              <small>{activeWorkflow.length || 0} etapa(s) padrão</small>
+            </div>
+          </summary>
+          <div className="ciclo-onboarding-start-list">
+            {activeWorkflow.length ? activeWorkflow.map((atividade) => (
+              <article key={atividade.id}>
+                <div>
+                  <strong>{atividade.ordem}. {atividade.descricao}</strong>
+                  <small>{atividade.responsavel_padrao || 'Responsável a definir'}</small>
+                </div>
+                <span>{atividade.obrigatoria ? 'Obrigatória' : 'Opcional'}</span>
+              </article>
+            )) : (
+              <div className="ciclo-onboarding-start-empty">Workflow padrão ainda não configurado.</div>
+            )}
+          </div>
+        </details>
+      </div>
+      <div className="form-actions ciclo-onboarding-start-actions">
         <CicloSubmitButton>Iniciar onboarding</CicloSubmitButton>
       </div>
     </form>

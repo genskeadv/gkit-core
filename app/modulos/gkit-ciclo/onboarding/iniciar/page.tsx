@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import { CicloStartOnboardingForm } from '@/features/ciclo/client-picker'
 import { CicloSection, CicloShell } from '@/features/ciclo/components'
-import { getCicloDocumentoFormData, requireCicloContext } from '@/features/ciclo/queries'
+import { getCicloDocumentoFormData, listCicloOnboardingWorkflowAtividades, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function CicloIniciarOnboardingPage() {
   const context = await requireCicloContext('/modulos/gkit-ciclo/onboarding/iniciar')
@@ -12,7 +12,10 @@ export default async function CicloIniciarOnboardingPage() {
     redirect('/modulos/gkit-ciclo/onboarding')
   }
 
-  const formData = await getCicloDocumentoFormData(context)
+  const [formData, workflow] = await Promise.all([
+    getCicloDocumentoFormData(context),
+    listCicloOnboardingWorkflowAtividades(),
+  ])
 
   return (
     <CicloShell
@@ -23,8 +26,8 @@ export default async function CicloIniciarOnboardingPage() {
       actions={<Link className="button secondary" href="/modulos/gkit-ciclo/onboarding">Voltar</Link>}
       usuario={context.usuario}
     >
-      <CicloSection eyebrow="Operação" title="Cliente">
-        <CicloStartOnboardingForm clientes={formData.clientes} />
+      <CicloSection hideHeader title="Pacote de onboarding">
+        <CicloStartOnboardingForm clientes={formData.clientes} workflow={workflow} />
       </CicloSection>
     </CicloShell>
   )

@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import { requireModuleAccess } from '@/lib/auth/platform'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { cicloOnboardingDocumentos } from '@/features/ciclo/onboarding-defaults'
 
 export type PreviewImportacaoClientes = {
   total: number
@@ -1063,18 +1064,6 @@ async function runOptionalRpc(name: string, clienteId: string) {
   }
 }
 
-const onboardingDocumentos = [
-  { tipo_documento: 'contrato', titulo: 'Contrato' },
-  { tipo_documento: 'cartao_cnpj', titulo: 'Cartão CNPJ' },
-  { tipo_documento: 'ata_eleicao', titulo: 'Ata eleição' },
-  { tipo_documento: 'ata_previsao_orcamentaria', titulo: 'Ata previsão orçamentária' },
-  { tipo_documento: 'cpf_sindico', titulo: 'CPF síndico' },
-  { tipo_documento: 'cnpj_empresa_sindico', titulo: 'CNPJ empresa síndico' },
-  { tipo_documento: 'convencao', titulo: 'Convenção' },
-  { tipo_documento: 'regulamento', titulo: 'Regulamento' },
-  { tipo_documento: 'cadastro_unidade', titulo: 'Cadastro de unidade' },
-]
-
 async function getClienteAccess(clienteId: string) {
   const { data, error } = await admin()
     .schema('ciclo')
@@ -1155,7 +1144,7 @@ async function requireCicloAlertWrite(carteiraId: string | null) {
 }
 
 async function ensureOnboardingChecklist(clienteId: string, carteiraId: string | null) {
-  const rows = onboardingDocumentos.map((documento) => ({
+  const rows = cicloOnboardingDocumentos.map((documento) => ({
     cliente_id: clienteId,
     carteira_id: carteiraId,
     tipo_documento: documento.tipo_documento,
@@ -1615,7 +1604,7 @@ export async function updateCicloCockpitDocumentacaoAction(formData: FormData) {
   const cliente = await getClienteAccess(clienteId)
   const context = await requireCicloDocumentWrite(cliente.carteira_id)
 
-  const rows = onboardingDocumentos.map((documento) => {
+  const rows = cicloOnboardingDocumentos.map((documento) => {
     const key = documento.tipo_documento
     const validado = formData.get(`validado_${key}`) === 'on'
     const aplicavel = formData.get(`aplicavel_${key}`) === 'on'
