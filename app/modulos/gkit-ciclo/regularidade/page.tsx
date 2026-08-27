@@ -1,3 +1,5 @@
+import Link from 'next/link'
+import { canAccess } from '@/lib/auth/permissions'
 import { buildCicloListFilters, CicloGenericList, CicloListKpis, CicloSection, CicloShell } from '@/features/ciclo/components'
 import { listCicloRegularidadeRows, requireCicloContext } from '@/features/ciclo/queries'
 
@@ -9,6 +11,7 @@ export default async function CicloRegularidadePage({
   const params = await searchParams
   const context = await requireCicloContext()
   const rows = await listCicloRegularidadeRows(context)
+  const canImportReceita = canAccess(context.permissions, 'gkit_flex.comissoes.write')
 
   return (
     <CicloShell
@@ -16,6 +19,7 @@ export default async function CicloRegularidadePage({
       eyebrow="Governanca"
       title="Regularidade"
       description="Conformidade operacional por cliente, carteira, administradora e risco."
+      actions={canImportReceita ? <Link className="button" href="/modulos/gkit-flex">Importar receita</Link> : null}
       usuario={context.usuario}
     >
       <CicloSection
