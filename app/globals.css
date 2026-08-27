@@ -29808,7 +29808,7 @@ body:has(.gkit-flex-operational-shell) {
 
 .ciclo-client-dashboard-toolbar {
   align-items: center;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr;
 }
 
 .ciclo-client-dashboard-filter {
@@ -30064,10 +30064,6 @@ body:has(.gkit-flex-operational-shell) {
   .ciclo-client-dashboard-hero,
   .ciclo-client-dashboard-filter {
     grid-template-columns: 1fr;
-  }
-
-  .ciclo-client-dashboard-toolbar .ciclo-quick-actions {
-    justify-content: flex-start;
   }
 
   .ciclo-client-health-grid,

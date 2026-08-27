@@ -59,13 +59,6 @@ const cicloAlertaSeveridades = [
   ['critica', 'Critica'],
 ]
 
-function impactoTone(value: string) {
-  if (value === 'critico' || value === 'alto') return 'danger'
-  if (value === 'medio' || value === 'neutro') return 'warning'
-  if (value === 'baixo') return 'success'
-  return 'primary'
-}
-
 function tipoClienteLabel(value: string) {
   if (value === 'pontual') return 'Pontual'
   if (value === 'cobranca') return 'Cobrança'
@@ -1843,7 +1836,7 @@ export function CicloClienteDashboardEmpty({ clientes }: { clientes: CicloDocume
   return (
     <section className="card ciclo-panel ciclo-client-dashboard-empty">
       <CicloClienteDashboardSelector clientes={clientes} />
-      <EmptyBlock label="Selecione um cliente para carregar os indicadores, alertas e histórico operacional." />
+      <EmptyBlock label="Selecione um cliente para carregar os indicadores operacionais." />
     </section>
   )
 }
@@ -1855,7 +1848,7 @@ export function CicloClienteIntegralCockpit({
   clientes?: CicloDocumentoFormData['clientes']
   detail: CicloClienteIntegral
 }) {
-  const { alertas, cliente, documentos, ocorrencias, pendencias, regularidade, timeline } = detail
+  const { alertas, cliente, documentos, ocorrencias, pendencias, regularidade } = detail
   const alertasAbertos = alertas.filter((alerta) => alerta.status !== 'resolvido' && alerta.status !== 'cancelado')
   const ocorrenciasAbertas = ocorrencias.filter((ocorrencia) => !['resolvida', 'cancelada'].includes(ocorrencia.status))
   const documentosPendentes = documentos.filter((documento) => documento.status === 'pendente' || documento.status === 'vencido')
@@ -1892,11 +1885,6 @@ export function CicloClienteIntegralCockpit({
     <div className="ciclo-client-dashboard">
       <section className="card ciclo-panel ciclo-client-dashboard-toolbar">
         <CicloClienteDashboardSelector clientes={clientes} selectedId={cliente.id} />
-        <div className="ciclo-quick-actions">
-          <Link className="button secondary" href={`/modulos/gkit-ciclo/clientes/${cliente.id}`}>Editar</Link>
-          <Link className="button secondary" href="/modulos/gkit-ciclo/documentos/novo">Documento</Link>
-          <Link className="button secondary" href="/modulos/gkit-ciclo/ocorrencias/nova">Ocorrência</Link>
-        </div>
       </section>
 
       <section className="card ciclo-panel ciclo-client-dashboard-hero">
@@ -1954,113 +1942,7 @@ export function CicloClienteIntegralCockpit({
         <CicloClientBar label="Pagamentos" meta={`${detail.pontualidade.recebimentos} recebimento(s) no lote atual`} tone={detail.pontualidade.atrasado ? 'warning' : dashboardScoreTone(pagamentoScore)} value={pagamentoScore} />
         <CicloClientBar label="Acompanhamento" meta={`${alertasAbertos.length + ocorrenciasAbertas.length} item(ns) em aberto`} tone={dashboardScoreTone(operacaoScore)} value={operacaoScore} />
       </section>
-
-      <section className="ciclo-integral-grid">
-        <CicloIntegralList
-          empty="Nenhum alerta operacional aberto."
-          items={[
-            ...documentosPendentes.slice(0, 4).map((documento) => ({
-              href: `/modulos/gkit-ciclo/documentos/${documento.id}`,
-              meta: documento.status === 'vencido' ? 'Documento vencido' : 'Documento pendente',
-              status: documento.status,
-              title: documento.titulo ?? documento.tipo_documento,
-              tone: documento.status === 'vencido' ? 'danger' : 'warning',
-              value: formatDate(documento.data_renovacao ?? ''),
-            })),
-            ...alertasAbertos.slice(0, 4).map((alerta) => ({
-              href: `/modulos/gkit-ciclo/alertas/${alerta.id}`,
-              meta: alerta.descricao ?? alerta.tipo,
-              status: alerta.severidade,
-              title: alerta.titulo,
-              tone: riskTone(alerta.severidade),
-              value: formatDate(alerta.vencimento_em ?? ''),
-            })),
-            ...ocorrenciasAbertas.slice(0, 4).map((ocorrencia) => ({
-              href: `/modulos/gkit-ciclo/ocorrencias/${ocorrencia.id}`,
-              meta: ocorrencia.responsavel ?? 'Sem responsável',
-              status: ocorrencia.status,
-              title: ocorrencia.titulo,
-              tone: impactoTone(ocorrencia.impacto),
-              value: formatDate(ocorrencia.data_ocorrencia),
-            })),
-          ].slice(0, 8)}
-          title="Atenção"
-        />
-        <CicloIntegralList
-          empty="Nenhum evento registrado."
-          items={timeline.slice(0, 8).map((item) => ({
-            href: `/modulos/gkit-ciclo/clientes/${cliente.id}/cockpit`,
-            meta: item.descricao || item.cliente,
-            status: item.tipo,
-            title: item.titulo,
-            tone: 'primary',
-            value: formatDate(item.createdAt),
-          }))}
-          title="Timeline"
-        />
-        <CicloIntegralList
-          empty="Nenhum documento cadastrado."
-          items={documentos.slice(0, 8).map((documento) => ({
-            href: `/modulos/gkit-ciclo/documentos/${documento.id}`,
-            meta: formatDate(documento.data_renovacao ?? ''),
-            status: documento.status,
-            title: documento.titulo ?? documento.tipo_documento,
-            tone: riskTone(documento.status),
-            value: documento.obrigatorio ? 'Obrigatorio' : 'Opcional',
-          }))}
-          title="Documentos"
-        />
-        <CicloIntegralList
-          empty="Nenhuma ocorrência registrada."
-          items={ocorrencias.slice(0, 8).map((ocorrencia) => ({
-            href: `/modulos/gkit-ciclo/ocorrencias/${ocorrencia.id}`,
-            meta: ocorrencia.responsavel ?? 'Sem responsável',
-            status: ocorrencia.status,
-            title: ocorrencia.titulo,
-            tone: impactoTone(ocorrencia.impacto),
-            value: formatDate(ocorrencia.data_ocorrencia),
-          }))}
-          title="Ocorrências"
-        />
-      </section>
     </div>
-  )
-}
-
-function CicloIntegralList({
-  empty,
-  items,
-  title,
-}: {
-  empty: string
-  items: Array<{ href: string; meta: string; status: string; title: string; tone?: string; value: string }>
-  title: string
-}) {
-  return (
-    <section className="card ciclo-panel">
-      <div className="ciclo-panel-heading">
-        <div>
-          <h2>{title}</h2>
-        </div>
-      </div>
-      {items.length ? (
-        <div className="ciclo-table-list compact">
-          {items.map((item) => (
-            <article key={item.href}>
-              <div>
-                <h3>{item.title}</h3>
-                <p>{item.meta}</p>
-              </div>
-              <span className={`ciclo-pill ${item.tone ?? 'primary'}`}>{item.status}</span>
-              <strong>{item.value}</strong>
-              <small><Link className="button secondary" href={item.href}>Abrir</Link></small>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <EmptyBlock label={empty} />
-      )}
-    </section>
   )
 }
 

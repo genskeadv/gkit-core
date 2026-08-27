@@ -10,7 +10,7 @@ export default async function CicloClienteDashboardPage() {
       active="clientes"
       eyebrow="Cliente"
       title="Dashboard do cliente"
-      description="Selecione um cliente para acompanhar indicadores, alertas e histórico operacional."
+      description="Selecione um cliente para acompanhar os indicadores operacionais."
       usuario={context.usuario}
     >
       <CicloSection hideHeader title="Dashboard do cliente">
