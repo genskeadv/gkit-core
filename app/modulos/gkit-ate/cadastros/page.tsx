@@ -1,4 +1,4 @@
-import { GkitAteFilterBar, GkitAteHealthNotice, GkitAteList, GkitAteSection, GkitAteShell, GkitAteTabs } from '@/features/gkit-ate/components'
+import { GkitAteFilterBar, GkitAteHealthNotice, GkitAteList, GkitAteSection, GkitAteShell, GkitAteSummaryCards, GkitAteTabs } from '@/features/gkit-ate/components'
 import {
   buildGkitAteCadastroFilters,
   filterGkitAteAtendimentoTipos,
@@ -51,6 +51,20 @@ export default async function GkitAteCadastrosPage({
       meta: 'Tipo de tarefa',
       tone: item.ativo ? 'primary' as const : 'warning' as const,
     }))
+  const cadastroSummary = isAtendimentoTab
+    ? [
+      { label: 'Total', value: atendimentoTiposFiltrados.length },
+      { label: 'Ativos', value: atendimentoTiposFiltrados.filter((item) => item.ativo).length },
+      { label: 'Inativos', value: atendimentoTiposFiltrados.filter((item) => !item.ativo).length },
+      { label: 'Com tarefa padrão', value: atendimentoTiposFiltrados.filter((item) => item.tarefaTipoId).length },
+    ]
+    : [
+      { label: 'Total', value: tarefaTiposFiltrados.length },
+      { label: 'Ativos', value: tarefaTiposFiltrados.filter((item) => item.ativo).length },
+      { label: 'Inativos', value: tarefaTiposFiltrados.filter((item) => !item.ativo).length },
+      { label: 'Com descrição', value: tarefaTiposFiltrados.filter((item) => item.descricaoPadrao).length },
+    ]
+  const hasFilters = Boolean(filters.q || filters.ativo || filters.sort !== 'nome' || filters.dir !== 'asc')
 
   return (
     <GkitAteShell
@@ -67,6 +81,7 @@ export default async function GkitAteCadastrosPage({
             { active: !isAtendimentoTab, count: tarefaTipos.length, href: tabHref('tarefas'), label: 'Tipos de tarefa' },
           ]}
         />
+        <GkitAteSummaryCards items={cadastroSummary} />
         <GkitAteFilterBar
           fields={[
             { label: 'Busca', name: 'q', placeholder: isAtendimentoTab ? 'Tipo ou tarefa padrao' : 'Tipo ou descrição padrão', value: filters.q },
@@ -82,6 +97,7 @@ export default async function GkitAteCadastrosPage({
               value: filters.ativo,
             },
           ]}
+          hasFilters={hasFilters}
           hiddenFields={[{ name: 'tab', value: filters.tab }]}
           resetHref={`/modulos/gkit-ate/cadastros?tab=${filters.tab}`}
           sort={{

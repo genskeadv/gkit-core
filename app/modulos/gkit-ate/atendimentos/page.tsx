@@ -1,4 +1,4 @@
-import { GkitAteFilterBar, GkitAteGroupedList, GkitAteHealthNotice, GkitAteSection, GkitAteShell } from '@/features/gkit-ate/components'
+import { GkitAteFilterBar, GkitAteGroupedList, GkitAteHealthNotice, GkitAteSection, GkitAteShell, GkitAteSummaryCards } from '@/features/gkit-ate/components'
 import { buildGkitAteAtendimentoFilters, filterGkitAteAtendimentos } from '@/features/gkit-ate/list-filters'
 import { atendimentoRows, getGkitAteFormData, getGkitAteHealth, listGkitAteAtendimentos, requireGkitAteContext } from '@/features/gkit-ate/queries'
 import { moduleTarget } from '@/lib/auth/platform'
@@ -31,6 +31,22 @@ export default async function GkitAteAtendimentosPage({
   )
     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
     .map((value) => ({ label: value, value }))
+  const atendimentoSummary = [
+    { label: 'Total', value: atendimentosFiltrados.length },
+    { label: 'Abertos', value: atendimentosFiltrados.filter((atendimento) => atendimento.status === 'aberto').length },
+    { label: 'Encerrados', value: atendimentosFiltrados.filter((atendimento) => atendimento.status === 'encerrado').length },
+    { label: 'Clientes', value: new Set(atendimentosFiltrados.map((atendimento) => atendimento.cliente_nome)).size },
+    { label: 'Responsáveis', value: new Set(atendimentosFiltrados.map((atendimento) => atendimento.responsavel).filter(Boolean)).size },
+    { label: 'Tipos', value: new Set(atendimentosFiltrados.map((atendimento) => atendimento.tipo).filter(Boolean)).size },
+  ]
+  const hasFilters = Boolean(
+    filters.q ||
+    filters.status ||
+    filters.tipo ||
+    filters.responsavel ||
+    filters.sort !== 'data' ||
+    filters.dir !== 'desc',
+  )
 
   return (
     <GkitAteShell
@@ -41,6 +57,7 @@ export default async function GkitAteAtendimentosPage({
     >
       <GkitAteHealthNotice health={health} />
       <GkitAteSection title="Atendimentos" description={`${atendimentosFiltrados.length} de ${atendimentos.length} atendimento(s)`}>
+        <GkitAteSummaryCards items={atendimentoSummary} />
         <GkitAteFilterBar
           fields={[
             { label: 'Busca', name: 'q', placeholder: 'Código, cliente, título, objeto ou responsável', value: filters.q },
@@ -72,6 +89,7 @@ export default async function GkitAteAtendimentosPage({
               value: filters.responsavel,
             },
           ]}
+          hasFilters={hasFilters}
           resetHref="/modulos/gkit-ate/atendimentos"
           sort={{
             dir: filters.dir,

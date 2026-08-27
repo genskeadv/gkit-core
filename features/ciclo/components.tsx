@@ -793,6 +793,7 @@ export function CicloAtendimentoDashboardView({
   const topGroups = groups.slice(0, 10)
   const maxGroup = Math.max(...topGroups.map((item) => item.total), 1)
   const maxMonth = Math.max(...data.months.map((item) => item.total), 1)
+  const hasFilters = Boolean(filters.dataDe || filters.dataAte || filters.status)
 
   if (!data.databaseReady) {
     return <EmptyBlock label="A base de atendimentos ainda não está disponível. Execute a carga ASTREA para iniciar o dashboard." />
@@ -819,7 +820,7 @@ export function CicloAtendimentoDashboardView({
           </select>
         </label>
         <button className="button secondary" type="submit">Filtrar</button>
-        <Link className="button secondary" href="/modulos/gkit-ate/dashboard">Limpar</Link>
+        {hasFilters ? <Link className="button secondary" href="/modulos/gkit-ate/dashboard">Limpar</Link> : null}
       </form>
 
       <section className="ciclo-atendimento-kpis">

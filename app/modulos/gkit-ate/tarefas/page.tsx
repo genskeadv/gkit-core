@@ -1,4 +1,4 @@
-import { GkitAteFilterBar, GkitAteGroupedList, GkitAteHealthNotice, GkitAteSection, GkitAteShell } from '@/features/gkit-ate/components'
+import { GkitAteFilterBar, GkitAteGroupedList, GkitAteHealthNotice, GkitAteSection, GkitAteShell, GkitAteSummaryCards } from '@/features/gkit-ate/components'
 import { buildGkitAteTarefaFilters, filterGkitAteTarefas } from '@/features/gkit-ate/list-filters'
 import { getGkitAteFormData, getGkitAteHealth, listGkitAteTarefas, requireGkitAteContext, tarefaRows } from '@/features/gkit-ate/queries'
 import { moduleTarget } from '@/lib/auth/platform'
@@ -31,6 +31,22 @@ export default async function GkitAteTarefasPage({
   )
     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
     .map((value) => ({ label: value, value }))
+  const tarefaSummary = [
+    { label: 'Total', value: tarefasFiltradas.length },
+    { label: 'Pendentes', value: tarefasFiltradas.filter((tarefa) => tarefa.status === 'pendente').length },
+    { label: 'Em andamento', value: tarefasFiltradas.filter((tarefa) => tarefa.status === 'em_andamento').length },
+    { label: 'Concluídas', value: tarefasFiltradas.filter((tarefa) => tarefa.status === 'concluida').length },
+    { label: 'Canceladas', value: tarefasFiltradas.filter((tarefa) => tarefa.status === 'cancelada').length },
+    { label: 'Clientes', value: new Set(tarefasFiltradas.map((tarefa) => tarefa.cliente_nome)).size },
+  ]
+  const hasFilters = Boolean(
+    filters.q ||
+    filters.status ||
+    filters.tipo ||
+    filters.responsavel ||
+    filters.sort !== 'data' ||
+    filters.dir !== 'asc',
+  )
 
   return (
     <GkitAteShell
@@ -41,6 +57,7 @@ export default async function GkitAteTarefasPage({
     >
       <GkitAteHealthNotice health={health} />
       <GkitAteSection title="Tarefas" description={`${tarefasFiltradas.length} de ${tarefas.length} tarefa(s)`}>
+        <GkitAteSummaryCards items={tarefaSummary} />
         <GkitAteFilterBar
           fields={[
             { label: 'Busca', name: 'q', placeholder: 'Tarefa, cliente, atendimento ou responsável', value: filters.q },
@@ -74,6 +91,7 @@ export default async function GkitAteTarefasPage({
               value: filters.responsavel,
             },
           ]}
+          hasFilters={hasFilters}
           resetHref="/modulos/gkit-ate/tarefas"
           sort={{
             dir: filters.dir,

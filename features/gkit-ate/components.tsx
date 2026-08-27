@@ -97,6 +97,23 @@ export function GkitAteKpis({ data }: { data: GkitAteDashboardData }) {
   return <OperationalKpiGrid className="suite-kpi-grid compact gkit-ate-kpi-grid" items={data.cards} />
 }
 
+export function GkitAteSummaryCards({
+  items,
+}: {
+  items: Array<{ label: string; value: number | string }>
+}) {
+  return (
+    <section className="gkit-ate-dashboard-kpis gkit-ate-summary-cards">
+      {items.map((item) => (
+        <article key={item.label}>
+          <span>{item.label}</span>
+          <strong>{item.value}</strong>
+        </article>
+      ))}
+    </section>
+  )
+}
+
 export function GkitAteQuickLinks({ items }: { items: OperationalQuickLink[] }) {
   return <OperationalQuickLinks classPrefix="gkit-ate" defaultLabel="Fluxo" items={items} />
 }
@@ -130,6 +147,7 @@ export function GkitAteAtendimentoDashboard({
   const topGroups = groups.slice(0, 10)
   const maxGroup = Math.max(...topGroups.map((item) => item.total), 1)
   const maxMonth = Math.max(...data.months.map((item) => item.total), 1)
+  const hasFilters = Boolean(filters.dataDe || filters.dataAte || filters.status)
 
   if (!data.databaseReady) {
     return <GkitAteHealthNotice health={data.health} />
@@ -156,7 +174,7 @@ export function GkitAteAtendimentoDashboard({
           </select>
         </label>
         <button className="button secondary" type="submit">Filtrar</button>
-        <Link className="button secondary" href="/modulos/gkit-ate/dashboard">Limpar</Link>
+        {hasFilters ? <Link className="button secondary" href="/modulos/gkit-ate/dashboard">Limpar</Link> : null}
       </form>
 
       <section className="gkit-ate-dashboard-kpis">
@@ -253,11 +271,13 @@ export type GkitAteFilterField = {
 
 export function GkitAteFilterBar({
   fields,
+  hasFilters = false,
   hiddenFields = [],
   resetHref,
   sort,
 }: {
   fields: GkitAteFilterField[]
+  hasFilters?: boolean
   hiddenFields?: Array<{ name: string; value: string }>
   resetHref: string
   sort: { dir: 'asc' | 'desc'; options: Array<{ label: string; value: string }>; value: string }
@@ -305,7 +325,7 @@ export function GkitAteFilterBar({
 
       <div className="gkit-ate-filter-actions">
         <button className="button" type="submit">Filtrar</button>
-        <Link className="button secondary" href={resetHref}>Limpar</Link>
+        {hasFilters ? <Link className="button secondary" href={resetHref}>Limpar</Link> : null}
       </div>
     </form>
   )
