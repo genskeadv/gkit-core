@@ -19,6 +19,10 @@ export type EnrichedReceivableRow = {
   categoria: string;
   situacao: string;
   valorRecebido: number;
+  vencimentoEm: string | null;
+  recebidoEm: string | null;
+  pontualidadeStatus: 'em_dia' | 'atrasado' | 'sem_datas';
+  diasAtraso: number;
   vendedor: string;
   criterioMatch: 'cnpj_cpf' | 'nome_cliente' | 'nao_encontrado';
   observacao: string;

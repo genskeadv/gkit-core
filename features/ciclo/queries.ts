@@ -139,11 +139,14 @@ function findRawValue(raw: Record<string, unknown>, matchers: string[]) {
 }
 
 function receitaFoiPontual(row: Record<string, any>) {
+  if (row.pontualidade_status === 'em_dia') return true
+  if (row.pontualidade_status === 'atrasado') return false
+
   const raw = row.raw && typeof row.raw === 'object' && !Array.isArray(row.raw)
     ? row.raw as Record<string, unknown>
     : {}
-  const vencimento = parseReceitaDate(findRawValue(raw, ['vencimento', 'data vencimento', 'data de vencimento']))
-  const pagamento = parseReceitaDate(findRawValue(raw, [
+  const vencimento = parseReceitaDate(row.vencimento_em ?? findRawValue(raw, ['vencimento', 'data vencimento', 'data de vencimento']))
+  const pagamento = parseReceitaDate(row.recebido_em ?? findRawValue(raw, [
     'ultimo recebimento',
     'último recebimento',
     'data ultimo recebimento',
@@ -171,7 +174,7 @@ function emptyPontualidade() {
 
 function resumoPontualidade(stats?: ReturnType<typeof emptyPontualidade>) {
   const current = stats ?? emptyPontualidade()
-  return `${current.recebimentos} recebimento(s) / ${current.emDia} em dia / ${current.atrasado} atrasado(s)`
+  return `${current.recebimentos} recebimentos / ${current.emDia} em dia / ${current.atrasado} atrasado`
 }
 
 function formatBRL(value: number) {
@@ -883,7 +886,7 @@ async function listPontualidadeReceitaPorCliente(clientes: CicloCliente[]) {
 
   const { data: lancamentos, error: lancamentosError } = await admin()
     .from('comissao_lancamentos')
-    .select('cliente,documento,situacao,valor_recebido,raw')
+    .select('cliente,documento,situacao,valor_recebido,vencimento_em,recebido_em,pontualidade_status,dias_atraso,raw')
     .eq('execucao_id', execution.id)
     .gt('valor_recebido', 0)
     .limit(10000)

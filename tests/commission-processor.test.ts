@@ -33,6 +33,37 @@ test('commission processor prioritizes receivable seller over Ciclo/Core carteir
   assert.equal(result.enrichedRows[0].observacao, '');
 });
 
+test('commission processor records receipt punctuality from due date and last receipt date', () => {
+  const receivables = workbookBuffer([
+    ['Cliente (Nome Fantasia)', 'Cliente (CNPJ/CPF)', 'Categoria', 'Situacao', 'Valor Liquido', 'Vencimento', 'Previsao de Recebimento', 'Ultimo Recebimento', 'Vendedor'],
+    ['CLIENTE EM DIA', '55.555.555/0001-55', 'Mensalidade de Assessoria Juridica', 'Recebido', 1000, '10/08/2026', '20/08/2026', '10/08/2026', 'Carteira Fabia_Caio'],
+    ['CLIENTE ATRASADO', '66.666.666/0001-66', 'Mensalidade de Assessoria Juridica', 'Recebido', 1000, '10/08/2026', '10/08/2026', '15/08/2026', 'Carteira Fabia_Caio'],
+  ]);
+  const clients = [
+    {
+      'Razao Social / Nome Completo': 'CLIENTE EM DIA',
+      'CNPJ/CPF': '55.555.555/0001-55',
+      'Vendedor padrao': 'Carteira Fabia_Caio',
+    },
+    {
+      'Razao Social / Nome Completo': 'CLIENTE ATRASADO',
+      'CNPJ/CPF': '66.666.666/0001-66',
+      'Vendedor padrao': 'Carteira Fabia_Caio',
+    },
+  ];
+
+  const result = processCommissionWithClients(receivables, clients);
+
+  assert.equal(result.enrichedRows.length, 2);
+  assert.deepEqual(
+    result.enrichedRows.map((row) => [row.vencimentoEm, row.recebidoEm, row.pontualidadeStatus, row.diasAtraso]),
+    [
+      ['2026-08-10', '2026-08-10', 'em_dia', 0],
+      ['2026-08-10', '2026-08-15', 'atrasado', 5],
+    ],
+  );
+});
+
 test('commission processor applies Aline_Lidiane wallet override after reduction', () => {
   const receivables = workbookBuffer([
     ['Cliente (Nome Fantasia)', 'Cliente (CNPJ/CPF)', 'Categoria', 'Situacao', 'Valor Liquido', 'Vendedor'],

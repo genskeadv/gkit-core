@@ -58,6 +58,8 @@ const RECEIVABLE_ALIASES = {
   situacao: ['situacao', 'situacao', 'status'],
   valorRecebido: ['valor liquido', 'valor líquido', 'valor líquido recebido', 'valor liquido recebido'],
   vendedor: ['vendedor', 'carteira', 'vendedor padrao', 'vendedor (padrao)'],
+  vencimento: ['vencimento', 'data vencimento', 'data de vencimento'],
+  recebidoEm: ['ultimo recebimento', 'último recebimento', 'data ultimo recebimento', 'data último recebimento', 'data recebimento', 'recebimento'],
 };
 
 const CLIENT_ALIASES = {
@@ -106,6 +108,53 @@ function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+function parseReceivableDate(value: unknown): Date | null {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()));
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value) && value > 20000 && value < 70000) {
+    return new Date(Date.UTC(1899, 11, 30 + Math.trunc(value)));
+  }
+
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+
+  const brazilian = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  if (brazilian) {
+    const day = Number(brazilian[1]);
+    const month = Number(brazilian[2]);
+    const normalizedYear = Number(brazilian[3]);
+    const year = normalizedYear < 100 ? normalizedYear + 2000 : normalizedYear;
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+}
+
+function isoDate(value: Date | null): string | null {
+  return value ? value.toISOString().slice(0, 10) : null;
+}
+
+function daysBetween(start: Date, end: Date): number {
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / 86400000));
+}
+
+function pontualidadeReceita(vencimento: Date | null, recebidoEm: Date | null) {
+  if (!vencimento || !recebidoEm) {
+    return { pontualidadeStatus: 'sem_datas' as const, diasAtraso: 0 };
+  }
+
+  if (recebidoEm.getTime() <= vencimento.getTime()) {
+    return { pontualidadeStatus: 'em_dia' as const, diasAtraso: 0 };
+  }
+
+  return { pontualidadeStatus: 'atrasado' as const, diasAtraso: daysBetween(vencimento, recebidoEm) };
+}
+
 function titleCaseName(value: string): string {
   return value
     .split(/\s+/)
@@ -121,10 +170,12 @@ function findColumn(headers: string[], aliases: string[]): string | null {
   const exact = normalizedHeaders.find((header) => normalizedAliases.includes(header.normalized));
   if (exact) return exact.original;
 
-  const contains = normalizedHeaders.find((header) =>
-    normalizedAliases.some((alias) => header.normalized.includes(alias) || alias.includes(header.normalized)),
-  );
-  return contains?.original ?? null;
+  for (const alias of normalizedAliases) {
+    const contains = normalizedHeaders.find((header) => header.normalized.includes(alias) || alias.includes(header.normalized));
+    if (contains) return contains.original;
+  }
+
+  return null;
 }
 
 function headerScore(row: unknown[], aliases: string[][]): number {
@@ -326,6 +377,8 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
   const situacaoColumn = findColumn(receivableHeaders, RECEIVABLE_ALIASES.situacao);
   const valorRecebidoColumn = findColumn(receivableHeaders, RECEIVABLE_ALIASES.valorRecebido);
   const vendedorReceitaColumn = findColumn(receivableHeaders, RECEIVABLE_ALIASES.vendedor);
+  const vencimentoColumn = findColumn(receivableHeaders, RECEIVABLE_ALIASES.vencimento);
+  const recebidoEmColumn = findColumn(receivableHeaders, RECEIVABLE_ALIASES.recebidoEm);
 
   const missing = [
     ['Cliente', clienteColumn],
@@ -346,6 +399,9 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
     const situacao = String(row[situacaoColumn ?? ''] ?? '').trim();
     const valorRecebido = moneyToNumber(row[valorRecebidoColumn ?? '']);
     const vendedorReceita = String(row[vendedorReceitaColumn ?? ''] ?? '').trim();
+    const vencimentoDate = parseReceivableDate(row[vencimentoColumn ?? '']);
+    const recebidoEmDate = parseReceivableDate(row[recebidoEmColumn ?? '']);
+    const { pontualidadeStatus, diasAtraso } = pontualidadeReceita(vencimentoDate, recebidoEmDate);
 
     let vendedor = 'Sem vendedor';
     let criterioMatch: EnrichedReceivableRow['criterioMatch'] = 'nao_encontrado';
@@ -388,6 +444,10 @@ export function processCommissionWithClients(receivablesBuffer: ArrayBuffer, cli
       categoria,
       situacao,
       valorRecebido,
+      vencimentoEm: isoDate(vencimentoDate),
+      recebidoEm: isoDate(recebidoEmDate),
+      pontualidadeStatus,
+      diasAtraso,
       vendedor,
       criterioMatch,
       observacao,
@@ -520,6 +580,10 @@ export function buildCommissionWorkbook(result: CommissionProcessResult): Buffer
     Categoria: row.categoria,
     Situacao: row.situacao,
     'Valor liquido': row.valorRecebido,
+    Vencimento: row.vencimentoEm,
+    'Ultimo recebimento': row.recebidoEm,
+    Pontualidade: row.pontualidadeStatus,
+    'Dias atraso': row.diasAtraso,
     Carteira: row.vendedor,
     'Criterio de match': row.criterioMatch,
     Observacao: row.observacao,
