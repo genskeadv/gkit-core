@@ -397,7 +397,7 @@ export function GkitAteGroupedList({
 
   if (!groups.length) return <div className="suite-empty-block">{empty}</div>
 
-  const pagination = (
+  const pagination = totalPages > 1 ? (
     <div className="gkit-ate-group-pagination">
       <span>Página {currentPage} de {totalPages}</span>
       <div>
@@ -405,7 +405,7 @@ export function GkitAteGroupedList({
         <Link aria-disabled={currentPage === totalPages} className="button secondary" href={hrefForPage(Math.min(totalPages, currentPage + 1))}>Próxima</Link>
       </div>
     </div>
-  )
+  ) : null
 
   return (
     <div className="gkit-ate-grouped-list">
