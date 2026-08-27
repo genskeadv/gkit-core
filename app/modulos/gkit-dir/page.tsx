@@ -12,8 +12,10 @@ export default async function GkitDirRoute({ searchParams }: { searchParams?: Pr
   const data = await getGkitDirData(context, {
     carteira: param(params?.carteira),
     dir: param(params?.dir),
+    pagina: param(params?.pagina),
     q: param(params?.q),
     sort: param(params?.sort),
+    status: param(params?.status),
     tipo: param(params?.tipo),
   })
 

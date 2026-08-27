@@ -19,8 +19,8 @@ e localizar rapidamente informacoes cadastrais mantidas pelo GKIT Ciclo.
 
 1. Acesse o diretorio.
 2. Pesquise pelo cliente, documento, razao social ou contato.
-3. Filtre por tipo, carteira ou status.
-4. Ordene a lista conforme a necessidade.
+3. Filtre por tipo, carteira, status ou busca livre.
+4. Navegue pelos blocos de carteira, sempre recolhidos por padrão e paginados.
 5. Abra o cadastro mestre no Ciclo quando precisar corrigir dados.
 
 ## Campos e filtros principais
@@ -59,7 +59,7 @@ Cada cliente pode apresentar:
 - Administradora.
 - Contato.
 - Localidade.
-- Categoria, status, risco e regularidade.
+- Tipo, status, risco e regularidade.
 - Score ou indicador de qualidade cadastral quando disponivel.
 
 ## Rotina recomendada

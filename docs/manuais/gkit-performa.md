@@ -37,7 +37,7 @@ Indicadores usuais:
 
 - Registros.
 - Unidades.
-- Concluidas.
+- Concluídas.
 - Atrasadas.
 - Percentual de conclusao.
 - Percentual no prazo.

@@ -15,6 +15,20 @@ type StoredImport = {
   units?: Array<Record<string, any>>
 }
 
+type StoredRanking = {
+  arquivo_nome?: string
+  criado_em?: string
+  filtros?: Record<string, any>
+  id: string
+  itens?: Array<Record<string, any>>
+  ranking_tipo?: string
+  resumo?: Record<string, any>
+  sheet_name?: string | null
+  total_ranqueados?: number
+  total_registros?: number
+  total_unidades?: number
+}
+
 function fmtDate(value: unknown) {
   if (!value) return '-'
   const date = new Date(String(value))
@@ -29,6 +43,9 @@ function text(value: unknown, fallback = '-') {
 
 export function GkitPerformaAuditPage() {
   const [active, setActive] = useState<StoredImport | null>(null)
+  const [loadError, setLoadError] = useState('')
+  const [loadingRankings, setLoadingRankings] = useState(true)
+  const [rankings, setRankings] = useState<StoredRanking[]>([])
   const [tab, setTab] = useState<AuditTab>('units')
 
   useEffect(() => {
@@ -37,6 +54,34 @@ export function GkitPerformaAuditPage() {
       setActive(payload ? JSON.parse(payload) as StoredImport : null)
     } catch {
       setActive(null)
+    }
+
+    let cancelled = false
+
+    async function loadRankings() {
+      setLoadingRankings(true)
+      setLoadError('')
+
+      try {
+        const response = await fetch('/api/gkit-performa/rankings?limit=12')
+        const payload = await response.json()
+
+        if (!response.ok) {
+          throw new Error(payload?.error || 'Não foi possível carregar rankings salvos.')
+        }
+
+        if (!cancelled) setRankings(Array.isArray(payload?.rankings) ? payload.rankings : [])
+      } catch (error) {
+        if (!cancelled) setLoadError(error instanceof Error ? error.message : 'Não foi possível carregar rankings salvos.')
+      } finally {
+        if (!cancelled) setLoadingRankings(false)
+      }
+    }
+
+    loadRankings()
+
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -70,7 +115,7 @@ export function GkitPerformaAuditPage() {
     return [...unitRows, ...sourceRows]
   }, [rows, units])
 
-  if (!active) {
+  if (!active && !loadingRankings && !rankings.length) {
     return (
       <section className="suite-panel">
         <div className="suite-panel-heading">
@@ -80,9 +125,10 @@ export function GkitPerformaAuditPage() {
           </div>
           <Link className="button" href="/modulos/gkit-performa">Importar agenda</Link>
         </div>
+        {loadError ? <div className="suite-empty-block danger">{loadError}</div> : null}
         <div className="suite-empty-block">
           <strong>Sem dados de auditoria</strong>
-          <span>Carregue uma agenda na página de Performance para consultar unidades, duplicidades e descartes.</span>
+          <span>Carregue uma agenda na página de Performance para consultar unidades, duplicidades, descartes e rankings gravados.</span>
         </div>
       </section>
     )
@@ -90,59 +136,133 @@ export function GkitPerformaAuditPage() {
 
   return (
     <div className="gkit-performa-page">
+      {active ? (
+        <>
+          <section className="suite-panel">
+            <div className="suite-panel-heading">
+              <div>
+                <h2>Auditoria da agenda</h2>
+                <p>{active.fileName ?? 'Agenda'} - {active.sheetName ?? 'Planilha'} - {rows.length} linha(s)</p>
+              </div>
+              <Link className="button secondary" href="/modulos/gkit-performa">Voltar ao ranking</Link>
+            </div>
+
+            <div className="suite-kpi-grid compact gkit-performa-kpis">
+              <article className="metric-card">
+                <span className="metric-label">Unidades</span>
+                <strong className="metric-value">{units.length}</strong>
+                <span className="metric-hint">consolidadas</span>
+              </article>
+              <article className="metric-card">
+                <span className="metric-label">ATEs E/F</span>
+                <strong className="metric-value">{duplicates.length}</strong>
+                <span className="metric-hint">duplicidades</span>
+              </article>
+              <article className="metric-card">
+                <span className="metric-label">Alertas</span>
+                <strong className="metric-value">{attention.length}</strong>
+                <span className="metric-hint">conferir regra</span>
+              </article>
+              <article className="metric-card">
+                <span className="metric-label">Descartes</span>
+                <strong className="metric-value">{excluded.length}</strong>
+                <span className="metric-hint">fora do ranking</span>
+              </article>
+              <article className="metric-card">
+                <span className="metric-label">Importação</span>
+                <strong className="metric-value">{fmtDate(active.importedAt)}</strong>
+                <span className="metric-hint">neste navegador</span>
+              </article>
+            </div>
+          </section>
+
+          <section className="suite-panel">
+            <div className="suite-panel-heading">
+              <div>
+                <h2>Lista de auditoria</h2>
+                <p>Selecione o recorte para conferir a regra aplicada.</p>
+              </div>
+              <div className="gkit-performa-tabs">
+                <button className={tab === 'units' ? 'active' : ''} onClick={() => setTab('units')} type="button">Unidades</button>
+                <button className={tab === 'duplicates' ? 'active' : ''} onClick={() => setTab('duplicates')} type="button">ATEs E/F</button>
+                <button className={tab === 'attention' ? 'active' : ''} onClick={() => setTab('attention')} type="button">Alertas</button>
+                <button className={tab === 'excluded' ? 'active' : ''} onClick={() => setTab('excluded')} type="button">Descartes</button>
+              </div>
+            </div>
+            <AuditTable attention={attention} duplicates={duplicates} rows={excluded} tab={tab} units={units} />
+          </section>
+        </>
+      ) : null}
+
       <section className="suite-panel">
         <div className="suite-panel-heading">
           <div>
-            <h2>Auditoria da agenda</h2>
-            <p>{active.fileName ?? 'Agenda'} - {active.sheetName ?? 'Planilha'} - {rows.length} linha(s)</p>
+            <h2>Rankings gravados</h2>
+            <p>{loadingRankings ? 'Carregando histórico...' : `${rankings.length} snapshot(s) recentes`}</p>
           </div>
-          <Link className="button secondary" href="/modulos/gkit-performa">Voltar ao ranking</Link>
+          <Link className="button secondary" href="/modulos/gkit-performa">Novo ranking</Link>
         </div>
-
-        <div className="suite-kpi-grid compact gkit-performa-kpis">
-          <article className="metric-card">
-            <span className="metric-label">Unidades</span>
-            <strong className="metric-value">{units.length}</strong>
-            <span className="metric-hint">consolidadas</span>
-          </article>
-          <article className="metric-card">
-            <span className="metric-label">ATEs E/F</span>
-            <strong className="metric-value">{duplicates.length}</strong>
-            <span className="metric-hint">duplicidades ou coluna dupla</span>
-          </article>
-          <article className="metric-card">
-            <span className="metric-label">Alertas</span>
-            <strong className="metric-value">{attention.length}</strong>
-            <span className="metric-hint">conferir base/regra</span>
-          </article>
-          <article className="metric-card">
-            <span className="metric-label">Descartes</span>
-            <strong className="metric-value">{excluded.length}</strong>
-            <span className="metric-hint">fora do ranking</span>
-          </article>
-          <article className="metric-card">
-            <span className="metric-label">Importação</span>
-            <strong className="metric-value">{fmtDate(active.importedAt)}</strong>
-            <span className="metric-hint">neste navegador</span>
-          </article>
-        </div>
+        {loadError ? <div className="suite-empty-block danger">{loadError}</div> : null}
+        <SavedRankings rankings={rankings} />
       </section>
+    </div>
+  )
+}
 
-      <section className="suite-panel">
-        <div className="suite-panel-heading">
-          <div>
-            <h2>Lista de auditoria</h2>
-            <p>Selecione o recorte para conferir a regra aplicada.</p>
+function SavedRankings({ rankings }: { rankings: StoredRanking[] }) {
+  if (!rankings.length) {
+    return <div className="suite-empty-block">Nenhum ranking salvo encontrado.</div>
+  }
+
+  return (
+    <div className="gkit-performa-snapshot-list">
+      {rankings.map((ranking) => (
+        <details className="ciclo-client-group" key={ranking.id}>
+          <summary>
+            <span aria-hidden="true">+</span>
+            <strong>{ranking.arquivo_nome ?? 'Agenda'}</strong>
+            <small>{fmtDate(ranking.criado_em)} - {ranking.total_ranqueados ?? 0} item(ns)</small>
+          </summary>
+          <div className="suite-kpi-grid compact gkit-performa-kpis">
+            <article className="metric-card">
+              <span className="metric-label">Tipo</span>
+              <strong className="metric-value">{ranking.ranking_tipo === 'executor' ? 'Executor' : 'Responsável'}</strong>
+              <span className="metric-hint">{ranking.sheet_name ?? 'Planilha'}</span>
+            </article>
+            <article className="metric-card">
+              <span className="metric-label">Registros</span>
+              <strong className="metric-value">{ranking.total_registros ?? 0}</strong>
+              <span className="metric-hint">linhas importadas</span>
+            </article>
+            <article className="metric-card">
+              <span className="metric-label">Unidades</span>
+              <strong className="metric-value">{ranking.total_unidades ?? 0}</strong>
+              <span className="metric-hint">consolidadas</span>
+            </article>
           </div>
-          <div className="gkit-performa-tabs">
-            <button className={tab === 'units' ? 'active' : ''} onClick={() => setTab('units')} type="button">Unidades</button>
-            <button className={tab === 'duplicates' ? 'active' : ''} onClick={() => setTab('duplicates')} type="button">ATEs E/F</button>
-            <button className={tab === 'attention' ? 'active' : ''} onClick={() => setTab('attention')} type="button">Alertas</button>
-            <button className={tab === 'excluded' ? 'active' : ''} onClick={() => setTab('excluded')} type="button">Descartes</button>
+          <div className="gkit-performa-table-wrap">
+            <table className="gkit-performa-table">
+              <thead>
+                <tr><th>#</th><th>Nome</th><th>Unid.</th><th>Concl.</th><th>% concl.</th><th>% prazo</th><th>Atrás.</th><th>Score</th></tr>
+              </thead>
+              <tbody>
+                {(ranking.itens ?? []).slice(0, 25).map((item) => (
+                  <tr key={text(item.id ?? item.nome)}>
+                    <td>{text(item.posicao)}</td>
+                    <td>{text(item.nome)}</td>
+                    <td>{text(item.unidades)}</td>
+                    <td>{text(item.concluidas)}</td>
+                    <td>{text(item.percentual_conclusao)}%</td>
+                    <td>{text(item.percentual_no_prazo)}%</td>
+                    <td>{text(item.abertas_atrasadas)}</td>
+                    <td><strong>{text(item.score)}</strong></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
-        <AuditTable attention={attention} duplicates={duplicates} rows={excluded} tab={tab} units={units} />
-      </section>
+        </details>
+      ))}
     </div>
   )
 }

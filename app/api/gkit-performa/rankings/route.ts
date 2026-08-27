@@ -83,6 +83,12 @@ export async function POST(request: NextRequest) {
       .insert(itens)
 
     if (itensError) {
+      await admin()
+        .schema('gkit_performa')
+        .from('ranking_lotes')
+        .delete()
+        .eq('id', lote.id)
+
       return NextResponse.json({ error: itensError.message }, { status: 500 })
     }
 
@@ -94,5 +100,65 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[gkit-performa/rankings][POST]', error)
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao gravar ranking.' }, { status: 500 })
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const access = await requireGkitPerformaApiAccess('gkit_performa.rankings.read')
+    if (access.error) return access.error
+
+    const { searchParams } = new URL(request.url)
+    const requestedId = text(searchParams.get('id'))
+    const limit = Math.min(50, Math.max(1, numberValue(searchParams.get('limit')) || 12))
+
+    let lotesQuery = admin()
+      .schema('gkit_performa')
+      .from('ranking_lotes')
+      .select('id, arquivo_nome, sheet_name, ranking_tipo, filtros, resumo, total_registros, total_unidades, total_ranqueados, criado_em')
+      .order('criado_em', { ascending: false })
+
+    if (requestedId) {
+      lotesQuery = lotesQuery.eq('id', requestedId).limit(1)
+    } else {
+      lotesQuery = lotesQuery.limit(limit)
+    }
+
+    const { data: lotes, error: lotesError } = await lotesQuery
+
+    if (lotesError) {
+      return NextResponse.json({ error: lotesError.message }, { status: 500 })
+    }
+
+    const loteIds = (lotes ?? []).map((lote: { id: string }) => lote.id)
+
+    const { data: itens, error: itensError } = loteIds.length
+      ? await admin()
+        .schema('gkit_performa')
+        .from('ranking_itens')
+        .select('id, lote_id, posicao, nome, unidades, concluidas, percentual_conclusao, no_prazo, percentual_no_prazo, abertas_atrasadas, media_dias, score, metadata, criado_em')
+        .in('lote_id', loteIds)
+        .order('posicao', { ascending: true })
+      : { data: [], error: null }
+
+    if (itensError) {
+      return NextResponse.json({ error: itensError.message }, { status: 500 })
+    }
+
+    const itemsByLot = new Map<string, unknown[]>()
+    for (const item of itens ?? []) {
+      const loteId = String((item as { lote_id?: string }).lote_id ?? '')
+      itemsByLot.set(loteId, [...(itemsByLot.get(loteId) ?? []), item])
+    }
+
+    return NextResponse.json({
+      rankings: (lotes ?? []).map((lote: { id: string }) => ({
+        ...lote,
+        itens: itemsByLot.get(lote.id) ?? [],
+      })),
+    })
+  } catch (error) {
+    console.error('[gkit-performa/rankings][GET]', error)
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro ao consultar rankings.' }, { status: 500 })
   }
 }

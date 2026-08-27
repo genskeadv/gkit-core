@@ -55,7 +55,7 @@ type DuplicateATE = {
   responsaveis: string
 }
 
-type ImportResult = {
+export type PerformaImportResult = {
   duplicates: DuplicateATE[]
   fileName: string
   importedAt: Date
@@ -79,8 +79,6 @@ type RankingItem = {
 }
 
 type RankingType = 'responsavel' | 'executor'
-
-const TODAY = new Date()
 
 const LEGAL_KEYWORDS = [
   'CONTESTACAO',
@@ -303,7 +301,7 @@ function mapRows(jsonRows: Array<Record<string, unknown>>, headers: string[]) {
       conclusao: parseDate(raw[cols.conclusao]),
       criacao: parseDate(raw[cols.criacao]),
       data: parseDate(raw[cols.data]),
-      executor: asText(raw[cols.executor]) || '(sem identificacao)',
+      executor: asText(raw[cols.executor]) || '(sem identificação)',
       linhaOriginal: index + 2,
       prioridade: asText(raw[cols.prioridade]),
       responsavel: asText(raw[cols.responsavel]) || '(sem responsável)',
@@ -363,7 +361,7 @@ function makeUnitFromRows(id: string, tipoUnidade: WorkUnit['tipoUnidade'], rows
   const anyConcluded = conclusionRows.some((row) => isConcludedStatus(row.status))
   const cancelada = activeRows.length === 0 && rows.some((row) => isCanceledStatus(row.status))
   const concluida = allConcluded || (tipoUnidade === 'PRAZO_JURIDICO' && anyConcluded)
-  const refEnd = concluida ? dataConclusao : TODAY
+  const refEnd = concluida ? dataConclusao : new Date()
   const atrasada = !cancelada && Boolean(dataPrazo && refEnd && new Date(refEnd) > new Date(dataPrazo))
   const noPrazo = Boolean(concluida && dataPrazo && dataConclusao && new Date(dataConclusao) <= new Date(dataPrazo))
   const responsaveis = [...new Set(rows.map((row) => row.responsavel).filter(Boolean))]
@@ -383,13 +381,13 @@ function makeUnitFromRows(id: string, tipoUnidade: WorkUnit['tipoUnidade'], rows
     dataInicio,
     dataPrazo,
     diasConclusao: concluida ? daysBetween(dataInicio, dataConclusao) : null,
-    executor: mode(rows.map((row) => row.executor), '(sem identificacao)'),
+    executor: mode(rows.map((row) => row.executor), '(sem identificação)'),
     id,
     linhasOrigem: rows.map((row) => row.linhaOriginal),
     noPrazo,
     qtdLinhasOrigem: rows.length,
     responsavel: mode(rows.map((row) => row.responsavel), '(sem responsável)'),
-    status: cancelada ? 'Cancelado' : concluida ? 'Concluido' : 'Aberto',
+    status: cancelada ? 'Cancelado' : concluida ? 'Concluído' : 'Aberto',
     tipoUnidade,
     titulo: mode(rows.map((row) => row.tituloE || row.tituloF), id),
   }
@@ -445,7 +443,7 @@ function buildRanking(units: WorkUnit[], type: RankingType): RankingItem[] {
   const groups = new Map<string, WorkUnit[]>()
 
   for (const unit of units) {
-    const key = unit[field] || (type === 'executor' ? '(sem identificacao)' : '(sem responsável)')
+    const key = unit[field] || (type === 'executor' ? '(sem identificação)' : '(sem responsável)')
     const group = groups.get(key) ?? []
     group.push(unit)
     groups.set(key, group)
@@ -528,12 +526,14 @@ function download(filename: string, content: string, type: string) {
   const anchor = document.createElement('a')
   anchor.href = url
   anchor.download = filename
+  document.body.appendChild(anchor)
   anchor.click()
+  anchor.remove()
   URL.revokeObjectURL(url)
 }
 
 export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
-  const [active, setActive] = useState<ImportResult | null>(null)
+  const [active, setActive] = useState<PerformaImportResult | null>(null)
   const [endDate, setEndDate] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -671,7 +671,7 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
         <div className="suite-panel-heading">
           <div>
             <h2>Importar agenda</h2>
-            <p>Use a exportacao da Agenda em XLSX. O processamento acontece neste navegador.</p>
+            <p>Use a exportação da Agenda em XLSX. O processamento acontece neste navegador.</p>
           </div>
           <input
             accept=".xlsx,.xls"
@@ -742,7 +742,7 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
             <span className="metric-hint">{units.filter((unit) => unit.tipoUnidade === 'ATE').length} ATEs</span>
           </article>
           <article className="metric-card">
-            <span className="metric-label">Concluidas</span>
+            <span className="metric-label">Concluídas</span>
             <strong className="metric-value">{concluded}</strong>
             <span className="metric-hint">{pct(units.length ? (concluded / units.length) * 100 : 0)}</span>
           </article>
@@ -753,8 +753,7 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
           </article>
         </section> : null}
 
-      {hasImport ? <section className="gkit-performa-grid">
-        <div className="suite-panel">
+      {hasImport ? <section className="suite-panel">
           <div className="suite-panel-heading">
             <div>
               <h2>Ranking</h2>
@@ -824,9 +823,9 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
               </tbody>
             </table>
           </div>
-        </div>
+        </section> : null}
 
-        <aside className="suite-panel gkit-performa-detail">
+      {hasImport ? <section className="suite-panel gkit-performa-detail">
           <div className="suite-panel-heading">
             <div>
               <h2>Detalhe</h2>
@@ -858,14 +857,13 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
           ) : (
             <div className="suite-empty-block">Sem responsável selecionado.</div>
           )}
-        </aside>
-      </section> : null}
+        </section> : null}
 
       {hasImport ? (
         <section className="suite-panel gkit-performa-audit-callout">
           <div>
             <h2>Auditoria</h2>
-            <p>A lista completa de unidades, ATEs E/F e linhas excluídas fica em uma pagina própria.</p>
+            <p>A lista completa de unidades, ATEs E/F e linhas excluídas fica em uma página própria.</p>
           </div>
           <a className="button secondary" href="/modulos/gkit-performa/auditoria">Abrir auditoria</a>
         </section>

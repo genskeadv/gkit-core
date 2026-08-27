@@ -1,6 +1,6 @@
 # Modulo GKIT Performa
 
-O GKIT Performa mede a performance operacional a partir da exportacao XLSX da Agenda.
+O GKIT Performa mede a performance operacional a partir da exportação XLSX da Agenda.
 
 ## Escopo atual
 
@@ -11,7 +11,8 @@ O GKIT Performa mede a performance operacional a partir da exportacao XLSX da Ag
 - Permissao principal: `gkit_performa.dashboard.read`.
 - Permissoes de ranking: `gkit_performa.rankings.read` e `gkit_performa.rankings.write`.
 - Processamento da planilha em memoria, no navegador, sem gravar a planilha bruta no banco.
-- A ultima importacao processada fica temporariamente no `localStorage` para alimentar a pagina de auditoria.
+- A última importação processada fica temporariamente no `localStorage` para alimentar a página de auditoria.
+- Os rankings gravados ficam disponíveis na auditoria por meio dos snapshots persistidos no banco.
 - O botao `Gravar ranking` salva snapshots compactos no schema `gkit_performa`.
 
 ## Regra de consolidacao
@@ -43,5 +44,5 @@ Depois de validar a regra com usuarios reais, evoluir os snapshots para comparat
 
 Schema: `gkit_performa`.
 
-- `gkit_performa.ranking_lotes`: cabecalho do snapshot, arquivo, filtros, resumo e usuario que gravou.
-- `gkit_performa.ranking_itens`: linhas do ranking gravado, com posicao, nome, metricas e score.
+- `gkit_performa.ranking_lotes`: cabeçalho do snapshot, arquivo, filtros, resumo e usuário que gravou.
+- `gkit_performa.ranking_itens`: linhas do ranking gravado, com posição, nome, métricas e score.

@@ -20575,7 +20575,7 @@ a.button {
   border-radius: var(--suite-module-card-radius, 8px);
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(240px, 1.5fr) minmax(180px, 1fr) minmax(180px, 1fr) minmax(190px, 1fr) minmax(110px, auto);
+  grid-template-columns: minmax(240px, 1.7fr) minmax(180px, 1fr) minmax(190px, 1fr) minmax(110px, auto) auto;
   min-height: 78px;
   padding: 12px;
 }
@@ -20640,7 +20640,7 @@ a.button {
   }
 
   .gkit-dir-row {
-    grid-template-columns: minmax(240px, 1.4fr) minmax(180px, 1fr) minmax(180px, 1fr);
+    grid-template-columns: minmax(240px, 1.4fr) minmax(180px, 1fr) minmax(180px, 1fr) auto;
   }
 
   .gkit-new-command-panel .gkit-new-quick-grid {
@@ -26708,7 +26708,7 @@ a.button {
 .gkit-performa-detail-grid {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   margin-bottom: 14px;
 }
 
@@ -26768,6 +26768,11 @@ a.button {
 .gkit-performa-audit-callout p {
   color: var(--gkit-ate-muted);
   margin: 0;
+}
+
+.gkit-performa-snapshot-list {
+  display: grid;
+  gap: 8px;
 }
 
 @media (max-width: 1100px) {
@@ -28897,6 +28902,19 @@ body:has(.gkit-flex-operational-shell) {
 
 .gkit-performa-shell .gkit-performa-audit-callout {
   gap: 12px !important;
+}
+
+.gkit-dir-shell .ciclo-client-group-list,
+.gkit-performa-shell .gkit-performa-snapshot-list {
+  gap: 8px !important;
+}
+
+.gkit-performa-shell .gkit-performa-detail-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+}
+
+.gkit-performa-shell .gkit-performa-detail .suite-table-list article {
+  grid-template-columns: minmax(260px, 1fr) auto minmax(90px, auto) minmax(70px, auto) !important;
 }
 
 @media (max-width: 1100px) {
