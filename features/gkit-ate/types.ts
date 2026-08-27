@@ -7,6 +7,7 @@ export type GkitAteTarefaStatus = 'pendente' | 'em_andamento' | 'concluida' | 'c
 export type GkitAteDashboardTab = 'cliente' | 'responsavel' | 'carteira' | 'tipo'
 
 export type GkitAteListRow = {
+  group?: string
   id: string
   title: string
   subtitle: string

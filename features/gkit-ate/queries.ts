@@ -250,9 +250,10 @@ export async function listGkitAteTarefas(): Promise<GkitAteTarefa[]> {
 
 export function atendimentoRows(atendimentos: GkitAteAtendimento[]): GkitAteListRow[] {
   return atendimentos.map((item) => ({
+    group: item.cliente_nome,
     id: item.id,
     title: item.titulo,
-    subtitle: `${item.codigo_publico} - ${item.cliente_nome}`,
+    subtitle: [item.codigo_publico, item.tipo ?? 'Atendimento'].filter(Boolean).join(' - '),
     status: statusLabel(item.status),
     value: item.responsavel ?? 'Sem responsável',
     meta: `${item.tarefas_pendentes}/${item.tarefas_total} tarefa(s) pendente(s)`,
@@ -263,9 +264,10 @@ export function atendimentoRows(atendimentos: GkitAteAtendimento[]): GkitAteList
 
 export function tarefaRows(tarefas: GkitAteTarefa[]): GkitAteListRow[] {
   return tarefas.map((item) => ({
+    group: item.cliente_nome,
     id: item.id,
     title: item.descricao,
-    subtitle: `${item.cliente_nome} - ${item.atendimento_titulo}`,
+    subtitle: [item.atendimento_titulo, item.tipo_nome ?? 'Tarefa'].filter(Boolean).join(' - '),
     status: statusLabel(item.status),
     value: dateLabel(item.data_prevista),
     meta: item.tipo_nome ?? item.responsavel ?? 'Sem responsável',

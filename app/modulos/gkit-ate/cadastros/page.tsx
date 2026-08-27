@@ -60,7 +60,7 @@ export default async function GkitAteCadastrosPage({
       usuario={context.usuario}
     >
       <GkitAteHealthNotice health={health} />
-      <GkitAteSection title="Listas de cadastro" description="Tipos separados em abas para consulta e manutencao operacional.">
+      <GkitAteSection title="Cadastros" description={`${activeRows.length} registro(s)`}>
         <GkitAteTabs
           items={[
             { active: isAtendimentoTab, count: atendimentoTipos.length, href: tabHref('atendimentos'), label: 'Tipos de atendimento' },
@@ -84,7 +84,6 @@ export default async function GkitAteCadastrosPage({
           ]}
           hiddenFields={[{ name: 'tab', value: filters.tab }]}
           resetHref={`/modulos/gkit-ate/cadastros?tab=${filters.tab}`}
-          resultCount={activeRows.length}
           sort={{
             dir: filters.dir,
             options: [
@@ -94,7 +93,6 @@ export default async function GkitAteCadastrosPage({
             ],
             value: filters.sort,
           }}
-          totalCount={isAtendimentoTab ? atendimentoTipos.length : tarefaTipos.length}
         />
         <GkitAteList
           empty={isAtendimentoTab ? 'Nenhum tipo de atendimento encontrado com os filtros atuais.' : 'Nenhum tipo de tarefa encontrado com os filtros atuais.'}

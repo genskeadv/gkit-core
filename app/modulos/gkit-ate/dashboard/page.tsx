@@ -45,8 +45,8 @@ export default async function GkitAteDashboardPage({ searchParams }: GkitAteDash
       usuario={context.usuario}
     >
       <GkitAteSection
-        title="Atendimentos ASTREA"
-        description="Filtre por período e status para acompanhar volume, responsáveis, carteiras e etiquetas."
+        title="Atendimentos"
+        description={`${data.kpis.total} atendimento(s) no filtro atual`}
       >
         <GkitAteAtendimentoDashboard activeTab={tab} data={data} filters={filters} />
       </GkitAteSection>

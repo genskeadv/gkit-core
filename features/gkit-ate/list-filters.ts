@@ -12,6 +12,7 @@ type SortDirection = 'asc' | 'desc'
 
 export type GkitAteAtendimentoFilters = {
   dir: SortDirection
+  pagina: number
   q: string
   responsavel: string
   sort: 'data' | 'status' | 'cliente' | 'responsavel' | 'tarefas'
@@ -21,6 +22,7 @@ export type GkitAteAtendimentoFilters = {
 
 export type GkitAteTarefaFilters = {
   dir: SortDirection
+  pagina: number
   q: string
   responsavel: string
   sort: 'data' | 'status' | 'responsavel' | 'atendimento'
@@ -46,6 +48,11 @@ function param(params: SearchParams | undefined, key: string) {
 
 function direction(value: string): SortDirection {
   return value === 'desc' ? 'desc' : 'asc'
+}
+
+function pageValue(value: string) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1
 }
 
 function normalize(value: unknown) {
@@ -86,6 +93,7 @@ export function buildGkitAteAtendimentoFilters(params?: SearchParams): GkitAteAt
 
   return {
     dir: direction(param(params, 'dir') || 'desc'),
+    pagina: pageValue(param(params, 'pagina')),
     q: param(params, 'q'),
     responsavel: param(params, 'responsavel'),
     sort: sort === 'status' || sort === 'cliente' || sort === 'responsavel' || sort === 'tarefas' ? sort : 'data',
@@ -99,6 +107,7 @@ export function buildGkitAteTarefaFilters(params?: SearchParams): GkitAteTarefaF
 
   return {
     dir: direction(param(params, 'dir')),
+    pagina: pageValue(param(params, 'pagina')),
     q: param(params, 'q'),
     responsavel: param(params, 'responsavel'),
     sort: sort === 'status' || sort === 'responsavel' || sort === 'atendimento' ? sort : 'data',

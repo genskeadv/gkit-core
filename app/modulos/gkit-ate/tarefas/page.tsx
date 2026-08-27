@@ -1,7 +1,20 @@
-import { GkitAteFilterBar, GkitAteHealthNotice, GkitAteList, GkitAteSection, GkitAteShell } from '@/features/gkit-ate/components'
+import { GkitAteFilterBar, GkitAteGroupedList, GkitAteHealthNotice, GkitAteSection, GkitAteShell } from '@/features/gkit-ate/components'
 import { buildGkitAteTarefaFilters, filterGkitAteTarefas } from '@/features/gkit-ate/list-filters'
 import { getGkitAteFormData, getGkitAteHealth, listGkitAteTarefas, requireGkitAteContext, tarefaRows } from '@/features/gkit-ate/queries'
 import { moduleTarget } from '@/lib/auth/platform'
+
+function tarefaHrefForPage(filters: ReturnType<typeof buildGkitAteTarefaFilters>, page: number) {
+  const params = new URLSearchParams()
+  if (filters.q) params.set('q', filters.q)
+  if (filters.status) params.set('status', filters.status)
+  if (filters.tipo) params.set('tipo', filters.tipo)
+  if (filters.responsavel) params.set('responsavel', filters.responsavel)
+  if (filters.sort !== 'data') params.set('sort', filters.sort)
+  if (filters.dir !== 'asc') params.set('dir', filters.dir)
+  if (page > 1) params.set('pagina', String(page))
+  const query = params.toString()
+  return query ? `/modulos/gkit-ate/tarefas?${query}` : '/modulos/gkit-ate/tarefas'
+}
 
 export default async function GkitAteTarefasPage({
   searchParams,
@@ -27,7 +40,7 @@ export default async function GkitAteTarefasPage({
       usuario={context.usuario}
     >
       <GkitAteHealthNotice health={health} />
-      <GkitAteSection title="Lista de tarefas" description="Consulte tarefas por status, tipo, responsável e atendimento.">
+      <GkitAteSection title="Tarefas" description={`${tarefasFiltradas.length} de ${tarefas.length} tarefa(s)`}>
         <GkitAteFilterBar
           fields={[
             { label: 'Busca', name: 'q', placeholder: 'Tarefa, cliente, atendimento ou responsável', value: filters.q },
@@ -62,7 +75,6 @@ export default async function GkitAteTarefasPage({
             },
           ]}
           resetHref="/modulos/gkit-ate/tarefas"
-          resultCount={tarefasFiltradas.length}
           sort={{
             dir: filters.dir,
             options: [
@@ -73,9 +85,14 @@ export default async function GkitAteTarefasPage({
             ],
             value: filters.sort,
           }}
-          totalCount={tarefas.length}
         />
-        <GkitAteList empty="Nenhuma tarefa encontrada com os filtros atuais." rows={tarefaRows(tarefasFiltradas)} />
+        <GkitAteGroupedList
+          empty="Nenhuma tarefa encontrada com os filtros atuais."
+          hrefForPage={(page) => tarefaHrefForPage(filters, page)}
+          itemLabel="tarefa(s)"
+          page={filters.pagina}
+          rows={tarefaRows(tarefasFiltradas)}
+        />
       </GkitAteSection>
     </GkitAteShell>
   )

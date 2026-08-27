@@ -163,32 +163,26 @@ export function GkitAteAtendimentoDashboard({
         <article>
           <span>Total</span>
           <strong>{data.kpis.total}</strong>
-          <small>atendimentos ASTREA</small>
         </article>
         <article>
           <span>Abertos</span>
           <strong>{data.kpis.abertos}</strong>
-          <small>em acompanhamento</small>
         </article>
         <article>
           <span>Encerrados</span>
           <strong>{data.kpis.encerrados}</strong>
-          <small>finalizados</small>
         </article>
         <article>
           <span>Clientes</span>
           <strong>{data.kpis.clientes}</strong>
-          <small>com atendimento</small>
         </article>
         <article>
           <span>Responsáveis</span>
           <strong>{data.kpis.responsaveis}</strong>
-          <small>na operação</small>
         </article>
         <article>
           <span>Tipos</span>
           <strong>{data.kpis.tipos}</strong>
-          <small>por etiqueta</small>
         </article>
       </section>
 
@@ -261,16 +255,12 @@ export function GkitAteFilterBar({
   fields,
   hiddenFields = [],
   resetHref,
-  resultCount,
   sort,
-  totalCount,
 }: {
   fields: GkitAteFilterField[]
   hiddenFields?: Array<{ name: string; value: string }>
   resetHref: string
-  resultCount: number
   sort: { dir: 'asc' | 'desc'; options: Array<{ label: string; value: string }>; value: string }
-  totalCount: number
 }) {
   return (
     <form className="gkit-ate-filter-bar" method="get">
@@ -314,7 +304,6 @@ export function GkitAteFilterBar({
       </div>
 
       <div className="gkit-ate-filter-actions">
-        <span>{resultCount} de {totalCount}</span>
         <button className="button" type="submit">Filtrar</button>
         <Link className="button secondary" href={resetHref}>Limpar</Link>
       </div>
@@ -339,6 +328,32 @@ export function GkitAteTabs({
   )
 }
 
+function GkitAteRowContent({ row }: { row: GkitAteListRow }) {
+  return (
+    <>
+      <div>
+        <h3>{row.title}</h3>
+        <p>{row.subtitle}</p>
+      </div>
+      <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+      <strong>{row.value}</strong>
+      <small>{row.meta}</small>
+    </>
+  )
+}
+
+function GkitAteRow({ row }: { row: GkitAteListRow }) {
+  return row.detailHref ? (
+    <Link className="suite-row-link" href={row.detailHref} role="listitem">
+      <GkitAteRowContent row={row} />
+    </Link>
+  ) : (
+    <article role="listitem">
+      <GkitAteRowContent row={row} />
+    </article>
+  )
+}
+
 export function GkitAteList({
   empty,
   rows,
@@ -350,27 +365,64 @@ export function GkitAteList({
 
   return (
     <div className="suite-table-list compact" role="list">
-      {rows.map((row) => {
-        const content = (
-          <>
-            <div>
-              <h3>{row.title}</h3>
-              <p>{row.subtitle}</p>
-            </div>
-            <span className={`suite-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
-            <strong>{row.value}</strong>
-            <small>{row.meta}</small>
-          </>
-        )
+      {rows.map((row) => <GkitAteRow key={row.id} row={row} />)}
+    </div>
+  )
+}
 
-        return row.detailHref ? (
-          <Link className="suite-row-link" href={row.detailHref} key={row.id} role="listitem">
-            {content}
-          </Link>
-        ) : (
-          <article key={row.id} role="listitem">{content}</article>
-        )
-      })}
+export function GkitAteGroupedList({
+  empty,
+  hrefForPage,
+  itemLabel = 'item(ns)',
+  page,
+  rows,
+}: {
+  empty: string
+  hrefForPage: (page: number) => string
+  itemLabel?: string
+  page: number
+  rows: GkitAteListRow[]
+}) {
+  const groups = [...rows.reduce((acc, row) => {
+    const label = row.group || 'Sem cliente'
+    acc.set(label, [...(acc.get(label) ?? []), row])
+    return acc
+  }, new Map<string, GkitAteListRow[]>())]
+    .sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
+    .map(([label, items]) => ({ label, items }))
+  const pageSize = 20
+  const totalPages = Math.max(1, Math.ceil(groups.length / pageSize))
+  const currentPage = Math.min(Math.max(page, 1), totalPages)
+  const visibleGroups = groups.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  if (!groups.length) return <div className="suite-empty-block">{empty}</div>
+
+  const pagination = (
+    <div className="gkit-ate-group-pagination">
+      <span>Página {currentPage} de {totalPages}</span>
+      <div>
+        <Link aria-disabled={currentPage === 1} className="button secondary" href={hrefForPage(Math.max(1, currentPage - 1))}>Anterior</Link>
+        <Link aria-disabled={currentPage === totalPages} className="button secondary" href={hrefForPage(Math.min(totalPages, currentPage + 1))}>Próxima</Link>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="gkit-ate-grouped-list">
+      {pagination}
+      {visibleGroups.map((group) => (
+        <details className="gkit-ate-client-group" key={group.label}>
+          <summary>
+            <span aria-hidden="true">+</span>
+            <strong>{group.label}</strong>
+            <small>{group.items.length} {itemLabel}</small>
+          </summary>
+          <div className="suite-table-list compact" role="list" aria-label={`${group.label} - ${group.items.length} ${itemLabel}`}>
+            {group.items.map((row) => <GkitAteRow key={row.id} row={row} />)}
+          </div>
+        </details>
+      ))}
+      {pagination}
     </div>
   )
 }

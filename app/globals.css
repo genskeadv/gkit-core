@@ -23393,7 +23393,7 @@ a.button {
 .gkit-ate-dashboard-kpis {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(6, minmax(104px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .gkit-ate-dashboard-kpis article,
@@ -23405,8 +23405,9 @@ a.button {
 
 .gkit-ate-dashboard-kpis article {
   display: grid;
-  gap: 5px;
-  min-height: 74px;
+  align-content: center;
+  gap: 8px;
+  min-height: 62px;
   padding: 9px 10px;
 }
 
@@ -23419,7 +23420,7 @@ a.button {
 
 .gkit-ate-dashboard-kpis strong {
   color: var(--gkit-ate-text);
-  font-size: 22px;
+  font-size: 23px;
   font-weight: 400;
   line-height: 1;
 }
@@ -23536,9 +23537,7 @@ a.button {
 
 @media (max-width: 1100px) {
   .gkit-ate-dashboard-kpis {
-    grid-template-columns: repeat(6, minmax(104px, 1fr));
-    overflow-x: auto;
-    padding-bottom: 2px;
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   }
 
   .gkit-ate-dashboard-grid {
@@ -23671,6 +23670,101 @@ a.button {
 .gkit-ate-shell .suite-table-list strong,
 .gkit-ate-shell .suite-table-list small {
   text-align: right;
+}
+
+.gkit-ate-grouped-list {
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-ate-client-group,
+.gkit-ate-group-pagination {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--gkit-ate-line);
+  border-radius: var(--suite-module-card-radius);
+}
+
+.gkit-ate-client-group {
+  overflow: hidden;
+}
+
+.gkit-ate-client-group summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  list-style: none;
+  min-height: 48px;
+  padding: 9px 12px;
+}
+
+.gkit-ate-client-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.gkit-ate-client-group summary > span {
+  align-items: center;
+  background: var(--suite-module-accent);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 18px;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  width: 28px;
+}
+
+.gkit-ate-client-group[open] summary > span {
+  transform: rotate(45deg);
+}
+
+.gkit-ate-client-group summary strong {
+  color: var(--gkit-ate-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gkit-ate-client-group summary small,
+.gkit-ate-group-pagination span {
+  color: var(--gkit-ate-muted);
+  font-size: 12px;
+}
+
+.gkit-ate-client-group > .suite-table-list {
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  max-height: none;
+  overflow: visible;
+  padding: 8px;
+}
+
+.gkit-ate-group-pagination {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 0;
+}
+
+.gkit-ate-group-pagination div {
+  display: flex;
+  gap: 6px;
+}
+
+.gkit-ate-group-pagination .button,
+.gkit-ate-group-pagination button {
+  min-height: 32px !important;
+  padding: 0 10px !important;
+}
+
+.gkit-ate-group-pagination :is(.button, button):disabled,
+.gkit-ate-group-pagination .button[aria-disabled="true"] {
+  opacity: 0.48;
+  pointer-events: none;
 }
 
 .gkit-ate-cockpit-form-panel .gkit-ate-table-list strong {

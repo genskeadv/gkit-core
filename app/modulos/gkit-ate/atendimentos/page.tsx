@@ -1,7 +1,20 @@
-import { GkitAteFilterBar, GkitAteHealthNotice, GkitAteList, GkitAteSection, GkitAteShell } from '@/features/gkit-ate/components'
+import { GkitAteFilterBar, GkitAteGroupedList, GkitAteHealthNotice, GkitAteSection, GkitAteShell } from '@/features/gkit-ate/components'
 import { buildGkitAteAtendimentoFilters, filterGkitAteAtendimentos } from '@/features/gkit-ate/list-filters'
 import { atendimentoRows, getGkitAteFormData, getGkitAteHealth, listGkitAteAtendimentos, requireGkitAteContext } from '@/features/gkit-ate/queries'
 import { moduleTarget } from '@/lib/auth/platform'
+
+function atendimentoHrefForPage(filters: ReturnType<typeof buildGkitAteAtendimentoFilters>, page: number) {
+  const params = new URLSearchParams()
+  if (filters.q) params.set('q', filters.q)
+  if (filters.status) params.set('status', filters.status)
+  if (filters.tipo) params.set('tipo', filters.tipo)
+  if (filters.responsavel) params.set('responsavel', filters.responsavel)
+  if (filters.sort !== 'data') params.set('sort', filters.sort)
+  if (filters.dir !== 'desc') params.set('dir', filters.dir)
+  if (page > 1) params.set('pagina', String(page))
+  const query = params.toString()
+  return query ? `/modulos/gkit-ate/atendimentos?${query}` : '/modulos/gkit-ate/atendimentos'
+}
 
 export default async function GkitAteAtendimentosPage({
   searchParams,
@@ -27,7 +40,7 @@ export default async function GkitAteAtendimentosPage({
       usuario={context.usuario}
     >
       <GkitAteHealthNotice health={health} />
-      <GkitAteSection title="Lista de atendimentos" description="Consulte atendimentos por status, tipo, responsável e texto livre.">
+      <GkitAteSection title="Atendimentos" description={`${atendimentosFiltrados.length} de ${atendimentos.length} atendimento(s)`}>
         <GkitAteFilterBar
           fields={[
             { label: 'Busca', name: 'q', placeholder: 'Código, cliente, título, objeto ou responsável', value: filters.q },
@@ -60,7 +73,6 @@ export default async function GkitAteAtendimentosPage({
             },
           ]}
           resetHref="/modulos/gkit-ate/atendimentos"
-          resultCount={atendimentosFiltrados.length}
           sort={{
             dir: filters.dir,
             options: [
@@ -72,9 +84,14 @@ export default async function GkitAteAtendimentosPage({
             ],
             value: filters.sort,
           }}
-          totalCount={atendimentos.length}
         />
-        <GkitAteList empty="Nenhum atendimento encontrado com os filtros atuais." rows={atendimentoRows(atendimentosFiltrados)} />
+        <GkitAteGroupedList
+          empty="Nenhum atendimento encontrado com os filtros atuais."
+          hrefForPage={(page) => atendimentoHrefForPage(filters, page)}
+          itemLabel="atendimento(s)"
+          page={filters.pagina}
+          rows={atendimentoRows(atendimentosFiltrados)}
+        />
       </GkitAteSection>
     </GkitAteShell>
   )
