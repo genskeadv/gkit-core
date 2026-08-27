@@ -23677,6 +23677,15 @@ a.button {
   gap: 8px;
 }
 
+.gkit-ate-open-filter-bar {
+  margin-bottom: 2px;
+}
+
+.gkit-ate-open-filter-bar span,
+.gkit-ate-open-filter-bar .ciclo-list-count {
+  color: var(--gkit-ate-muted);
+}
+
 .gkit-ate-client-group,
 .gkit-ate-group-pagination {
   background: rgba(255, 255, 255, 0.82);

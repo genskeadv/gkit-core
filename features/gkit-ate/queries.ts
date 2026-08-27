@@ -264,6 +264,18 @@ export function atendimentoRows(atendimentos: GkitAteAtendimento[]): GkitAteList
 
 export function atendimentoAntigoRows(atendimentos: GkitAteAtendimento[]): GkitAteListRow[] {
   return atendimentos.map((item) => ({
+    filterDate: item.data_criacao,
+    filterResponsavel: item.responsavel,
+    filterText: [
+      item.titulo,
+      item.cliente_nome,
+      item.codigo_publico,
+      item.astrea_codigo,
+      item.tipo,
+      item.objeto,
+      item.responsavel,
+    ].filter(Boolean).join(' '),
+    filterTipo: item.tipo,
     id: item.id,
     title: item.titulo,
     subtitle: [item.cliente_nome, item.codigo_publico, item.tipo ?? 'Atendimento'].filter(Boolean).join(' - '),

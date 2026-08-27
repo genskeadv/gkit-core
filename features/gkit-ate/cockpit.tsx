@@ -49,6 +49,23 @@ function panelDescription(panel: CockpitPanel) {
   return panels.find((item) => item.id === panel)?.description ?? ''
 }
 
+function normalizeFilter(value: unknown) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+function dateKey(value: string | null | undefined) {
+  return value?.slice(0, 10) ?? ''
+}
+
+function uniqueRowOptions(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.map((value) => value?.trim()).filter(Boolean) as string[]))
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+}
+
 function OpenAtendimentoRow({ row }: { row: GkitAteListRow }) {
   const content = (
     <>
@@ -73,9 +90,34 @@ function OpenAtendimentoRow({ row }: { row: GkitAteListRow }) {
 
 function OpenAtendimentoList({ rows }: { rows: GkitAteListRow[] }) {
   const [page, setPage] = useState(1)
-  const totalPages = Math.max(1, Math.ceil(rows.length / atendimentoPageSize))
+  const [filters, setFilters] = useState({ ate: '', de: '', q: '', responsavel: '', tipo: '' })
+  const typeOptions = uniqueRowOptions(rows.map((row) => row.filterTipo))
+  const responsavelOptions = uniqueRowOptions(rows.map((row) => row.filterResponsavel))
+  const filteredRows = rows.filter((row) => {
+    const search = normalizeFilter(filters.q)
+    const rowDate = dateKey(row.filterDate)
+    const matchesSearch = !search || normalizeFilter(row.filterText ?? `${row.title} ${row.subtitle} ${row.meta} ${row.status}`).includes(search)
+    const matchesTipo = !filters.tipo || row.filterTipo === filters.tipo
+    const matchesResponsavel = !filters.responsavel || row.filterResponsavel === filters.responsavel
+    const matchesStart = !filters.de || (rowDate && rowDate >= filters.de)
+    const matchesEnd = !filters.ate || (rowDate && rowDate <= filters.ate)
+
+    return matchesSearch && matchesTipo && matchesResponsavel && matchesStart && matchesEnd
+  })
+  const hasFilters = Boolean(filters.q || filters.tipo || filters.responsavel || filters.de || filters.ate)
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / atendimentoPageSize))
   const safePage = Math.min(page, totalPages)
-  const visibleRows = rows.slice((safePage - 1) * atendimentoPageSize, safePage * atendimentoPageSize)
+  const visibleRows = filteredRows.slice((safePage - 1) * atendimentoPageSize, safePage * atendimentoPageSize)
+
+  function updateFilter(name: keyof typeof filters, value: string) {
+    setFilters((current) => ({ ...current, [name]: value }))
+    setPage(1)
+  }
+
+  function clearFilters() {
+    setFilters({ ate: '', de: '', q: '', responsavel: '', tipo: '' })
+    setPage(1)
+  }
 
   if (!rows.length) {
     return <div className="suite-empty-block success">Nenhum atendimento aberto no momento.</div>
@@ -97,10 +139,51 @@ function OpenAtendimentoList({ rows }: { rows: GkitAteListRow[] }) {
 
   return (
     <div className="gkit-ate-grouped-list">
+      <form className="ciclo-list-filter-bar gkit-ate-open-filter-bar" onSubmit={(event) => event.preventDefault()}>
+        <label className="ciclo-list-search">
+          <span>Busca</span>
+          <input
+            className="input"
+            name="q"
+            onChange={(event) => updateFilter('q', event.target.value)}
+            placeholder="Cliente, atendimento, código..."
+            value={filters.q}
+          />
+        </label>
+        <label>
+          <span>Tipo</span>
+          <select className="select" name="tipo" onChange={(event) => updateFilter('tipo', event.target.value)} value={filters.tipo}>
+            <option value="">Todos</option>
+            {typeOptions.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Responsável</span>
+          <select className="select" name="responsavel" onChange={(event) => updateFilter('responsavel', event.target.value)} value={filters.responsavel}>
+            <option value="">Todos</option>
+            {responsavelOptions.map((responsavel) => <option key={responsavel} value={responsavel}>{responsavel}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Criação de</span>
+          <input className="input" name="de" onChange={(event) => updateFilter('de', event.target.value)} type="date" value={filters.de} />
+        </label>
+        <label>
+          <span>Criação até</span>
+          <input className="input" name="ate" onChange={(event) => updateFilter('ate', event.target.value)} type="date" value={filters.ate} />
+        </label>
+        <button className="button secondary" type="submit">Filtrar</button>
+        {hasFilters ? <button className="button secondary" onClick={clearFilters} type="button">Limpar</button> : null}
+        <span className="ciclo-list-count">{filteredRows.length} de {rows.length}</span>
+      </form>
       {pagination}
-      <div className="suite-table-list compact gkit-ate-table-list" role="list">
-        {visibleRows.map((row) => <OpenAtendimentoRow key={row.id} row={row} />)}
-      </div>
+      {visibleRows.length ? (
+        <div className="suite-table-list compact gkit-ate-table-list" role="list">
+          {visibleRows.map((row) => <OpenAtendimentoRow key={row.id} row={row} />)}
+        </div>
+      ) : (
+        <div className="suite-empty-block">Nenhum atendimento aberto encontrado com os filtros atuais.</div>
+      )}
       {pagination}
     </div>
   )
