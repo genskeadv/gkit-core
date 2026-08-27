@@ -32,6 +32,10 @@ export default async function ModuloPage({
     redirect('/modulos/gkit-ate')
   }
 
+  if (codigo === 'gkli_atende') {
+    redirect('/modulos/gkli-atende')
+  }
+
   if (codigo === 'gkit_dir') {
     redirect('/modulos/gkit-dir')
   }

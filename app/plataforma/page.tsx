@@ -39,6 +39,7 @@ const moduleArea: Record<string, string> = {
   ciclo: 'Governanca',
   'gkit-ciclo': 'Governanca',
   'gkit-ate': 'Atendimento',
+  'gkli-atende': 'Atendimento',
   'gkit-dir': 'Diretorio',
   'gkit-fat': 'Faturamento',
   'gkit-flex': 'Financial Xperience',
@@ -76,6 +77,12 @@ const moduleDisplay: Record<string, Pick<ModuleCard, 'nome' | 'descricao' | 'are
     descricao: 'Atendimentos consultivos do ASTREA com tarefas vinculadas.',
     area: 'Atendimento',
     href: '/modulos/gkit-ate',
+  },
+  'gkli-atende': {
+    nome: 'GKLI Atende',
+    descricao: 'Fila diária para colaboradores acompanharem e atualizarem atendimentos e tarefas.',
+    area: 'Atendimento',
+    href: '/modulos/gkli-atende',
   },
   'gkit-dir': {
     nome: 'GKIT DIR',

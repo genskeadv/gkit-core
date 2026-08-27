@@ -8,6 +8,7 @@ const moduleArea: Record<string, string> = {
   core: 'Administracao',
   'gkit-new': 'Novos negocios',
   'gkit-ate': 'Atendimento',
+  'gkli-atende': 'Atendimento',
   'gkit-dir': 'Diretorio',
   'gkit-fat': 'Faturamento',
   'gkit-flex': 'Financial Xperience',
@@ -88,6 +89,15 @@ const shortcutGroups = [
     pending: [],
   },
   {
+    codigo: 'gkli-atende',
+    title: 'GKLI Atende',
+    description: 'Fila individual de atendimentos e tarefas para execução diária.',
+    links: [
+      { href: '/modulos/gkli-atende', label: 'Minha fila' },
+    ],
+    pending: [],
+  },
+  {
     codigo: 'gkit-fat',
     title: 'GKIT FAT',
     description: 'Faturamento, OS, NFS-e e conciliacao de reembolsos.',
@@ -161,6 +171,7 @@ const shortcutGroups = [
 const executiveFlow = [
   { codigo: 'gkit-new', title: 'Conquistar 2.0', description: 'GKIT New registra clientes, contatos, oportunidades e workflow.' },
   { codigo: 'gkit-ate', title: 'Atender', description: 'GKIT ATE organiza atendimentos consultivos e tarefas operacionais.' },
+  { codigo: 'gkli-atende', title: 'Executar atendimento', description: 'GKLI Atende entrega a fila prática para o colaborador tocar suas pendências.' },
   { codigo: 'gkit-dir', title: 'Consultar', description: 'GKIT DIR consulta o diretório de clientes do Ciclo.' },
   { codigo: 'gkit-jur', title: 'Executar', description: 'GKIT Jur organiza processos, prazos e documentos jurídicos.' },
   { codigo: 'ciclo', title: 'Acompanhar', description: 'GKIT Ciclo assume onboarding e vida diária do cliente.' },
