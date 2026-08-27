@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import {
@@ -44,6 +45,7 @@ export default async function CicloPage({
       eyebrow="GKIT Ciclo"
       title="Fluxo operacional"
       description="Execução diária do Ciclo, organizada na ordem natural da rotina de acompanhamento."
+      actions={<Link className="button" href="/modulos/gkit-ciclo/clientes/cockpit">Dashboard cliente</Link>}
       usuario={context.usuario}
     >
       <CicloCockpit
