@@ -123,10 +123,19 @@ function parseReceitaDate(value: unknown) {
 
 function findRawValue(raw: Record<string, unknown>, matchers: string[]) {
   const normalizedMatchers = matchers.map(normalizeSearchText)
-  return Object.entries(raw).find(([key]) => {
-    const normalizedKey = normalizeSearchText(key)
-    return normalizedMatchers.some((matcher) => normalizedKey.includes(matcher))
-  })?.[1]
+  const entries = Object.entries(raw).map(([key, value]) => ({ key: normalizeSearchText(key), value }))
+
+  for (const matcher of normalizedMatchers) {
+    const exact = entries.find((entry) => entry.key === matcher)
+    if (exact) return exact.value
+  }
+
+  for (const matcher of normalizedMatchers) {
+    const partial = entries.find((entry) => entry.key.includes(matcher))
+    if (partial) return partial.value
+  }
+
+  return undefined
 }
 
 function receitaFoiPontual(row: Record<string, any>) {
@@ -135,10 +144,14 @@ function receitaFoiPontual(row: Record<string, any>) {
     : {}
   const vencimento = parseReceitaDate(findRawValue(raw, ['vencimento', 'data vencimento', 'data de vencimento']))
   const pagamento = parseReceitaDate(findRawValue(raw, [
+    'ultimo recebimento',
+    'último recebimento',
+    'data ultimo recebimento',
+    'data último recebimento',
     'pagamento',
     'data pagamento',
-    'recebimento',
     'data recebimento',
+    'recebimento',
     'liquidacao',
     'liquidação',
     'baixa',

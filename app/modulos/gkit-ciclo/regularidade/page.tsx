@@ -19,7 +19,7 @@ export default async function CicloRegularidadePage({
       eyebrow="Governanca"
       title="Regularidade"
       description="Conformidade operacional por cliente, carteira, administradora e risco."
-      actions={canImportReceita ? <Link className="button" href="/modulos/gkit-flex">Importar receita</Link> : null}
+      actions={canImportReceita ? <Link className="button" href="/modulos/gkit-ciclo/importacoes?tipo=receitas">Importar receita</Link> : null}
       usuario={context.usuario}
     >
       <CicloSection

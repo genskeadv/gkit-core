@@ -1,4 +1,5 @@
 import { requireGkitFlexApiAccess } from '@/features/gkit-flex/api-auth';
+import { revalidatePath } from 'next/cache';
 import { NextRequest } from 'next/server';
 import { getCommissionRulesForProcessing } from '@/features/gkit-flex/cadastros/masterDataPersistence';
 import { getCicloClientesForComissoes } from '@/features/gkit-flex/ciclo-clientes';
@@ -130,6 +131,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (action === 'save') {
+      revalidatePath('/modulos/gkit-ciclo/regularidade');
+      revalidatePath('/modulos/gkit-ciclo/importacoes');
+      revalidatePath('/modulos/gkit-flex');
+      revalidatePath('/modulos/gkit-flex/receitas');
+
       return Response.json({
         arquivo: contasFile.name,
         competencia,

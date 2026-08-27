@@ -3906,6 +3906,54 @@ tr:last-child td {
   font-weight: 520;
 }
 
+.ciclo-receita-toolbar {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(180px, 240px) auto auto auto;
+  justify-content: start;
+}
+
+.ciclo-receita-toolbar label {
+  display: grid;
+  gap: 6px;
+}
+
+.ciclo-receita-toolbar label span {
+  color: var(--ciclo-muted);
+  font-size: 12px;
+}
+
+.ciclo-receita-preview-table {
+  border: 1px solid var(--ciclo-line);
+  border-radius: var(--ciclo-card-radius);
+  overflow: auto;
+}
+
+.ciclo-receita-preview-table table {
+  border-collapse: collapse;
+  min-width: 760px;
+  width: 100%;
+}
+
+.ciclo-receita-preview-table th,
+.ciclo-receita-preview-table td {
+  border-bottom: 1px solid var(--ciclo-line);
+  color: var(--ciclo-text);
+  font-size: 13px;
+  padding: 10px;
+  text-align: left;
+}
+
+.ciclo-receita-preview-table th:nth-child(n+3),
+.ciclo-receita-preview-table td:nth-child(n+3) {
+  text-align: right;
+}
+
+.ciclo-receita-preview-table tr:last-child td {
+  border-bottom: 0;
+}
+
 .ciclo-document-form-list {
   display: grid;
   gap: 9px;
@@ -6761,6 +6809,11 @@ tr:last-child td {
   }
 
   .ciclo-import-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .ciclo-receita-toolbar {
+    align-items: stretch;
     grid-template-columns: 1fr;
   }
 
