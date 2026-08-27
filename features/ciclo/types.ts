@@ -79,6 +79,7 @@ export type CicloListRow = {
   cliente?: string
   date?: string
   detailHref?: string
+  summary?: string
   tone?: 'primary' | 'success' | 'warning' | 'danger'
 }
 

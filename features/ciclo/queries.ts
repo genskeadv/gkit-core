@@ -84,6 +84,83 @@ function dateLabel(value: unknown) {
   return new Intl.DateTimeFormat('pt-BR').format(date)
 }
 
+function onlyDigits(value: unknown) {
+  return text(value).replace(/\D/g, '')
+}
+
+function normalizeSearchText(value: unknown) {
+  return text(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function parseReceitaDate(value: unknown) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value
+  if (typeof value === 'number' && Number.isFinite(value) && value > 20000 && value < 70000) {
+    return new Date(Date.UTC(1899, 11, 30 + Math.trunc(value)))
+  }
+
+  const raw = text(value)
+  if (!raw) return null
+
+  const brazilian = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/)
+  if (brazilian) {
+    const day = Number(brazilian[1])
+    const month = Number(brazilian[2])
+    const normalizedYear = Number(brazilian[3])
+    const year = normalizedYear < 100 ? normalizedYear + 2000 : normalizedYear
+    const date = new Date(Date.UTC(year, month - 1, day))
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+
+  const iso = new Date(raw)
+  return Number.isNaN(iso.getTime()) ? null : iso
+}
+
+function findRawValue(raw: Record<string, unknown>, matchers: string[]) {
+  const normalizedMatchers = matchers.map(normalizeSearchText)
+  return Object.entries(raw).find(([key]) => {
+    const normalizedKey = normalizeSearchText(key)
+    return normalizedMatchers.some((matcher) => normalizedKey.includes(matcher))
+  })?.[1]
+}
+
+function receitaFoiPontual(row: Record<string, any>) {
+  const raw = row.raw && typeof row.raw === 'object' && !Array.isArray(row.raw)
+    ? row.raw as Record<string, unknown>
+    : {}
+  const vencimento = parseReceitaDate(findRawValue(raw, ['vencimento', 'data vencimento', 'data de vencimento']))
+  const pagamento = parseReceitaDate(findRawValue(raw, [
+    'pagamento',
+    'data pagamento',
+    'recebimento',
+    'data recebimento',
+    'liquidacao',
+    'liquidação',
+    'baixa',
+    'data baixa',
+  ]))
+
+  if (vencimento && pagamento) return pagamento.getTime() <= vencimento.getTime()
+
+  const situacao = normalizeSearchText(row.situacao ?? findRawValue(raw, ['situacao', 'situação', 'status']))
+  if (/(atras|inadimpl|vencid|pendente|em aberto|nao pago|não pago)/.test(situacao)) return false
+  return true
+}
+
+function emptyPontualidade() {
+  return { recebimentos: 0, emDia: 0, atrasado: 0 }
+}
+
+function resumoPontualidade(stats?: ReturnType<typeof emptyPontualidade>) {
+  const current = stats ?? emptyPontualidade()
+  return `${current.recebimentos} recebimento(s) / ${current.emDia} em dia / ${current.atrasado} atrasado(s)`
+}
+
 function formatBRL(value: number) {
   return new Intl.NumberFormat('pt-BR', { currency: 'BRL', style: 'currency' }).format(value)
 }
@@ -776,19 +853,77 @@ export async function listCicloOnboardingWorkflowAtividades(): Promise<CicloOnbo
   }))
 }
 
+async function listPontualidadeReceitaPorCliente(clientes: CicloCliente[]) {
+  const stats = new Map<string, ReturnType<typeof emptyPontualidade>>()
+  if (!clientes.length) return stats
+
+  const { data: execution, error: executionError } = await admin()
+    .from('comissao_execucoes')
+    .select('id')
+    .eq('status', 'processado')
+    .order('competencia', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (executionError || !execution?.id) return stats
+
+  const { data: lancamentos, error: lancamentosError } = await admin()
+    .from('comissao_lancamentos')
+    .select('cliente,documento,situacao,valor_recebido,raw')
+    .eq('execucao_id', execution.id)
+    .gt('valor_recebido', 0)
+    .limit(10000)
+
+  if (lancamentosError || !lancamentos?.length) return stats
+
+  const byDocument = new Map<string, CicloCliente>()
+  const byName = new Map<string, CicloCliente>()
+
+  for (const cliente of clientes) {
+    const documento = onlyDigits(cliente.documento)
+    if (documento && !byDocument.has(documento)) byDocument.set(documento, cliente)
+
+    for (const name of [cliente.nome, cliente.razaoSocial].map(normalizeSearchText).filter(Boolean)) {
+      if (!byName.has(name)) byName.set(name, cliente)
+    }
+  }
+
+  for (const row of lancamentos as Array<Record<string, any>>) {
+    const documento = onlyDigits(row.documento)
+    const cliente = (documento && byDocument.get(documento)) || byName.get(normalizeSearchText(row.cliente))
+    if (!cliente) continue
+
+    const current = stats.get(cliente.id) ?? emptyPontualidade()
+    current.recebimentos += 1
+    if (receitaFoiPontual(row)) {
+      current.emDia += 1
+    } else {
+      current.atrasado += 1
+    }
+    stats.set(cliente.id, current)
+  }
+
+  return stats
+}
+
 export async function listCicloRegularidadeRows(context: CicloContext): Promise<CicloListRow[]> {
   const data = await getCicloData(context)
+  const pontualidade = await listPontualidadeReceitaPorCliente(data.clientes)
+
   return data.clientes.map((cliente) => {
     const status = cliente.regularidade >= 75 ? 'saudavel' : cliente.regularidade >= 50 ? 'atencao' : 'critico'
+    const resumo = resumoPontualidade(pontualidade.get(cliente.id))
     return {
       id: cliente.id,
       title: cliente.nome,
       subtitle: `${cliente.documento} · ${cliente.administradora}`,
       status,
       value: `${cliente.regularidade}%`,
-      meta: `${cliente.carteira} · risco ${cliente.risco}`,
+      meta: resumo,
       category: cliente.carteira,
       cliente: cliente.nome,
+      summary: resumo,
       tone: listTone(status),
     }
   })

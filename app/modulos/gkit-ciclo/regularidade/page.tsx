@@ -33,7 +33,7 @@ export default async function CicloRegularidadePage({
           title="Regularidade por cliente"
           categoryLabel="Carteira"
           description="Percentual de regularidade e indicadores de risco."
-          detailHrefBase="/modulos/gkit-ciclo/clientes"
+          detailHrefBase="/modulos/gkit-ciclo/regularidade/clientes"
           emptyLabel="Nenhum cliente encontrado para regularidade."
           filters={buildCicloListFilters(params)}
           groupBy="carteira"

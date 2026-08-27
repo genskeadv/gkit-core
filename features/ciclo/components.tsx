@@ -2424,40 +2424,46 @@ export function CicloGenericList({
                 <small>{group.items.length} {groupItemLabel}</small>
               </summary>
               <div className="ciclo-table-list">
-                {group.items.map((row) => (
-                  <article key={row.id}>
-                    <div>
-                      <h3>{row.title}</h3>
-                      <p>{row.subtitle}</p>
-                    </div>
-                    <span className={`ciclo-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
-                    <strong>{row.value}</strong>
-                    <small>
-                      {row.meta}
-                      {detailHrefBase ? <Link className="button secondary" href={`${detailHrefBase}/${row.id}`}>Detalhes</Link> : null}
-                    </small>
-                  </article>
-                ))}
+                {group.items.map((row) => {
+                  const detailHref = row.detailHref ?? (detailHrefBase ? `${detailHrefBase}/${row.id}` : '')
+                  return (
+                    <article className={row.summary ? 'has-row-summary' : undefined} key={row.id}>
+                      <div>
+                        <h3>{row.title}</h3>
+                        <p>{row.subtitle}</p>
+                      </div>
+                      <span className={`ciclo-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+                      <strong>{row.value}</strong>
+                      <small>
+                        <span className={row.summary ? 'ciclo-row-summary' : undefined}>{row.summary ?? row.meta}</span>
+                        {detailHref ? <Link className="button secondary" href={detailHref}>Detalhes</Link> : null}
+                      </small>
+                    </article>
+                  )
+                })}
               </div>
             </details>
           ))}
         </div>
       ) : filteredRows.length ? (
         <div className="ciclo-table-list">
-          {filteredRows.map((row) => (
-            <article key={row.id}>
-              <div>
-                <h3>{row.title}</h3>
-                <p>{row.subtitle}</p>
-              </div>
-              <span className={`ciclo-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
-              <strong>{row.value}</strong>
-              <small>
-                {row.meta}
-                {detailHrefBase ? <Link className="button secondary" href={`${detailHrefBase}/${row.id}`}>Detalhes</Link> : null}
-              </small>
-            </article>
-          ))}
+          {filteredRows.map((row) => {
+            const detailHref = row.detailHref ?? (detailHrefBase ? `${detailHrefBase}/${row.id}` : '')
+            return (
+              <article className={row.summary ? 'has-row-summary' : undefined} key={row.id}>
+                <div>
+                  <h3>{row.title}</h3>
+                  <p>{row.subtitle}</p>
+                </div>
+                <span className={`ciclo-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
+                <strong>{row.value}</strong>
+                <small>
+                  <span className={row.summary ? 'ciclo-row-summary' : undefined}>{row.summary ?? row.meta}</span>
+                  {detailHref ? <Link className="button secondary" href={detailHref}>Detalhes</Link> : null}
+                </small>
+              </article>
+            )
+          })}
         </div>
       ) : (
         <EmptyBlock label={hasFilters ? 'Nenhum registro encontrado com os filtros atuais.' : emptyLabel} />
