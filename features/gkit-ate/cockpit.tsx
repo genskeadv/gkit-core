@@ -214,7 +214,7 @@ export function GkitAteCockpit({
         <div className="suite-panel-heading">
           <div>
             <h2>Ordem do fluxo</h2>
-            <p>Escolha uma etapa para abrir o formulario; por padrão, o cockpit mostra os atendimentos abertos.</p>
+            <p>Escolha uma etapa para abrir o formulário; por padrão, o cockpit mostra os atendimentos abertos.</p>
           </div>
         </div>
 
@@ -223,7 +223,7 @@ export function GkitAteCockpit({
             <Link
               aria-current={activePanel === panel.id ? 'page' : undefined}
               className={activePanel === panel.id ? 'gkit-ate-quick-card active' : 'gkit-ate-quick-card'}
-              href={`/modulos/gkit-ate?panel=${panel.id}`}
+              href={`/modulos/gkit-ate?painel=${panel.id}`}
               key={panel.id}
             >
               <span>{panel.label}</span>

@@ -338,6 +338,7 @@ async function resolveTarefaTipo(formData: FormData, usuarioId: string, fallback
 
 function revalidateGkitAteCockpit() {
   revalidatePath('/modulos/gkit-ate')
+  revalidatePath('/modulos/gkit-ate/dashboard')
   revalidatePath('/modulos/gkit-ate/atendimentos')
   revalidatePath('/modulos/gkit-ate/cadastros')
   revalidatePath('/modulos/gkit-ate/tarefas')
@@ -641,7 +642,7 @@ export async function importarGkitAteAstreaXlsx(formData: FormData): Promise<Imp
         status: 'sucesso',
         cliente_nome: item.cliente,
         titulo: item.titulo,
-        mensagem: `${item.status} - ${item.responsavel ?? 'sem responsavel'}`,
+        mensagem: `${item.status} - ${item.responsavel ?? 'sem responsável'}`,
         payload: item.payload,
       })
     }
@@ -661,6 +662,7 @@ export async function importarGkitAteAstreaXlsx(formData: FormData): Promise<Imp
   await finalizarLote(loteId, result, finalStatus)
 
   revalidatePath('/modulos/gkit-ate')
+  revalidatePath('/modulos/gkit-ate/dashboard')
   revalidatePath('/modulos/gkit-ate/atendimentos')
   revalidatePath('/modulos/gkit-ate/importacoes')
   return result
@@ -766,6 +768,7 @@ export async function createGkitAteTarefaAction(formData: FormData) {
   if (error) throw new Error(error.message)
 
   revalidatePath('/modulos/gkit-ate')
+  revalidatePath('/modulos/gkit-ate/dashboard')
   revalidatePath('/modulos/gkit-ate/tarefas')
   revalidatePath(`/modulos/gkit-ate/atendimentos/${atendimentoId}`)
 
@@ -934,6 +937,9 @@ export async function completeGkitAteTarefaAction(formData: FormData) {
 
   if (error) throw new Error(error.message)
 
+  revalidatePath('/modulos/gkit-ate')
+  revalidatePath('/modulos/gkit-ate/dashboard')
+  revalidatePath('/modulos/gkit-ate/atendimentos')
   revalidatePath('/modulos/gkit-ate/tarefas')
   revalidatePath(`/modulos/gkit-ate/tarefas/${id}`)
   if (data?.atendimento_id) revalidatePath(`/modulos/gkit-ate/atendimentos/${data.atendimento_id}`)

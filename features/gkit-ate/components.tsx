@@ -315,7 +315,7 @@ export function GkitAteFilterBar({
         </label>
 
         <label>
-          <span>Direcao</span>
+          <span>Direção</span>
           <select name="dir" defaultValue={sort.dir}>
             <option value="asc">Crescente</option>
             <option value="desc">Decrescente</option>

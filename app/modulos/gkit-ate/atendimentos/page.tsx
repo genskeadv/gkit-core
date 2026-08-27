@@ -94,7 +94,7 @@ export default async function GkitAteAtendimentosPage({
           sort={{
             dir: filters.dir,
             options: [
-              { label: 'Data de criacao', value: 'data' },
+              { label: 'Data de criação', value: 'data' },
               { label: 'Status', value: 'status' },
               { label: 'Cliente', value: 'cliente' },
               { label: 'Responsável', value: 'responsavel' },

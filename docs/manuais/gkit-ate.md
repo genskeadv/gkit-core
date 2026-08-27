@@ -15,6 +15,7 @@ e desdobramentos operacionais.
 ## Como acessar
 
 - Cockpit: `/modulos/gkit-ate`
+- Dashboard: `/modulos/gkit-ate/dashboard`
 - Atendimentos: `/modulos/gkit-ate/atendimentos`
 - Tarefas: `/modulos/gkit-ate/tarefas`
 - Importacoes: `/modulos/gkit-ate/importacoes`
@@ -32,8 +33,14 @@ e desdobramentos operacionais.
 
 ### Cockpit
 
-Use como painel de execucao da rotina de atendimento. Ele prioriza o que esta
-pendente, atrasado ou aguardando movimentacao.
+Use como painel de execucao da rotina de atendimento. Ele prioriza os
+atendimentos em aberto mais antigos e permite abrir rapidamente as etapas do
+fluxo operacional.
+
+### Dashboard
+
+Mostra visoes consultivas de volume por cliente, responsavel, carteira e tipo
+de atendimento.
 
 ### Atendimentos
 

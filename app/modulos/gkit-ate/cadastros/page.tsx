@@ -36,7 +36,7 @@ export default async function GkitAteCadastrosPage({
     ? atendimentoTiposFiltrados.map((item) => ({
       id: item.id,
       title: item.label,
-      subtitle: item.tarefaTipoNome ? `Tarefa padrao: ${item.tarefaTipoNome}` : 'Sem tarefa padrao',
+      subtitle: item.tarefaTipoNome ? `Tarefa padrão: ${item.tarefaTipoNome}` : 'Sem tarefa padrão',
       status: item.ativo ? 'Ativo' : 'Inativo',
       value: 'ATE',
       meta: 'Tipo de atendimento',
@@ -84,7 +84,7 @@ export default async function GkitAteCadastrosPage({
         <GkitAteSummaryCards items={cadastroSummary} />
         <GkitAteFilterBar
           fields={[
-            { label: 'Busca', name: 'q', placeholder: isAtendimentoTab ? 'Tipo ou tarefa padrao' : 'Tipo ou descrição padrão', value: filters.q },
+            { label: 'Busca', name: 'q', placeholder: isAtendimentoTab ? 'Tipo ou tarefa padrão' : 'Tipo ou descrição padrão', value: filters.q },
             {
               label: 'Status',
               name: 'ativo',
@@ -104,7 +104,7 @@ export default async function GkitAteCadastrosPage({
             dir: filters.dir,
             options: [
               { label: 'Nome', value: 'nome' },
-              { label: 'Criacao', value: 'criado' },
+              { label: 'Criação', value: 'criado' },
               ...(isAtendimentoTab ? [{ label: 'Tarefa padrão', value: 'tarefa' }] : []),
             ],
             value: filters.sort,

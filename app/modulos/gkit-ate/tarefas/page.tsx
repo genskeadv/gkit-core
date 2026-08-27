@@ -67,7 +67,7 @@ export default async function GkitAteTarefasPage({
               options: [
                 { label: 'Pendente', value: 'pendente' },
                 { label: 'Em andamento', value: 'em_andamento' },
-                { label: 'Concluida', value: 'concluida' },
+                { label: 'Concluída', value: 'concluida' },
                 { label: 'Cancelada', value: 'cancelada' },
               ],
               placeholder: 'Todos',

@@ -76,9 +76,9 @@ function statusLabel(status: string) {
     encerrado: 'Encerrado',
     pendente: 'Pendente',
     em_andamento: 'Em andamento',
-    concluida: 'Concluida',
+    concluida: 'Concluída',
     cancelada: 'Cancelada',
-    concluido: 'Concluido',
+    concluido: 'Concluído',
     parcial: 'Parcial',
     falhou: 'Falhou',
     processando: 'Processando',
@@ -653,8 +653,8 @@ export async function listGkitAteImportacoes(): Promise<GkitAteImportacao[]> {
 export function importacaoRows(rows: GkitAteImportacao[]): GkitAteListRow[] {
   return rows.map((row) => ({
     id: row.id,
-    title: row.arquivo_nome ?? 'Importacao ASTREA',
-    subtitle: `${row.linhas_validas}/${row.total_linhas} linha(s) validas`,
+    title: row.arquivo_nome ?? 'Importação ASTREA',
+    subtitle: `${row.linhas_validas}/${row.total_linhas} linha(s) válidas`,
     status: statusLabel(row.status),
     value: `${row.atendimentos_criados} novo(s)`,
     meta: `${row.atendimentos_atualizados} atualizado(s) - ${dateTimeLabel(row.criado_em)}`,

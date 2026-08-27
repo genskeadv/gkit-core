@@ -17,13 +17,13 @@ export default async function GkitAteImportacoesPage() {
     >
       <GkitAteHealthNotice health={health} />
       {canWrite ? (
-        <GkitAteSection title="Importar ASTREA" description="Use a planilha de processos/atendimentos exportada do ASTREA. Está carga não contem tarefas vinculadas.">
+        <GkitAteSection title="Importar ASTREA" description="Use a planilha de processos/atendimentos exportada do ASTREA. Esta carga não contém tarefas vinculadas.">
           <ImportarGkitAteAstreaForm />
         </GkitAteSection>
       ) : null}
 
-      <GkitAteSection title="Historico" description="Últimas cargas processadas.">
-        <GkitAteList empty="Nenhuma importacao registrada." rows={importacaoRows(importacoes)} />
+      <GkitAteSection title="Histórico" description="Últimas cargas processadas.">
+        <GkitAteList empty="Nenhuma importação registrada." rows={importacaoRows(importacoes)} />
       </GkitAteSection>
     </GkitAteShell>
   )

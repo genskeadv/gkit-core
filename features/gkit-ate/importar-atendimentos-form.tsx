@@ -95,7 +95,7 @@ export function ImportarGkitAteAstreaForm() {
 
           <div className="gkit-ate-import-stats">
             <span>Linhas <strong>{preview.total}</strong></span>
-            <span>Validas <strong>{preview.validas}</strong></span>
+            <span>Válidas <strong>{preview.validas}</strong></span>
             <span>Criar <strong>{preview.criar}</strong></span>
             <span>Atualizar <strong>{preview.atualizar}</strong></span>
             <span>Abertos <strong>{preview.abertos}</strong></span>
