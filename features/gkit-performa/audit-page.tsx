@@ -36,6 +36,12 @@ function fmtDate(value: unknown) {
   return new Intl.DateTimeFormat('pt-BR').format(date)
 }
 
+function fmtNumber(value: unknown, digits = 0) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return text(value)
+  return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: digits }).format(numeric)
+}
+
 function text(value: unknown, fallback = '-') {
   const raw = String(value ?? '').trim()
   return raw || fallback
@@ -203,13 +209,17 @@ export function GkitPerformaAuditPage() {
           <Link className="button secondary" href="/modulos/gkit-performa">Novo ranking</Link>
         </div>
         {loadError ? <div className="suite-empty-block danger">{loadError}</div> : null}
-        <SavedRankings rankings={rankings} />
+        <SavedRankings loading={loadingRankings} rankings={rankings} />
       </section>
     </div>
   )
 }
 
-function SavedRankings({ rankings }: { rankings: StoredRanking[] }) {
+function SavedRankings({ loading, rankings }: { loading: boolean; rankings: StoredRanking[] }) {
+  if (loading) {
+    return <div className="suite-empty-block">Carregando rankings gravados...</div>
+  }
+
   if (!rankings.length) {
     return <div className="suite-empty-block">Nenhum ranking salvo encontrado.</div>
   }
@@ -225,9 +235,9 @@ function SavedRankings({ rankings }: { rankings: StoredRanking[] }) {
           </summary>
           <div className="suite-kpi-grid compact gkit-performa-kpis">
             <article className="metric-card">
-              <span className="metric-label">Tipo</span>
-              <strong className="metric-value">{ranking.ranking_tipo === 'executor' ? 'Executor' : 'Responsável'}</strong>
-              <span className="metric-hint">{ranking.sheet_name ?? 'Planilha'}</span>
+              <span className="metric-label">Ranking</span>
+              <strong className="metric-value">{ranking.total_ranqueados ?? 0}</strong>
+              <span className="metric-hint">{ranking.ranking_tipo === 'executor' ? 'por executor' : 'por responsável'}</span>
             </article>
             <article className="metric-card">
               <span className="metric-label">Registros</span>
@@ -252,10 +262,10 @@ function SavedRankings({ rankings }: { rankings: StoredRanking[] }) {
                     <td>{text(item.nome)}</td>
                     <td>{text(item.unidades)}</td>
                     <td>{text(item.concluidas)}</td>
-                    <td>{text(item.percentual_conclusao)}%</td>
-                    <td>{text(item.percentual_no_prazo)}%</td>
+                    <td>{fmtNumber(item.percentual_conclusao, 1)}%</td>
+                    <td>{fmtNumber(item.percentual_no_prazo, 1)}%</td>
                     <td>{text(item.abertas_atrasadas)}</td>
-                    <td><strong>{text(item.score)}</strong></td>
+                    <td><strong>{fmtNumber(item.score, 1)}</strong></td>
                   </tr>
                 ))}
               </tbody>

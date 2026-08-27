@@ -703,57 +703,7 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
         {error ? <div className="suite-empty-block danger">{error}</div> : null}
       </section>
 
-      {hasImport ? <section className="suite-panel gkit-performa-filters">
-          <div className="gkit-performa-filter-grid">
-            <label>
-              <span>Período inicial</span>
-              <input onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
-            </label>
-            <label>
-              <span>Período final</span>
-              <input onChange={(event) => setEndDate(event.target.value)} type="date" value={endDate} />
-            </label>
-            <label>
-              <span>Responsável</span>
-              <select onChange={(event) => setResponsavel(event.target.value)} value={responsavel}>
-                <option value="">Todos</option>
-                {responsaveis.map((name) => <option key={name} value={name}>{name}</option>)}
-              </select>
-            </label>
-            <label>
-              <span>Ranking</span>
-              <select onChange={(event) => setRankingType(event.target.value as RankingType)} value={rankingType}>
-                <option value="responsavel">Responsável</option>
-                <option value="executor">Executor / envolvido</option>
-              </select>
-            </label>
-          </div>
-        </section> : null}
-
-      {hasImport ? <section className="suite-kpi-grid compact gkit-performa-kpis">
-          <article className="metric-card">
-            <span className="metric-label">Registros</span>
-            <strong className="metric-value">{active?.rows.length ?? 0}</strong>
-            <span className="metric-hint">linhas importadas</span>
-          </article>
-          <article className="metric-card">
-            <span className="metric-label">Unidades</span>
-            <strong className="metric-value">{units.length}</strong>
-            <span className="metric-hint">{units.filter((unit) => unit.tipoUnidade === 'ATE').length} ATEs</span>
-          </article>
-          <article className="metric-card">
-            <span className="metric-label">Concluídas</span>
-            <strong className="metric-value">{concluded}</strong>
-            <span className="metric-hint">{pct(units.length ? (concluded / units.length) * 100 : 0)}</span>
-          </article>
-          <article className="metric-card">
-            <span className="metric-label">Atrasadas</span>
-            <strong className="metric-value">{overdue}</strong>
-            <span className="metric-hint">{attentionRows.length + attentionUnits.length} alertas; {excludedRows.length} descartes</span>
-          </article>
-        </section> : null}
-
-      {hasImport ? <section className="suite-panel">
+      {hasImport ? <section className="suite-panel gkit-performa-operational">
           <div className="suite-panel-heading">
             <div>
               <h2>Ranking</h2>
@@ -779,6 +729,54 @@ export function GkitPerformaAnalyzer({ canSave }: { canSave: boolean }) {
                 Exportar CSV
               </button>
             </div>
+          </div>
+
+          <div className="suite-kpi-grid compact gkit-performa-kpis">
+            <article className="metric-card">
+              <span className="metric-label">Registros</span>
+              <strong className="metric-value">{active?.rows.length ?? 0}</strong>
+              <span className="metric-hint">linhas importadas</span>
+            </article>
+            <article className="metric-card">
+              <span className="metric-label">Unidades</span>
+              <strong className="metric-value">{units.length}</strong>
+              <span className="metric-hint">{units.filter((unit) => unit.tipoUnidade === 'ATE').length} ATEs</span>
+            </article>
+            <article className="metric-card">
+              <span className="metric-label">Concluídas</span>
+              <strong className="metric-value">{concluded}</strong>
+              <span className="metric-hint">{pct(units.length ? (concluded / units.length) * 100 : 0)}</span>
+            </article>
+            <article className="metric-card">
+              <span className="metric-label">Atrasadas</span>
+              <strong className="metric-value">{overdue}</strong>
+              <span className="metric-hint">{attentionRows.length + attentionUnits.length} alertas; {excludedRows.length} descartes</span>
+            </article>
+          </div>
+
+          <div className="gkit-performa-filter-grid">
+            <label>
+              <span>Período inicial</span>
+              <input onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
+            </label>
+            <label>
+              <span>Período final</span>
+              <input onChange={(event) => setEndDate(event.target.value)} type="date" value={endDate} />
+            </label>
+            <label>
+              <span>Responsável</span>
+              <select onChange={(event) => setResponsavel(event.target.value)} value={responsavel}>
+                <option value="">Todos</option>
+                {responsaveis.map((name) => <option key={name} value={name}>{name}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Ranking</span>
+              <select onChange={(event) => setRankingType(event.target.value as RankingType)} value={rankingType}>
+                <option value="responsavel">Responsável</option>
+                <option value="executor">Executor / envolvido</option>
+              </select>
+            </label>
           </div>
 
           {saveMessage ? <div className={`gkit-performa-save-message ${saveStatus}`}>{saveMessage}</div> : null}
