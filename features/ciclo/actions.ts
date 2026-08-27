@@ -1593,9 +1593,10 @@ export async function startCicloOnboardingAction(formData: FormData) {
   revalidatePath('/modulos/gkit-ciclo')
   revalidatePath('/modulos/gkit-ciclo/onboarding')
   revalidatePath(`/modulos/gkit-ciclo/onboarding/${clienteId}`)
+  revalidatePath('/modulos/gkit-ciclo/onboarding/iniciar')
   revalidatePath('/modulos/gkit-ciclo/clientes')
   if (shouldReturnToCockpit(formData)) redirect('/modulos/gkit-ciclo')
-  if (text(formData, 'return_to') === 'onboarding') redirect(`/modulos/gkit-ciclo/onboarding/${clienteId}`)
+  if (text(formData, 'return_to') === 'onboarding') redirect(`/modulos/gkit-ciclo/onboarding/iniciar?cliente_id=${clienteId}`)
 }
 
 export async function updateCicloCockpitDocumentacaoAction(formData: FormData) {
@@ -1751,6 +1752,92 @@ export async function updateCicloOnboardingAtividadeAction(formData: FormData) {
 
   revalidatePath('/modulos/gkit-ciclo/onboarding')
   revalidatePath(`/modulos/gkit-ciclo/onboarding/${clienteId}`)
+}
+
+export async function updateCicloOnboardingMonitorAction(formData: FormData) {
+  const clienteId = required(text(formData, 'cliente_id'), 'Cliente')
+  const cliente = await getClienteAccess(clienteId)
+  const context = await requireCicloDocumentWrite(cliente.carteira_id)
+
+  if (!canAccess(context.permissions, 'ciclo.clientes.write')) {
+    throw new Error('Usuário sem permissão para atualizar o monitor de onboarding.')
+  }
+
+  const documentoIds = formData.getAll('documento_id').map((value) => String(value)).filter(Boolean)
+  const documentosConcluidos = new Set(formData.getAll('documentos_concluidos').map((value) => String(value)))
+  const atividadeIds = formData.getAll('atividade_id').map((value) => String(value)).filter(Boolean)
+  const atividadesConcluidas = new Set(formData.getAll('atividades_concluidas').map((value) => String(value)))
+  const now = new Date().toISOString()
+  const [documentosAtuais, atividadesAtuais] = await Promise.all([
+    documentoIds.length
+      ? admin()
+        .schema('ciclo')
+        .from('cliente_documentos')
+        .select('id,status')
+        .eq('cliente_id', clienteId)
+        .in('id', documentoIds)
+      : Promise.resolve({ data: [], error: null }),
+    atividadeIds.length
+      ? admin()
+        .schema('ciclo')
+        .from('onboarding_cliente_atividades')
+        .select('id,status')
+        .eq('cliente_id', clienteId)
+        .in('id', atividadeIds)
+      : Promise.resolve({ data: [], error: null }),
+  ])
+
+  if (documentosAtuais.error) throw new Error(documentosAtuais.error.message)
+  if (atividadesAtuais.error) throw new Error(atividadesAtuais.error.message)
+
+  const documentoStatus = new Map(((documentosAtuais.data ?? []) as Array<Record<string, any>>).map((row) => [String(row.id), String(row.status ?? 'pendente')]))
+  const atividadeStatus = new Map(((atividadesAtuais.data ?? []) as Array<Record<string, any>>).map((row) => [String(row.id), String(row.status ?? 'pendente')]))
+
+  const documentoUpdates = await Promise.all(documentoIds.map((id) => {
+    const validado = documentosConcluidos.has(id)
+    const currentStatus = documentoStatus.get(id)
+    return admin()
+      .schema('ciclo')
+      .from('cliente_documentos')
+      .update({
+        status: validado ? 'validado' : currentStatus === 'dispensado' || currentStatus === 'vencido' ? currentStatus : 'pendente',
+        validado,
+        validado_em: validado ? now : null,
+      })
+      .eq('id', id)
+      .eq('cliente_id', clienteId)
+  }))
+  const documentoError = documentoUpdates.find((result) => result.error)?.error
+  if (documentoError) throw new Error(documentoError.message)
+
+  const atividadeUpdates = await Promise.all(atividadeIds.map((id) => {
+    const concluido = atividadesConcluidas.has(id)
+    const currentStatus = atividadeStatus.get(id)
+    return admin()
+      .schema('ciclo')
+      .from('onboarding_cliente_atividades')
+      .update({
+        status: concluido ? 'concluido' : currentStatus === 'dispensado' ? currentStatus : 'pendente',
+        concluido_em: concluido ? now : null,
+        updated_at: now,
+      })
+      .eq('id', id)
+      .eq('cliente_id', clienteId)
+  }))
+  const atividadeError = atividadeUpdates.find((result) => result.error)?.error
+  if (atividadeError) throw new Error(atividadeError.message)
+
+  await recalcularRegularidade(clienteId, cliente.carteira_id)
+  await logTimeline(clienteId, cliente.carteira_id, context.usuario.id, 'Monitor de onboarding atualizado', 'Checklist por etapas atualizado.')
+  await runOptionalRpc('gkli_recalcular_regularidade_cliente', clienteId)
+
+  revalidatePath('/modulos/gkit-ciclo')
+  revalidatePath('/modulos/gkit-ciclo/onboarding')
+  revalidatePath(`/modulos/gkit-ciclo/onboarding/${clienteId}`)
+  revalidatePath('/modulos/gkit-ciclo/onboarding/iniciar')
+  revalidatePath('/modulos/gkit-ciclo/documentos')
+  revalidatePath('/modulos/gkit-ciclo/regularidade')
+  redirect(`/modulos/gkit-ciclo/onboarding/iniciar?cliente_id=${clienteId}`)
 }
 
 export async function completeCicloOnboardingAction(formData: FormData) {
