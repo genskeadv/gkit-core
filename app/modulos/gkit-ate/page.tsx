@@ -6,10 +6,16 @@ import {
 } from '@/features/gkit-ate/actions'
 import { GkitAteCockpit } from '@/features/gkit-ate/cockpit'
 import { GkitAteHealthNotice, GkitAteShell } from '@/features/gkit-ate/components'
-import { atendimentoRows, getGkitAteFormData, getGkitAteHealth, listGkitAteAtendimentos, requireGkitAteContext } from '@/features/gkit-ate/queries'
+import { atendimentoAntigoRows, getGkitAteFormData, getGkitAteHealth, listGkitAteAtendimentos, requireGkitAteContext } from '@/features/gkit-ate/queries'
 import { moduleTarget } from '@/lib/auth/platform'
 
 type CockpitPanel = 'atendimento' | 'tarefa' | 'tipo-atendimento' | 'tipo-tarefa'
+
+function creationTime(value: string | null) {
+  if (!value) return Number.POSITIVE_INFINITY
+  const time = new Date(value).getTime()
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time
+}
 
 function initialPanel(value: string | string[] | undefined): CockpitPanel | null {
   const panel = Array.isArray(value) ? value[0] : value
@@ -29,7 +35,9 @@ export default async function GkitAtePage({
     getGkitAteFormData(),
     listGkitAteAtendimentos(),
   ])
-  const atendimentosAbertos = atendimentos.filter((item) => item.status === 'aberto')
+  const atendimentosAbertos = atendimentos
+    .filter((item) => item.status === 'aberto')
+    .sort((a, b) => creationTime(a.data_criacao) - creationTime(b.data_criacao) || a.cliente_nome.localeCompare(b.cliente_nome, 'pt-BR'))
 
   return (
     <GkitAteShell
@@ -46,7 +54,7 @@ export default async function GkitAtePage({
         createTarefaTipoAction={createGkitAteTarefaTipoAction}
         formData={formData}
         initialPanel={initialPanel(params?.panel ?? params?.painel)}
-        atendimentosAbertos={atendimentoRows(atendimentosAbertos)}
+        atendimentosAbertos={atendimentoAntigoRows(atendimentosAbertos)}
       />
     </GkitAteShell>
   )

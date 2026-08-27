@@ -7,7 +7,7 @@ import type { GkitAteFormData, GkitAteListRow } from '@/features/gkit-ate/types'
 
 type CockpitPanel = 'atendimento' | 'tarefa' | 'tipo-atendimento' | 'tipo-tarefa'
 type CockpitAction = (formData: FormData) => Promise<void>
-const atendimentoPageSize = 20
+const atendimentoPageSize = 10
 
 const panels: Array<{
   id: CockpitPanel
@@ -73,16 +73,9 @@ function OpenAtendimentoRow({ row }: { row: GkitAteListRow }) {
 
 function OpenAtendimentoList({ rows }: { rows: GkitAteListRow[] }) {
   const [page, setPage] = useState(1)
-  const groups = [...rows.reduce((acc, row) => {
-    const label = row.group || 'Sem cliente'
-    acc.set(label, [...(acc.get(label) ?? []), row])
-    return acc
-  }, new Map<string, GkitAteListRow[]>())]
-    .sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
-    .map(([label, items]) => ({ label, items }))
-  const totalPages = Math.max(1, Math.ceil(groups.length / atendimentoPageSize))
+  const totalPages = Math.max(1, Math.ceil(rows.length / atendimentoPageSize))
   const safePage = Math.min(page, totalPages)
-  const visibleGroups = groups.slice((safePage - 1) * atendimentoPageSize, safePage * atendimentoPageSize)
+  const visibleRows = rows.slice((safePage - 1) * atendimentoPageSize, safePage * atendimentoPageSize)
 
   if (!rows.length) {
     return <div className="suite-empty-block success">Nenhum atendimento aberto no momento.</div>
@@ -105,18 +98,9 @@ function OpenAtendimentoList({ rows }: { rows: GkitAteListRow[] }) {
   return (
     <div className="gkit-ate-grouped-list">
       {pagination}
-      {visibleGroups.map((group) => (
-        <details className="gkit-ate-client-group" key={group.label}>
-          <summary>
-            <span aria-hidden="true">+</span>
-            <strong>{group.label}</strong>
-            <small>{group.items.length} atendimento(s)</small>
-          </summary>
-          <div className="suite-table-list compact gkit-ate-table-list" role="list">
-            {group.items.map((row) => <OpenAtendimentoRow key={row.id} row={row} />)}
-          </div>
-        </details>
-      ))}
+      <div className="suite-table-list compact gkit-ate-table-list" role="list">
+        {visibleRows.map((row) => <OpenAtendimentoRow key={row.id} row={row} />)}
+      </div>
       {pagination}
     </div>
   )
@@ -170,7 +154,7 @@ export function GkitAteCockpit({
       <section className="suite-panel gkit-ate-cockpit-form-panel">
         <div className="suite-panel-heading">
           <div>
-            <h2>{activePanel ? panelTitle(activePanel) : 'Atendimentos abertos'}</h2>
+            <h2>{activePanel ? panelTitle(activePanel) : 'Atendimentos abertos mais antigos'}</h2>
             <p>{activePanel ? panelDescription(activePanel) : `${atendimentosAbertos.length} atendimento(s) em aberto`}</p>
           </div>
         </div>

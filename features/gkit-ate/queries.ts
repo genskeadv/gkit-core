@@ -262,6 +262,19 @@ export function atendimentoRows(atendimentos: GkitAteAtendimento[]): GkitAteList
   }))
 }
 
+export function atendimentoAntigoRows(atendimentos: GkitAteAtendimento[]): GkitAteListRow[] {
+  return atendimentos.map((item) => ({
+    id: item.id,
+    title: item.titulo,
+    subtitle: [item.cliente_nome, item.codigo_publico, item.tipo ?? 'Atendimento'].filter(Boolean).join(' - '),
+    status: statusLabel(item.status),
+    value: dateLabel(item.data_criacao),
+    meta: `${item.responsavel ?? 'Sem responsável'} - ${item.tarefas_pendentes}/${item.tarefas_total} tarefa(s)`,
+    detailHref: `/modulos/gkit-ate/atendimentos/${item.id}`,
+    tone: tone(item.status),
+  }))
+}
+
 export function tarefaRows(tarefas: GkitAteTarefa[]): GkitAteListRow[] {
   return tarefas.map((item) => ({
     group: item.cliente_nome,
