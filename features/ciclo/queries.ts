@@ -869,7 +869,7 @@ export async function listCicloOnboardingWorkflowAtividades(): Promise<CicloOnbo
   }))
 }
 
-async function listPontualidadeReceitaPorCliente(clientes: CicloCliente[]) {
+async function listPontualidadeReceitaPorCliente(clientes: Array<Pick<CicloCliente, 'id' | 'nome' | 'razaoSocial' | 'documento'>>) {
   const stats = new Map<string, ReturnType<typeof emptyPontualidade>>()
   if (!clientes.length) return stats
 
@@ -893,8 +893,8 @@ async function listPontualidadeReceitaPorCliente(clientes: CicloCliente[]) {
 
   if (lancamentosError || !lancamentos?.length) return stats
 
-  const byDocument = new Map<string, CicloCliente>()
-  const byName = new Map<string, CicloCliente>()
+  const byDocument = new Map<string, Pick<CicloCliente, 'id' | 'nome' | 'razaoSocial' | 'documento'>>()
+  const byName = new Map<string, Pick<CicloCliente, 'id' | 'nome' | 'razaoSocial' | 'documento'>>()
 
   for (const cliente of clientes) {
     const documento = onlyDigits(cliente.documento)
@@ -1175,12 +1175,20 @@ export async function getCicloClienteIntegral(id: string, context: CicloContext)
   const regularidadeRow = (regularidadeResult.data ?? {}) as Record<string, any>
   const carteira = formData.carteiras.find((item) => item.id === cliente.carteira_id)?.label ?? 'Sem carteira'
   const administradora = formData.administradoras.find((item) => item.id === cliente.administradora_id)?.label ?? 'Sem administradora'
+  const pontualidade = (await listPontualidadeReceitaPorCliente([{
+    id: cliente.id,
+    documento: cliente.documento ?? '',
+    nome: cliente.nome,
+    razaoSocial: cliente.razao_social ?? '',
+  }])).get(cliente.id) ?? emptyPontualidade()
 
   return {
     cliente,
     carteira,
     administradora,
     regularidade: regularidadePrincipal(regularidadeRow),
+    pagamentosRegularidade: normalizePercent(regularidadeRow.percentual_pagamentos),
+    pontualidade,
     pendencias: [
       ...(Array.isArray(regularidadeRow.pendencias) ? regularidadeRow.pendencias.map((item) => text(item)).filter(Boolean) : []),
       ...(Array.isArray(regularidadeRow.pendencias_pagamentos) ? regularidadeRow.pendencias_pagamentos.map((item) => text(item)).filter(Boolean) : []),

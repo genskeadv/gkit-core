@@ -277,6 +277,12 @@ export type CicloClienteIntegral = {
   carteira: string
   administradora: string
   regularidade: number
+  pagamentosRegularidade: number
+  pontualidade: {
+    recebimentos: number
+    emDia: number
+    atrasado: number
+  }
   pendencias: string[]
   documentos: CicloOnboardingDocumento[]
   alertas: CicloAlertaRecord[]

@@ -1,25 +1,24 @@
 import { CicloClienteIntegralCockpit, CicloSection, CicloShell } from '@/features/ciclo/components'
-import { getCicloClienteIntegral, requireCicloContext } from '@/features/ciclo/queries'
+import { getCicloClienteIntegral, getCicloDocumentoFormData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function CockpitClienteIntegralPage({ params }: { params: Promise<{ id: string }> }) {
   const context = await requireCicloContext()
   const { id } = await params
-  const detail = await getCicloClienteIntegral(id, context)
+  const [detail, formData] = await Promise.all([
+    getCicloClienteIntegral(id, context),
+    getCicloDocumentoFormData(context),
+  ])
 
   return (
     <CicloShell
       active="clientes"
-      eyebrow="Cockpit Cliente Integral"
-      title={detail.cliente.nome}
-      description="Acompanhamento operacional completo do cliente."
+      eyebrow="Cliente"
+      title="Dashboard do cliente"
+      description="Visão operacional por cliente, com alertas, semáforos e índices gráficos."
       usuario={context.usuario}
     >
-      <CicloSection
-        eyebrow="Cliente"
-        title="Cockpit integral"
-        description="Documentos, alertas, eventos, contratos, atas e histórico operacional."
-      >
-        <CicloClienteIntegralCockpit detail={detail} />
+      <CicloSection hideHeader title="Dashboard do cliente">
+        <CicloClienteIntegralCockpit clientes={formData.clientes} detail={detail} />
       </CicloSection>
     </CicloShell>
   )

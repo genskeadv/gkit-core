@@ -1,25 +1,26 @@
 import Link from 'next/link'
-import { CicloSection, CicloShell } from '@/features/ciclo/components'
-import { getCicloCliente, requireCicloContext } from '@/features/ciclo/queries'
+import { CicloClienteIntegralCockpit, CicloSection, CicloShell } from '@/features/ciclo/components'
+import { getCicloClienteIntegral, getCicloDocumentoFormData, requireCicloContext } from '@/features/ciclo/queries'
 
 export default async function CicloRegularidadeClientePage({ params }: { params: Promise<{ id: string }> }) {
   const context = await requireCicloContext()
   const { id } = await params
-  const cliente = await getCicloCliente(id, context)
+  const [detail, formData] = await Promise.all([
+    getCicloClienteIntegral(id, context),
+    getCicloDocumentoFormData(context),
+  ])
 
   return (
     <CicloShell
       active="regularidade"
       eyebrow="Regularidade"
-      title={cliente.nome}
-      description="Dashboard de pontualidade, pagamentos e conformidade do cliente."
+      title="Dashboard do cliente"
+      description="Pontualidade, pagamentos, conformidade e alertas operacionais."
       actions={<Link className="button secondary" href="/modulos/gkit-ciclo/regularidade">Voltar</Link>}
       usuario={context.usuario}
     >
       <CicloSection hideHeader title="Dashboard do cliente">
-        <div className="suite-empty-block">
-          Dashboard de regularidade por cliente em preparação.
-        </div>
+        <CicloClienteIntegralCockpit clientes={formData.clientes} detail={detail} />
       </CicloSection>
     </CicloShell>
   )

@@ -231,6 +231,11 @@ export function CicloCockpit({
         </div>
 
         <div className="ciclo-quick-grid ciclo-cockpit-flow">
+          <Link className="ciclo-quick-card" href="/modulos/gkit-ciclo/clientes/cockpit">
+            <span>Cliente</span>
+            <h3>Dashboard do cliente</h3>
+            <p>Abra uma visão operacional por cliente.</p>
+          </Link>
           {availablePanels.map((panel) => (
             <Link
               aria-current={activePanel === panel.id ? 'page' : undefined}

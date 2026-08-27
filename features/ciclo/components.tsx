@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { ModuleShell, type ModuleNavGroup } from '@/features/shared/module-shell'
 import { OperationalKpiGrid, OperationalQuickLinks, OperationalSection } from '@/features/shared/operational-ui'
 import { CicloSubmitButton } from '@/features/ciclo/submit-button'
+import { CicloClienteDashboardSelector } from '@/features/ciclo/client-picker'
 import { cicloOnboardingEtapas } from '@/features/ciclo/onboarding-defaults'
 import { formatDate, priorityLabel, priorityScore, riskTone } from '@/features/ciclo/scoring'
 import type {
@@ -587,7 +588,7 @@ export function CicloClienteList({
                       <span className={`ciclo-pill ${riskTone(cliente.risco)}`}>{cliente.risco}</span>
                     </div>
                     <div className="ciclo-clientes-actions">
-                      <Link className="button secondary" href={`/modulos/gkit-ciclo/clientes/${cliente.id}/cockpit`}>Cockpit</Link>
+                      <Link className="button secondary" href={`/modulos/gkit-ciclo/clientes/${cliente.id}/cockpit`}>Dashboard</Link>
                       {canWrite ? <Link className="button secondary" href={`/modulos/gkit-ciclo/clientes/${cliente.id}`}>Editar</Link> : null}
                     </div>
                   </article>
@@ -1768,105 +1769,235 @@ export function CicloAtaForm({
   )
 }
 
-export function CicloClienteIntegralCockpit({ detail }: { detail: CicloClienteIntegral }) {
+function dashboardScoreTone(score: number) {
+  if (score >= 80) return 'success'
+  if (score >= 55) return 'warning'
+  return 'danger'
+}
+
+function dashboardScoreLabel(score: number) {
+  if (score >= 80) return 'Estável'
+  if (score >= 55) return 'Monitorar'
+  return 'Ação imediata'
+}
+
+function clampedPercent(value: number) {
+  return Math.min(100, Math.max(0, Math.round(value)))
+}
+
+function CicloClientHealthIndex({
+  detail,
+  label,
+  score,
+  tone,
+}: {
+  detail: string
+  label: string
+  score: number
+  tone: 'success' | 'warning' | 'danger'
+}) {
+  return (
+    <article className={`ciclo-client-health-card ${tone}`}>
+      <div className="ciclo-client-health-head">
+        <span>{label}</span>
+        <div className={`ciclo-client-traffic ${tone}`} aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </div>
+      </div>
+      <strong>{dashboardScoreLabel(score)}</strong>
+      <div className="ciclo-client-health-bar" aria-label={`${label}: ${score}%`}>
+        <span style={{ width: `${clampedPercent(score)}%` }} />
+      </div>
+      <small>{detail}</small>
+    </article>
+  )
+}
+
+function CicloClientBar({
+  label,
+  meta,
+  tone,
+  value,
+}: {
+  label: string
+  meta: string
+  tone: 'success' | 'warning' | 'danger'
+  value: number
+}) {
+  return (
+    <article className="ciclo-client-bar-row">
+      <div>
+        <strong>{label}</strong>
+        <small>{meta}</small>
+      </div>
+      <div className={`ciclo-client-bar ${tone}`} aria-label={`${label}: ${value}%`}>
+        <span style={{ width: `${clampedPercent(value)}%` }} />
+      </div>
+    </article>
+  )
+}
+
+export function CicloClienteDashboardEmpty({ clientes }: { clientes: CicloDocumentoFormData['clientes'] }) {
+  return (
+    <section className="card ciclo-panel ciclo-client-dashboard-empty">
+      <CicloClienteDashboardSelector clientes={clientes} />
+      <EmptyBlock label="Selecione um cliente para carregar os indicadores, alertas e histórico operacional." />
+    </section>
+  )
+}
+
+export function CicloClienteIntegralCockpit({
+  clientes = [],
+  detail,
+}: {
+  clientes?: CicloDocumentoFormData['clientes']
+  detail: CicloClienteIntegral
+}) {
   const { alertas, cliente, documentos, ocorrencias, pendencias, regularidade, timeline } = detail
   const alertasAbertos = alertas.filter((alerta) => alerta.status !== 'resolvido' && alerta.status !== 'cancelado')
   const ocorrenciasAbertas = ocorrencias.filter((ocorrencia) => !['resolvida', 'cancelada'].includes(ocorrencia.status))
   const documentosPendentes = documentos.filter((documento) => documento.status === 'pendente' || documento.status === 'vencido')
   const documentosVencidos = documentosPendentes.filter((documento) => documento.status === 'vencido').length
-
-  const kpis = [
-    { label: 'Regularidade', value: `${regularidade}%`, hint: `${pendencias.length} pendência(s)` },
-    { label: 'Docs pendentes', value: String(documentosPendentes.length), hint: `${documentosVencidos} vencido(s)` },
-    { label: 'Score', value: String(cliente.score_atual), hint: `risco ${cliente.risco_atual}` },
-    { label: 'Alertas', value: String(alertasAbertos.length), hint: 'em aberto' },
-    { label: 'Ocorrências', value: String(ocorrenciasAbertas.length), hint: 'em acompanhamento' },
-  ]
+  const documentosValidados = documentos.filter((documento) => documento.status === 'validado' || documento.validado).length
+  const documentosScore = documentos.length ? (documentosValidados / documentos.length) * 100 : 100
+  const pagamentoScore = detail.pontualidade.recebimentos
+    ? (detail.pontualidade.emDia / detail.pontualidade.recebimentos) * 100
+    : detail.pagamentosRegularidade
+  const operacaoScore = 100 - Math.min(100, (alertasAbertos.length * 16) + (ocorrenciasAbertas.length * 18) + (documentosVencidos * 22))
+  const saudeGeral = clampedPercent((regularidade + pagamentoScore + documentosScore + operacaoScore + cliente.score_atual) / 5)
+  const destaqueItems = [
+    {
+      detail: documentosVencidos ? 'regularizar vencimentos' : `${documentosPendentes.length} pendente(s)`,
+      label: 'Documentos vencidos',
+      tone: documentosVencidos ? 'danger' : documentosPendentes.length ? 'warning' : 'success',
+      value: documentosVencidos ? String(documentosVencidos) : 'OK',
+    },
+    {
+      detail: ocorrenciasAbertas.length ? 'acompanhar tratativas' : 'sem bloqueio',
+      label: 'Ocorrências não resolvidas',
+      tone: ocorrenciasAbertas.length ? 'warning' : 'success',
+      value: ocorrenciasAbertas.length ? String(ocorrenciasAbertas.length) : 'OK',
+    },
+    {
+      detail: alertasAbertos.length ? 'fila de atenção' : 'sem alerta aberto',
+      label: 'Alertas ativos',
+      tone: alertasAbertos.some((alerta) => alerta.severidade === 'alta' || alerta.severidade === 'critica') ? 'danger' : alertasAbertos.length ? 'warning' : 'success',
+      value: alertasAbertos.length ? String(alertasAbertos.length) : 'OK',
+    },
+  ] as const
 
   return (
-    <>
-      <section className="card ciclo-panel ciclo-integral-hero">
+    <div className="ciclo-client-dashboard">
+      <section className="card ciclo-panel ciclo-client-dashboard-toolbar">
+        <CicloClienteDashboardSelector clientes={clientes} selectedId={cliente.id} />
+        <div className="ciclo-quick-actions">
+          <Link className="button secondary" href={`/modulos/gkit-ciclo/clientes/${cliente.id}`}>Editar</Link>
+          <Link className="button secondary" href="/modulos/gkit-ciclo/documentos/novo">Documento</Link>
+          <Link className="button secondary" href="/modulos/gkit-ciclo/ocorrencias/nova">Ocorrência</Link>
+        </div>
+      </section>
+
+      <section className="card ciclo-panel ciclo-client-dashboard-hero">
         <div>
           <span className={`ciclo-pill ${riskTone(cliente.risco_atual)}`}>{cliente.risco_atual}</span>
           <h2>{cliente.nome}</h2>
-          <p>{cliente.documento ?? 'Sem documento'} - {detail.carteira} - {detail.administradora}</p>
+          <p>{cliente.documento ?? 'Sem documento'} · {detail.carteira} · {detail.administradora}</p>
         </div>
-        <div className="ciclo-quick-actions">
-          <Link className="button secondary" href={`/modulos/gkit-ciclo/clientes/${cliente.id}`}>Editar cliente</Link>
-          <Link className="button secondary" href="/modulos/gkit-ciclo/documentos/novo">Novo documento</Link>
-          <Link className="button secondary" href="/modulos/gkit-ciclo/ocorrencias/nova">Nova ocorrência</Link>
-          <Link className="button secondary" href="/modulos/gkit-ciclo/alertas/novo">Novo alerta</Link>
+        <div className={`ciclo-client-health-ring ${dashboardScoreTone(saudeGeral)}`}>
+          <strong>{dashboardScoreLabel(saudeGeral)}</strong>
+          <span>saúde operacional</span>
         </div>
       </section>
 
-      <OperationalKpiGrid className="ciclo-kpi-grid" items={kpis} />
+      <section className="ciclo-client-health-grid">
+        <CicloClientHealthIndex
+          detail={pendencias.length ? 'pendências na regularidade' : 'sem pendência relevante'}
+          label="Regularidade"
+          score={regularidade}
+          tone={dashboardScoreTone(regularidade)}
+        />
+        <CicloClientHealthIndex
+          detail={documentosVencidos ? 'documentos vencidos' : documentosPendentes.length ? 'documentos pendentes' : 'matriz em ordem'}
+          label="Documentação"
+          score={documentosScore}
+          tone={documentosVencidos ? 'danger' : dashboardScoreTone(documentosScore)}
+        />
+        <CicloClientHealthIndex
+          detail={detail.pontualidade.recebimentos ? `${detail.pontualidade.emDia} em dia · ${detail.pontualidade.atrasado} atrasado` : 'sem receita importada'}
+          label="Pontualidade"
+          score={pagamentoScore}
+          tone={detail.pontualidade.atrasado ? 'warning' : dashboardScoreTone(pagamentoScore)}
+        />
+        <CicloClientHealthIndex
+          detail={alertasAbertos.length || ocorrenciasAbertas.length ? 'há itens em acompanhamento' : 'sem bloqueios operacionais'}
+          label="Operação"
+          score={operacaoScore}
+          tone={dashboardScoreTone(operacaoScore)}
+        />
+      </section>
 
-      <section className="ciclo-split-grid">
-        <section className="card ciclo-panel">
-          <div className="ciclo-panel-heading">
-            <div>
-              <h2>Pendências acionaveis</h2>
-              <p>Itens que pedem acompanhamento imediato.</p>
-            </div>
-          </div>
-          {pendencias.length || documentosPendentes.length || alertasAbertos.length ? (
-            <div className="ciclo-table-list compact">
-              {pendencias.slice(0, 5).map((pendencia) => (
-                <article key={pendencia}>
-                  <div>
-                    <h3>{pendencia}</h3>
-                    <p>Regularidade documental</p>
-                  </div>
-                  <span className="ciclo-pill warning">pendente</span>
-                  <strong>Doc</strong>
-                  <small>regularidade</small>
-                </article>
-              ))}
-              {alertasAbertos.slice(0, 5).map((alerta) => (
-                <article key={alerta.id}>
-                  <div>
-                    <h3>{alerta.titulo}</h3>
-                    <p>{alerta.descricao ?? alerta.tipo}</p>
-                  </div>
-                  <span className={`ciclo-pill ${riskTone(alerta.severidade)}`}>{alerta.severidade}</span>
-                  <strong>{alerta.status}</strong>
-                  <small>{formatDate(alerta.vencimento_em ?? '')}</small>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <EmptyBlock label="Nenhuma pendência aberta para este cliente." />
-          )}
-        </section>
+      <section className="ciclo-client-alert-grid">
+        {destaqueItems.map((item) => (
+          <article className={`ciclo-client-alert-card ${item.tone}`} key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+            <small>{item.detail}</small>
+          </article>
+        ))}
+      </section>
 
-        <section className="card ciclo-panel">
-          <div className="ciclo-panel-heading">
-            <div>
-              <h2>Timeline recente</h2>
-              <p>Movimentos operacionais registrados.</p>
-            </div>
-          </div>
-          {timeline.length ? (
-            <div className="ciclo-table-list compact">
-              {timeline.slice(0, 8).map((item) => (
-                <article key={item.id}>
-                  <div>
-                    <h3>{item.titulo}</h3>
-                    <p>{item.descricao || item.cliente}</p>
-                  </div>
-                  <span className="ciclo-pill primary">{item.tipo}</span>
-                  <strong>{formatDate(item.createdAt)}</strong>
-                  <small>evento</small>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <EmptyBlock label="Nenhum evento registrado." />
-          )}
-        </section>
+      <section className="card ciclo-panel ciclo-client-bars-panel">
+        <CicloClientBar label="Conformidade" meta="regularidade e pendências" tone={dashboardScoreTone(regularidade)} value={regularidade} />
+        <CicloClientBar label="Documentos" meta={`${documentosValidados} validados de ${documentos.length || 0}`} tone={documentosVencidos ? 'danger' : dashboardScoreTone(documentosScore)} value={documentosScore} />
+        <CicloClientBar label="Pagamentos" meta={`${detail.pontualidade.recebimentos} recebimento(s) no lote atual`} tone={detail.pontualidade.atrasado ? 'warning' : dashboardScoreTone(pagamentoScore)} value={pagamentoScore} />
+        <CicloClientBar label="Acompanhamento" meta={`${alertasAbertos.length + ocorrenciasAbertas.length} item(ns) em aberto`} tone={dashboardScoreTone(operacaoScore)} value={operacaoScore} />
       </section>
 
       <section className="ciclo-integral-grid">
+        <CicloIntegralList
+          empty="Nenhum alerta operacional aberto."
+          items={[
+            ...documentosPendentes.slice(0, 4).map((documento) => ({
+              href: `/modulos/gkit-ciclo/documentos/${documento.id}`,
+              meta: documento.status === 'vencido' ? 'Documento vencido' : 'Documento pendente',
+              status: documento.status,
+              title: documento.titulo ?? documento.tipo_documento,
+              tone: documento.status === 'vencido' ? 'danger' : 'warning',
+              value: formatDate(documento.data_renovacao ?? ''),
+            })),
+            ...alertasAbertos.slice(0, 4).map((alerta) => ({
+              href: `/modulos/gkit-ciclo/alertas/${alerta.id}`,
+              meta: alerta.descricao ?? alerta.tipo,
+              status: alerta.severidade,
+              title: alerta.titulo,
+              tone: riskTone(alerta.severidade),
+              value: formatDate(alerta.vencimento_em ?? ''),
+            })),
+            ...ocorrenciasAbertas.slice(0, 4).map((ocorrencia) => ({
+              href: `/modulos/gkit-ciclo/ocorrencias/${ocorrencia.id}`,
+              meta: ocorrencia.responsavel ?? 'Sem responsável',
+              status: ocorrencia.status,
+              title: ocorrencia.titulo,
+              tone: impactoTone(ocorrencia.impacto),
+              value: formatDate(ocorrencia.data_ocorrencia),
+            })),
+          ].slice(0, 8)}
+          title="Atenção"
+        />
+        <CicloIntegralList
+          empty="Nenhum evento registrado."
+          items={timeline.slice(0, 8).map((item) => ({
+            href: `/modulos/gkit-ciclo/clientes/${cliente.id}/cockpit`,
+            meta: item.descricao || item.cliente,
+            status: item.tipo,
+            title: item.titulo,
+            tone: 'primary',
+            value: formatDate(item.createdAt),
+          }))}
+          title="Timeline"
+        />
         <CicloIntegralList
           empty="Nenhum documento cadastrado."
           items={documentos.slice(0, 8).map((documento) => ({
@@ -1892,7 +2023,7 @@ export function CicloClienteIntegralCockpit({ detail }: { detail: CicloClienteIn
           title="Ocorrências"
         />
       </section>
-    </>
+    </div>
   )
 }
 
@@ -1910,7 +2041,6 @@ function CicloIntegralList({
       <div className="ciclo-panel-heading">
         <div>
           <h2>{title}</h2>
-          <p>Resumo vinculado ao cliente.</p>
         </div>
       </div>
       {items.length ? (

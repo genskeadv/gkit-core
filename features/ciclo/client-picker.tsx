@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useId, useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
 import { completeCicloOnboardingAction, startCicloOnboardingAction, updateCicloOnboardingMonitorAction } from '@/features/ciclo/actions'
 import { cicloOnboardingDocumentos, cicloOnboardingEtapas, type CicloOnboardingEtapaId } from '@/features/ciclo/onboarding-defaults'
 import { CicloSubmitButton } from '@/features/ciclo/submit-button'
@@ -105,6 +107,41 @@ export function SearchableClienteField({
         ) : null}
       </div>
     </div>
+  )
+}
+
+export function CicloClienteDashboardSelector({
+  clientes,
+  selectedId = '',
+}: {
+  clientes: ClienteOption[]
+  selectedId?: string
+}) {
+  const router = useRouter()
+  const [clienteId, setClienteId] = useState(selectedId)
+  const selectedCliente = clientes.find((cliente) => cliente.id === clienteId)
+
+  function openDashboard(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!clienteId) return
+    router.push(`/modulos/gkit-ciclo/clientes/${clienteId}/cockpit`)
+  }
+
+  return (
+    <form className="ciclo-client-dashboard-filter" onSubmit={openDashboard}>
+      <SearchableClienteField
+        clientes={clientes}
+        onSelect={setClienteId}
+        placeholder="Digite o cliente para abrir o dashboard"
+        selectedId={clienteId}
+      />
+      <div className="ciclo-client-dashboard-selected">
+        <span>{selectedCliente ? 'Cliente selecionado' : 'Sem cliente selecionado'}</span>
+        <strong>{selectedCliente?.shortLabel ?? 'Escolha um cliente'}</strong>
+        <small>{selectedCliente?.meta ?? 'Use o filtro para navegar direto ao dashboard.'}</small>
+      </div>
+      <button className="button" disabled={!clienteId} type="submit">Abrir dashboard</button>
+    </form>
   )
 }
 

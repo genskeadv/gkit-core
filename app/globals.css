@@ -29800,3 +29800,290 @@ body:has(.gkit-flex-operational-shell) {
     white-space: normal !important;
   }
 }
+
+.ciclo-client-dashboard {
+  display: grid;
+  gap: 12px;
+}
+
+.ciclo-client-dashboard-toolbar {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.ciclo-client-dashboard-filter {
+  align-items: end;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.7fr) minmax(220px, 0.5fr) auto;
+  gap: 10px;
+}
+
+.ciclo-client-dashboard-filter .ciclo-client-picker {
+  min-width: 0;
+}
+
+.ciclo-client-dashboard-filter .ciclo-client-picker > label,
+.ciclo-client-dashboard-selected span {
+  color: var(--ciclo-muted);
+  font-size: 11px;
+  font-weight: 560;
+}
+
+.ciclo-client-dashboard-selected {
+  border: 1px solid var(--ciclo-line);
+  border-radius: 8px;
+  display: grid;
+  gap: 2px;
+  min-height: 40px;
+  padding: 7px 10px;
+}
+
+.ciclo-client-dashboard-selected strong {
+  color: var(--ciclo-text);
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.ciclo-client-dashboard-selected small {
+  color: var(--ciclo-muted);
+  font-size: 11px;
+}
+
+.ciclo-client-dashboard-empty {
+  gap: 14px;
+}
+
+.ciclo-client-dashboard-hero {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.ciclo-client-dashboard-hero h2 {
+  color: var(--ciclo-text);
+  font-size: 22px;
+  font-weight: 620;
+  line-height: 1.15;
+  margin: 8px 0 5px;
+}
+
+.ciclo-client-dashboard-hero p {
+  color: var(--ciclo-muted);
+  margin: 0;
+}
+
+.ciclo-client-health-ring {
+  align-items: center;
+  aspect-ratio: 1;
+  border: 9px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  display: grid;
+  justify-items: center;
+  min-width: 132px;
+  padding: 12px;
+}
+
+.ciclo-client-health-ring.success {
+  border-color: rgba(16, 185, 129, 0.38);
+}
+
+.ciclo-client-health-ring.warning {
+  border-color: rgba(245, 158, 11, 0.42);
+}
+
+.ciclo-client-health-ring.danger {
+  border-color: rgba(239, 68, 68, 0.42);
+}
+
+.ciclo-client-health-ring strong {
+  color: var(--ciclo-text);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.ciclo-client-health-ring span {
+  color: var(--ciclo-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.ciclo-client-health-grid,
+.ciclo-client-alert-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.ciclo-client-health-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ciclo-client-alert-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ciclo-client-health-card,
+.ciclo-client-alert-card,
+.ciclo-client-bars-panel {
+  background: #fff;
+  border: 1px solid var(--ciclo-line);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.ciclo-client-health-card,
+.ciclo-client-alert-card {
+  display: grid;
+  gap: 7px;
+  min-height: 86px;
+  padding: 11px 12px;
+}
+
+.ciclo-client-health-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.ciclo-client-health-head > span,
+.ciclo-client-alert-card > span {
+  color: var(--ciclo-muted);
+  font-size: 11px;
+  font-weight: 560;
+}
+
+.ciclo-client-health-card > strong,
+.ciclo-client-alert-card > strong {
+  color: var(--ciclo-text);
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.ciclo-client-health-card small,
+.ciclo-client-alert-card small {
+  color: var(--ciclo-muted);
+  font-size: 11px;
+}
+
+.ciclo-client-traffic {
+  display: flex;
+  gap: 4px;
+}
+
+.ciclo-client-traffic i {
+  background: rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+  display: block;
+  height: 8px;
+  width: 8px;
+}
+
+.ciclo-client-traffic.success i:nth-child(3),
+.ciclo-client-health-card.success .ciclo-client-health-bar span,
+.ciclo-client-bar.success span {
+  background: var(--ciclo-success);
+}
+
+.ciclo-client-traffic.warning i:nth-child(2),
+.ciclo-client-health-card.warning .ciclo-client-health-bar span,
+.ciclo-client-bar.warning span {
+  background: var(--ciclo-warning);
+}
+
+.ciclo-client-traffic.danger i:nth-child(1),
+.ciclo-client-health-card.danger .ciclo-client-health-bar span,
+.ciclo-client-bar.danger span {
+  background: var(--ciclo-danger);
+}
+
+.ciclo-client-health-bar,
+.ciclo-client-bar {
+  background: rgba(148, 163, 184, 0.16);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.ciclo-client-health-bar span,
+.ciclo-client-bar span {
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.ciclo-client-alert-card.success {
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+.ciclo-client-alert-card.warning {
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.ciclo-client-alert-card.danger {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.ciclo-client-alert-card.success strong {
+  color: var(--ciclo-success);
+}
+
+.ciclo-client-alert-card.warning strong {
+  color: var(--ciclo-warning);
+}
+
+.ciclo-client-alert-card.danger strong {
+  color: var(--ciclo-danger);
+}
+
+.ciclo-client-bars-panel {
+  gap: 8px;
+  padding: 12px;
+}
+
+.ciclo-client-bar-row {
+  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.32fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.ciclo-client-bar-row strong {
+  color: var(--ciclo-text);
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.ciclo-client-bar-row small {
+  color: var(--ciclo-muted);
+  display: block;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+@media (max-width: 1100px) {
+  .ciclo-client-dashboard-toolbar,
+  .ciclo-client-dashboard-hero,
+  .ciclo-client-dashboard-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .ciclo-client-dashboard-toolbar .ciclo-quick-actions {
+    justify-content: flex-start;
+  }
+
+  .ciclo-client-health-grid,
+  .ciclo-client-alert-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .ciclo-client-health-grid,
+  .ciclo-client-alert-grid,
+  .ciclo-client-bar-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ciclo-client-health-ring {
+    min-width: 112px;
+  }
+}
