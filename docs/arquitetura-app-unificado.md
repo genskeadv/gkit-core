@@ -48,3 +48,5 @@ Schemas legados removidos: `crm`, `flex` antigo e `gkli_intr`.
 ## UI/UX
 
 A plataforma usa uma linguagem operacional comum: navegacao previsivel, telas densas mas legiveis, cards apenas para itens ou paineis reais, e foco em execucao. Modulos com fluxo proprio podem adaptar a navegacao, desde que preservem acesso e hierarquia visual da suite.
+
+O guia pratico de aplicacao visual fica em `docs/padroes-ui-operacional.md`.
