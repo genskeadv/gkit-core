@@ -1,3 +1,5 @@
+import type { CicloOnboardingEtapaId } from '@/features/ciclo/onboarding-defaults'
+
 export type CicloStatusCliente = 'novo' | 'implantacao' | 'ativo' | 'pausado' | 'encerrado'
 export type CicloRisco = 'baixo' | 'medio' | 'alto' | 'critico'
 export type CicloTemperatura = 'quente' | 'neutro' | 'frio'
@@ -309,6 +311,7 @@ export type CicloOnboardingDocumento = {
 export type CicloOnboardingWorkflowAtividade = {
   id: string
   ordem: number
+  etapa: CicloOnboardingEtapaId
   descricao: string
   responsavel_padrao: string | null
   obrigatoria: boolean
@@ -319,6 +322,7 @@ export type CicloOnboardingClienteAtividade = {
   id: string
   atividade_id: string | null
   ordem: number
+  etapa: CicloOnboardingEtapaId
   descricao: string
   responsavel: string | null
   status: 'pendente' | 'em_andamento' | 'concluido' | 'dispensado'

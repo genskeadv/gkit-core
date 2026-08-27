@@ -35,6 +35,20 @@ export const cicloOnboardingEtapas = [
 
 export type CicloOnboardingEtapaId = (typeof cicloOnboardingEtapas)[number]['id']
 
+const cicloOnboardingEtapaIds = cicloOnboardingEtapas.map((etapa) => etapa.id)
+
+export function normalizarCicloOnboardingEtapa(
+  etapa: unknown,
+  descricao = '',
+  ordem = 0,
+): CicloOnboardingEtapaId {
+  if (typeof etapa === 'string' && cicloOnboardingEtapaIds.includes(etapa as CicloOnboardingEtapaId)) {
+    return etapa as CicloOnboardingEtapaId
+  }
+
+  return cicloOnboardingWorkflowEtapa(descricao, ordem)
+}
+
 export function cicloOnboardingWorkflowEtapa(descricao: string, ordem = 0): CicloOnboardingEtapaId {
   const normalized = descricao.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 

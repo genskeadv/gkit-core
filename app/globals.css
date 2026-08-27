@@ -22474,7 +22474,7 @@ a.button {
 
 .ciclo-workflow-config {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .ciclo-workflow-config-form,
@@ -22486,20 +22486,21 @@ a.button {
 }
 
 .ciclo-workflow-config-form {
-  grid-template-columns: 90px minmax(280px, 1fr) minmax(180px, 260px) 130px 150px;
+  grid-template-columns: 86px minmax(150px, 190px) minmax(260px, 1fr) minmax(170px, 230px) 116px 150px;
 }
 
 .ciclo-workflow-config-list,
 .ciclo-workflow-list {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .ciclo-workflow-config-row {
   border: 1px solid var(--ciclo-line);
-  border-radius: var(--ciclo-card-radius);
-  grid-template-columns: 80px minmax(280px, 1fr) minmax(170px, 230px) 118px 88px 92px;
-  padding: 10px;
+  border-radius: 8px;
+  grid-template-columns: 72px minmax(140px, 170px) minmax(260px, 1fr) minmax(160px, 220px) 106px 76px 88px;
+  min-height: 58px;
+  padding: 7px 10px;
 }
 
 .ciclo-workflow-row {
@@ -22527,6 +22528,8 @@ a.button {
 
 .ciclo-workflow-config-form .input,
 .ciclo-workflow-config-row .input,
+.ciclo-workflow-config-form .select,
+.ciclo-workflow-config-row .select,
 .ciclo-workflow-row .input,
 .ciclo-workflow-row .select,
 .ciclo-workflow-config-form .button,
@@ -22538,6 +22541,23 @@ a.button {
 .ciclo-workflow-check,
 .ciclo-workflow-config-row .checkbox-row {
   align-self: center;
+}
+
+.ciclo-workflow-stage-list {
+  gap: 8px;
+}
+
+.ciclo-workflow-stage {
+  padding: 9px 10px !important;
+}
+
+.ciclo-workflow-stage legend {
+  padding-bottom: 7px !important;
+}
+
+.ciclo-workflow-config-actions {
+  justify-content: flex-end;
+  margin: 0;
 }
 
 .ciclo-workflow-main {
@@ -22810,8 +22830,8 @@ a.button {
   }
 
   .ciclo-workflow-main,
-  .ciclo-workflow-config-form label:nth-of-type(2),
-  .ciclo-workflow-config-row label:nth-of-type(2) {
+  .ciclo-workflow-config-form label:nth-of-type(3),
+  .ciclo-workflow-config-row label:nth-of-type(3) {
     grid-column: 1 / -1;
   }
 
@@ -22852,8 +22872,8 @@ a.button {
   }
 
   .ciclo-workflow-main,
-  .ciclo-workflow-config-form label:nth-of-type(2),
-  .ciclo-workflow-config-row label:nth-of-type(2) {
+  .ciclo-workflow-config-form label:nth-of-type(3),
+  .ciclo-workflow-config-row label:nth-of-type(3) {
     grid-column: auto;
   }
 

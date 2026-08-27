@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import { requireModuleAccess } from '@/lib/auth/platform'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { cicloOnboardingDocumentos } from '@/features/ciclo/onboarding-defaults'
+import { cicloOnboardingDocumentos, normalizarCicloOnboardingEtapa } from '@/features/ciclo/onboarding-defaults'
 
 export type PreviewImportacaoClientes = {
   total: number
@@ -1167,7 +1167,7 @@ async function ensureOnboardingWorkflow(clienteId: string, carteiraId: string | 
   const { data, error } = await admin()
     .schema('ciclo')
     .from('onboarding_workflow_atividades')
-    .select('id,ordem,descricao,responsavel_padrao,obrigatoria')
+    .select('id,ordem,etapa,descricao,responsavel_padrao,obrigatoria')
     .eq('ativo', true)
     .order('ordem', { ascending: true })
 
@@ -1178,6 +1178,7 @@ async function ensureOnboardingWorkflow(clienteId: string, carteiraId: string | 
     carteira_id: carteiraId,
     atividade_id: atividade.id,
     ordem: atividade.ordem ?? 0,
+    etapa: normalizarCicloOnboardingEtapa(atividade.etapa, atividade.descricao, atividade.ordem ?? 0),
     descricao: atividade.descricao,
     responsavel: atividade.responsavel_padrao ?? null,
     obrigatoria: atividade.obrigatoria !== false,
@@ -1683,15 +1684,18 @@ export async function createCicloOnboardingWorkflowAtividadeAction(formData: For
   await requireCicloWrite(null)
   const descricao = required(text(formData, 'descricao'), 'Descrição')
   const ordem = Number(text(formData, 'ordem') || 0)
+  const ordemNormalizada = Number.isFinite(ordem) ? ordem : 0
+  const etapa = normalizarCicloOnboardingEtapa(text(formData, 'etapa'), descricao, ordemNormalizada)
 
   const { error } = await admin()
     .schema('ciclo')
     .from('onboarding_workflow_atividades')
     .insert({
-      ordem: Number.isFinite(ordem) ? ordem : 0,
+      ordem: ordemNormalizada,
+      etapa,
       descricao,
       responsavel_padrao: nullableText(formData, 'responsavel_padrao'),
-      obrigatoria: formData.get('obrigatoria') !== 'off',
+      obrigatoria: formData.getAll('obrigatoria').includes('on'),
       ativo: true,
     })
 
@@ -1706,16 +1710,19 @@ export async function updateCicloOnboardingWorkflowAtividadeAction(formData: For
   const id = required(text(formData, 'id'), 'Atividade')
   const descricao = required(text(formData, 'descricao'), 'Descrição')
   const ordem = Number(text(formData, 'ordem') || 0)
+  const ordemNormalizada = Number.isFinite(ordem) ? ordem : 0
+  const etapa = normalizarCicloOnboardingEtapa(text(formData, 'etapa'), descricao, ordemNormalizada)
 
   const { error } = await admin()
     .schema('ciclo')
     .from('onboarding_workflow_atividades')
     .update({
-      ordem: Number.isFinite(ordem) ? ordem : 0,
+      ordem: ordemNormalizada,
+      etapa,
       descricao,
       responsavel_padrao: nullableText(formData, 'responsavel_padrao'),
-      obrigatoria: formData.get('obrigatoria') !== 'off',
-      ativo: formData.get('ativo') !== 'off',
+      obrigatoria: formData.getAll('obrigatoria').includes('on'),
+      ativo: formData.getAll('ativo').includes('on'),
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)

@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useState } from 'react'
 import { completeCicloOnboardingAction, startCicloOnboardingAction, updateCicloOnboardingMonitorAction } from '@/features/ciclo/actions'
-import { cicloOnboardingDocumentos, cicloOnboardingEtapas, cicloOnboardingWorkflowEtapa, type CicloOnboardingEtapaId } from '@/features/ciclo/onboarding-defaults'
+import { cicloOnboardingDocumentos, cicloOnboardingEtapas, type CicloOnboardingEtapaId } from '@/features/ciclo/onboarding-defaults'
 import { CicloSubmitButton } from '@/features/ciclo/submit-button'
 import type { CicloDocumentoFormData, CicloOnboardingDetail, CicloOnboardingWorkflowAtividade } from '@/features/ciclo/types'
 
@@ -124,7 +124,7 @@ export function CicloStartOnboardingForm({
   const activeWorkflow = workflow.filter((atividade) => atividade.ativo)
   const tarefasPorEtapa = cicloOnboardingEtapas.map((etapa) => {
     const workflowTasks = activeWorkflow
-      .filter((atividade) => cicloOnboardingWorkflowEtapa(atividade.descricao, atividade.ordem) === etapa.id)
+      .filter((atividade) => atividade.etapa === etapa.id)
       .map((atividade) => ({
         id: `workflow_${atividade.id}`,
         meta: atividade.responsavel_padrao || 'Responsável a definir',
@@ -217,7 +217,7 @@ export function CicloOnboardingFlowMonitor({ detail }: { detail: CicloOnboarding
   const canConcluir = progresso.total > 0 && workflow.total > 0 && progresso.pendentes === 0 && workflow.pendentes === 0
   const tarefasPorEtapa = cicloOnboardingEtapas.map((etapa) => {
     const workflowTasks = atividades
-      .filter((atividade) => cicloOnboardingWorkflowEtapa(atividade.descricao, atividade.ordem) === etapa.id)
+      .filter((atividade) => atividade.etapa === etapa.id)
       .map((atividade) => ({
         checked: atividade.status === 'concluido',
         id: atividade.id,

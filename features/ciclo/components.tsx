@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { ModuleShell, type ModuleNavGroup } from '@/features/shared/module-shell'
 import { OperationalKpiGrid, OperationalQuickLinks, OperationalSection } from '@/features/shared/operational-ui'
 import { CicloSubmitButton } from '@/features/ciclo/submit-button'
+import { cicloOnboardingEtapas } from '@/features/ciclo/onboarding-defaults'
 import { formatDate, priorityLabel, priorityScore, riskTone } from '@/features/ciclo/scoring'
 import type {
   CicloAlerta,
@@ -1934,19 +1935,26 @@ function CicloIntegralList({
 }
 
 export function CicloOnboardingWorkflowConfig({ atividades }: { atividades: CicloOnboardingWorkflowAtividade[] }) {
+  const atividadesPorEtapa = cicloOnboardingEtapas.map((etapa) => ({
+    ...etapa,
+    atividades: atividades.filter((atividade) => atividade.etapa === etapa.id),
+  }))
+
   return (
     <div className="ciclo-workflow-config">
       <section className="card ciclo-panel">
-        <div className="ciclo-panel-heading">
-          <div>
-            <h2>Nova atividade</h2>
-            <p>Cadastre a etapa padrão do fluxo de recepcao.</p>
-          </div>
-        </div>
         <form action={createCicloOnboardingWorkflowAtividadeAction} className="ciclo-workflow-config-form">
           <label>
             <span>Ordem</span>
             <input className="input" min="1" name="ordem" required type="number" />
+          </label>
+          <label>
+            <span>Etapa</span>
+            <select className="select" name="etapa" defaultValue="cadastro">
+              {cicloOnboardingEtapas.map((etapa) => (
+                <option key={etapa.id} value={etapa.id}>{etapa.titulo}</option>
+              ))}
+            </select>
           </label>
           <label>
             <span>Descrição</span>
@@ -1957,6 +1965,7 @@ export function CicloOnboardingWorkflowConfig({ atividades }: { atividades: Cicl
             <input className="input" name="responsavel_padrao" placeholder="Nome ou área" />
           </label>
           <label className="checkbox-row ciclo-workflow-check">
+            <input name="obrigatoria" type="hidden" value="off" />
             <input name="obrigatoria" type="checkbox" value="on" defaultChecked />
             <span>Obrigatória</span>
           </label>
@@ -1965,47 +1974,70 @@ export function CicloOnboardingWorkflowConfig({ atividades }: { atividades: Cicl
       </section>
 
       <section className="card ciclo-panel">
-        <div className="ciclo-panel-heading">
-          <div>
-            <h2>Atividades do workflow</h2>
-            <p>Ordem, descrição e responsável usados ao iniciar o onboarding.</p>
-          </div>
-          <Link className="button secondary" href="/modulos/gkit-ciclo/onboarding">Voltar</Link>
-        </div>
-
         {atividades.length ? (
-          <div className="ciclo-workflow-config-list">
-            {atividades.map((atividade) => (
-              <form action={updateCicloOnboardingWorkflowAtividadeAction} className="ciclo-workflow-config-row" key={atividade.id}>
-                <input type="hidden" name="id" value={atividade.id} />
-                <label>
-                  <span>Ordem</span>
-                  <input className="input" name="ordem" type="number" defaultValue={atividade.ordem} />
-                </label>
-                <label>
-                  <span>Descrição</span>
-                  <input className="input" name="descricao" defaultValue={atividade.descricao} required />
-                </label>
-                <label>
-                  <span>Responsável</span>
-                  <input className="input" name="responsavel_padrao" defaultValue={atividade.responsavel_padrao ?? ''} />
-                </label>
-                <label className="checkbox-row">
-                  <input name="obrigatoria" type="checkbox" value="on" defaultChecked={atividade.obrigatoria} />
-                  <span>Obrigatória</span>
-                </label>
-                <label className="checkbox-row">
-                  <input name="ativo" type="checkbox" value="on" defaultChecked={atividade.ativo} />
-                  <span>Ativa</span>
-                </label>
-                <button className="button secondary" type="submit">Salvar</button>
-              </form>
+          <div className="ciclo-onboarding-stage-list ciclo-workflow-stage-list">
+            {atividadesPorEtapa.map((etapa, etapaIndex) => (
+              <fieldset className="ciclo-onboarding-stage ciclo-workflow-stage" key={etapa.id}>
+                <legend>
+                  <span>{etapaIndex + 1}</span>
+                  <div>
+                    <strong>{etapa.titulo}</strong>
+                    <small>{etapa.descricao}</small>
+                  </div>
+                  <em>{etapa.atividades.length} atividade(s)</em>
+                </legend>
+                {etapa.atividades.length ? (
+                  <div className="ciclo-workflow-config-list">
+                    {etapa.atividades.map((atividade) => (
+                      <form action={updateCicloOnboardingWorkflowAtividadeAction} className="ciclo-workflow-config-row" key={atividade.id}>
+                        <input type="hidden" name="id" value={atividade.id} />
+                        <label>
+                          <span>Ordem</span>
+                          <input className="input" name="ordem" type="number" defaultValue={atividade.ordem} />
+                        </label>
+                        <label>
+                          <span>Etapa</span>
+                          <select className="select" name="etapa" defaultValue={atividade.etapa}>
+                            {cicloOnboardingEtapas.map((opcao) => (
+                              <option key={opcao.id} value={opcao.id}>{opcao.titulo}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          <span>Descrição</span>
+                          <input className="input" name="descricao" defaultValue={atividade.descricao} required />
+                        </label>
+                        <label>
+                          <span>Responsável</span>
+                          <input className="input" name="responsavel_padrao" defaultValue={atividade.responsavel_padrao ?? ''} />
+                        </label>
+                        <label className="checkbox-row">
+                          <input name="obrigatoria" type="hidden" value="off" />
+                          <input name="obrigatoria" type="checkbox" value="on" defaultChecked={atividade.obrigatoria} />
+                          <span>Obrigatória</span>
+                        </label>
+                        <label className="checkbox-row">
+                          <input name="ativo" type="hidden" value="off" />
+                          <input name="ativo" type="checkbox" value="on" defaultChecked={atividade.ativo} />
+                          <span>Ativa</span>
+                        </label>
+                        <button className="button secondary" type="submit">Salvar</button>
+                      </form>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="ciclo-onboarding-start-empty">Nenhuma atividade configurada para esta etapa.</div>
+                )}
+              </fieldset>
             ))}
           </div>
         ) : (
           <EmptyBlock label="Nenhuma atividade cadastrada." />
         )}
       </section>
+      <div className="form-actions ciclo-workflow-config-actions">
+        <Link className="button secondary" href="/modulos/gkit-ciclo/onboarding">Voltar</Link>
+      </div>
     </div>
   )
 }

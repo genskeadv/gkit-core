@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import { requireModuleAccess } from '@/lib/auth/platform'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { normalizarCicloOnboardingEtapa } from '@/features/ciclo/onboarding-defaults'
 import { formatDocumento, normalizePercent } from '@/features/ciclo/scoring'
 import type {
   CicloAlerta,
@@ -759,7 +760,7 @@ export async function listCicloOnboardingWorkflowAtividades(): Promise<CicloOnbo
   const { data, error } = await admin()
     .schema('ciclo')
     .from('onboarding_workflow_atividades')
-    .select('id,ordem,descricao,responsavel_padrao,obrigatoria,ativo')
+    .select('id,ordem,etapa,descricao,responsavel_padrao,obrigatoria,ativo')
     .order('ordem', { ascending: true })
 
   if (error) return []
@@ -767,6 +768,7 @@ export async function listCicloOnboardingWorkflowAtividades(): Promise<CicloOnbo
   return ((data ?? []) as Array<Record<string, any>>).map((row) => ({
     id: text(row.id),
     ordem: numberValue(row.ordem),
+    etapa: normalizarCicloOnboardingEtapa(row.etapa, text(row.descricao), numberValue(row.ordem)),
     descricao: text(row.descricao),
     responsavel_padrao: text(row.responsavel_padrao) || null,
     obrigatoria: row.obrigatoria !== false,
@@ -1527,7 +1529,7 @@ export async function getCicloOnboardingDetail(id: string, context: CicloContext
     admin()
       .schema('ciclo')
       .from('onboarding_cliente_atividades')
-      .select('id,atividade_id,ordem,descricao,responsavel,status,obrigatoria,concluido_em,observacoes,created_at')
+      .select('id,atividade_id,ordem,etapa,descricao,responsavel,status,obrigatoria,concluido_em,observacoes,created_at')
       .eq('cliente_id', id)
       .order('ordem', { ascending: true }),
     admin()
@@ -1561,6 +1563,7 @@ export async function getCicloOnboardingDetail(id: string, context: CicloContext
     id: text(row.id),
     atividade_id: text(row.atividade_id) || null,
     ordem: numberValue(row.ordem),
+    etapa: normalizarCicloOnboardingEtapa(row.etapa, text(row.descricao), numberValue(row.ordem)),
     descricao: text(row.descricao),
     responsavel: text(row.responsavel) || null,
     status: normalizeWorkflowStatus(row.status),
