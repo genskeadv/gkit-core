@@ -2432,12 +2432,17 @@ export function CicloGenericList({
                         <h3>{row.title}</h3>
                         <p>{row.subtitle}</p>
                       </div>
+                      {row.summary ? <small className="ciclo-row-summary">{row.summary}</small> : null}
                       <span className={`ciclo-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
-                      <strong>{row.value}</strong>
-                      <small>
-                        <span className={row.summary ? 'ciclo-row-summary' : undefined}>{row.summary ?? row.meta}</span>
-                        {detailHref ? <Link className="button secondary" href={detailHref}>Detalhes</Link> : null}
-                      </small>
+                      <strong className={row.summary ? 'ciclo-row-value' : undefined}>{row.value}</strong>
+                      {row.summary ? (
+                        detailHref ? <Link className="button secondary ciclo-row-detail" href={detailHref}>Detalhes</Link> : <span />
+                      ) : (
+                        <small>
+                          <span>{row.meta}</span>
+                          {detailHref ? <Link className="button secondary" href={detailHref}>Detalhes</Link> : null}
+                        </small>
+                      )}
                     </article>
                   )
                 })}
@@ -2455,12 +2460,17 @@ export function CicloGenericList({
                   <h3>{row.title}</h3>
                   <p>{row.subtitle}</p>
                 </div>
+                {row.summary ? <small className="ciclo-row-summary">{row.summary}</small> : null}
                 <span className={`ciclo-pill ${row.tone ?? 'primary'}`}>{row.status}</span>
-                <strong>{row.value}</strong>
-                <small>
-                  <span className={row.summary ? 'ciclo-row-summary' : undefined}>{row.summary ?? row.meta}</span>
-                  {detailHref ? <Link className="button secondary" href={detailHref}>Detalhes</Link> : null}
-                </small>
+                <strong className={row.summary ? 'ciclo-row-value' : undefined}>{row.value}</strong>
+                {row.summary ? (
+                  detailHref ? <Link className="button secondary ciclo-row-detail" href={detailHref}>Detalhes</Link> : <span />
+                ) : (
+                  <small>
+                    <span>{row.meta}</span>
+                    {detailHref ? <Link className="button secondary" href={detailHref}>Detalhes</Link> : null}
+                  </small>
+                )}
               </article>
             )
           })}
