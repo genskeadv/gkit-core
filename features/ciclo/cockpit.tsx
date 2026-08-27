@@ -85,6 +85,21 @@ function filterCockpitAlertas(alertas: CicloAlerta[], filters: CicloListFilters)
   })
 }
 
+function groupCockpitAlertas(alertas: CicloAlerta[], filters: CicloListFilters) {
+  const rows = filterCockpitAlertas(alertas, filters)
+
+  return [...rows.reduce((acc, alerta) => {
+    const cliente = alerta.cliente || 'Cliente não vinculado'
+    acc.set(cliente, [...(acc.get(cliente) ?? []), alerta])
+    return acc
+  }, new Map<string, CicloAlerta[]>())]
+    .sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
+    .map(([cliente, items]) => ({
+      cliente,
+      items: items.sort((a, b) => (listDateKey(a.vencimentoEm) || '9999-12-31').localeCompare(listDateKey(b.vencimentoEm) || '9999-12-31') || a.titulo.localeCompare(b.titulo, 'pt-BR')),
+    }))
+}
+
 function cockpitAlertHref(page: number, filters: CicloListFilters) {
   const params = new URLSearchParams()
   if (filters.q) params.set('q', filters.q)
@@ -97,18 +112,32 @@ function cockpitAlertHref(page: number, filters: CicloListFilters) {
   return query ? `?${query}` : '?'
 }
 
+function CockpitAlertPagination({
+  currentPage,
+  filters,
+  totalPages,
+}: {
+  currentPage: number
+  filters: CicloListFilters
+  totalPages: number
+}) {
+  return (
+    <div className="ciclo-client-group-pagination ciclo-alert-pagination">
+      <span>Página {currentPage} de {totalPages}</span>
+      <div>
+        <Link aria-disabled={currentPage === 1} className="button secondary" href={cockpitAlertHref(currentPage - 1, filters)}>
+          Anterior
+        </Link>
+        <Link aria-disabled={currentPage === totalPages} className="button secondary" href={cockpitAlertHref(currentPage + 1, filters)}>
+          Próxima
+        </Link>
+      </div>
+    </div>
+  )
+}
+
 function CockpitAlertList({ alertas, filters }: { alertas: CicloAlerta[]; filters: CicloListFilters }) {
-  const rows = filterCockpitAlertas(alertas, filters)
-  const grouped = [...rows.reduce((acc, alerta) => {
-    const cliente = alerta.cliente || 'Cliente não vinculado'
-    acc.set(cliente, [...(acc.get(cliente) ?? []), alerta])
-    return acc
-  }, new Map<string, CicloAlerta[]>())]
-    .sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
-    .map(([cliente, items]) => ({
-      cliente,
-      items: items.sort((a, b) => (listDateKey(a.vencimentoEm) || '9999-12-31').localeCompare(listDateKey(b.vencimentoEm) || '9999-12-31') || a.titulo.localeCompare(b.titulo, 'pt-BR')),
-    }))
+  const grouped = groupCockpitAlertas(alertas, filters)
   const totalPages = Math.max(1, Math.ceil(grouped.length / alertasPageSize))
   const currentPage = Math.min(Math.max(filters.pagina, 1), totalPages)
   const visibleGroups = grouped.slice((currentPage - 1) * alertasPageSize, currentPage * alertasPageSize)
@@ -151,17 +180,7 @@ function CockpitAlertList({ alertas, filters }: { alertas: CicloAlerta[]; filter
 
       {visibleGroups.length ? (
         <div className="ciclo-client-group-list">
-          <div className="ciclo-list-pagination">
-            <span>{grouped.length} cliente(s) · página {currentPage} de {totalPages}</span>
-            <div>
-              <Link aria-disabled={currentPage === 1} className="button secondary" href={cockpitAlertHref(currentPage - 1, filters)}>
-                Anterior
-              </Link>
-              <Link aria-disabled={currentPage === totalPages} className="button secondary" href={cockpitAlertHref(currentPage + 1, filters)}>
-                Próxima
-              </Link>
-            </div>
-          </div>
+          <CockpitAlertPagination currentPage={currentPage} filters={filters} totalPages={totalPages} />
           {visibleGroups.map((group) => (
             <details className="ciclo-client-group" key={group.cliente}>
               <summary>
@@ -183,6 +202,7 @@ function CockpitAlertList({ alertas, filters }: { alertas: CicloAlerta[]; filter
               </div>
             </details>
           ))}
+          <CockpitAlertPagination currentPage={currentPage} filters={filters} totalPages={totalPages} />
         </div>
       ) : (
         <div className="suite-empty-block">Nenhum alerta encontrado.</div>
@@ -212,6 +232,8 @@ export function CicloCockpit({
 }) {
   const activePanel = initialPanel
   const availablePanels = panels.filter((panel) => permissions[panel.id])
+  const filteredAlertasCount = filterCockpitAlertas(data.alertas, filters).length
+  const alertGroupsCount = groupCockpitAlertas(data.alertas, filters).length
   const [onboardingClienteId, setOnboardingClienteId] = useState('')
   const [documentacaoClienteId, setDocumentacaoClienteId] = useState('')
   const [ocorrenciaClienteId, setOcorrenciaClienteId] = useState('')
@@ -256,7 +278,7 @@ export function CicloCockpit({
         <div className="suite-panel-heading">
           <div>
             <h2>{activePanel ? panelTitle(activePanel) : 'Alertas recentes'}</h2>
-            <p>{activePanel ? panelDescription(activePanel) : 'Fila operacional agrupada por cliente.'}</p>
+            <p>{activePanel ? panelDescription(activePanel) : `${filteredAlertasCount} alerta(s) em ${alertGroupsCount} cliente(s)`}</p>
           </div>
         </div>
 
