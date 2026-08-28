@@ -201,7 +201,7 @@ function GkliAtendeDashboard({ groups }: { groups: GkliAtendeClientGroup[] }) {
       <summary className="gkli-atende-dashboard-head">
         <div>
           <span>Dashboard</span>
-          <h2>Minha fila</h2>
+          <h2>Atendimentos</h2>
         </div>
         <span className="gkli-atende-dashboard-toggle">{dashboardCollapsed ? 'Expandir' : 'Recolher'}</span>
       </summary>
