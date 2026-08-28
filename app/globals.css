@@ -30237,7 +30237,7 @@ body:has(.gkit-flex-operational-shell) {
   }
 }
 .gkli-atende {
-  --gkli-atende-base: #b3679b;
+  --gkli-atende-base: #351b40;
   min-height: 100vh;
   padding: 18px;
   background: #f3f6fa;
