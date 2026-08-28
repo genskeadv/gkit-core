@@ -30237,6 +30237,7 @@ body:has(.gkit-flex-operational-shell) {
   }
 }
 .gkli-atende {
+  --gkli-atende-base: #b3679b;
   min-height: 100vh;
   padding: 18px;
   background: #f3f6fa;
@@ -30344,7 +30345,7 @@ body:has(.gkit-flex-operational-shell) {
   margin-top: 22px;
   padding: 22px 26px;
   border-color: rgba(148, 163, 184, 0.32);
-  border-left: 5px solid #6b2f82;
+  border-left: 5px solid var(--gkli-atende-base);
   box-shadow: 0 16px 42px rgba(15, 23, 42, 0.04);
 }
 
@@ -30388,7 +30389,7 @@ body:has(.gkit-flex-operational-shell) {
 .gkli-atende-dashboard {
   margin-top: 22px;
   border-color: rgba(61, 25, 76, 0.12);
-  background: #351542;
+  background: var(--gkli-atende-base);
   color: #fff;
   overflow: hidden;
 }
@@ -30562,25 +30563,25 @@ body:has(.gkit-flex-operational-shell) {
   color: rgba(255, 255, 255, 0.88);
   font-size: 0.72rem;
   background:
-    radial-gradient(circle at center, #351542 56%, transparent 58%),
+    radial-gradient(circle at center, var(--gkli-atende-base) 56%, transparent 58%),
     conic-gradient(#44d9a5 0deg var(--ring-size), rgba(255, 255, 255, 0.15) var(--ring-size) 360deg);
 }
 
 .gkli-atende-dashboard-rhythm span.primary:not(.gkli-atende-dashboard-title) {
   background:
-    radial-gradient(circle at center, #351542 56%, transparent 58%),
+    radial-gradient(circle at center, var(--gkli-atende-base) 56%, transparent 58%),
     conic-gradient(#6fb5ff 0deg var(--ring-size), rgba(255, 255, 255, 0.15) var(--ring-size) 360deg);
 }
 
 .gkli-atende-dashboard-rhythm span.danger:not(.gkli-atende-dashboard-title) {
   background:
-    radial-gradient(circle at center, #351542 56%, transparent 58%),
+    radial-gradient(circle at center, var(--gkli-atende-base) 56%, transparent 58%),
     conic-gradient(#ff7189 0deg var(--ring-size), rgba(255, 255, 255, 0.15) var(--ring-size) 360deg);
 }
 
 .gkli-atende-dashboard-rhythm span.warning:not(.gkli-atende-dashboard-title) {
   background:
-    radial-gradient(circle at center, #351542 56%, transparent 58%),
+    radial-gradient(circle at center, var(--gkli-atende-base) 56%, transparent 58%),
     conic-gradient(#f5c84c 0deg var(--ring-size), rgba(255, 255, 255, 0.15) var(--ring-size) 360deg);
 }
 
@@ -30631,7 +30632,7 @@ body:has(.gkit-flex-operational-shell) {
 }
 
 .gkli-atende-card.primary {
-  border-color: rgba(107, 47, 130, 0.28);
+  border-color: rgba(179, 103, 155, 0.4);
 }
 
 .gkli-atende-card.danger {
@@ -30743,7 +30744,7 @@ body:has(.gkit-flex-operational-shell) {
   height: 32px;
   border: 0;
   border-radius: 999px;
-  background: #351542;
+  background: var(--gkli-atende-base);
   color: #fff;
   font-weight: 700;
 }
@@ -30866,7 +30867,7 @@ body:has(.gkit-flex-operational-shell) {
 
 .gkli-atende-icon-button.secondary {
   background: #eef2f7;
-  color: #351542;
+  color: var(--gkli-atende-base);
 }
 
 .gkli-atende-complete-form {
