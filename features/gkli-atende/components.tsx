@@ -372,15 +372,6 @@ export function GkliAtendePage({
         </div>
       </header>
 
-      <section className="gkli-atende-hero">
-        <div>
-          <p>Atendimento</p>
-          <h1>Fila diária</h1>
-          <span>Atendimentos e tarefas abertos para acompanhar e atualizar sem entrar no backoffice.</span>
-        </div>
-        <Link className="gkli-atende-secondary-action" href="/plataforma">Plataforma</Link>
-      </section>
-
       <GkliAtendeDashboard groups={filteredGroups} />
 
       <section className="gkli-atende-workspace">
