@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { CheckCircle2, Clock3, LogOut, PlayCircle, Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import type { PlatformUsuario } from '@/lib/auth/platform'
 import type { GkliAtendeCard, GkliAtendeClientGroup, GkliAtendeData, GkliAtendeTask } from './queries'
 
@@ -17,6 +18,7 @@ type GkliAtendePageProps = {
 }
 
 const CLIENTS_PER_PAGE = 20
+const STORAGE_DASHBOARD_KEY = 'gkli-atende-dashboard-collapsed'
 
 const fieldLabels: Record<FilterField, string> = {
   cliente: 'Cliente',
@@ -40,6 +42,63 @@ function plural(value: number, singular: string, pluralLabel: string) {
 
 function cardClass(card: GkliAtendeCard) {
   return `gkli-atende-card ${card.tone}`
+}
+
+function percent(value: number, total: number) {
+  if (!total) return 0
+  return Math.round((value / total) * 100)
+}
+
+function buildTrend(tasks: GkliAtendeTask[]) {
+  const buckets = Array.from({ length: 7 }, () => 0)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  for (const task of tasks) {
+    if (!task.dataPrevista) continue
+    const dueDate = new Date(`${task.dataPrevista.slice(0, 10)}T00:00:00`)
+    if (Number.isNaN(dueDate.getTime())) continue
+    const diff = Math.floor((dueDate.getTime() - today.getTime()) / 86400000)
+    if (diff >= 0 && diff < buckets.length) buckets[diff] += 1
+  }
+
+  const max = Math.max(...buckets, 1)
+  return buckets.map((value) => Math.max(Math.round((value / max) * 100), value ? 12 : 4))
+}
+
+function buildDashboard(groups: GkliAtendeClientGroup[]) {
+  const tasks = groups.flatMap((group) => group.tarefas)
+  const total = tasks.length
+  const atrasadas = tasks.filter((task) => task.prazoTone === 'danger').length
+  const hoje = tasks.filter((task) => task.prazoTone === 'warning').length
+  const emAndamento = tasks.filter((task) => task.status === 'em_andamento').length
+  const semPrazo = tasks.filter((task) => !task.dataPrevista).length
+  const pendentes = tasks.filter((task) => task.status === 'pendente').length
+  const maxClientLoad = Math.max(...groups.map((group) => group.tarefasPendentes), 1)
+
+  return {
+    total,
+    bars: [
+      { label: 'Atrasadas', value: percent(atrasadas, total), count: atrasadas, tone: 'danger' },
+      { label: 'Hoje', value: percent(hoje, total), count: hoje, tone: 'warning' },
+      { label: 'Em andamento', value: percent(emAndamento, total), count: emAndamento, tone: 'primary' },
+      { label: 'Sem prazo', value: percent(semPrazo, total), count: semPrazo, tone: 'neutral' },
+    ],
+    trend: buildTrend(tasks),
+    rings: [
+      { label: 'Pendente', value: percent(pendentes, total), tone: 'warning' },
+      { label: 'Andamento', value: percent(emAndamento, total), tone: 'primary' },
+      { label: 'Atraso', value: percent(atrasadas, total), tone: 'danger' },
+    ],
+    workload: groups
+      .filter((group) => group.tarefasPendentes > 0)
+      .slice(0, 5)
+      .map((group) => ({
+        label: group.cliente,
+        count: group.tarefasPendentes,
+        value: percent(group.tarefasPendentes, maxClientLoad),
+      })),
+  }
 }
 
 function statusMatch(task: GkliAtendeTask, value: string) {
@@ -118,6 +177,83 @@ function DynamicFilterField({
       onChange={(event) => setQuery(event.target.value)}
       placeholder={field === 'tipo' ? 'Digite o tipo' : 'Digite o cliente'}
     />
+  )
+}
+
+function GkliAtendeDashboard({ groups }: { groups: GkliAtendeClientGroup[] }) {
+  const [dashboardCollapsed, setDashboardCollapsed] = useState(false)
+  const dashboard = useMemo(() => buildDashboard(groups), [groups])
+
+  useEffect(() => {
+    setDashboardCollapsed(window.localStorage.getItem(STORAGE_DASHBOARD_KEY) === 'true')
+  }, [])
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_DASHBOARD_KEY, String(dashboardCollapsed))
+  }, [dashboardCollapsed])
+
+  return (
+    <details
+      className="gkli-atende-dashboard"
+      onToggle={(event) => setDashboardCollapsed(!event.currentTarget.open)}
+      open={!dashboardCollapsed}
+    >
+      <summary className="gkli-atende-dashboard-head">
+        <div>
+          <span>Dashboard</span>
+          <h2>Minha fila</h2>
+        </div>
+        <span className="gkli-atende-dashboard-toggle">{dashboardCollapsed ? 'Expandir' : 'Recolher'}</span>
+      </summary>
+
+      {!dashboardCollapsed ? (
+        <div className="gkli-atende-dashboard-body">
+          <section className="gkli-atende-dashboard-bars" aria-label="Pressão da fila">
+            <span className="gkli-atende-dashboard-title">Pressão da fila</span>
+            {dashboard.bars.map((bar) => (
+              <div key={bar.label}>
+                <span>{bar.label}</span>
+                <i className={bar.tone} style={{ '--bar-size': `${bar.value}%` } as CSSProperties} />
+                <small>{bar.count}</small>
+              </div>
+            ))}
+          </section>
+
+          <section className="gkli-atende-dashboard-trend" aria-label="Próximos vencimentos">
+            <span className="gkli-atende-dashboard-title">Próximos vencimentos</span>
+            <div>
+              {dashboard.trend.map((value, index) => (
+                <i key={index} style={{ '--trend-size': `${value}%` } as CSSProperties} />
+              ))}
+            </div>
+          </section>
+
+          <section className="gkli-atende-dashboard-rhythm" aria-label="Ritmo operacional">
+            <span className="gkli-atende-dashboard-title">Ritmo operacional</span>
+            <div>
+              {dashboard.rings.map((ring) => (
+                <span className={ring.tone} key={ring.label} style={{ '--ring-size': `${ring.value * 3.2}deg` } as CSSProperties}>
+                  {ring.label}
+                </span>
+              ))}
+            </div>
+          </section>
+
+          <section className="gkli-atende-dashboard-workload" aria-label="Concentração por cliente">
+            <span className="gkli-atende-dashboard-title">Concentração por cliente</span>
+            {dashboard.workload.length ? dashboard.workload.map((item) => (
+              <div key={item.label}>
+                <span>{item.label}</span>
+                <i style={{ '--bar-size': `${item.value}%` } as CSSProperties} />
+                <small>{item.count}</small>
+              </div>
+            )) : (
+              <p>Nenhuma concentração relevante neste recorte.</p>
+            )}
+          </section>
+        </div>
+      ) : null}
+    </details>
   )
 }
 
@@ -244,6 +380,8 @@ export function GkliAtendePage({
         </div>
         <Link className="gkli-atende-secondary-action" href="/plataforma">Plataforma</Link>
       </section>
+
+      <GkliAtendeDashboard groups={filteredGroups} />
 
       <section className="gkli-atende-workspace">
         <div className="gkli-atende-cards" aria-label="Resumo operacional">

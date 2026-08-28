@@ -30245,6 +30245,7 @@ body:has(.gkit-flex-operational-shell) {
 
 .gkli-atende-header,
 .gkli-atende-hero,
+.gkli-atende-dashboard,
 .gkli-atende-workspace {
   width: min(1880px, calc(100vw - 36px));
   margin: 0 auto;
@@ -30382,6 +30383,217 @@ body:has(.gkit-flex-operational-shell) {
   padding: 14px;
   border-color: rgba(148, 163, 184, 0.32);
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.05);
+}
+
+.gkli-atende-dashboard {
+  margin-top: 22px;
+  border-color: rgba(61, 25, 76, 0.12);
+  background: #351542;
+  color: #fff;
+  overflow: hidden;
+}
+
+.gkli-atende-dashboard summary {
+  list-style: none;
+}
+
+.gkli-atende-dashboard summary::-webkit-details-marker {
+  display: none;
+}
+
+.gkli-atende-dashboard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 88px;
+  padding: 22px;
+  cursor: pointer;
+}
+
+.gkli-atende-dashboard-head span:first-child {
+  display: block;
+  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.gkli-atende-dashboard-head h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.7rem, 2.2vw, 2.15rem);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.gkli-atende-dashboard-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96px;
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.gkli-atende-dashboard-body {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.35fr) minmax(250px, 0.95fr) minmax(280px, 1fr) minmax(260px, 1.1fr);
+  gap: 16px;
+  padding: 0 22px 22px;
+}
+
+.gkli-atende-dashboard-body section {
+  min-height: 176px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.gkli-atende-dashboard-title {
+  display: block;
+  margin-bottom: 16px;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.gkli-atende-dashboard-bars,
+.gkli-atende-dashboard-workload {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.gkli-atende-dashboard-bars div,
+.gkli-atende-dashboard-workload div {
+  display: grid;
+  grid-template-columns: 110px minmax(80px, 1fr) 34px;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.86rem;
+}
+
+.gkli-atende-dashboard-workload div {
+  grid-template-columns: minmax(120px, 1fr) minmax(70px, 0.8fr) 34px;
+}
+
+.gkli-atende-dashboard-bars i,
+.gkli-atende-dashboard-workload i {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, #44d9a5 var(--bar-size), rgba(255, 255, 255, 0.15) var(--bar-size));
+}
+
+.gkli-atende-dashboard-bars i.danger {
+  background:
+    linear-gradient(90deg, #ff7189 var(--bar-size), rgba(255, 255, 255, 0.15) var(--bar-size));
+}
+
+.gkli-atende-dashboard-bars i.warning {
+  background:
+    linear-gradient(90deg, #f5c84c var(--bar-size), rgba(255, 255, 255, 0.15) var(--bar-size));
+}
+
+.gkli-atende-dashboard-bars i.primary,
+.gkli-atende-dashboard-workload i {
+  background:
+    linear-gradient(90deg, #6fb5ff var(--bar-size), rgba(255, 255, 255, 0.15) var(--bar-size));
+}
+
+.gkli-atende-dashboard-bars i.neutral {
+  background:
+    linear-gradient(90deg, #c9bfd4 var(--bar-size), rgba(255, 255, 255, 0.15) var(--bar-size));
+}
+
+.gkli-atende-dashboard-bars small,
+.gkli-atende-dashboard-workload small {
+  color: rgba(255, 255, 255, 0.88);
+  text-align: right;
+}
+
+.gkli-atende-dashboard-trend div {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(18px, 1fr));
+  align-items: end;
+  gap: 12px;
+  height: 122px;
+  padding-top: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.gkli-atende-dashboard-trend i {
+  display: block;
+  height: var(--trend-size);
+  min-height: 6px;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(180deg, #fff 0%, #91a2d7 100%);
+  opacity: 0.88;
+}
+
+.gkli-atende-dashboard-rhythm div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(72px, 1fr));
+  align-items: center;
+  gap: 14px;
+  min-height: 118px;
+}
+
+.gkli-atende-dashboard-rhythm span:not(.gkli-atende-dashboard-title) {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.72rem;
+  background:
+    radial-gradient(circle at center, #351542 56%, transparent 58%),
+    conic-gradient(#44d9a5 0deg var(--ring-size), rgba(255, 255, 255, 0.15) var(--ring-size) 360deg);
+}
+
+.gkli-atende-dashboard-rhythm span.primary:not(.gkli-atende-dashboard-title) {
+  background:
+    radial-gradient(circle at center, #351542 56%, transparent 58%),
+    conic-gradient(#6fb5ff 0deg var(--ring-size), rgba(255, 255, 255, 0.15) var(--ring-size) 360deg);
+}
+
+.gkli-atende-dashboard-rhythm span.danger:not(.gkli-atende-dashboard-title) {
+  background:
+    radial-gradient(circle at center, #351542 56%, transparent 58%),
+    conic-gradient(#ff7189 0deg var(--ring-size), rgba(255, 255, 255, 0.15) var(--ring-size) 360deg);
+}
+
+.gkli-atende-dashboard-rhythm span.warning:not(.gkli-atende-dashboard-title) {
+  background:
+    radial-gradient(circle at center, #351542 56%, transparent 58%),
+    conic-gradient(#f5c84c 0deg var(--ring-size), rgba(255, 255, 255, 0.15) var(--ring-size) 360deg);
+}
+
+.gkli-atende-dashboard-workload span:not(.gkli-atende-dashboard-title) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gkli-atende-dashboard-workload p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.86rem;
 }
 
 .gkli-atende-cards {
@@ -30688,12 +30900,14 @@ body:has(.gkit-flex-operational-shell) {
 
   .gkli-atende-header,
   .gkli-atende-hero,
+  .gkli-atende-dashboard,
   .gkli-atende-workspace {
     width: 100%;
   }
 
   .gkli-atende-header,
   .gkli-atende-filter-row,
+  .gkli-atende-dashboard-body,
   .gkli-atende-task-row {
     grid-template-columns: 1fr;
   }
