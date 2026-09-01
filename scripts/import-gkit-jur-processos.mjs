@@ -37,6 +37,14 @@ function normalizeName(value) {
     .trim();
 }
 
+function normalizeSearch(value) {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/[^\w\s.-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function digits(value) {
   return String(value ?? '').replace(/\D/g, '');
 }
@@ -83,6 +91,57 @@ function pick(row, ...names) {
     if (key) return row[key];
   }
   return null;
+}
+
+function titleParts(value) {
+  return normalizeText(value)
+    .split(/\s+(?:x|vs\.?|versus|contra)\s+/i)
+    .map((part) => part
+      .replace(/\b(autor|autora|requerente|reclamante|exequente|cliente|envolvido|parte|reu|réu|requerido|requerida|executado|executada)\b\s*[:;-]?\s*/gi, '')
+      .trim())
+    .filter((part) => part.length >= 4);
+}
+
+function tokenSet(value) {
+  return new Set(normalizeSearch(value)
+    .split(' ')
+    .filter((token) => token.length >= 3 && !['condominio', 'condominial', 'edificio', 'residencial', 'associacao'].includes(token)));
+}
+
+function similarity(a, b) {
+  const aa = tokenSet(a);
+  const bb = tokenSet(b);
+  if (!aa.size || !bb.size) return 0;
+  let hits = 0;
+  for (const token of aa) if (bb.has(token)) hits += 1;
+  return hits / Math.min(aa.size, bb.size);
+}
+
+function counterpartyFromRow(row, clienteNome) {
+  const explicit = normalizeText(pick(row, 'Parte contrária', 'Parte contraria', 'Réu', 'Reu', 'Requerido', 'Executado', 'Responsável da unidade', 'Responsavel da unidade'));
+  if (explicit) return explicit;
+
+  const envolvidos = normalizeText(pick(row, 'Outros envolvidos'));
+  if (envolvidos) return envolvidos;
+
+  const parts = titleParts(pick(row, 'Título', 'Titulo'));
+  if (parts.length < 2) return '';
+  return parts.find((part) => similarity(part, clienteNome) < 0.5) || '';
+}
+
+function rowRequiresUnit(row, payload) {
+  const haystack = normalizeSearch([
+    payload.cliente_nome,
+    payload.titulo,
+    payload.classe_nome,
+    pick(row, 'Objeto'),
+    pick(row, 'Matéria', 'Materia'),
+    pick(row, 'Detalhes'),
+    pick(row, 'Etiquetas'),
+  ].join(' '));
+  const condoSignal = /\b(condominio|condominial|despesas condominiais|taxas? condominiais|cotas? condominiais)\b/.test(haystack);
+  const debtSignal = /\b(cotas?|taxas?|despesas?|debitos?|inadimpl|cobranca|execucao|titulo extrajudicial|cumprimento de sentenca|monitoria)\b/.test(haystack);
+  return condoSignal && debtSignal;
 }
 
 async function loadDbMaps(supabase) {
@@ -138,6 +197,9 @@ function buildPayload(row, carteiraPlanilha, maps) {
     numero_cnj: formatCnj(numeroLimpo),
     numero_cnj_limpo: numeroLimpo,
     titulo: normalizeText(pick(row, 'Título', 'Titulo')) || null,
+    parte_contraria: counterpartyFromRow(row, clienteNome) || null,
+    unidade: normalizeText(pick(row, 'Unidade', 'Unid', 'Apartamento', 'Apto', 'Sala', 'Loja')) || null,
+    bloco: normalizeText(pick(row, 'Bloco')) || null,
     cliente_nome: clienteNome || null,
     cliente_id: maps.clientesByName.get(normalizeName(clienteNome)) || null,
     carteira_id: maps.carteirasByName.get(carteiraNome) || null,
@@ -182,6 +244,12 @@ function buildPayload(row, carteiraPlanilha, maps) {
   };
 }
 
+function validateBusinessRules(row, payload) {
+  if (!payload.parte_contraria) return 'Parte contraria obrigatoria';
+  if (rowRequiresUnit(row, payload) && !payload.unidade) return 'Unidade obrigatoria para cobranca ou execucao de cotas condominiais';
+  return '';
+}
+
 async function main() {
   const supabase = envClient();
   const processoRows = loadSheet(PROCESSOS_PATH, 'Processos');
@@ -203,7 +271,13 @@ async function main() {
       continue;
     }
     seen.add(clean);
-    payloads.push(buildPayload(row, carteiraPlanilha, maps));
+    const payload = buildPayload(row, carteiraPlanilha, maps);
+    const businessRuleError = validateBusinessRules(row, payload);
+    if (businessRuleError) {
+      invalid.push({ linha: index + 2, numero: pick(row, 'Número', 'Numero'), cliente: pick(row, 'Cliente'), motivo: businessRuleError });
+      continue;
+    }
+    payloads.push(payload);
   }
 
   const summary = {

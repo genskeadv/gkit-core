@@ -2068,6 +2068,9 @@ function GkitJurPreJuridicoForm({
       <Field label="Laudo PDF">
         <input name="laudo_pdf_url" defaultValue={item?.laudoPdfUrl ?? ''} placeholder="Link do laudo recebido" />
       </Field>
+      <Field label="Parte contrária">
+        <input name="parte_contraria" required defaultValue={item?.parteContraria ?? ''} placeholder="Nome da parte contrária" />
+      </Field>
       <Field label="Unidade">
         <input name="unidade" defaultValue={item?.unidade ?? ''} placeholder="Unidade do cliente" />
       </Field>
@@ -3763,6 +3766,9 @@ export function GkitJurProcessDetailPage({
                 <input name="cliente_id" type="hidden" value={processo.clienteId ?? ''} />
                 <input name="carteira_id" type="hidden" value={processo.carteiraId ?? ''} />
                 <input name="responsavel_id" type="hidden" value={processo.responsavelId ?? ''} />
+                <input name="parte_contraria" type="hidden" value={processo.parteContraria ?? ''} />
+                <input name="unidade" type="hidden" value={processo.unidade ?? ''} />
+                <input name="bloco" type="hidden" value={processo.bloco ?? ''} />
                 <input name="status" type="hidden" value={statusSuggestion.status} />
                 <input name="status_monitoramento" type="hidden" value={statusSuggestion.statusMonitoramento} />
                 <input name="observacoes" type="hidden" value={encerramentoObservacoes} />
@@ -3803,6 +3809,18 @@ export function GkitJurProcessDetailPage({
             <select disabled={!canWrite} name="responsavel_id" defaultValue={processo.responsavelId ?? ''}>
               {optionList(formData.responsaveis, 'Sem responsável')}
             </select>
+          </Field>
+
+          <Field label="Parte contrária">
+            <input disabled={!canWrite} name="parte_contraria" required defaultValue={processo.parteContraria ?? ''} placeholder="Nome da parte contrária" />
+          </Field>
+
+          <Field label="Unidade">
+            <input disabled={!canWrite} name="unidade" defaultValue={processo.unidade ?? ''} placeholder="Unidade vinculada ao débito" />
+          </Field>
+
+          <Field label="Bloco">
+            <input disabled={!canWrite} name="bloco" defaultValue={processo.bloco ?? ''} placeholder="Bloco" />
           </Field>
 
           <Field label="Status">

@@ -221,3 +221,39 @@ export function normalizeGkitJurProcessNature(value: unknown): GkitJurNaturezaOp
     : 'nao_classificado'
 }
 
+export function hasGkitJurCondoQuotaSignal(input: {
+  assuntos?: unknown
+  classeNome?: unknown
+  clienteNome?: unknown
+  descricao?: unknown
+  titulo?: unknown
+}) {
+  const assuntos = Array.isArray(input.assuntos) ? input.assuntos.map(assuntoNome).filter(Boolean) : []
+  const haystack = normalize([
+    input.classeNome,
+    assuntos.join(' '),
+    input.titulo,
+    input.descricao,
+    input.clienteNome,
+  ].join(' '))
+
+  const condoSignal = /\b(condominio|condominial|despesas condominiais|taxas? condominiais|cotas? condominiais)\b/.test(haystack)
+  const debtSignal = /\b(cotas?|taxas?|despesas?|debitos?|inadimpl|cobranca|execucao|titulo extrajudicial|cumprimento de sentenca|monitoria)\b/.test(haystack)
+  return condoSignal && debtSignal
+}
+
+export function requiresGkitJurUnit(input: {
+  assuntos?: unknown
+  classeNome?: unknown
+  clienteNome?: unknown
+  descricao?: unknown
+  naturezaOperacional?: unknown
+  titulo?: unknown
+}) {
+  const natureza = normalizeGkitJurProcessNature(input.naturezaOperacional)
+  if (natureza === 'cobranca_condominial') return true
+  if (['execucao_titulo_extrajudicial', 'cumprimento_sentenca', 'cobranca_conhecimento', 'acao_monitoria'].includes(natureza)) {
+    return hasGkitJurCondoQuotaSignal(input)
+  }
+  return false
+}

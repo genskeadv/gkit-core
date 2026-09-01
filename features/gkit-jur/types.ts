@@ -125,6 +125,9 @@ export type GkitJurProcessListItem = {
   numeroCnj: string;
   titulo: string | null;
   pasta: string | null;
+  parteContraria: string | null;
+  unidade: string | null;
+  bloco: string | null;
   clienteNome: string | null;
   carteiraNome: string | null;
   responsavelNome: string | null;
@@ -227,6 +230,7 @@ export type GkitJurPreJuridico = {
   area: string | null;
   valorEstimado: number | null;
   laudoPdfUrl: string | null;
+  parteContraria: string | null;
   unidade: string | null;
   bloco: string | null;
   responsavelUnidade: string | null;

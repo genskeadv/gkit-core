@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { classifyGkitJurProcessNature } from '../features/gkit-jur/process-nature'
+import { classifyGkitJurProcessNature, requiresGkitJurUnit } from '../features/gkit-jur/process-nature'
 
 test('classifies DataJud execution class as extrajudicial execution', () => {
   const result = classifyGkitJurProcessNature({
@@ -42,3 +42,19 @@ test('keeps generic civil procedure as low confidence knowledge case', () => {
   assert.equal(result.confianca, 'baixa')
 })
 
+test('requires unit for condominium quota executions', () => {
+  assert.equal(requiresGkitJurUnit({
+    clienteNome: 'Condomínio Brera Moema',
+    classeNome: 'Execução de Título Extrajudicial',
+    naturezaOperacional: 'execucao_titulo_extrajudicial',
+    titulo: 'Condomínio Brera Moema x Maria Exemplo',
+  }), true)
+})
+
+test('does not require unit for unrelated civil knowledge cases', () => {
+  assert.equal(requiresGkitJurUnit({
+    classeNome: 'Procedimento Comum Cível',
+    naturezaOperacional: 'conhecimento_civel',
+    titulo: 'João x Empresa Exemplo',
+  }), false)
+})

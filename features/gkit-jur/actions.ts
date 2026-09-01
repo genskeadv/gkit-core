@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { canAccess } from '@/lib/auth/permissions'
 import { requireModuleAccess } from '@/lib/auth/platform'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { requiresGkitJurUnit } from './process-nature'
 import { getGkitJurSaneamentoSuggestions } from './queries'
 import { refreshGkitJurIntelligentSummaryMonitor, refreshGkitJurProcessSummary } from './summary-service'
 import { runGkitJurSync } from './sync-runner'
@@ -47,6 +48,10 @@ function requiredText(formData: FormData, key: string, label: string) {
   const value = text(formData, key)
   if (!value) throw new Error(`${label} e obrigatorio.`)
   return value
+}
+
+function formOrCurrentText(formData: FormData, key: string, current: unknown) {
+  return formData.has(key) ? text(formData, key) : valueText(current)
 }
 
 function allowed<T extends string>(value: string, values: readonly T[], fallback: T): T {
@@ -411,11 +416,37 @@ async function getActiveJurProcess(processoId: string) {
 export async function updateGkitJurProcessoAction(formData: FormData) {
   const context = await requireGkitJurWrite()
   const id = requiredText(formData, 'id', 'Processo')
+  const currentResult = await admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select('id,titulo,cliente_nome,classe_nome,assuntos,natureza_operacional,parte_contraria,unidade,bloco')
+    .eq('id', id)
+    .single()
+
+  if (currentResult.error || !currentResult.data) throw new Error(currentResult.error?.message ?? 'Processo não encontrado.')
+  const current = currentResult.data as Record<string, unknown>
+  const parteContraria = formOrCurrentText(formData, 'parte_contraria', current.parte_contraria)
+  const unidade = formOrCurrentText(formData, 'unidade', current.unidade)
+  const bloco = formOrCurrentText(formData, 'bloco', current.bloco)
+
+  if (!parteContraria) throw new Error('Parte contraria e obrigatoria.')
+  if (!unidade && requiresGkitJurUnit({
+    assuntos: current.assuntos,
+    classeNome: current.classe_nome,
+    clienteNome: current.cliente_nome,
+    naturezaOperacional: current.natureza_operacional,
+    titulo: current.titulo,
+  })) {
+    throw new Error('Unidade e obrigatoria para cobranca ou execucao de cotas condominiais.')
+  }
 
   const payload = {
     cliente_id: optionalUuid(formData, 'cliente_id'),
     carteira_id: optionalUuid(formData, 'carteira_id'),
     responsavel_id: optionalUuid(formData, 'responsavel_id'),
+    parte_contraria: parteContraria,
+    unidade: unidade || null,
+    bloco: bloco || null,
     status: allowed(text(formData, 'status'), ['ativo', 'arquivado', 'suspenso', 'encerrado', 'erro'], 'ativo'),
     status_monitoramento: allowed(text(formData, 'status_monitoramento'), ['monitorando', 'pausado', 'erro', 'nao_monitorar'], 'monitorando'),
     observacoes: text(formData, 'observacoes') || null,
@@ -466,6 +497,17 @@ function preJuridicoPayload(formData: FormData, usuarioId: string) {
   applyPreJuridicoWorkflowAction(workflowPayload, fluxoAcao)
   const requestedStatus = allowed(text(formData, 'status'), ['em_analise', 'aguardando_documentos', 'aprovado', 'descartado'], 'em_analise')
   const ready = preJuridicoWorkflowReady(workflowPayload)
+  const parteContraria = requiredText(formData, 'parte_contraria', 'Parte contraria')
+  const unidade = text(formData, 'unidade')
+  const bloco = text(formData, 'bloco')
+  if (!unidade && requiresGkitJurUnit({
+    clienteNome: text(formData, 'cliente_nome'),
+    descricao: text(formData, 'descricao'),
+    titulo: text(formData, 'titulo'),
+    naturezaOperacional: cotasDebito.length ? 'cobranca_condominial' : text(formData, 'natureza_operacional'),
+  })) {
+    throw new Error('Unidade e obrigatoria para cobranca ou execucao de cotas condominiais.')
+  }
   const status = requestedStatus === 'descartado'
     ? 'descartado'
     : ready
@@ -485,8 +527,9 @@ function preJuridicoPayload(formData: FormData, usuarioId: string) {
     area: text(formData, 'area') || null,
     valor_estimado: valorEstimado,
     laudo_pdf_url: text(formData, 'laudo_pdf_url') || null,
-    unidade: text(formData, 'unidade') || null,
-    bloco: text(formData, 'bloco') || null,
+    parte_contraria: parteContraria,
+    unidade: unidade || null,
+    bloco: bloco || null,
     responsavel_unidade: text(formData, 'responsavel_unidade') || null,
     cotas_debito: cotasDebito,
     probabilidade: allowed(text(formData, 'probabilidade'), ['baixa', 'media', 'alta'], 'media'),

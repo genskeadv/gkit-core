@@ -100,7 +100,7 @@ const GKIT_JUR_CRON_DEFAULT_TIME_BUDGET_MS = 240_000
 const MOVEMENT_PROCESS_SCOPE_LIMIT = 5000
 const COCKPIT_QUERY_PAGE_SIZE = 1000
 const COCKPIT_LOOKUP_CHUNK_SIZE = 500
-const PROCESS_LIST_SELECT = 'id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_codigo,classe_nome,assuntos,natureza_operacional,natureza_operacional_label,natureza_operacional_confianca,natureza_operacional_sinais,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,ultima_tentativa_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultimo_status_sincronizacao,proxima_tentativa_sincronizacao_em,falhas_transientes_consecutivas,sem_resultado_consecutivos,status,status_monitoramento'
+const PROCESS_LIST_SELECT = 'id,numero_cnj,numero_cnj_limpo,titulo,pasta,parte_contraria,unidade,bloco,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_codigo,classe_nome,assuntos,natureza_operacional,natureza_operacional_label,natureza_operacional_confianca,natureza_operacional_sinais,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,ultima_tentativa_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultimo_status_sincronizacao,proxima_tentativa_sincronizacao_em,falhas_transientes_consecutivas,sem_resultado_consecutivos,status,status_monitoramento'
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -544,6 +544,9 @@ function mapProcesso(row: Record<string, unknown>, maps: {
     numeroCnj: formatCnj(text(row.numero_cnj, text(row.numero_cnj_limpo))),
     titulo: text(row.titulo) || null,
     pasta: text(row.pasta) || null,
+    parteContraria: text(row.parte_contraria) || null,
+    unidade: text(row.unidade) || null,
+    bloco: text(row.bloco) || null,
     clienteNome: clienteId ? (maps.clientes.get(clienteId) ?? clienteSnapshot) : clienteSnapshot,
     carteiraNome: carteiraId ? maps.carteiras.get(carteiraId) ?? null : null,
     responsavelNome: responsavelId ? maps.responsaveis.get(responsavelId) ?? null : null,
@@ -606,6 +609,7 @@ function mapPreJuridico(row: Record<string, unknown>, maps: {
     area: text(row.area) || null,
     valorEstimado: Number.isFinite(valorEstimado) ? valorEstimado : null,
     laudoPdfUrl: text(row.laudo_pdf_url) || null,
+    parteContraria: text(row.parte_contraria) || null,
     unidade: text(row.unidade) || null,
     bloco: text(row.bloco) || null,
     responsavelUnidade: text(row.responsavel_unidade) || null,
@@ -1207,7 +1211,7 @@ export async function listGkitJurPreJuridicos(filters: GkitJurPreJuridicoFilters
   let query = admin()
     .schema('gkit_jur')
     .from('pre_juridicos')
-    .select('id,titulo,cliente_id,cliente_nome,descricao,carteira_id,responsavel_id,origem,area,valor_estimado,laudo_pdf_url,unidade,bloco,responsavel_unidade,cotas_debito,ata_eleicao_status,ata_prestacao_contas_status,debitos_atualizados_status,procuracao_status,administradora_email,sindico_email,administradora_solicitada_em,administradora_retorno_em,procuracao_gerada_em,procuracao_enviada_em,sindico_retorno_em,pronto_distribuicao_em,probabilidade,prioridade,status,motivo_status,data_entrada,prazo_analise,convertido_processo_id,convertido_em,created_at,updated_at', { count: 'exact' })
+    .select('id,titulo,cliente_id,cliente_nome,descricao,carteira_id,responsavel_id,origem,area,valor_estimado,laudo_pdf_url,parte_contraria,unidade,bloco,responsavel_unidade,cotas_debito,ata_eleicao_status,ata_prestacao_contas_status,debitos_atualizados_status,procuracao_status,administradora_email,sindico_email,administradora_solicitada_em,administradora_retorno_em,procuracao_gerada_em,procuracao_enviada_em,sindico_retorno_em,pronto_distribuicao_em,probabilidade,prioridade,status,motivo_status,data_entrada,prazo_analise,convertido_processo_id,convertido_em,created_at,updated_at', { count: 'exact' })
 
   query = applyPreJuridicoFilters(query, filters)
     .order(preJuridicoSortColumn(filters.sort), { ascending: filters.dir === 'asc', nullsFirst: false })
@@ -1607,6 +1611,9 @@ function emptyProcessForAcordo(processoId: string): GkitJurProcessListItem {
     numeroCnj: '-',
     titulo: null,
     pasta: null,
+    parteContraria: null,
+    unidade: null,
+    bloco: null,
     clienteNome: null,
     carteiraNome: null,
     responsavelNome: null,
@@ -2489,7 +2496,7 @@ async function getGkitJurCockpitPreJuridicoArea(): Promise<GkitJurCockpitAreaDat
     loadCockpitRows(() => admin()
       .schema('gkit_jur')
       .from('pre_juridicos')
-      .select('id,titulo,cliente_id,cliente_nome,descricao,carteira_id,responsavel_id,origem,area,valor_estimado,laudo_pdf_url,unidade,bloco,responsavel_unidade,cotas_debito,ata_eleicao_status,ata_prestacao_contas_status,debitos_atualizados_status,procuracao_status,administradora_email,sindico_email,administradora_solicitada_em,administradora_retorno_em,procuracao_gerada_em,procuracao_enviada_em,sindico_retorno_em,pronto_distribuicao_em,probabilidade,prioridade,status,motivo_status,data_entrada,prazo_analise,convertido_processo_id,convertido_em,created_at,updated_at', { count: 'exact' })
+      .select('id,titulo,cliente_id,cliente_nome,descricao,carteira_id,responsavel_id,origem,area,valor_estimado,laudo_pdf_url,parte_contraria,unidade,bloco,responsavel_unidade,cotas_debito,ata_eleicao_status,ata_prestacao_contas_status,debitos_atualizados_status,procuracao_status,administradora_email,sindico_email,administradora_solicitada_em,administradora_retorno_em,procuracao_gerada_em,procuracao_enviada_em,sindico_retorno_em,pronto_distribuicao_em,probabilidade,prioridade,status,motivo_status,data_entrada,prazo_analise,convertido_processo_id,convertido_em,created_at,updated_at', { count: 'exact' })
       .in('status', ['em_analise', 'aguardando_documentos', 'aprovado'])
       .order('prazo_analise', { ascending: true, nullsFirst: false })
       .order('updated_at', { ascending: false })),

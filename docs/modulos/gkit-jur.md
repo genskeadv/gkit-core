@@ -879,6 +879,12 @@ Criterio de aceite:
 - Nenhuma chave DataJud e exposta ao client.
 - `npm run build` finaliza com sucesso.
 
+## Regras obrigatorias de dados operacionais
+
+- Parte contraria e dado obrigatorio em processos e casos pre-juridicos.
+- Unidade e obrigatoria quando o processo ou caso pre-juridico for cobranca de cotas condominiais ou execucao de cotas condominiais.
+- Bloco complementa a unidade quando existir, mas nao substitui a unidade.
+
 ## Evolucoes futuras
 
 - Monitoramento automatico por job.
