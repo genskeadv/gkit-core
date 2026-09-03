@@ -108,6 +108,7 @@ const PROCESS_LIST_SELECT = 'id,numero_cnj,numero_cnj_limpo,titulo,pasta,parte_c
 const PRE_JURIDICO_SELECT = 'id,titulo,cliente_id,cliente_nome,descricao,carteira_id,responsavel_id,origem,area,valor_estimado,laudo_pdf_url,parte_contraria,unidade,bloco,responsavel_unidade,cotas_debito,ata_eleicao_status,ata_prestacao_contas_status,debitos_atualizados_status,procuracao_status,administradora_email,sindico_email,administradora_solicitada_em,administradora_retorno_em,procuracao_gerada_em,procuracao_enviada_em,sindico_retorno_em,pronto_distribuicao_em,probabilidade,prioridade,status,motivo_status,data_entrada,prazo_analise,convertido_processo_id,convertido_em,created_at,updated_at'
 const TAREFA_SELECT = 'id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,status,prioridade,prazo_at,origem,payload,created_at,updated_at,concluded_at'
 const PUBLICACAO_SELECT = 'id,processo_id,numero_cnj_limpo,fonte,fonte_evento_id,data_disponibilizacao,data_publicacao,jornal,termo,origem_orgao,arq,pub,texto_preview,texto_completo,texto_hash,status,decisao_tratamento,classificacao_ia,confianca_ia,sugestao_ia,tarefa_id,tratado_por,tratado_em,motivo_tratamento,conteudo_removido_em,created_at,updated_at'
+const EVENTO_SELECT = 'id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,data_evento,origem,created_at'
 
 function admin() {
   return createSupabaseAdminClient() as any
@@ -1984,11 +1985,15 @@ function mapDocumento(row: Record<string, unknown>, maps: Awaited<ReturnType<typ
 }
 
 function mapEventoProcesso(row: Record<string, unknown>, maps: Awaited<ReturnType<typeof lookupTarefaMaps>>, fallback?: {
+  carteiraId?: string | null
   carteiraNome: string | null
+  responsavelId?: string | null
   responsavelNome: string | null
 }): GkitJurEventoProcesso {
   const carteiraId = text(row.carteira_id)
   const responsavelId = text(row.responsavel_id)
+  const resolvedCarteiraId = carteiraId || fallback?.carteiraId || null
+  const resolvedResponsavelId = responsavelId || fallback?.responsavelId || null
   return {
     id: String(row.id),
     processoId: String(row.processo_id),
@@ -1997,10 +2002,10 @@ function mapEventoProcesso(row: Record<string, unknown>, maps: Awaited<ReturnTyp
     descricao: text(row.descricao) || null,
     dataEvento: text(row.data_evento, text(row.created_at)),
     origem: text(row.origem, 'manual'),
-    carteiraId: carteiraId || null,
-    carteiraNome: carteiraId ? maps.carteiras.get(carteiraId) ?? fallback?.carteiraNome ?? null : fallback?.carteiraNome ?? null,
-    responsavelId: responsavelId || null,
-    responsavelNome: responsavelId ? maps.responsaveis.get(responsavelId) ?? fallback?.responsavelNome ?? null : fallback?.responsavelNome ?? null,
+    carteiraId: resolvedCarteiraId,
+    carteiraNome: resolvedCarteiraId ? maps.carteiras.get(resolvedCarteiraId) ?? fallback?.carteiraNome ?? null : fallback?.carteiraNome ?? null,
+    responsavelId: resolvedResponsavelId,
+    responsavelNome: resolvedResponsavelId ? maps.responsaveis.get(resolvedResponsavelId) ?? fallback?.responsavelNome ?? null : fallback?.responsavelNome ?? null,
     createdAt: text(row.created_at),
   }
 }
@@ -2553,6 +2558,14 @@ function cockpitAcordosListHref(params: Record<string, string | number | null | 
   return query ? `/modulos/gkit-jur/acordos/lista?${query}` : '/modulos/gkit-jur/acordos/lista'
 }
 
+function cockpitAgendaHref(params: Record<string, string | number | null | undefined>) {
+  const search = new URLSearchParams({ area: 'agenda' })
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') search.set(key, String(value))
+  })
+  return `/modulos/gkit-jur/novo-jur?${search.toString()}`
+}
+
 function cockpitInsightPercent(value: number, total: number) {
   if (!total) return 0
   if (!value) return 0
@@ -3004,6 +3017,72 @@ function buildCockpitAcordoDashboardInsights(
   ]
 }
 
+function eventoTipoLabel(tipo: GkitJurEventoTipo) {
+  return gkitJurEventoTipoOptions.find((option) => option.value === tipo)?.label ?? tipo
+}
+
+function eventoDateTime(item: GkitJurEventoProcesso) {
+  return new Date(item.dataEvento).getTime()
+}
+
+function eventoBetween(item: GkitJurEventoProcesso, startIso: string, endIso: string) {
+  const time = eventoDateTime(item)
+  return Number.isFinite(time) && time >= new Date(startIso).getTime() && time < new Date(endIso).getTime()
+}
+
+function eventoCarteiraGroup(item: GkitJurEventoProcesso, params: Record<string, string | number>) {
+  return {
+    href: cockpitAgendaHref({
+      ...params,
+      carteira_id: item.carteiraId || 'sem_carteira',
+    }),
+    key: item.carteiraId || 'sem_carteira',
+    label: item.carteiraNome || (item.carteiraId ? 'Carteira sem nome' : 'Sem carteira'),
+  }
+}
+
+function buildCockpitAgendaDashboardInsights(eventos: GkitJurEventoProcesso[]): GkitJurCockpitInsightSection[] {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayIso = today.toISOString()
+  const since30Iso = new Date(today.getTime() - 30 * 86_400_000).toISOString()
+  const next30Iso = new Date(today.getTime() + 30 * 86_400_000).toISOString()
+  const yearStart = `${ACORDO_DASHBOARD_YEAR}-01-01T00:00:00.000Z`
+  const yearEnd = `${ACORDO_DASHBOARD_YEAR + 1}-01-01T00:00:00.000Z`
+  const eventos2026 = eventos.filter((evento) => eventoBetween(evento, yearStart, yearEnd))
+  const concluidos30 = eventos.filter((evento) => eventoBetween(evento, since30Iso, todayIso))
+  const abertos30 = eventos.filter((evento) => eventoBetween(evento, todayIso, next30Iso))
+
+  return [
+    {
+      emptyLabel: 'Nenhum evento concluído nos últimos 30 dias.',
+      items: topCockpitGroups(concluidos30, (evento) => eventoCarteiraGroup(evento, {
+        recorte: 'concluidos_30',
+      }), concluidos30.length),
+      title: 'Concluídos 30 dias por carteira',
+    },
+    {
+      emptyLabel: 'Nenhum evento em aberto nos próximos 30 dias.',
+      items: topCockpitGroups(abertos30, (evento) => eventoCarteiraGroup(evento, {
+        recorte: 'abertos_30',
+      }), abertos30.length),
+      title: 'Em aberto próximos 30 dias',
+    },
+    {
+      emptyLabel: `Nenhum evento em ${ACORDO_DASHBOARD_YEAR}.`,
+      items: topCockpitGroups(eventos2026, (evento) => ({
+        href: cockpitAgendaHref({
+          ano: ACORDO_DASHBOARD_YEAR,
+          tipo_evento: evento.tipo,
+        }),
+        key: evento.tipo,
+        label: eventoTipoLabel(evento.tipo),
+      }), eventos2026.length),
+      title: `Tipos de eventos ${ACORDO_DASHBOARD_YEAR}`,
+    },
+  ]
+}
+
 async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData> {
   const [rowsResult, readiness] = await Promise.all([
     loadGkitJurCockpitProcessRows(),
@@ -3340,14 +3419,24 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
   const todayIso = today.toISOString()
   const tomorrowIso = new Date(today.getTime() + 86_400_000).toISOString()
   const weekIso = new Date(today.getTime() + 7 * 86_400_000).toISOString()
+  const agendaYearStart = `${ACORDO_DASHBOARD_YEAR}-01-01T00:00:00.000Z`
+  const agendaYearEnd = `${ACORDO_DASHBOARD_YEAR + 1}-01-01T00:00:00.000Z`
 
-  const [eventRowsResult, taskRowsResult, eventosCount, audienciasCount, tarefasVencidasCount, tarefasHojeCount, tarefasSemanaCount] = await Promise.all([
+  const [eventRowsResult, dashboardEventRowsResult, taskRowsResult, eventosCount, audienciasCount, tarefasVencidasCount, tarefasHojeCount, tarefasSemanaCount] = await Promise.all([
     loadCockpitRows(() => admin()
       .schema('gkit_jur')
       .from('eventos_processo')
-      .select('id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,data_evento,origem,created_at', { count: 'exact' })
+      .select(EVENTO_SELECT, { count: 'exact' })
       .gte('data_evento', todayIso)
       .order('data_evento', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: false }), { missingAsEmpty: true }),
+    loadCockpitRows(() => admin()
+      .schema('gkit_jur')
+      .from('eventos_processo')
+      .select(EVENTO_SELECT, { count: 'exact' })
+      .gte('data_evento', agendaYearStart)
+      .lt('data_evento', agendaYearEnd)
+      .order('data_evento', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false }), { missingAsEmpty: true }),
     loadCockpitRows(() => admin()
       .schema('gkit_jur')
@@ -3364,16 +3453,28 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
   ])
 
   const eventRows = eventRowsResult.rows
+  const dashboardEventRows = dashboardEventRowsResult.rows
   const taskRows = taskRowsResult.rows
-  const processoIds = [...new Set([...eventRows, ...taskRows].map((row) => text(row.processo_id)).filter(Boolean))]
+  const processoIds = [...new Set([...eventRows, ...dashboardEventRows, ...taskRows].map((row) => text(row.processo_id)).filter(Boolean))]
   const processoRows = await loadProcessRowsByIds(processoIds)
   const processoMaps = await lookupMaps(processoRows)
   const processoMap = new Map(processoRows.map((row) => [String(row.id), mapProcesso(row, processoMaps)]))
-  const agendaMaps = await lookupTarefaMaps([...eventRows, ...taskRows])
+  const agendaMaps = await lookupTarefaMaps([...eventRows, ...dashboardEventRows, ...taskRows])
   const eventos = eventRows.map((row) => {
     const processo = processoMap.get(text(row.processo_id))
     return mapEventoProcesso(row, agendaMaps, {
+      carteiraId: processo?.carteiraId ?? null,
       carteiraNome: processo?.carteiraNome ?? null,
+      responsavelId: null,
+      responsavelNome: processo?.responsavelNome ?? null,
+    })
+  })
+  const dashboardEventos = dashboardEventRows.map((row) => {
+    const processo = processoMap.get(text(row.processo_id))
+    return mapEventoProcesso(row, agendaMaps, {
+      carteiraId: processo?.carteiraId ?? null,
+      carteiraNome: processo?.carteiraNome ?? null,
+      responsavelId: null,
       responsavelNome: processo?.responsavelNome ?? null,
     })
   })
@@ -3440,6 +3541,7 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
       { label: 'Semana', count: tarefasSemanaCount, tone: 'blue' },
       { label: 'Eventos', count: eventosCount + audienciasCount, tone: 'green' },
     ]),
+    dashboardInsights: buildCockpitAgendaDashboardInsights(dashboardEventos),
     trend: cockpitTrend([tarefasVencidasCount, tarefasHojeCount, tarefasSemanaCount, eventosCount, total]),
     rows: agendaRows,
   }
