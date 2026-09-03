@@ -129,6 +129,7 @@ export type GkitJurProcessListItem = {
   unidade: string | null;
   bloco: string | null;
   clienteNome: string | null;
+  carteiraId: string | null;
   carteiraNome: string | null;
   responsavelNome: string | null;
   tribunalSigla: string | null;
@@ -262,6 +263,8 @@ export type GkitJurPreJuridico = {
 
 export type GkitJurPreJuridicoFilters = {
   carteiraId: string;
+  clienteId: string;
+  distribuicao: string;
   dir: 'asc' | 'desc';
   page: number;
   prioridade: string;
@@ -482,6 +485,7 @@ export type GkitJurPublicacao = {
   tratadoEm: string | null;
   motivoTratamento: string | null;
   conteudoRemovidoEm: string | null;
+  carteiraId: string | null;
   clienteNome: string | null;
   carteiraNome: string | null;
   responsavelNome: string | null;
@@ -494,12 +498,15 @@ export type GkitJurPublicacaoFilters = {
   carteiraId: string;
   dir: 'asc' | 'desc';
   fonte: string;
+  gerouTarefa: boolean;
   page: number;
   q: string;
   responsavelId: string;
   sort: string;
   status: string;
+  tratamento: string;
   tribunal: string;
+  ultimosDias: number;
 };
 
 export type GkitJurPublicacaoFilterOptions = GkitJurProcessFilterOptions & {
@@ -547,6 +554,7 @@ export type GkitJurTarefa = {
   responsavelId: string | null;
   responsavelNome: string | null;
   payload: Record<string, unknown>;
+  concludedAt: string | null;
   createdAt: string;
 };
 
@@ -737,6 +745,7 @@ export type GkitJurInboxItem = {
   dataReferencia: string | null;
   prazoAt: string | null;
   processoId: string | null;
+  tarefaTipo?: GkitJurTarefaTipo | null;
   clienteNome: string | null;
   carteiraId: string | null;
   responsavelId: string | null;
@@ -751,8 +760,10 @@ export type GkitJurInboxItem = {
 
 export type GkitJurInboxFilters = {
   carteiraId: string;
+  concluidas30: boolean;
   ordenacao: GkitJurInboxOrdenacao;
   responsavelId: string;
+  tarefaTipo: string;
 };
 
 export type GkitJurInboxFila = {
@@ -824,6 +835,21 @@ export type GkitJurCockpitBar = {
   tone: 'blue' | 'green' | 'red' | 'yellow';
 };
 
+export type GkitJurCockpitInsightItem = {
+  label: string;
+  value: number;
+  percent: number;
+  href: string;
+  hint?: string;
+  tone?: GkitJurCockpitBar['tone'];
+};
+
+export type GkitJurCockpitInsightSection = {
+  title: string;
+  emptyLabel: string;
+  items: GkitJurCockpitInsightItem[];
+};
+
 export type GkitJurCockpitRow = {
   id: string;
   title: string;
@@ -850,6 +876,7 @@ export type GkitJurCockpitAreaData = {
     clientes?: string[];
   };
   bars: GkitJurCockpitBar[];
+  dashboardInsights?: GkitJurCockpitInsightSection[];
   trend: number[];
   rows: GkitJurCockpitRow[];
 };

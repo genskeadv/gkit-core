@@ -435,8 +435,10 @@ function inboxHref(data: GkitJurInboxData, fila: GkitJurInboxFilaId) {
   const params = new URLSearchParams()
   if (fila !== 'hoje') params.set('fila', fila)
   if (data.filters.carteiraId) params.set('carteira_id', data.filters.carteiraId)
+  if (data.filters.concluidas30) params.set('concluida_30', '1')
   if (data.filters.ordenacao !== 'prioridade') params.set('ordenacao', data.filters.ordenacao)
   if (data.filters.responsavelId) params.set('responsavel_id', data.filters.responsavelId)
+  if (data.filters.tarefaTipo) params.set('tipo_tarefa', data.filters.tarefaTipo)
   const query = params.toString()
   return query ? `/modulos/gkit-jur/inbox?${query}` : '/modulos/gkit-jur/inbox'
 }
@@ -729,9 +731,11 @@ export function GkitJurInboxPage({
 
         <form action="/modulos/gkit-jur/inbox" className="gkit-jur-inbox-filter">
           <input name="fila" type="hidden" value={data.selected} />
+          {data.filters.concluidas30 ? <input name="concluida_30" type="hidden" value="1" /> : null}
           <label>
             <span>Carteira</span>
             <select name="carteira_id" defaultValue={data.filters.carteiraId}>
+              <option value="sem_carteira">Sem carteira</option>
               {optionList(data.filterOptions.carteiras, 'Todas as carteiras')}
             </select>
           </label>
@@ -739,6 +743,12 @@ export function GkitJurInboxPage({
             <span>Responsável</span>
             <select name="responsavel_id" defaultValue={data.filters.responsavelId}>
               {optionList(data.filterOptions.responsaveis, 'Todos os responsáveis')}
+            </select>
+          </label>
+          <label>
+            <span>Tipo de tarefa</span>
+            <select name="tipo_tarefa" defaultValue={data.filters.tarefaTipo}>
+              {optionList(gkitJurTarefaTipoOptions, 'Todos os tipos')}
             </select>
           </label>
           <label>
@@ -1195,6 +1205,20 @@ function activeValueLabel(options: GkitJurSelectOption[], value: string) {
   return options.find((option) => option.value === value)?.label ?? value
 }
 
+function processPendingLabel(value: string) {
+  const labels: Record<string, string> = {
+    sem_cliente: 'Sem cliente',
+    sem_carteira: 'Sem carteira',
+    sem_responsavel: 'Sem responsável',
+    sem_tribunal: 'Sem tribunal',
+    sem_mov_data: 'Sem data de movimentação',
+    sem_mov_30: 'Sem movimentação 30+',
+    sem_mov_60: 'Sem movimentação 60+',
+    sem_mov_90: 'Sem movimentação 90+',
+  }
+  return labels[value] ?? value
+}
+
 function tagOptions(tags: GkitJurEtiqueta[]): GkitJurSelectOption[] {
   return tags.filter((tag) => tag.ativo).map((tag) => ({ label: tag.nome, value: tag.id }))
 }
@@ -1319,7 +1343,7 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
     filters.etiquetaId ? { label: 'Etiqueta', value: tagOptions(filterOptions.etiquetas).find((option) => option.value === filters.etiquetaId)?.label ?? filters.etiquetaId } : null,
     filters.natureza ? { label: 'Natureza', value: activeValueLabel(filterOptions.naturezas, filters.natureza) } : null,
     filters.monitoramento ? { label: 'Monitoramento', value: optionLabel(gkitJurMonitoramentoOptions, filters.monitoramento) } : null,
-    filters.saneamento ? { label: 'Pendência', value: filters.saneamento.replace('sem_', 'Sem ').replace('_', ' ') } : null,
+    filters.saneamento ? { label: 'Pendência', value: processPendingLabel(filters.saneamento) } : null,
   ].filter(Boolean) as Array<{ label: string; value: string }>
 
   return (
@@ -1386,6 +1410,10 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
             { label: 'Sem carteira', value: 'sem_carteira' },
             { label: 'Sem responsável', value: 'sem_responsavel' },
             { label: 'Sem tribunal', value: 'sem_tribunal' },
+            { label: 'Sem data de movimentação', value: 'sem_mov_data' },
+            { label: 'Sem movimentação 30+', value: 'sem_mov_30' },
+            { label: 'Sem movimentação 60+', value: 'sem_mov_60' },
+            { label: 'Sem movimentação 90+', value: 'sem_mov_90' },
           ]}
           placeholder="Todas"
           value={filters.saneamento}
@@ -1877,6 +1905,8 @@ function preJuridicoHref(filters: GkitJurPreJuridicoFilters, page: number) {
   const params = new URLSearchParams()
   Object.entries({
     carteira_id: filters.carteiraId,
+    cliente_id: filters.clienteId,
+    distribuicao: filters.distribuicao,
     dir: filters.dir,
     prioridade: filters.prioridade,
     q: filters.q,
@@ -1974,7 +2004,9 @@ function GkitJurPreJuridicoFilters({ data }: { data: GkitJurPreJuridicoData }) {
   const activeFilters = [
     filters.q ? { label: 'Busca', value: filters.q } : null,
     filters.status ? { label: 'Status', value: optionLabel(gkitJurPreJuridicoStatusOptions, filters.status) } : null,
+    filters.distribuicao ? { label: 'Distribuição', value: filters.distribuicao === 'distribuidos_30' ? 'Distribuídos 30 dias' : 'Pendente' } : null,
     filters.prioridade ? { label: 'Prioridade', value: optionLabel(gkitJurPreJuridicoPrioridadeOptions, filters.prioridade) } : null,
+    filters.clienteId ? { label: 'Cliente', value: activeValueLabel(filterOptions.clientes, filters.clienteId) } : null,
     filters.carteiraId ? { label: 'Carteira', value: activeValueLabel(filterOptions.carteiras, filters.carteiraId) } : null,
     filters.responsavelId ? { label: 'Responsável', value: activeValueLabel(filterOptions.responsaveis, filters.responsavelId) } : null,
   ].filter(Boolean) as Array<{ label: string; value: string }>
@@ -1987,7 +2019,18 @@ function GkitJurPreJuridicoFilters({ data }: { data: GkitJurPreJuridicoData }) {
           <input defaultValue={filters.q} name="q" placeholder="Título, cliente, origem, área ou descrição" type="search" />
         </label>
         <SelectField label="Status" name="status" options={gkitJurPreJuridicoStatusOptions} placeholder="Todos" value={filters.status} />
+        <SelectField
+          label="Distribuição"
+          name="distribuicao"
+          options={[
+            { label: 'Distribuídos 30 dias', value: 'distribuidos_30' },
+            { label: 'Pendentes de distribuição', value: 'pendente' },
+          ]}
+          placeholder="Todas"
+          value={filters.distribuicao}
+        />
         <SelectField label="Prioridade" name="prioridade" options={gkitJurPreJuridicoPrioridadeOptions} placeholder="Todas" value={filters.prioridade} />
+        <SelectField label="Cliente" name="cliente_id" options={filterOptions.clientes} placeholder="Todos" value={filters.clienteId} />
         <SelectField label="Carteira" name="carteira_id" options={filterOptions.carteiras} placeholder="Todas" value={filters.carteiraId} />
         <SelectField label="Responsável" name="responsavel_id" options={filterOptions.responsaveis} placeholder="Todos" value={filters.responsavelId} />
         <SelectField
@@ -4176,11 +4219,21 @@ export function GkitJurPendenciasPage({
 
 function publicacaoHref(filters: GkitJurPublicacaoFilters, page: number) {
   const params = new URLSearchParams()
-  Object.entries({ ...filters, page }).forEach(([key, value]) => {
-    if (key === 'page') {
-      if (Number(value) > 1) params.set(key, String(value))
-      return
-    }
+  Object.entries({
+    carteira_id: filters.carteiraId,
+    dir: filters.dir,
+    fonte: filters.fonte,
+    gerou_tarefa: filters.gerouTarefa ? '1' : '',
+    page,
+    q: filters.q,
+    responsavel_id: filters.responsavelId,
+    sort: filters.sort,
+    status: filters.status,
+    tratamento: filters.tratamento,
+    tribunal: filters.tribunal,
+    ultimos_dias: filters.ultimosDias || '',
+  }).forEach(([key, value]) => {
+    if (key === 'page' && Number(value) <= 1) return
     if (value) params.set(key, String(value))
   })
   const query = params.toString()
@@ -4675,8 +4728,11 @@ function GkitJurPublicacaoFilterBar({ data }: { data: GkitJurPublicacoesData }) 
   const activeFilters = [
     filters.q ? { label: 'Busca', value: filters.q } : null,
     filters.status ? { label: 'Status', value: activeValueLabel(filterOptions.statuses, filters.status) } : null,
+    filters.tratamento ? { label: 'Tratamento', value: filters.tratamento === 'sem_tratamento' ? 'Sem tratamento' : filters.tratamento === 'manual' ? 'Manual' : 'Automático' } : null,
+    filters.gerouTarefa ? { label: 'Tarefa', value: 'Gerou tarefa' } : null,
+    filters.ultimosDias ? { label: 'Período', value: `Últimos ${filters.ultimosDias} dias` } : null,
     filters.fonte ? { label: 'Fonte', value: filters.fonte } : null,
-    filters.carteiraId ? { label: 'Carteira', value: activeValueLabel(filterOptions.carteiras, filters.carteiraId) } : null,
+    filters.carteiraId ? { label: 'Carteira', value: filters.carteiraId === 'sem_carteira' ? 'Sem carteira' : activeValueLabel(filterOptions.carteiras, filters.carteiraId) } : null,
     filters.responsavelId ? { label: 'Responsável', value: activeValueLabel(filterOptions.responsaveis, filters.responsavelId) } : null,
     filters.tribunal ? { label: 'Tribunal', value: filters.tribunal } : null,
   ].filter(Boolean) as Array<{ label: string; value: string }>
@@ -4689,8 +4745,33 @@ function GkitJurPublicacaoFilterBar({ data }: { data: GkitJurPublicacoesData }) 
           <input defaultValue={filters.q} name="q" placeholder="CNJ, cliente, órgão ou texto" type="search" />
         </label>
         <SelectField label="Status" name="status" options={filterOptions.statuses} placeholder="Todos" value={filters.status} />
+        <SelectField
+          label="Tratamento"
+          name="tratamento"
+          options={[
+            { label: 'Automático', value: 'automatico' },
+            { label: 'Manual', value: 'manual' },
+            { label: 'Sem tratamento', value: 'sem_tratamento' },
+          ]}
+          placeholder="Todos"
+          value={filters.tratamento}
+        />
+        <SelectField
+          label="Tarefa"
+          name="gerou_tarefa"
+          options={[{ label: 'Gerou tarefa', value: '1' }]}
+          placeholder="Todas"
+          value={filters.gerouTarefa ? '1' : ''}
+        />
+        <SelectField
+          label="Período"
+          name="ultimos_dias"
+          options={[{ label: 'Últimos 5 dias', value: '5' }]}
+          placeholder="Todo período"
+          value={filters.ultimosDias ? String(filters.ultimosDias) : ''}
+        />
         <SelectField label="Fonte" name="fonte" options={filterOptions.fontes} placeholder="Todas" value={filters.fonte} />
-        <SelectField label="Carteira" name="carteira_id" options={filterOptions.carteiras} placeholder="Todas" value={filters.carteiraId} />
+        <SelectField label="Carteira" name="carteira_id" options={[{ label: 'Sem carteira', value: 'sem_carteira' }, ...filterOptions.carteiras]} placeholder="Todas" value={filters.carteiraId} />
         <SelectField label="Responsável" name="responsavel_id" options={filterOptions.responsaveis} placeholder="Todos" value={filters.responsavelId} />
         <SelectField label="Tribunal" name="tribunal" options={filterOptions.tribunais} placeholder="Todos" value={filters.tribunal} />
         <SelectField

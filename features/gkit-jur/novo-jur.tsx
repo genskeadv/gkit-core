@@ -4,7 +4,7 @@ import { LogOut, Plus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { PlatformUsuario } from '@/lib/auth/platform'
-import type { GkitJurCockpitArea, GkitJurCockpitRow, GkitJurCockpitUnicoData } from './types'
+import type { GkitJurCockpitArea, GkitJurCockpitInsightItem, GkitJurCockpitInsightSection, GkitJurCockpitRow, GkitJurCockpitUnicoData } from './types'
 
 type ListFilterField = 'cliente' | 'carteira' | 'ordenacao'
 type ListOrder = 'recentes' | 'antigas' | 'sem_data'
@@ -235,6 +235,36 @@ function compareRowsByDate(left: GkitJurCockpitRow, right: GkitJurCockpitRow, ar
   return (rightTime ?? 0) - (leftTime ?? 0)
 }
 
+function CockpitInsightPanel({
+  section,
+}: {
+  section: GkitJurCockpitInsightSection
+}) {
+  return (
+    <div className="gkit-jur-cockpit-dashboard-insight">
+      <span className="gkit-jur-cockpit-chart-title">{section.title}</span>
+      <div>
+        {section.items.length ? section.items.map((item: GkitJurCockpitInsightItem) => (
+          <a href={item.href} key={`${section.title}-${item.label}`}>
+            <span>
+              <strong>{item.label}</strong>
+              {item.hint ? <small>{item.hint}</small> : null}
+            </span>
+            <b>{item.value.toLocaleString('pt-BR')}</b>
+            <i
+              className={item.tone ?? 'blue'}
+              style={{ '--insight-size': `${Math.max(4, item.percent)}%` } as CSSProperties}
+            />
+            <small>{item.percent.toLocaleString('pt-BR')}%</small>
+          </a>
+        )) : (
+          <p>{section.emptyLabel}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function GkitJurNovoJurPage({
   data: cockpitData,
   initialArea,
@@ -266,6 +296,7 @@ export function GkitJurNovoJurPage({
   }, [dashboardCollapsed])
 
   const data = cockpitData[activeArea]
+  const dashboardInsights = data.dashboardInsights
   const manualConfig = manualCreateConfig[activeArea]
   const activeFilter = areaFilters[activeArea]
   const [visibleGroupLimit, setVisibleGroupLimit] = useState(CLIENT_GROUP_PAGE_SIZE)
@@ -396,39 +427,49 @@ export function GkitJurNovoJurPage({
 
         {!dashboardCollapsed ? (
           <div className="gkit-jur-cockpit-dashboard-body">
-            <div className="gkit-jur-cockpit-dashboard-chart" aria-label={`Indicadores de ${areaLabels[activeArea]}`}>
-              <span className="gkit-jur-cockpit-chart-title">Distribuição por tipo</span>
-              {data.bars.map((bar) => (
-                <div key={bar.label}>
-                  <span>{bar.label}</span>
-                  <i className={bar.tone} style={{ '--bar-size': `${bar.value}%` } as CSSProperties} />
-                  <small>{bar.value}%</small>
+            {dashboardInsights?.length ? (
+              <>
+                {dashboardInsights.map((section) => (
+                  <CockpitInsightPanel key={section.title} section={section} />
+                ))}
+              </>
+            ) : (
+              <>
+                <div className="gkit-jur-cockpit-dashboard-chart" aria-label={`Indicadores de ${areaLabels[activeArea]}`}>
+                  <span className="gkit-jur-cockpit-chart-title">Distribuição por tipo</span>
+                  {data.bars.map((bar) => (
+                    <div key={bar.label}>
+                      <span>{bar.label}</span>
+                      <i className={bar.tone} style={{ '--bar-size': `${bar.value}%` } as CSSProperties} />
+                      <small>{bar.value}%</small>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div className="gkit-jur-cockpit-dashboard-trend" aria-label={`Tendência de ${areaLabels[activeArea]}`}>
-              <span className="gkit-jur-cockpit-chart-title">Tendência da carteira</span>
-              <div>
-                {data.trend.map((value, index) => (
-                  <i
-                    key={`${activeArea}-${index}`}
-                    style={{ '--trend-size': `${value}%` } as CSSProperties}
-                  />
-                ))}
-              </div>
-            </div>
+                <div className="gkit-jur-cockpit-dashboard-trend" aria-label={`Tendência de ${areaLabels[activeArea]}`}>
+                  <span className="gkit-jur-cockpit-chart-title">Tendência da carteira</span>
+                  <div>
+                    {data.trend.map((value, index) => (
+                      <i
+                        key={`${activeArea}-${index}`}
+                        style={{ '--trend-size': `${value}%` } as CSSProperties}
+                      />
+                    ))}
+                  </div>
+                </div>
 
-            <div className="gkit-jur-cockpit-dashboard-rhythm" aria-label={`Ritmo operacional de ${areaLabels[activeArea]}`}>
-              <span className="gkit-jur-cockpit-chart-title">Ritmo operacional</span>
-              <div>
-                {data.bars.slice(0, 3).map((bar) => (
-                  <span className={bar.tone} key={`${bar.label}-rhythm`} style={{ '--ring-size': `${bar.value * 3.2}deg` } as CSSProperties}>
-                    {bar.label}
-                  </span>
-                ))}
-              </div>
-            </div>
+                <div className="gkit-jur-cockpit-dashboard-rhythm" aria-label={`Ritmo operacional de ${areaLabels[activeArea]}`}>
+                  <span className="gkit-jur-cockpit-chart-title">Ritmo operacional</span>
+                  <div>
+                    {data.bars.slice(0, 3).map((bar) => (
+                      <span className={bar.tone} key={`${bar.label}-rhythm`} style={{ '--ring-size': `${bar.value * 3.2}deg` } as CSSProperties}>
+                        {bar.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         ) : null}
       </details>

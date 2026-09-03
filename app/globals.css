@@ -884,6 +884,7 @@
 }
 
 .gkit-jur-cockpit-dashboard-chart,
+.gkit-jur-cockpit-dashboard-insight,
 .gkit-jur-cockpit-dashboard-trend,
 .gkit-jur-cockpit-dashboard-rhythm {
   align-content: center;
@@ -900,6 +901,84 @@
   color: rgba(248, 250, 252, 0.72);
   font-size: 11px;
   text-transform: uppercase;
+}
+
+.gkit-jur-cockpit-dashboard-insight {
+  align-content: start;
+}
+
+.gkit-jur-cockpit-dashboard-insight > div {
+  display: grid;
+  gap: 8px;
+}
+
+.gkit-jur-cockpit-dashboard-insight a {
+  align-items: center;
+  color: rgba(248, 250, 252, 0.88);
+  display: grid;
+  gap: 6px 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.gkit-jur-cockpit-dashboard-insight a > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gkit-jur-cockpit-dashboard-insight strong {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 580;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gkit-jur-cockpit-dashboard-insight b {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 620;
+  line-height: 1;
+}
+
+.gkit-jur-cockpit-dashboard-insight small,
+.gkit-jur-cockpit-dashboard-insight p {
+  color: rgba(248, 250, 252, 0.68);
+  font-size: 11px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.gkit-jur-cockpit-dashboard-insight a > i {
+  --insight-size: 20%;
+  background: #60a5fa;
+  border-radius: 999px;
+  display: block;
+  grid-column: 1;
+  height: 6px;
+  opacity: 0.92;
+  width: var(--insight-size);
+}
+
+.gkit-jur-cockpit-dashboard-insight a > i.green {
+  background: #34d399;
+}
+
+.gkit-jur-cockpit-dashboard-insight a > i.red {
+  background: #fb7185;
+}
+
+.gkit-jur-cockpit-dashboard-insight a > i.yellow {
+  background: #fbbf24;
+}
+
+.gkit-jur-cockpit-dashboard-insight a > small:last-child {
+  grid-column: 2;
+  justify-self: end;
 }
 
 .gkit-jur-cockpit-dashboard-chart div {
