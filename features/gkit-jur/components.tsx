@@ -3632,9 +3632,19 @@ export function GkitJurAcordosPage({
   updateStatusAction: (formData: FormData) => Promise<void>
 }) {
   const atrasados = data.acordos.filter((acordo) => acordo.status === 'ativo' && acordo.parcelasAtrasadas > 0)
+  const activeFilters = [
+    data.filters.ano ? { label: 'Ano', value: String(data.filters.ano) } : null,
+    data.filters.carteiraId ? { label: 'Carteira', value: data.filters.carteiraId === 'sem_carteira' ? 'Sem carteira' : data.acordos.find((acordo) => acordo.carteiraId === data.filters.carteiraId)?.carteiraNome ?? data.filters.carteiraId } : null,
+    data.filters.status ? { label: 'Status', value: data.filters.status === 'cumprido' ? 'Quitado' : statusLabel(data.filters.status) } : null,
+    data.filters.situacao ? { label: 'Situação', value: data.filters.situacao === 'quitado' ? 'Quitado' : 'Atrasado' } : null,
+    data.filters.mesParcela ? { label: 'Mês da parcela', value: monthLabel(data.filters.mesParcela) } : null,
+    data.filters.naturezaGrupo ? { label: 'Natureza', value: 'Cobrança/execução' } : null,
+  ].filter(Boolean) as Array<{ label: string; value: string }>
 
   return (
     <>
+      <GkitJurActiveFilterChips items={activeFilters} />
+
       <section className="suite-kpi-grid compact">
         <article className="metric-card">
           <span className="metric-label">Acordos</span>

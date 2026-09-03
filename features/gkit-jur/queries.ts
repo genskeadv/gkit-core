@@ -17,6 +17,7 @@ import type {
   GkitJurAcordoParcela,
   GkitJurAcordoParcelaStatus,
   GkitJurAcordosData,
+  GkitJurAcordosFilters,
   GkitJurAcordoStatus,
   GkitJurAgenteData,
   GkitJurAgenteExecucao,
@@ -102,6 +103,7 @@ const GKIT_JUR_CRON_DEFAULT_TIME_BUDGET_MS = 240_000
 const MOVEMENT_PROCESS_SCOPE_LIMIT = 5000
 const COCKPIT_QUERY_PAGE_SIZE = 1000
 const COCKPIT_LOOKUP_CHUNK_SIZE = 100
+const ACORDO_DASHBOARD_YEAR = 2026
 const PROCESS_LIST_SELECT = 'id,numero_cnj,numero_cnj_limpo,titulo,pasta,parte_contraria,unidade,bloco,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_codigo,classe_nome,assuntos,natureza_operacional,natureza_operacional_label,natureza_operacional_confianca,natureza_operacional_sinais,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,ultima_tentativa_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultimo_status_sincronizacao,proxima_tentativa_sincronizacao_em,falhas_transientes_consecutivas,sem_resultado_consecutivos,status,status_monitoramento'
 const PRE_JURIDICO_SELECT = 'id,titulo,cliente_id,cliente_nome,descricao,carteira_id,responsavel_id,origem,area,valor_estimado,laudo_pdf_url,parte_contraria,unidade,bloco,responsavel_unidade,cotas_debito,ata_eleicao_status,ata_prestacao_contas_status,debitos_atualizados_status,procuracao_status,administradora_email,sindico_email,administradora_solicitada_em,administradora_retorno_em,procuracao_gerada_em,procuracao_enviada_em,sindico_retorno_em,pronto_distribuicao_em,probabilidade,prioridade,status,motivo_status,data_entrada,prazo_analise,convertido_processo_id,convertido_em,created_at,updated_at'
 const TAREFA_SELECT = 'id,processo_id,carteira_id,responsavel_id,tipo,titulo,descricao,status,prioridade,prazo_at,origem,payload,created_at,updated_at,concluded_at'
@@ -397,6 +399,23 @@ export function buildGkitJurProcessFilters(params?: ModuleSearchParams | null): 
     sort,
     status: singleParam(params?.status),
     tribunal: singleParam(params?.tribunal),
+  }
+}
+
+export function buildGkitJurAcordosFilters(params?: ModuleSearchParams | null): GkitJurAcordosFilters {
+  const rawAno = singleParam(params?.ano)
+  const ano = rawAno ? positiveInt(rawAno, 0) : 0
+  const rawStatus = singleParam(params?.status)
+  const rawSituacao = singleParam(params?.situacao)
+  const rawNaturezaGrupo = singleParam(params?.natureza_grupo)
+
+  return {
+    ano,
+    carteiraId: singleParam(params?.carteira_id),
+    mesParcela: singleParam(params?.mes_parcela),
+    naturezaGrupo: rawNaturezaGrupo === 'cobranca_execucao' ? rawNaturezaGrupo : '',
+    situacao: ['atrasado', 'quitado'].includes(rawSituacao) ? rawSituacao : '',
+    status: ['ativo', 'cumprido', 'quebrado', 'cancelado'].includes(rawStatus) ? rawStatus : '',
   }
 }
 
@@ -1695,7 +1714,10 @@ function mapAcordoJudicial(
     numeroCnj: process.numeroCnj,
     processoTitulo: process.titulo,
     clienteNome: process.clienteNome,
+    carteiraId: process.carteiraId,
     carteiraNome: process.carteiraNome,
+    naturezaOperacional: process.naturezaOperacional,
+    naturezaOperacionalLabel: process.naturezaOperacionalLabel,
     responsavelNome: process.responsavelNome,
     valorTotal,
     quantidadeParcelas: numberValue(row.quantidade_parcelas),
@@ -2169,7 +2191,19 @@ export async function getGkitJurProcessDetail(id: string): Promise<GkitJurProces
   }
 }
 
-export async function getGkitJurAcordosData(): Promise<GkitJurAcordosData> {
+function matchesAcordoFilters(acordo: GkitJurAcordoJudicial, filters: GkitJurAcordosFilters) {
+  if (filters.ano && !acordoInYear(acordo, filters.ano)) return false
+  if (filters.carteiraId === 'sem_carteira' && acordo.carteiraId) return false
+  if (filters.carteiraId && filters.carteiraId !== 'sem_carteira' && acordo.carteiraId !== filters.carteiraId) return false
+  if (filters.status && acordo.status !== filters.status) return false
+  if (filters.situacao === 'atrasado' && !(acordo.status === 'ativo' && acordo.parcelasAtrasadas > 0)) return false
+  if (filters.situacao === 'quitado' && acordo.status !== 'cumprido') return false
+  if (filters.mesParcela && !acordo.parcelas.some((parcela) => parcela.status !== 'cancelada' && parcela.vencimento.startsWith(filters.mesParcela))) return false
+  if (filters.naturezaGrupo === 'cobranca_execucao' && !isCobrancaExecucaoNatureza(acordo.naturezaOperacional)) return false
+  return true
+}
+
+export async function getGkitJurAcordosData(filters = buildGkitJurAcordosFilters()): Promise<GkitJurAcordosData> {
   const result = await loadCockpitRows(() => admin()
     .schema('gkit_jur')
     .from('acordos_judiciais')
@@ -2177,7 +2211,8 @@ export async function getGkitJurAcordosData(): Promise<GkitJurAcordosData> {
     .in('status', ['ativo', 'quebrado', 'cumprido'])
     .order('updated_at', { ascending: false }))
 
-  const acordos = await hydrateAcordosJudiciais(result.rows)
+  const allAcordos = await hydrateAcordosJudiciais(result.rows)
+  const acordos = allAcordos.filter((acordo) => matchesAcordoFilters(acordo, filters))
   const ativos = acordos.filter((acordo) => acordo.status === 'ativo')
   const atrasados = acordos.filter((acordo) => acordo.status === 'ativo' && acordo.parcelasAtrasadas > 0)
   const lembretesPendentes = ativos.reduce((total, acordo) => total + acordo.lembretesPendentes, 0)
@@ -2189,6 +2224,7 @@ export async function getGkitJurAcordosData(): Promise<GkitJurAcordosData> {
 
   return {
     acordos,
+    filters,
     metrics: {
       ativos: ativos.length,
       atrasados: atrasados.length,
@@ -2508,6 +2544,15 @@ function cockpitPublicacaoListHref(params: Record<string, string | number | null
   return query ? `/modulos/gkit-jur/publicacoes/lista?${query}` : '/modulos/gkit-jur/publicacoes/lista'
 }
 
+function cockpitAcordosListHref(params: Record<string, string | number | null | undefined>) {
+  const search = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') search.set(key, String(value))
+  })
+  const query = search.toString()
+  return query ? `/modulos/gkit-jur/acordos/lista?${query}` : '/modulos/gkit-jur/acordos/lista'
+}
+
 function cockpitInsightPercent(value: number, total: number) {
   if (!total) return 0
   if (!value) return 0
@@ -2519,6 +2564,7 @@ function createCockpitInsightItem({
   label,
   total,
   value,
+  displayValue,
   hint,
   tone,
 }: {
@@ -2526,6 +2572,7 @@ function createCockpitInsightItem({
   label: string
   total: number
   value: number
+  displayValue?: string
   hint?: string
   tone?: GkitJurCockpitInsightItem['tone']
 }): GkitJurCockpitInsightItem {
@@ -2534,6 +2581,7 @@ function createCockpitInsightItem({
     label,
     percent: cockpitInsightPercent(value, total),
     value,
+    ...(displayValue ? { displayValue } : {}),
     ...(hint ? { hint } : {}),
     ...(tone ? { tone } : {}),
   }
@@ -2789,6 +2837,169 @@ function buildCockpitPublicacaoDashboardInsights(items: GkitJurPublicacao[]): Gk
         }),
       ],
       title: 'Publicações recentes',
+    },
+  ]
+}
+
+function cockpitMoney(value: number) {
+  return new Intl.NumberFormat('pt-BR', { currency: 'BRL', style: 'currency' }).format(value)
+}
+
+function acordoCarteiraKey(acordo: GkitJurAcordoJudicial) {
+  return acordo.carteiraId || 'sem_carteira'
+}
+
+function acordoCarteiraLabel(acordo: GkitJurAcordoJudicial) {
+  return acordo.carteiraNome || (acordo.carteiraId ? 'Carteira sem nome' : 'Sem carteira')
+}
+
+function acordoStatusDashboard(acordo: GkitJurAcordoJudicial) {
+  if (acordo.status === 'cumprido') return 'quitado'
+  if (acordo.status === 'ativo' && acordo.parcelasAtrasadas > 0) return 'atrasado'
+  return acordo.status
+}
+
+function acordoStatusFilterParams(statusValue: string) {
+  if (statusValue === 'atrasado') return { situacao: 'atrasado' }
+  if (statusValue === 'quitado') return { situacao: 'quitado' }
+  return { status: statusValue }
+}
+
+function acordoInYear(acordo: GkitJurAcordoJudicial, year: number) {
+  return Boolean(acordo.createdAt?.startsWith(`${year}-`))
+}
+
+function currentMonthValue() {
+  return new Date().toISOString().slice(0, 7)
+}
+
+const COBRANCA_EXECUCAO_NATURES = new Set([
+  'acao_monitoria',
+  'cobranca_condominial',
+  'cobranca_conhecimento',
+  'cumprimento_sentenca',
+  'despejo_cobranca',
+  'execucao_fiscal',
+  'execucao_titulo_extrajudicial',
+])
+
+function isCobrancaExecucaoNatureza(value: string) {
+  return COBRANCA_EXECUCAO_NATURES.has(value)
+}
+
+function buildCockpitAcordoDashboardInsights(
+  acordos: GkitJurAcordoJudicial[],
+  processos: GkitJurProcessListItem[],
+): GkitJurCockpitInsightSection[] {
+  const acordos2026 = acordos.filter((acordo) => acordoInYear(acordo, ACORDO_DASHBOARD_YEAR))
+  const statusByCarteira = new Map<string, {
+    atrasado: number
+    ativo: number
+    quebrado: number
+    label: string
+    quitado: number
+    total: number
+  }>()
+
+  acordos2026.forEach((acordo) => {
+    const key = acordoCarteiraKey(acordo)
+    const current = statusByCarteira.get(key) ?? {
+      atrasado: 0,
+      ativo: 0,
+      quebrado: 0,
+      label: acordoCarteiraLabel(acordo),
+      quitado: 0,
+      total: 0,
+    }
+    const statusValue = acordoStatusDashboard(acordo)
+    if (statusValue === 'ativo') current.ativo += 1
+    if (statusValue === 'atrasado') current.atrasado += 1
+    if (statusValue === 'quebrado') current.quebrado += 1
+    if (statusValue === 'quitado') current.quitado += 1
+    current.total += 1
+    statusByCarteira.set(key, current)
+  })
+
+  const mesParcela = currentMonthValue()
+  const parcelasByCarteira = new Map<string, { count: number; label: string; value: number }>()
+  acordos.forEach((acordo) => {
+    const parcelasMes = acordo.parcelas.filter((parcela) => parcela.status !== 'cancelada' && parcela.vencimento.startsWith(mesParcela))
+    if (!parcelasMes.length) return
+    const key = acordoCarteiraKey(acordo)
+    const current = parcelasByCarteira.get(key) ?? { count: 0, label: acordoCarteiraLabel(acordo), value: 0 }
+    current.count += parcelasMes.length
+    current.value += parcelasMes.reduce((total, parcela) => total + parcela.valor, 0)
+    parcelasByCarteira.set(key, current)
+  })
+
+  const acordos2026ProcessIds = new Set(acordos2026.map((acordo) => acordo.processoId))
+  const actionProcesses = processos.filter((processo) => isCobrancaExecucaoNatureza(processo.naturezaOperacional))
+  const actionByCarteira = new Map<string, { comAcordo: number; label: string; total: number }>()
+  actionProcesses.forEach((processo) => {
+    const key = processo.carteiraId || 'sem_carteira'
+    const current = actionByCarteira.get(key) ?? {
+      comAcordo: 0,
+      label: processo.carteiraNome || (processo.carteiraId ? 'Carteira sem nome' : 'Sem carteira'),
+      total: 0,
+    }
+    current.total += 1
+    if (acordos2026ProcessIds.has(processo.id)) current.comAcordo += 1
+    actionByCarteira.set(key, current)
+  })
+
+  const statusItems = Array.from(statusByCarteira.entries())
+    .sort((left, right) => right[1].total - left[1].total || left[1].label.localeCompare(right[1].label, 'pt-BR'))
+    .slice(0, 6)
+    .map(([key, item]) => createCockpitInsightItem({
+      href: cockpitAcordosListHref({ ano: ACORDO_DASHBOARD_YEAR, carteira_id: key }),
+      label: item.label,
+      total: acordos2026.length,
+      value: item.total,
+      hint: `Ativo ${item.ativo} · Atrasado ${item.atrasado} · Quebrado ${item.quebrado} · Quitado ${item.quitado}`,
+      tone: item.atrasado || item.quebrado ? 'yellow' : 'blue',
+    }))
+
+  const totalParcelasMes = Array.from(parcelasByCarteira.values()).reduce((total, item) => total + item.value, 0)
+  const parcelaItems = Array.from(parcelasByCarteira.entries())
+    .sort((left, right) => right[1].value - left[1].value || left[1].label.localeCompare(right[1].label, 'pt-BR'))
+    .slice(0, 6)
+    .map(([key, item]) => createCockpitInsightItem({
+      href: cockpitAcordosListHref({ carteira_id: key, mes_parcela: mesParcela }),
+      label: item.label,
+      total: totalParcelasMes,
+      value: item.value,
+      displayValue: cockpitMoney(item.value),
+      hint: `${item.count.toLocaleString('pt-BR')} parcela(s) no mês`,
+      tone: 'green',
+    }))
+
+  const actionItems = Array.from(actionByCarteira.entries())
+    .sort((left, right) => right[1].comAcordo - left[1].comAcordo || right[1].total - left[1].total || left[1].label.localeCompare(right[1].label, 'pt-BR'))
+    .slice(0, 6)
+    .map(([key, item]) => createCockpitInsightItem({
+      href: cockpitAcordosListHref({ ano: ACORDO_DASHBOARD_YEAR, carteira_id: key, natureza_grupo: 'cobranca_execucao' }),
+      label: item.label,
+      total: item.total,
+      value: item.comAcordo,
+      hint: `${item.comAcordo.toLocaleString('pt-BR')} de ${item.total.toLocaleString('pt-BR')} ações com acordo em ${ACORDO_DASHBOARD_YEAR}`,
+      tone: item.comAcordo ? 'blue' : 'red',
+    }))
+
+  return [
+    {
+      emptyLabel: `Nenhum acordo efetivado em ${ACORDO_DASHBOARD_YEAR}.`,
+      items: statusItems,
+      title: `Status ${ACORDO_DASHBOARD_YEAR} por carteira`,
+    },
+    {
+      emptyLabel: 'Nenhuma parcela prevista para o mês.',
+      items: parcelaItems,
+      title: 'Parcelas do mês por carteira',
+    },
+    {
+      emptyLabel: `Nenhuma ação de cobrança ou execução com acordo em ${ACORDO_DASHBOARD_YEAR}.`,
+      items: actionItems,
+      title: 'Cobrança/execução com acordo',
     },
   ]
 }
@@ -3083,7 +3294,12 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
 }
 
 async function getGkitJurCockpitAcordosArea(): Promise<GkitJurCockpitAreaData> {
-  const data = await getGkitJurAcordosData()
+  const [data, processRowsResult] = await Promise.all([
+    getGkitJurAcordosData(),
+    loadGkitJurCockpitProcessRows(),
+  ])
+  const processMaps = await lookupMaps(processRowsResult.rows)
+  const processos = processRowsResult.rows.map((row) => mapProcesso(row, processMaps))
   const ativos = data.acordos.filter((acordo) => acordo.status === 'ativo')
   const cumpridos = data.acordos.filter((acordo) => acordo.status === 'cumprido')
   const quebrados = data.acordos.filter((acordo) => acordo.status === 'quebrado')
@@ -3097,8 +3313,9 @@ async function getGkitJurCockpitAcordosArea(): Promise<GkitJurCockpitAreaData> {
       { label: 'Ativo', count: ativos.length, tone: 'blue' },
       { label: 'Atrasado', count: data.metrics.atrasados, tone: 'red' },
       { label: 'Quebrado', count: quebrados.length, tone: 'yellow' },
-      { label: 'Cumprido', count: cumpridos.length, tone: 'green' },
+      { label: 'Quitado', count: cumpridos.length, tone: 'green' },
     ]),
+    dashboardInsights: buildCockpitAcordoDashboardInsights(data.acordos, processos),
     trend: cockpitTrend([cumpridos.length, ativos.length, data.metrics.atrasados, quebrados.length, data.metrics.total]),
     rows: data.acordos.map((acordo) => ({
       id: acordo.id,

@@ -347,7 +347,10 @@ export type GkitJurAcordoJudicial = {
   numeroCnj: string;
   processoTitulo: string | null;
   clienteNome: string | null;
+  carteiraId: string | null;
   carteiraNome: string | null;
+  naturezaOperacional: GkitJurNaturezaOperacional;
+  naturezaOperacionalLabel: string;
   responsavelNome: string | null;
   valorTotal: number;
   quantidadeParcelas: number;
@@ -626,8 +629,18 @@ export type GkitJurProcessDetailData = {
   timeline: GkitJurTimelineItem[];
 };
 
+export type GkitJurAcordosFilters = {
+  ano: number;
+  carteiraId: string;
+  mesParcela: string;
+  naturezaGrupo: string;
+  situacao: string;
+  status: string;
+};
+
 export type GkitJurAcordosData = {
   acordos: GkitJurAcordoJudicial[];
+  filters: GkitJurAcordosFilters;
   metrics: {
     ativos: number;
     atrasados: number;
@@ -840,6 +853,7 @@ export type GkitJurCockpitInsightItem = {
   value: number;
   percent: number;
   href: string;
+  displayValue?: string;
   hint?: string;
   tone?: GkitJurCockpitBar['tone'];
 };

@@ -5,12 +5,19 @@ import {
   updateGkitJurAcordoStatusAction,
 } from '@/features/gkit-jur/actions'
 import { GkitJurAcordosPage, GkitJurShell } from '@/features/gkit-jur/components'
-import { canWriteGkitJur, getGkitJurAcordosData, requireGkitJurContext } from '@/features/gkit-jur/queries'
+import { buildGkitJurAcordosFilters, canWriteGkitJur, getGkitJurAcordosData, requireGkitJurContext } from '@/features/gkit-jur/queries'
+import { moduleTarget, type ModuleSearchParams } from '@/lib/auth/platform'
 
-export default async function GkitJurAcordosListaRoute() {
+export default async function GkitJurAcordosListaRoute({
+  searchParams,
+}: {
+  searchParams?: Promise<ModuleSearchParams>
+}) {
+  const params = await searchParams
+  const filters = buildGkitJurAcordosFilters(params)
   const [context, data] = await Promise.all([
-    requireGkitJurContext('/modulos/gkit-jur/acordos/lista'),
-    getGkitJurAcordosData(),
+    requireGkitJurContext(moduleTarget('/modulos/gkit-jur/acordos/lista', params)),
+    getGkitJurAcordosData(filters),
   ])
 
   return (

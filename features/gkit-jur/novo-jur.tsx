@@ -250,7 +250,7 @@ function CockpitInsightPanel({
               <strong>{item.label}</strong>
               {item.hint ? <small>{item.hint}</small> : null}
             </span>
-            <b>{item.value.toLocaleString('pt-BR')}</b>
+            <b>{item.displayValue ?? item.value.toLocaleString('pt-BR')}</b>
             <i
               className={item.tone ?? 'blue'}
               style={{ '--insight-size': `${Math.max(4, item.percent)}%` } as CSSProperties}
