@@ -878,9 +878,10 @@
 }
 
 .gkit-jur-cockpit-dashboard-body {
+  align-items: stretch;
   display: grid;
   gap: 14px;
-  grid-template-columns: minmax(0, 1.24fr) minmax(290px, 0.86fr) minmax(250px, 0.68fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .gkit-jur-cockpit-dashboard-chart,
@@ -894,6 +895,8 @@
   display: grid;
   gap: 12px;
   min-height: 172px;
+  min-width: 0;
+  overflow: hidden;
   padding: 15px;
 }
 
@@ -910,6 +913,7 @@
 .gkit-jur-cockpit-dashboard-insight > div {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .gkit-jur-cockpit-dashboard-insight a {
@@ -917,7 +921,7 @@
   color: rgba(248, 250, 252, 0.88);
   display: grid;
   gap: 6px 10px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(76px, 112px);
   min-width: 0;
   text-decoration: none;
 }
@@ -942,15 +946,26 @@
   color: #fff;
   font-size: 18px;
   font-weight: 620;
+  justify-self: end;
   line-height: 1;
+  max-width: 112px;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gkit-jur-cockpit-dashboard-insight small,
 .gkit-jur-cockpit-dashboard-insight p {
   color: rgba(248, 250, 252, 0.68);
+  display: -webkit-box;
   font-size: 11px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
   line-height: 1.25;
   margin: 0;
+  overflow: hidden;
 }
 
 .gkit-jur-cockpit-dashboard-insight a > i {
