@@ -3,6 +3,7 @@ import { canAccess } from '@/lib/auth/permissions'
 import { requireModuleAccess } from '@/lib/auth/platform'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { normalizarCicloOnboardingEtapa } from '@/features/ciclo/onboarding-defaults'
+import { cicloDriveDocumentTitle, suggestCicloDriveFileName } from '@/features/ciclo/drive-catalog'
 import { formatDocumento, normalizePercent } from '@/features/ciclo/scoring'
 import type {
   CicloAlerta,
@@ -24,6 +25,9 @@ import type {
   CicloDocumento,
   CicloDocumentoFormData,
   CicloDocumentoRecord,
+  CicloDriveCatalogData,
+  CicloDriveCatalogFile,
+  CicloDriveCatalogStatus,
   CicloImportacaoItem,
   CicloImportacaoLote,
   CicloListRow,
@@ -383,7 +387,7 @@ export async function getCicloData(context: CicloContext): Promise<CicloData> {
     safeLoadCicloRows(() => supabase
       .schema('ciclo')
       .from('cliente_documentos')
-      .select('id,cliente_id,carteira_id,tipo_documento,titulo,status,obrigatorio,validado,data_renovacao,updated_at')
+      .select('id,cliente_id,carteira_id,tipo_documento,titulo,status,obrigatorio,validado,data_renovacao,arquivo_url,updated_at')
       .order('updated_at', { ascending: false })),
     safeLoadCicloRows(() => supabase
       .schema('ciclo')
@@ -478,6 +482,7 @@ export async function getCicloData(context: CicloContext): Promise<CicloData> {
   const documentos: CicloDocumento[] = documentoRows.map((row) => {
     const cliente = clienteMap.get(String(row.cliente_id))
     return {
+      arquivoUrl: text(row.arquivo_url) || null,
       id: String(row.id),
       cliente: String(cliente?.nome_fantasia ?? cliente?.nome ?? cliente?.razao_social ?? 'Cliente não vinculado'),
       tipo: String(row.tipo_documento ?? 'documento'),
@@ -522,6 +527,133 @@ export async function getCicloData(context: CicloContext): Promise<CicloData> {
     timeline,
     databaseReady: true,
   }
+}
+
+export async function getCicloDriveCatalogData(context: CicloContext): Promise<CicloDriveCatalogData> {
+  const supabase = admin()
+  const allowedCarteiraIds = await getAllowedCarteiraIds(context)
+  const [filesResult, latestRunResult] = await Promise.all([
+    safeLoadCicloRows(() => supabase
+      .schema('ciclo')
+      .from('documento_drive_arquivos')
+      .select('id,cliente_id,documento_id,carteira_id,caminho,nome_arquivo,extensao,arquivo_url,tamanho_bytes,modificado_em,documento_cliente,cliente_slug,tipo_documento,data_vencimento,sem_vencimento,parse_status,parse_erros,aplicado,aplicacao_mensagem,last_seen_at')
+      .order('last_seen_at', { ascending: false })),
+    supabase
+      .schema('ciclo')
+      .from('documento_drive_sync_runs')
+      .select('remote_root,status,total_arquivos,arquivos_reconhecidos,documentos_atualizados,fora_padrao,erros,started_at,finished_at')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
+
+  if (!filesResult.ok) {
+    return emptyCicloDriveCatalogData(false)
+  }
+
+  const fileRows = allowedCarteiraIds === null
+    ? filesResult.rows
+    : filesResult.rows.filter((row) => {
+      const carteiraId = text(row.carteira_id)
+      return carteiraId ? allowedCarteiraIds.has(carteiraId) : false
+    })
+  const clienteMap = await clienteNomeMapFromRows(fileRows)
+  const rows = fileRows.map((row): CicloDriveCatalogFile => {
+    const tipoDocumento = text(row.tipo_documento) || null
+    const documentoCliente = text(row.documento_cliente) || null
+    const clienteSlug = text(row.cliente_slug) || null
+    const dataVencimento = text(row.data_vencimento) || null
+    const extensao = text(row.extensao) || null
+    const status = driveCatalogStatus(row)
+    const sugestaoNome = documentoCliente && clienteSlug && tipoDocumento
+      ? suggestCicloDriveFileName({
+        clienteDocumento: documentoCliente,
+        clienteNome: clienteSlug,
+        dataVencimento,
+        extension: extensao,
+        tipoDocumento,
+      })
+      : null
+
+    return {
+      aplicado: Boolean(row.aplicado),
+      arquivoUrl: text(row.arquivo_url) || null,
+      caminho: text(row.caminho),
+      cliente: clienteMap.get(text(row.cliente_id)) ?? text(row.cliente_slug, 'Cliente nao identificado'),
+      dataVencimento,
+      documentoCliente,
+      documentoId: text(row.documento_id) || null,
+      id: text(row.id),
+      mensagem: text(row.aplicacao_mensagem) || driveCatalogMessage(status),
+      modificadoEm: text(row.modificado_em) || null,
+      nomeArquivo: text(row.nome_arquivo),
+      parseErros: Array.isArray(row.parse_erros) ? row.parse_erros.map(String) : [],
+      parseStatus: text(row.parse_status),
+      status,
+      sugestaoNome,
+      tamanhoBytes: row.tamanho_bytes === null || row.tamanho_bytes === undefined ? null : numberValue(row.tamanho_bytes),
+      tipoDocumento,
+      tipoDocumentoLabel: tipoDocumento ? cicloDriveDocumentTitle(tipoDocumento) : 'Nao classificado',
+    }
+  })
+  const kpis = {
+    aplicados: rows.filter((row) => row.status === 'aplicado').length,
+    duplicados: rows.filter((row) => row.status === 'duplicado').length,
+    foraPadrao: rows.filter((row) => row.status === 'fora_padrao').length,
+    reconhecidos: rows.filter((row) => row.status === 'aplicado' || row.status === 'duplicado').length,
+    semCliente: rows.filter((row) => row.status === 'sem_cliente').length,
+    total: rows.length,
+  }
+  const latestRun = latestRunResult.error || !latestRunResult.data
+    ? null
+    : {
+      arquivosReconhecidos: numberValue(latestRunResult.data.arquivos_reconhecidos),
+      documentosAtualizados: numberValue(latestRunResult.data.documentos_atualizados),
+      erros: numberValue(latestRunResult.data.erros),
+      finishedAt: text(latestRunResult.data.finished_at) || null,
+      foraPadrao: numberValue(latestRunResult.data.fora_padrao),
+      remoteRoot: text(latestRunResult.data.remote_root),
+      startedAt: text(latestRunResult.data.started_at),
+      status: text(latestRunResult.data.status),
+      totalArquivos: numberValue(latestRunResult.data.total_arquivos),
+    }
+
+  return {
+    databaseReady: true,
+    kpis,
+    latestRun,
+    rows,
+  }
+}
+
+function emptyCicloDriveCatalogData(databaseReady = false): CicloDriveCatalogData {
+  return {
+    databaseReady,
+    kpis: {
+      aplicados: 0,
+      duplicados: 0,
+      foraPadrao: 0,
+      reconhecidos: 0,
+      semCliente: 0,
+      total: 0,
+    },
+    latestRun: null,
+    rows: [],
+  }
+}
+
+function driveCatalogStatus(row: Record<string, any>): CicloDriveCatalogStatus {
+  const parseStatus = text(row.parse_status)
+  if (parseStatus === 'sem_cliente') return 'sem_cliente'
+  if (parseStatus === 'fora_padrao') return 'fora_padrao'
+  return row.aplicado ? 'aplicado' : 'duplicado'
+}
+
+function driveCatalogMessage(status: CicloDriveCatalogStatus) {
+  if (status === 'aplicado') return 'Arquivo vinculado ao documento do Ciclo.'
+  if (status === 'duplicado') return 'Existe outro arquivo mais recente para o mesmo cliente e tipo.'
+  if (status === 'sem_cliente') return 'Cliente nao localizado pelo CPF/CNPJ.'
+  return 'Arquivo nao corresponde a um tipo documental conhecido.'
 }
 
 export type CicloAtendimentoFilters = {

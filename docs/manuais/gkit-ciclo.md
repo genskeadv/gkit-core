@@ -73,6 +73,50 @@ Naturezas usuais:
 Use para controlar a matriz documental do cliente: contrato, cartao CNPJ, atas,
 documentos de sindico, convencao, regulamento e outros arquivos essenciais.
 
+#### Padrao de arquivos no Drive
+
+Para permitir catalogacao automatica pelo rclone, nomeie os arquivos assim:
+
+```text
+cpf-ou-cnpj_cliente-slug__tipo-documento__YYYY-MM-DD.ext
+```
+
+Quando o documento nao tiver vencimento, use `sem-vencimento`:
+
+```text
+12345678000199_condominio-alfa__contrato__2027-12-31.pdf
+12345678000199_condominio-alfa__cartao-cnpj__sem-vencimento.pdf
+12345678000199_condominio-alfa__ata-eleicao__2026-10-15.pdf
+```
+
+Tipos esperados no onboarding:
+
+- `contrato`
+- `cartao-cnpj`
+- `ata-eleicao`
+- `ata-previsao-orcamentaria`
+- `cpf-sindico`
+- `cnpj-empresa-sindico`
+- `convencao`
+- `regulamento`
+- `cadastro-unidade`
+
+Use tudo em minusculo, sem acentos, com hifen entre palavras e `__` entre os
+blocos. O CPF/CNPJ normalizado no inicio e a chave mais confiavel para cruzar o
+arquivo com o cadastro do cliente.
+
+Para testar a varredura sem gravar:
+
+```bash
+npm run ciclo:drive-sync -- --remote="gdrive:Base Cadastral"
+```
+
+Para aplicar os vinculos no Ciclo:
+
+```bash
+npm run ciclo:drive-sync -- --remote="gdrive:Base Cadastral" --apply
+```
+
 ### Onboarding
 
 Use para clientes em implantacao. Acompanhe checklist, documentos pendentes,

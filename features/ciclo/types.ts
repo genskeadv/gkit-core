@@ -29,6 +29,7 @@ export type CicloCliente = {
 }
 
 export type CicloDocumento = {
+  arquivoUrl?: string | null
   id: string
   cliente: string
   tipo: string
@@ -355,6 +356,53 @@ export type CicloOnboardingDetail = {
     percentual: number
     pendentes: number
   }
+}
+
+export type CicloDriveCatalogStatus = 'aplicado' | 'duplicado' | 'fora_padrao' | 'sem_cliente'
+
+export type CicloDriveCatalogFile = {
+  aplicado: boolean
+  arquivoUrl: string | null
+  caminho: string
+  cliente: string
+  dataVencimento: string | null
+  documentoCliente: string | null
+  documentoId: string | null
+  id: string
+  mensagem: string
+  modificadoEm: string | null
+  nomeArquivo: string
+  parseErros: string[]
+  parseStatus: string
+  status: CicloDriveCatalogStatus
+  sugestaoNome: string | null
+  tamanhoBytes: number | null
+  tipoDocumento: string | null
+  tipoDocumentoLabel: string
+}
+
+export type CicloDriveCatalogData = {
+  databaseReady: boolean
+  kpis: {
+    aplicados: number
+    duplicados: number
+    foraPadrao: number
+    reconhecidos: number
+    semCliente: number
+    total: number
+  }
+  latestRun: {
+    arquivosReconhecidos: number
+    documentosAtualizados: number
+    erros: number
+    finishedAt: string | null
+    foraPadrao: number
+    remoteRoot: string
+    startedAt: string
+    status: string
+    totalArquivos: number
+  } | null
+  rows: CicloDriveCatalogFile[]
 }
 
 export type CicloImportacaoLote = {

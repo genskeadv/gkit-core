@@ -3861,6 +3861,106 @@ tr:last-child td {
   padding-right: 0;
 }
 
+.ciclo-drive-sync-summary {
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) minmax(220px, auto) minmax(110px, auto);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--gkli-border);
+  border-radius: var(--ciclo-card-radius);
+  padding: 12px;
+}
+
+.ciclo-drive-sync-summary strong,
+.ciclo-drive-sync-summary small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ciclo-drive-sync-summary small {
+  color: var(--gkli-muted);
+  font-size: 12px;
+}
+
+.ciclo-drive-review-list {
+  display: grid;
+  gap: 10px;
+}
+
+.ciclo-drive-review-list article {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--gkli-border);
+  border-radius: var(--ciclo-card-radius);
+  padding: 12px;
+}
+
+.ciclo-drive-review-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+}
+
+.ciclo-drive-review-main h3 {
+  color: var(--gkli-primary);
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.ciclo-drive-review-main p {
+  color: var(--gkli-muted);
+  font-size: 12px;
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.ciclo-drive-review-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ciclo-drive-review-meta span {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  color: var(--gkli-muted);
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 8px;
+}
+
+.ciclo-drive-review-suggestion {
+  display: grid;
+  gap: 6px;
+}
+
+.ciclo-drive-review-suggestion small {
+  color: var(--gkli-muted);
+  font-size: 12px;
+}
+
+.ciclo-drive-review-suggestion code {
+  display: block;
+  max-width: 100%;
+  border: 1px solid rgba(19, 78, 74, 0.16);
+  border-radius: 6px;
+  background: rgba(240, 253, 250, 0.72);
+  color: #134e4a;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  padding: 8px;
+  white-space: normal;
+}
+
+.ciclo-drive-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .ciclo-client-group-list {
   display: grid;
   gap: 8px;

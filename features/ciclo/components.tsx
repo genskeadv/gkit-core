@@ -22,6 +22,8 @@ import type {
   CicloDocumento,
   CicloDocumentoFormData,
   CicloDocumentoRecord,
+  CicloDriveCatalogData,
+  CicloDriveCatalogFile,
   CicloImportacaoItem,
   CicloImportacaoLote,
   CicloListRow,
@@ -80,6 +82,7 @@ type CicloTab =
   | 'administradoras'
   | 'importacoes'
   | 'documentos'
+  | 'documentosDrive'
   | 'contratos'
   | 'atas'
   | 'alertas'
@@ -96,6 +99,7 @@ const activeHref: Record<CicloTab, string> = {
   administradoras: '/modulos/gkit-ciclo/administradoras',
   importacoes: '/modulos/gkit-ciclo/importacoes',
   documentos: '/modulos/gkit-ciclo/documentos',
+  documentosDrive: '/modulos/gkit-ciclo/documentos/drive',
   contratos: '/modulos/gkit-ciclo/contratos',
   atas: '/modulos/gkit-ciclo/atas',
   alertas: '/modulos/gkit-ciclo/alertas',
@@ -124,6 +128,7 @@ const navGroups: ModuleNavGroup[] = [
     title: 'Documentos',
     items: [
       { href: '/modulos/gkit-ciclo/documentos', label: 'Documentos' },
+      { href: '/modulos/gkit-ciclo/documentos/drive', label: 'Catálogo Drive' },
     ],
   },
   {
@@ -141,6 +146,7 @@ const navTitleByHref: Record<string, string> = {
   '/modulos/gkit-ciclo/dashboard': 'Gestão',
   '/modulos/gkit-ciclo/clientes': 'Clientes',
   '/modulos/gkit-ciclo/documentos': 'Documentos',
+  '/modulos/gkit-ciclo/documentos/drive': 'Catálogo Drive',
   '/modulos/gkit-ciclo/contratos': 'Contratos',
   '/modulos/gkit-ciclo/atas': 'Atas',
   '/modulos/gkit-ciclo/alertas': 'Alertas',
@@ -156,6 +162,7 @@ const navOrder = [
   '/modulos/gkit-ciclo/importacoes',
   '/modulos/gkit-ciclo/clientes',
   '/modulos/gkit-ciclo/documentos',
+  '/modulos/gkit-ciclo/documentos/drive',
   '/modulos/gkit-ciclo/contratos',
   '/modulos/gkit-ciclo/atas',
   '/modulos/gkit-ciclo/alertas',
@@ -1107,6 +1114,7 @@ export function CicloDocumentoList({
                     <strong>{documento.obrigatorio ? 'Obrigatório' : 'Opcional'}</strong>
                     <small>
                       {formatDate(documento.dataRenovacao)}
+                      {documento.arquivoUrl ? <a className="button secondary" href={documento.arquivoUrl} rel="noreferrer" target="_blank">Abrir arquivo</a> : null}
                       {canWrite ? <Link className="button secondary" href={`/modulos/gkit-ciclo/documentos/${documento.id}`}>Editar</Link> : null}
                     </small>
                   </article>
@@ -1119,6 +1127,193 @@ export function CicloDocumentoList({
         <EmptyBlock label={hasFilters ? 'Nenhum documento encontrado com os filtros atuais.' : 'Nenhum documento cadastrado.'} />
       )}
     </div>
+  )
+}
+
+const cicloDriveCatalogPageSize = 60
+
+function driveStatusLabel(status: CicloDriveCatalogFile['status']) {
+  if (status === 'aplicado') return 'Aplicado'
+  if (status === 'duplicado') return 'Duplicado'
+  if (status === 'sem_cliente') return 'Sem cliente'
+  return 'Fora do padrão'
+}
+
+function driveStatusTone(status: CicloDriveCatalogFile['status']) {
+  if (status === 'aplicado') return 'success'
+  if (status === 'duplicado') return 'warning'
+  return 'danger'
+}
+
+function driveCatalogHref(page: number, filters: CicloDriveCatalogFilters) {
+  const params = new URLSearchParams()
+  if (filters.q) params.set('q', filters.q)
+  if (filters.status) params.set('status', filters.status)
+  if (filters.tipo) params.set('tipo', filters.tipo)
+  if (page > 1) params.set('pagina', String(page))
+  const query = params.toString()
+  return query ? `/modulos/gkit-ciclo/documentos/drive?${query}` : '/modulos/gkit-ciclo/documentos/drive'
+}
+
+function filterDriveCatalogRows(rows: CicloDriveCatalogFile[], filters: CicloDriveCatalogFilters) {
+  const search = normalizeListSearch(filters.q)
+
+  return rows.filter((row) => {
+    if (filters.status === 'pendencia') {
+      if (row.status === 'aplicado') return false
+    } else if (filters.status && row.status !== filters.status) {
+      return false
+    }
+
+    if (filters.tipo && (row.tipoDocumento ?? 'nao_classificado') !== filters.tipo) return false
+
+    if (search) {
+      const haystack = normalizeListSearch([
+        row.caminho,
+        row.cliente,
+        row.documentoCliente ?? '',
+        row.mensagem,
+        row.nomeArquivo,
+        row.sugestaoNome ?? '',
+        row.tipoDocumentoLabel,
+      ].join(' '))
+      if (!haystack.includes(search)) return false
+    }
+
+    return true
+  })
+}
+
+function formatBytes(value: number | null) {
+  if (!value) return 'Sem tamanho'
+  if (value < 1024) return `${value} B`
+  if (value < 1024 * 1024) return `${Math.round(value / 102.4) / 10} KB`
+  return `${Math.round(value / 1024 / 102.4) / 10} MB`
+}
+
+export function CicloDriveCatalogReview({
+  data,
+  filters,
+}: {
+  data: CicloDriveCatalogData
+  filters: CicloDriveCatalogFilters
+}) {
+  const filteredRows = filterDriveCatalogRows(data.rows, filters)
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / cicloDriveCatalogPageSize))
+  const currentPage = Math.min(Math.max(filters.pagina, 1), totalPages)
+  const start = (currentPage - 1) * cicloDriveCatalogPageSize
+  const rows = filteredRows.slice(start, start + cicloDriveCatalogPageSize)
+  const tipoOptions = [...new Map(data.rows
+    .map((row) => [row.tipoDocumento ?? 'nao_classificado', row.tipoDocumentoLabel || 'Nao classificado'] as const))
+    .entries()]
+    .sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'))
+  const hasFilters = Boolean(filters.q || filters.tipo || filters.status !== 'pendencia')
+
+  if (!data.databaseReady) {
+    return <EmptyBlock label="Catálogo do Drive ainda não disponível. Execute a migration de documentos do Drive." />
+  }
+
+  return (
+    <>
+      <OperationalKpiGrid
+        className="ciclo-kpi-grid"
+        items={[
+          { label: 'Arquivos', value: data.kpis.total.toLocaleString('pt-BR'), hint: 'última varredura' },
+          { label: 'Aplicados', value: data.kpis.aplicados.toLocaleString('pt-BR'), hint: 'vínculos ativos' },
+          { label: 'Duplicados', value: data.kpis.duplicados.toLocaleString('pt-BR'), hint: 'revisar versões' },
+          { label: 'Fora padrão', value: data.kpis.foraPadrao.toLocaleString('pt-BR'), hint: 'saneamento' },
+        ]}
+      />
+
+      {data.latestRun ? (
+        <div className="ciclo-drive-sync-summary">
+          <span className={`ciclo-pill ${data.latestRun.status === 'concluido' ? 'success' : 'warning'}`}>{data.latestRun.status}</span>
+          <strong>{data.latestRun.remoteRoot}</strong>
+          <small>
+            {data.latestRun.documentosAtualizados.toLocaleString('pt-BR')} documento(s) atualizados de {data.latestRun.totalArquivos.toLocaleString('pt-BR')} arquivo(s)
+          </small>
+          <small>{formatDate(data.latestRun.finishedAt ?? data.latestRun.startedAt)}</small>
+        </div>
+      ) : null}
+
+      <div className="ciclo-clientes-surface">
+        <form className="ciclo-list-filter-bar" method="get">
+          <label className="ciclo-list-search">
+            <span>Busca</span>
+            <input className="input" name="q" placeholder="Cliente, arquivo, caminho..." defaultValue={filters.q} />
+          </label>
+          <label>
+            <span>Situação</span>
+            <select className="select" name="status" defaultValue={filters.status}>
+              <option value="pendencia">Pendências</option>
+              <option value="fora_padrao">Fora do padrão</option>
+              <option value="duplicado">Duplicados</option>
+              <option value="sem_cliente">Sem cliente</option>
+              <option value="aplicado">Aplicados</option>
+            </select>
+          </label>
+          <label>
+            <span>Tipo</span>
+            <select className="select" name="tipo" defaultValue={filters.tipo}>
+              <option value="">Todos</option>
+              {tipoOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+          <button className="button secondary" type="submit">Filtrar</button>
+          {hasFilters ? <Link className="button secondary" href="/modulos/gkit-ciclo/documentos/drive">Limpar</Link> : null}
+        </form>
+
+        <div className="ciclo-list-count">
+          {filteredRows.length.toLocaleString('pt-BR')} arquivo(s) nesta visão
+        </div>
+
+        {rows.length ? (
+          <>
+            <div className="ciclo-drive-review-list">
+              {rows.map((row) => (
+                <article key={row.id}>
+                  <div className="ciclo-drive-review-main">
+                    <div>
+                      <h3>{row.nomeArquivo}</h3>
+                      <p>{row.caminho}</p>
+                    </div>
+                    <span className={`ciclo-pill ${driveStatusTone(row.status)}`}>{driveStatusLabel(row.status)}</span>
+                  </div>
+                  <div className="ciclo-drive-review-meta">
+                    <span>{row.cliente}</span>
+                    <span>{row.tipoDocumentoLabel}</span>
+                    <span>{formatBytes(row.tamanhoBytes)}</span>
+                    <span>{formatDate(row.modificadoEm ?? '')}</span>
+                  </div>
+                  <div className="ciclo-drive-review-suggestion">
+                    <small>{row.mensagem}</small>
+                    {row.sugestaoNome ? (
+                      <code>{row.sugestaoNome}</code>
+                    ) : (
+                      <code>Classificar tipo documental antes de renomear</code>
+                    )}
+                  </div>
+                  <div className="ciclo-drive-review-actions">
+                    {row.arquivoUrl ? <a className="button secondary" href={row.arquivoUrl} rel="noreferrer" target="_blank">Abrir arquivo</a> : null}
+                    {row.documentoId ? <Link className="button secondary" href={`/modulos/gkit-ciclo/documentos/${row.documentoId}`}>Ver documento</Link> : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <CicloClientGroupPagination
+              currentPage={currentPage}
+              entityLabel="arquivo"
+              hrefForPage={(page) => driveCatalogHref(page, filters)}
+              totalClients={filteredRows.length}
+              totalPages={totalPages}
+            />
+          </>
+        ) : (
+          <EmptyBlock label="Nenhum arquivo encontrado com os filtros atuais." />
+        )}
+      </div>
+    </>
   )
 }
 
@@ -2271,6 +2466,22 @@ export function buildCicloListFilters(params?: Record<string, string | string[] 
     pagina: pageFilterParam(params?.pagina),
     q: singleFilterParam(params?.q).trim(),
     status: singleFilterParam(params?.status),
+  }
+}
+
+export type CicloDriveCatalogFilters = {
+  pagina: number
+  q: string
+  status: string
+  tipo: string
+}
+
+export function buildCicloDriveCatalogFilters(params?: Record<string, string | string[] | undefined>): CicloDriveCatalogFilters {
+  return {
+    pagina: pageFilterParam(params?.pagina),
+    q: singleFilterParam(params?.q).trim(),
+    status: singleFilterParam(params?.status) || 'pendencia',
+    tipo: singleFilterParam(params?.tipo),
   }
 }
 

@@ -36,7 +36,12 @@ export default async function CicloDocumentosPage({ searchParams }: CicloDocumen
       title="Documentos"
       description="Matriz documental única por cliente, com status, obrigatoriedade e vencimentos."
       usuario={context.usuario}
-      actions={canWrite ? <Link className="button" href="/modulos/gkit-ciclo/documentos/novo">Novo documento</Link> : null}
+      actions={(
+        <>
+          <Link className="button secondary" href="/modulos/gkit-ciclo/documentos/drive">Catálogo Drive</Link>
+          {canWrite ? <Link className="button" href="/modulos/gkit-ciclo/documentos/novo">Novo documento</Link> : null}
+        </>
+      )}
     >
       <CicloSection
         className="ciclo-clientes-summary"
