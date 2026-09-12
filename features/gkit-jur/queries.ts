@@ -443,9 +443,10 @@ export function buildGkitJurMemoriaProcessualFilters(params?: ModuleSearchParams
   const filters = buildGkitJurProcessFilters(params)
   return {
     ...filters,
-    clienteMensal: singleParam(params?.cliente_mensal) || '1',
+    clienteMensal: '1',
     sort: singleParam(params?.sort) || 'ultima_movimentacao_em',
-    tipoAcompanhamento: singleParam(params?.tipo_acompanhamento) || 'cliente_mensal_outro_escritorio',
+    status: '',
+    tipoAcompanhamento: 'cliente_mensal_outro_escritorio',
   }
 }
 

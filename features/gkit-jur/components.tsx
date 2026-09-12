@@ -1181,10 +1181,11 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
 }
 
 function filterHref(filters: GkitJurProcessFilters, page: number, basePath = '/modulos/gkit-jur/processos/lista') {
+  const memoriaProcessual = basePath.endsWith('/memoria-processual')
   const params = new URLSearchParams()
   const entries = {
     carteira_id: filters.carteiraId,
-    cliente_mensal: filters.clienteMensal,
+    cliente_mensal: memoriaProcessual ? '' : filters.clienteMensal,
     dir: filters.dir,
     etiqueta_id: filters.etiquetaId,
     monitoramento: filters.monitoramento,
@@ -1192,8 +1193,8 @@ function filterHref(filters: GkitJurProcessFilters, page: number, basePath = '/m
     responsavel_id: filters.responsavelId,
     saneamento: filters.saneamento,
     sort: filters.sort,
-    status: filters.status,
-    tipo_acompanhamento: filters.tipoAcompanhamento,
+    status: memoriaProcessual ? '' : filters.status,
+    tipo_acompanhamento: memoriaProcessual ? '' : filters.tipoAcompanhamento,
     tribunal: filters.tribunal,
   }
   Object.entries(entries).forEach(([key, value]) => {
@@ -1350,19 +1351,27 @@ function SelectField({
   )
 }
 
-function GkitJurFilterBar({ basePath = '/modulos/gkit-jur/processos/lista', data }: { basePath?: string; data: GkitJurProcessListData }) {
+function GkitJurFilterBar({
+  basePath = '/modulos/gkit-jur/processos/lista',
+  data,
+  lockedMemoriaProcessual = false,
+}: {
+  basePath?: string
+  data: GkitJurProcessListData
+  lockedMemoriaProcessual?: boolean
+}) {
   const { filterOptions, filters, pagination } = data
   const activeFilters = [
     filters.q ? { label: 'Busca', value: filters.q } : null,
-    filters.status ? { label: 'Status', value: optionLabel(gkitJurStatusOptions, filters.status) } : null,
+    filters.status && !lockedMemoriaProcessual ? { label: 'Status', value: optionLabel(gkitJurStatusOptions, filters.status) } : null,
     filters.carteiraId ? { label: 'Carteira', value: activeValueLabel(filterOptions.carteiras, filters.carteiraId) } : null,
     filters.responsavelId ? { label: 'Responsável', value: activeValueLabel(filterOptions.responsaveis, filters.responsavelId) } : null,
     filters.tribunal ? { label: 'Tribunal', value: filters.tribunal } : null,
     filters.etiquetaId ? { label: 'Etiqueta', value: tagOptions(filterOptions.etiquetas).find((option) => option.value === filters.etiquetaId)?.label ?? filters.etiquetaId } : null,
     filters.natureza ? { label: 'Natureza', value: activeValueLabel(filterOptions.naturezas, filters.natureza) } : null,
     filters.monitoramento ? { label: 'Monitoramento', value: optionLabel(gkitJurMonitoramentoOptions, filters.monitoramento) } : null,
-    filters.tipoAcompanhamento ? { label: 'Acompanhamento', value: tipoAcompanhamentoLabel(filters.tipoAcompanhamento) } : null,
-    filters.clienteMensal === '1' ? { label: 'Cliente', value: 'Mensal' } : null,
+    filters.tipoAcompanhamento && !lockedMemoriaProcessual ? { label: 'Acompanhamento', value: tipoAcompanhamentoLabel(filters.tipoAcompanhamento) } : null,
+    filters.clienteMensal === '1' && !lockedMemoriaProcessual ? { label: 'Cliente', value: 'Mensal' } : null,
     filters.saneamento ? { label: 'Pendência', value: processPendingLabel(filters.saneamento) } : null,
   ].filter(Boolean) as Array<{ label: string; value: string }>
 
@@ -1373,13 +1382,15 @@ function GkitJurFilterBar({ basePath = '/modulos/gkit-jur/processos/lista', data
           <span>Busca</span>
           <input defaultValue={filters.q} name="q" placeholder="CNJ, cliente, pasta, título ou classe" type="search" />
         </label>
-        <SelectField
-          label="Status"
-          name="status"
-          options={gkitJurStatusOptions}
-          placeholder="Ativos"
-          value={filters.status}
-        />
+        {!lockedMemoriaProcessual ? (
+          <SelectField
+            label="Status"
+            name="status"
+            options={gkitJurStatusOptions}
+            placeholder="Ativos"
+            value={filters.status}
+          />
+        ) : null}
         <SelectField
           label="Carteira"
           name="carteira_id"
@@ -1415,20 +1426,24 @@ function GkitJurFilterBar({ basePath = '/modulos/gkit-jur/processos/lista', data
           placeholder="Todos"
           value={filters.monitoramento}
         />
-        <SelectField
-          label="Acompanhamento"
-          name="tipo_acompanhamento"
-          options={gkitJurTipoAcompanhamentoOptions}
-          placeholder="Todos"
-          value={filters.tipoAcompanhamento}
-        />
-        <SelectField
-          label="Cliente"
-          name="cliente_mensal"
-          options={[{ label: 'Mensal', value: '1' }]}
-          placeholder="Todos"
-          value={filters.clienteMensal}
-        />
+        {!lockedMemoriaProcessual ? (
+          <>
+            <SelectField
+              label="Acompanhamento"
+              name="tipo_acompanhamento"
+              options={gkitJurTipoAcompanhamentoOptions}
+              placeholder="Todos"
+              value={filters.tipoAcompanhamento}
+            />
+            <SelectField
+              label="Cliente"
+              name="cliente_mensal"
+              options={[{ label: 'Mensal', value: '1' }]}
+              placeholder="Todos"
+              value={filters.clienteMensal}
+            />
+          </>
+        ) : null}
         <SelectField
           label="Natureza"
           name="natureza"
@@ -1993,10 +2008,10 @@ export function GkitJurMemoriaProcessualPage({
         description="Processos de clientes mensais acompanhados para ciência, risco e relatório, sem condução direta pelo Genske."
       >
         <div className="gkit-jur-list-note">
-          <span>Recorte padrão: cliente mensal / outro escritório</span>
-          <small>Use os filtros para incluir apoio consultivo, somente ciência ou processos sem vínculo mensal.</small>
+          <span>Recorte fixo: cliente mensal / outro escritório / ativo</span>
+          <small>Use os filtros apenas para refinar busca, carteira, responsável, tribunal, etiqueta, monitoramento, natureza ou pendências.</small>
         </div>
-        <GkitJurFilterBar basePath="/modulos/gkit-jur/memoria-processual" data={data} />
+        <GkitJurFilterBar basePath="/modulos/gkit-jur/memoria-processual" data={data} lockedMemoriaProcessual />
         {data.processes.length && canWrite ? (
           <form action={bulkEtiquetaAction} className="gkit-jur-bulk-tag-form" id={bulkFormId}>
             <input name="return_to" type="hidden" value={returnTo} />
