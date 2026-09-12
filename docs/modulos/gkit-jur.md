@@ -889,6 +889,7 @@ Criterio de aceite:
 
 - Monitoramento automatico por job.
 - Busca multi-tribunal por CNJ.
+- Acompanhamento de processos de clientes mensais conduzidos por outros escritorios, conforme `docs/modulos/gkit-jur-processos-clientes-mensais.md`.
 - Alertas por responsavel.
 - Classificacao automatica de movimentacoes.
 - Integracao com agenda e prazos.

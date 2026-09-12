@@ -382,6 +382,7 @@ function revalidateGkitJur() {
   revalidatePath('/modulos/gkit-jur/publicacoes')
   revalidatePath('/modulos/gkit-jur/agente')
   revalidatePath('/modulos/gkit-jur/processos')
+  revalidatePath('/modulos/gkit-jur/memoria-processual')
   revalidatePath('/modulos/gkit-jur/pre-juridico')
   revalidatePath('/modulos/gkit-jur/pendencias')
 }
@@ -419,7 +420,7 @@ export async function updateGkitJurProcessoAction(formData: FormData) {
   const currentResult = await admin()
     .schema('gkit_jur')
     .from('processos')
-    .select('id,titulo,cliente_nome,classe_nome,assuntos,natureza_operacional,parte_contraria,unidade,bloco')
+    .select('id,titulo,cliente_nome,classe_nome,assuntos,natureza_operacional,parte_contraria,unidade,bloco,tipo_acompanhamento,escritorio_responsavel_nome,escritorio_responsavel_contato,acompanhamento_autorizado_em,acompanhamento_observacoes,incluir_relatorio_mensal,status_monitoramento')
     .eq('id', id)
     .single()
 
@@ -428,6 +429,17 @@ export async function updateGkitJurProcessoAction(formData: FormData) {
   const parteContraria = formOrCurrentText(formData, 'parte_contraria', current.parte_contraria)
   const unidade = formOrCurrentText(formData, 'unidade', current.unidade)
   const bloco = formOrCurrentText(formData, 'bloco', current.bloco)
+  const tipoAcompanhamento = allowed(formOrCurrentText(formData, 'tipo_acompanhamento', current.tipo_acompanhamento), ['atuacao_genske', 'cliente_mensal_outro_escritorio', 'apoio_consultivo', 'somente_ciencia'], 'atuacao_genske')
+  const acompanhamentoAutorizadoRaw = formData.has('acompanhamento_autorizado_em')
+    ? text(formData, 'acompanhamento_autorizado_em')
+    : valueText(current.acompanhamento_autorizado_em)
+  const acompanhamentoAutorizadoEm = acompanhamentoAutorizadoRaw
+    ? new Date(acompanhamentoAutorizadoRaw).toISOString()
+    : null
+  const requestedMonitoramento = allowed(formOrCurrentText(formData, 'status_monitoramento', current.status_monitoramento), ['monitorando', 'pausado', 'erro', 'nao_monitorar'], 'monitorando')
+  const statusMonitoramento = tipoAcompanhamento === 'cliente_mensal_outro_escritorio' && !acompanhamentoAutorizadoEm && requestedMonitoramento === 'monitorando'
+    ? 'nao_monitorar'
+    : requestedMonitoramento
 
   if (!parteContraria) throw new Error('Parte contraria e obrigatoria.')
   if (!unidade && requiresGkitJurUnit({
@@ -448,7 +460,16 @@ export async function updateGkitJurProcessoAction(formData: FormData) {
     unidade: unidade || null,
     bloco: bloco || null,
     status: allowed(text(formData, 'status'), ['ativo', 'arquivado', 'suspenso', 'encerrado', 'erro'], 'ativo'),
-    status_monitoramento: allowed(text(formData, 'status_monitoramento'), ['monitorando', 'pausado', 'erro', 'nao_monitorar'], 'monitorando'),
+    status_monitoramento: statusMonitoramento,
+    tipo_acompanhamento: tipoAcompanhamento,
+    escritorio_responsavel_nome: formOrCurrentText(formData, 'escritorio_responsavel_nome', current.escritorio_responsavel_nome) || null,
+    escritorio_responsavel_contato: formOrCurrentText(formData, 'escritorio_responsavel_contato', current.escritorio_responsavel_contato) || null,
+    acompanhamento_autorizado_em: acompanhamentoAutorizadoEm,
+    acompanhamento_autorizado_por: acompanhamentoAutorizadoEm && !valueText(current.acompanhamento_autorizado_em) ? context.usuario.id : undefined,
+    acompanhamento_observacoes: formOrCurrentText(formData, 'acompanhamento_observacoes', current.acompanhamento_observacoes) || null,
+    incluir_relatorio_mensal: formData.has('incluir_relatorio_mensal')
+      ? checkbox(formData, 'incluir_relatorio_mensal')
+      : current.incluir_relatorio_mensal !== false,
     observacoes: text(formData, 'observacoes') || null,
     atualizado_por: context.usuario.id,
     updated_at: new Date().toISOString(),

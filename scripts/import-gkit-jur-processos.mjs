@@ -78,6 +78,23 @@ function tribunalFromCnj(clean) {
   return tribunalMap.get(clean.slice(13, 16)) || { sigla: null, alias: null };
 }
 
+function normalizeTipoAcompanhamento(value) {
+  const current = normalizeSearch(value);
+  if (!current) return 'atuacao_genske';
+  if (/\b(outro escritorio|escritorio externo|externo|terceiro|terceiros)\b/.test(current)) return 'cliente_mensal_outro_escritorio';
+  if (/\b(consultivo|consultoria|apoio|estrategico|estrategia)\b/.test(current)) return 'apoio_consultivo';
+  if (/\b(ciencia|somente ciencia|relatorio|informativo)\b/.test(current)) return 'somente_ciencia';
+  return 'atuacao_genske';
+}
+
+function booleanFromCell(value, fallback = true) {
+  const current = normalizeSearch(value);
+  if (!current) return fallback;
+  if (['nao', 'não', 'n', 'no', 'false', '0'].includes(current)) return false;
+  if (['sim', 's', 'yes', 'true', '1'].includes(current)) return true;
+  return fallback;
+}
+
 function loadSheet(path, sheetName) {
   const workbook = XLSX.read(readFileSync(path), { type: 'buffer', cellDates: true });
   const name = sheetName || workbook.SheetNames[0];
@@ -192,6 +209,8 @@ function buildPayload(row, carteiraPlanilha, maps) {
   const carteiraNome = carteiraInfo?.carteira || '';
   const tribunal = tribunalFromCnj(numeroLimpo);
   const responsavel = normalizeName(pick(row, 'Responsável', 'Responsavel'));
+  const tipoAcompanhamento = normalizeTipoAcompanhamento(pick(row, 'Tipo de acompanhamento', 'Papel do Genske'));
+  const acompanhamentoAutorizadoEm = excelDate(pick(row, 'Autorizado monitorar em', 'Autorização monitoramento', 'Autorizacao monitoramento'));
 
   return {
     numero_cnj: formatCnj(numeroLimpo),
@@ -204,6 +223,12 @@ function buildPayload(row, carteiraPlanilha, maps) {
     cliente_id: maps.clientesByName.get(normalizeName(clienteNome)) || null,
     carteira_id: maps.carteirasByName.get(carteiraNome) || null,
     responsavel_id: maps.usuariosByName.get(responsavel) || null,
+    tipo_acompanhamento: tipoAcompanhamento,
+    escritorio_responsavel_nome: normalizeText(pick(row, 'Escritorio responsavel', 'Escritório responsável', 'Escritorio externo', 'Escritório externo')) || null,
+    escritorio_responsavel_contato: normalizeText(pick(row, 'Contato do escritorio', 'Contato do escritório', 'Email escritorio', 'E-mail escritório')) || null,
+    acompanhamento_autorizado_em: acompanhamentoAutorizadoEm,
+    acompanhamento_observacoes: normalizeText(pick(row, 'Observacoes de acompanhamento', 'Observações de acompanhamento', 'Memoria processual', 'Memória processual')) || null,
+    incluir_relatorio_mensal: booleanFromCell(pick(row, 'Incluir no relatorio mensal', 'Incluir no relatório mensal'), true),
     tribunal_sigla: tribunal.sigla,
     tribunal_alias: tribunal.alias,
     classe_nome: normalizeText(pick(row, 'Ação', 'Acao')) || null,
@@ -214,7 +239,7 @@ function buildPayload(row, carteiraPlanilha, maps) {
     url_processo: normalizeText(pick(row, 'URL do Processo')) || null,
     observacoes: normalizeText(pick(row, 'Observações', 'Observacoes')) || null,
     status: pick(row, 'Data de Encerramento') ? 'encerrado' : 'ativo',
-    status_monitoramento: 'monitorando',
+    status_monitoramento: tipoAcompanhamento === 'cliente_mensal_outro_escritorio' && !acompanhamentoAutorizadoEm ? 'nao_monitorar' : 'monitorando',
     importado_de: 'Processo(2).xlsx',
     origem_modulo: 'planilha_processos',
     assuntos: [],

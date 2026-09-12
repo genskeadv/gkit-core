@@ -11,6 +11,7 @@ import {
   gkitJurTarefaPrioridadeOptions,
   gkitJurTarefaStatusOptions,
   gkitJurTarefaTipoOptions,
+  gkitJurTipoAcompanhamentoOptions,
 } from './queries'
 import { GkitJurSyncSubmitButton } from './sync-submit-button'
 import type {
@@ -54,7 +55,7 @@ import type {
   GkitJurTimelineItem,
 } from './types'
 
-type GkitJurTab = 'inbox' | 'novo_jur' | 'lab' | 'pre_juridico' | 'processos' | 'pendencias' | 'publicacoes' | 'acordos' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria' | 'configuracoes'
+type GkitJurTab = 'inbox' | 'novo_jur' | 'lab' | 'pre_juridico' | 'processos' | 'memoria_processual' | 'pendencias' | 'publicacoes' | 'acordos' | 'movimentacoes' | 'agente' | 'cadastros' | 'auditoria' | 'configuracoes'
 
 const activeHref: Record<GkitJurTab, string> = {
   inbox: '/modulos/gkit-jur/inbox',
@@ -66,6 +67,7 @@ const activeHref: Record<GkitJurTab, string> = {
   publicacoes: '/modulos/gkit-jur/publicacoes',
   acordos: '/modulos/gkit-jur/acordos',
   movimentacoes: '/modulos/gkit-jur/movimentacoes',
+  memoria_processual: '/modulos/gkit-jur/memoria-processual',
   agente: '/modulos/gkit-jur/agente',
   cadastros: '/modulos/gkit-jur/cadastros',
   auditoria: '/modulos/gkit-jur/auditoria',
@@ -79,6 +81,7 @@ const navGroups: ModuleNavGroup[] = [
   { href: '/modulos/gkit-jur/acordos', title: 'Acordos Judiciais' },
   { href: '/modulos/gkit-jur/pre-juridico', title: 'Pré-jurídico' },
   { href: '/modulos/gkit-jur/processos', title: 'Processos' },
+  { href: '/modulos/gkit-jur/memoria-processual', title: 'Memória processual' },
 ]
 
 const gkitJurPreJuridicoStatusOptions: GkitJurSelectOption[] = [
@@ -317,6 +320,17 @@ function formatMoney(value: number) {
 
 function statusLabel(value: string) {
   return value.replace(/_/g, ' ')
+}
+
+function tipoAcompanhamentoLabel(value: string) {
+  return optionLabel(gkitJurTipoAcompanhamentoOptions, value)
+}
+
+function tipoAcompanhamentoTone(value: string) {
+  if (value === 'cliente_mensal_outro_escritorio') return 'warning'
+  if (value === 'apoio_consultivo') return 'primary'
+  if (value === 'somente_ciencia') return 'muted'
+  return 'success'
 }
 
 function natureTone(row: GkitJurProcessListItem) {
@@ -1166,10 +1180,11 @@ export function GkitJurLabPage({ data }: { data: GkitJurLabData }) {
   )
 }
 
-function filterHref(filters: GkitJurProcessFilters, page: number) {
+function filterHref(filters: GkitJurProcessFilters, page: number, basePath = '/modulos/gkit-jur/processos/lista') {
   const params = new URLSearchParams()
   const entries = {
     carteira_id: filters.carteiraId,
+    cliente_mensal: filters.clienteMensal,
     dir: filters.dir,
     etiqueta_id: filters.etiquetaId,
     monitoramento: filters.monitoramento,
@@ -1178,6 +1193,7 @@ function filterHref(filters: GkitJurProcessFilters, page: number) {
     saneamento: filters.saneamento,
     sort: filters.sort,
     status: filters.status,
+    tipo_acompanhamento: filters.tipoAcompanhamento,
     tribunal: filters.tribunal,
   }
   Object.entries(entries).forEach(([key, value]) => {
@@ -1185,7 +1201,7 @@ function filterHref(filters: GkitJurProcessFilters, page: number) {
   })
   if (page > 1) params.set('page', String(page))
   const query = params.toString()
-  return query ? `/modulos/gkit-jur/processos/lista?${query}` : '/modulos/gkit-jur/processos/lista'
+  return query ? `${basePath}?${query}` : basePath
 }
 
 function movimentacaoHref(filters: GkitJurMovimentacaoFilters, page: number) {
@@ -1215,6 +1231,8 @@ function processPendingLabel(value: string) {
     sem_mov_30: 'Sem movimentação 30+',
     sem_mov_60: 'Sem movimentação 60+',
     sem_mov_90: 'Sem movimentação 90+',
+    sem_escritorio_externo: 'Sem escritório externo',
+    sem_autorizacao_monitoramento: 'Sem autorização de monitoramento',
   }
   return labels[value] ?? value
 }
@@ -1332,7 +1350,7 @@ function SelectField({
   )
 }
 
-function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
+function GkitJurFilterBar({ basePath = '/modulos/gkit-jur/processos/lista', data }: { basePath?: string; data: GkitJurProcessListData }) {
   const { filterOptions, filters, pagination } = data
   const activeFilters = [
     filters.q ? { label: 'Busca', value: filters.q } : null,
@@ -1343,6 +1361,8 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
     filters.etiquetaId ? { label: 'Etiqueta', value: tagOptions(filterOptions.etiquetas).find((option) => option.value === filters.etiquetaId)?.label ?? filters.etiquetaId } : null,
     filters.natureza ? { label: 'Natureza', value: activeValueLabel(filterOptions.naturezas, filters.natureza) } : null,
     filters.monitoramento ? { label: 'Monitoramento', value: optionLabel(gkitJurMonitoramentoOptions, filters.monitoramento) } : null,
+    filters.tipoAcompanhamento ? { label: 'Acompanhamento', value: tipoAcompanhamentoLabel(filters.tipoAcompanhamento) } : null,
+    filters.clienteMensal === '1' ? { label: 'Cliente', value: 'Mensal' } : null,
     filters.saneamento ? { label: 'Pendência', value: processPendingLabel(filters.saneamento) } : null,
   ].filter(Boolean) as Array<{ label: string; value: string }>
 
@@ -1396,6 +1416,20 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
           value={filters.monitoramento}
         />
         <SelectField
+          label="Acompanhamento"
+          name="tipo_acompanhamento"
+          options={gkitJurTipoAcompanhamentoOptions}
+          placeholder="Todos"
+          value={filters.tipoAcompanhamento}
+        />
+        <SelectField
+          label="Cliente"
+          name="cliente_mensal"
+          options={[{ label: 'Mensal', value: '1' }]}
+          placeholder="Todos"
+          value={filters.clienteMensal}
+        />
+        <SelectField
           label="Natureza"
           name="natureza"
           options={filterOptions.naturezas}
@@ -1414,6 +1448,8 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
             { label: 'Sem movimentação 30+', value: 'sem_mov_30' },
             { label: 'Sem movimentação 60+', value: 'sem_mov_60' },
             { label: 'Sem movimentação 90+', value: 'sem_mov_90' },
+            { label: 'Sem escritório externo', value: 'sem_escritorio_externo' },
+            { label: 'Sem autorização de monitoramento', value: 'sem_autorizacao_monitoramento' },
           ]}
           placeholder="Todas"
           value={filters.saneamento}
@@ -1428,6 +1464,8 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
             { label: 'Cliente', value: 'cliente_nome' },
             { label: 'Tribunal', value: 'tribunal_sigla' },
             { label: 'Natureza', value: 'natureza_operacional' },
+            { label: 'Acompanhamento', value: 'tipo_acompanhamento' },
+            { label: 'Escritório externo', value: 'escritorio_responsavel_nome' },
           ]}
           placeholder="Atualização"
           value={filters.sort}
@@ -1447,7 +1485,7 @@ function GkitJurFilterBar({ data }: { data: GkitJurProcessListData }) {
       <div className="gkit-jur-filter-actions">
         <span>{pagination.from}-{pagination.to} de {pagination.total}</span>
         <button className="button" type="submit">Filtrar</button>
-        <Link className="button secondary" href="/modulos/gkit-jur/processos/lista">Limpar</Link>
+        <Link className="button secondary" href={basePath}>Limpar</Link>
       </div>
       <GkitJurActiveFilterChips items={activeFilters} />
     </form>
@@ -1896,6 +1934,104 @@ export function GkitJurProcessesPage({
           </div>
         )}
         <GkitJurPager data={data} />
+      </GkitJurSection>
+    </>
+  )
+}
+
+export function GkitJurMemoriaProcessualPage({
+  bulkEtiquetaAction,
+  canWrite,
+  data,
+  updateEtiquetaAction,
+}: {
+  bulkEtiquetaAction: (formData: FormData) => Promise<void>
+  canWrite: boolean
+  data: GkitJurProcessListData
+  updateEtiquetaAction: (formData: FormData) => Promise<void>
+}) {
+  const bulkFormId = 'gkit-jur-memoria-processual-tags-bulk'
+  const returnTo = filterHref(data.filters, data.pagination.currentPage, '/modulos/gkit-jur/memoria-processual')
+  const { metrics } = data
+  const cards = [
+    {
+      hint: 'clientes mensais, outro escritório',
+      label: 'Memória ativa',
+      value: metrics.memoriaProcessual,
+    },
+    {
+      hint: 'antes de monitorar automático',
+      label: 'Sem autorização',
+      value: metrics.memoriaSemAutorizacao,
+    },
+    {
+      hint: 'condução externa pendente',
+      label: 'Sem escritório',
+      value: metrics.memoriaSemEscritorio,
+    },
+    {
+      hint: 'últimos 30 dias',
+      label: 'Movimentações',
+      value: metrics.memoriaMovimentacoes30Dias,
+    },
+  ]
+
+  return (
+    <>
+      <section className="suite-kpi-grid compact">
+        {cards.map((card) => (
+          <article className="metric-card" key={card.label}>
+            <span className="metric-label">{card.label}</span>
+            <strong className="metric-value">{card.value.toLocaleString('pt-BR')}</strong>
+            <span className="metric-hint">{card.hint}</span>
+          </article>
+        ))}
+      </section>
+
+      <GkitJurSection
+        title="Memória processual"
+        description="Processos de clientes mensais acompanhados para ciência, risco e relatório, sem condução direta pelo Genske."
+      >
+        <div className="gkit-jur-list-note">
+          <span>Recorte padrão: cliente mensal / outro escritório</span>
+          <small>Use os filtros para incluir apoio consultivo, somente ciência ou processos sem vínculo mensal.</small>
+        </div>
+        <GkitJurFilterBar basePath="/modulos/gkit-jur/memoria-processual" data={data} />
+        {data.processes.length && canWrite ? (
+          <form action={bulkEtiquetaAction} className="gkit-jur-bulk-tag-form" id={bulkFormId}>
+            <input name="return_to" type="hidden" value={returnTo} />
+            <div>
+              <strong>Etiquetas em lote</strong>
+              <small>Marque processos acompanhados e aplique uma etiqueta de memória processual.</small>
+            </div>
+            <select name="etiqueta_id" required defaultValue="">
+              <option value="">Escolha a etiqueta</option>
+              {tagOptions(data.filterOptions.etiquetas).map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            <select name="mode" defaultValue="add">
+              <option value="add">Adicionar</option>
+              <option value="remove">Remover</option>
+            </select>
+            <button className="button secondary" type="submit">Aplicar nos selecionados</button>
+          </form>
+        ) : null}
+        {data.processes.length ? (
+          <GkitJurProcessTaggableList
+            bulkFormId={bulkFormId}
+            canWrite={canWrite}
+            returnTo={returnTo}
+            rows={data.processes}
+            tags={data.filterOptions.etiquetas}
+            updateEtiquetaAction={updateEtiquetaAction}
+          />
+        ) : (
+          <div className="suite-empty-block">
+            Nenhum processo de memória processual encontrado neste recorte.
+          </div>
+        )}
+        <GkitJurPager basePath="/modulos/gkit-jur/memoria-processual" data={data} />
       </GkitJurSection>
     </>
   )
@@ -2415,7 +2551,7 @@ export function GkitJurGlobalSearchPage({ data }: { data: GkitJurGlobalSearchDat
   )
 }
 
-function GkitJurPager({ data }: { data: GkitJurProcessListData }) {
+function GkitJurPager({ basePath, data }: { basePath?: string; data: GkitJurProcessListData }) {
   const { filters, pagination } = data
   return (
     <div className="gkit-jur-pagination">
@@ -2424,14 +2560,14 @@ function GkitJurPager({ data }: { data: GkitJurProcessListData }) {
         <Link
           aria-disabled={pagination.currentPage <= 1}
           className={pagination.currentPage <= 1 ? 'button secondary disabled' : 'button secondary'}
-          href={filterHref(filters, Math.max(1, pagination.currentPage - 1))}
+          href={filterHref(filters, Math.max(1, pagination.currentPage - 1), basePath)}
         >
           Anterior
         </Link>
         <Link
           aria-disabled={pagination.currentPage >= pagination.totalPages}
           className={pagination.currentPage >= pagination.totalPages ? 'button secondary disabled' : 'button secondary'}
-          href={filterHref(filters, Math.min(pagination.totalPages, pagination.currentPage + 1))}
+          href={filterHref(filters, Math.min(pagination.totalPages, pagination.currentPage + 1), basePath)}
         >
           Próxima
         </Link>
@@ -2525,9 +2661,14 @@ function GkitJurProcessTaggableList({
           <Link className="suite-row-link" href={`/modulos/gkit-jur/processos/${row.id}`}>
             <div>
               <h3>{row.numeroCnj} {row.titulo ? `- ${row.titulo}` : ''}</h3>
-              <p>{row.clienteNome || 'Cliente não vinculado'}{row.pasta ? ` - Pasta ${row.pasta}` : ''}</p>
+              <p>
+                {row.clienteNome || 'Cliente não vinculado'}
+                {row.escritorioResponsavelNome ? ` - ${row.escritorioResponsavelNome}` : ''}
+                {row.pasta ? ` - Pasta ${row.pasta}` : ''}
+              </p>
               <GkitJurEtiquetaPills tags={row.etiquetas} />
             </div>
+            <span className={`suite-pill ${tipoAcompanhamentoTone(row.tipoAcompanhamento)}`}>{tipoAcompanhamentoLabel(row.tipoAcompanhamento)}</span>
             <span className="suite-pill primary">{row.tribunalSigla || 'Sem tribunal'}</span>
             <span className={`suite-pill ${natureTone(row)}`} title={row.naturezaOperacionalMotivo || undefined}>
               {row.naturezaOperacionalLabel}
@@ -2564,8 +2705,13 @@ function GkitJurProcessList({ rows }: { rows: GkitJurProcessListItem[] }) {
         <Link className="suite-row-link" href={`/modulos/gkit-jur/processos/${row.id}`} key={row.id} role="listitem">
           <div>
             <h3>{row.numeroCnj} {row.titulo ? `- ${row.titulo}` : ''}</h3>
-            <p>{row.clienteNome || 'Cliente não vinculado'}{row.pasta ? ` - Pasta ${row.pasta}` : ''}</p>
+            <p>
+              {row.clienteNome || 'Cliente não vinculado'}
+              {row.escritorioResponsavelNome ? ` - ${row.escritorioResponsavelNome}` : ''}
+              {row.pasta ? ` - Pasta ${row.pasta}` : ''}
+            </p>
           </div>
+          <span className={`suite-pill ${tipoAcompanhamentoTone(row.tipoAcompanhamento)}`}>{tipoAcompanhamentoLabel(row.tipoAcompanhamento)}</span>
           <span className="suite-pill primary">{row.tribunalSigla || 'Sem tribunal'}</span>
           <span className={`suite-pill ${natureTone(row)}`} title={row.naturezaOperacionalMotivo || undefined}>
             {row.naturezaOperacionalLabel}
@@ -2967,10 +3113,14 @@ function GkitJurProcessDashboard({
           </div>
           <div>
             <span className={`suite-pill ${readinessTone(readiness)}`}>{readinessLabel(readiness)}</span>
+            <span className={`suite-pill ${tipoAcompanhamentoTone(processo.tipoAcompanhamento)}`}>{tipoAcompanhamentoLabel(processo.tipoAcompanhamento)}</span>
             <h3>{processo.numeroCnj}</h3>
             <small>
               {processo.clienteNome || 'Sem cliente'} | {processo.carteiraNome || 'Sem carteira'} | {processo.responsavelNome || 'Sem responsável'}
             </small>
+            {processo.escritorioResponsavelNome ? (
+              <small>Condução externa: {processo.escritorioResponsavelNome}</small>
+            ) : null}
           </div>
         </article>
 
@@ -3864,6 +4014,26 @@ export function GkitJurProcessDetailPage({
             </select>
           </Field>
 
+          <Field label="Tipo de acompanhamento">
+            <select disabled={!canWrite} name="tipo_acompanhamento" defaultValue={processo.tipoAcompanhamento}>
+              {gkitJurTipoAcompanhamentoOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Escritório responsável">
+            <input disabled={!canWrite} name="escritorio_responsavel_nome" defaultValue={processo.escritorioResponsavelNome ?? ''} placeholder="Nome do escritório externo" />
+          </Field>
+
+          <Field label="Contato do escritório">
+            <input disabled={!canWrite} name="escritorio_responsavel_contato" defaultValue={processo.escritorioResponsavelContato ?? ''} placeholder="E-mail, telefone ou observação" />
+          </Field>
+
+          <Field label="Autorização do acompanhamento">
+            <input disabled={!canWrite} name="acompanhamento_autorizado_em" type="date" defaultValue={dateInputValue(processo.acompanhamentoAutorizadoEm)} />
+          </Field>
+
           <Field label="Parte contrária">
             <input disabled={!canWrite} name="parte_contraria" required defaultValue={processo.parteContraria ?? ''} placeholder="Nome da parte contrária" />
           </Field>
@@ -3895,6 +4065,17 @@ export function GkitJurProcessDetailPage({
           <div className="module-form-wide">
             <Field label="Observações internas">
               <textarea disabled={!canWrite} name="observacoes" defaultValue={processo.observacoes ?? ''} />
+            </Field>
+          </div>
+
+          <label className="module-form-wide gkit-jur-sync-check">
+            <input disabled={!canWrite} name="incluir_relatorio_mensal" type="checkbox" defaultChecked={processo.incluirRelatorioMensal} />
+            <span>Incluir este processo no relatório mensal do cliente</span>
+          </label>
+
+          <div className="module-form-wide">
+            <Field label="Observações da memória processual">
+              <textarea disabled={!canWrite} name="acompanhamento_observacoes" defaultValue={processo.acompanhamentoObservacoes ?? ''} placeholder="Limites do acompanhamento, autorização do cliente e combinados com o escritório externo." />
             </Field>
           </div>
 

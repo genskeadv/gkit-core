@@ -945,6 +945,7 @@ export async function syncGkitJurDataJudBatch(options: {
     else {
       fallbackQuery = fallbackQuery
         .eq('status_monitoramento', 'monitorando')
+        .or('tipo_acompanhamento.neq.cliente_mensal_outro_escritorio,acompanhamento_autorizado_em.not.is.null')
         .or(`proxima_tentativa_sincronizacao_em.is.null,proxima_tentativa_sincronizacao_em.lte.${new Date().toISOString()}`)
     }
     if (options.tribunal) fallbackQuery = fallbackQuery.eq('tribunal_sigla', options.tribunal)

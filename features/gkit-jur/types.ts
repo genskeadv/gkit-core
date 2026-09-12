@@ -4,6 +4,12 @@ export type GkitJurMonitoramentoStatus = 'monitorando' | 'pausado' | 'erro' | 'n
 
 export type GkitJurSyncStatus = 'sucesso' | 'erro' | 'sem_resultado' | 'parcial' | 'timeout';
 
+export type GkitJurTipoAcompanhamento =
+  | 'atuacao_genske'
+  | 'cliente_mensal_outro_escritorio'
+  | 'apoio_consultivo'
+  | 'somente_ciencia';
+
 export type GkitJurNaturezaOperacional =
   | 'execucao_titulo_extrajudicial'
   | 'execucao_fiscal'
@@ -105,6 +111,10 @@ export type GkitJurDashboardMetrics = {
   semCliente: number;
   semCarteira: number;
   semResponsavel: number;
+  memoriaProcessual: number;
+  memoriaSemAutorizacao: number;
+  memoriaSemEscritorio: number;
+  memoriaMovimentacoes30Dias: number;
 };
 
 export type GkitJurSelectOption = {
@@ -132,6 +142,12 @@ export type GkitJurProcessListItem = {
   carteiraId: string | null;
   carteiraNome: string | null;
   responsavelNome: string | null;
+  tipoAcompanhamento: GkitJurTipoAcompanhamento;
+  escritorioResponsavelNome: string | null;
+  escritorioResponsavelContato: string | null;
+  acompanhamentoAutorizadoEm: string | null;
+  acompanhamentoObservacoes: string | null;
+  incluirRelatorioMensal: boolean;
   tribunalSigla: string | null;
   classeNome: string | null;
   naturezaOperacional: GkitJurNaturezaOperacional;
@@ -156,6 +172,7 @@ export type GkitJurProcessFilters = {
   carteiraId: string;
   dir: 'asc' | 'desc';
   etiquetaId: string;
+  clienteMensal: string;
   monitoramento: string;
   natureza: string;
   page: number;
@@ -164,6 +181,7 @@ export type GkitJurProcessFilters = {
   saneamento: string;
   sort: string;
   status: string;
+  tipoAcompanhamento: string;
   tribunal: string;
 };
 
