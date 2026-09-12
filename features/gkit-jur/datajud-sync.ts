@@ -10,6 +10,7 @@ export type GkitJurSyncProcessRow = {
   numero_cnj: string
   numero_cnj_limpo: string
   responsavel_id: string | null
+  tipo_acompanhamento?: string | null
   tribunal_alias: string
 }
 
@@ -427,6 +428,22 @@ function taskSource(provider: string, providerLabel: string) {
   return { label: providerLabel, provider }
 }
 
+async function isExternalMemoryProcess(row: GkitJurSyncProcessRow) {
+  if (row.tipo_acompanhamento !== undefined) {
+    return text(row.tipo_acompanhamento) === 'cliente_mensal_outro_escritorio'
+  }
+
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select('tipo_acompanhamento')
+    .eq('id', row.id)
+    .maybeSingle()
+
+  if (result.error) throw new Error(result.error.message)
+  return text(result.data?.tipo_acompanhamento) === 'cliente_mensal_outro_escritorio'
+}
+
 function closureStatusSuggestion(rule: MovementTaskRule, movimentos: Array<Record<string, any>>) {
   const content = normalizeForMatch([
     rule.nome,
@@ -488,7 +505,6 @@ export async function generateTasksFromMovements(
     publicationBucket: boolean
     rule: MovementTaskRule
   }>()
-  const matchedHashes: string[] = []
 
   for (const movimento of movimentos) {
     const matchedRules = rules.filter((rule) => movementMatchesRule(movimento, rule))
@@ -515,11 +531,17 @@ export async function generateTasksFromMovements(
       ])]
       group.movimentos.push(movimento)
       taskGroups.set(groupKey, group)
-      matchedHashes.push(text(movimento.hash_movimento))
     }
   }
 
   if (!taskGroups.size) return 0
+
+  if (await isExternalMemoryProcess(row)) {
+    for (const [key, group] of taskGroups.entries()) {
+      if (group.publicationBucket) taskGroups.delete(key)
+    }
+    if (!taskGroups.size) return 0
+  }
 
   if (provider === 'datajud') {
     await insertPublicationInboxItemsBestEffort([...taskGroups.values()]
@@ -663,7 +685,9 @@ export async function generateTasksFromMovements(
     if (result.error) throw new Error(result.error.message)
   }
 
-  const relevantHashes = [...new Set(matchedHashes.filter(Boolean))]
+  const relevantHashes = [...new Set([...taskGroups.values()]
+    .flatMap((group) => group.movimentos.map((movimento) => text(movimento.hash_movimento)))
+    .filter(Boolean))]
   if (relevantHashes.length) {
     const updateResult = await admin()
       .schema('gkit_jur')
@@ -937,7 +961,7 @@ export async function syncGkitJurDataJudBatch(options: {
     let fallbackQuery = admin()
       .schema('gkit_jur')
       .from('processos')
-      .select('id,numero_cnj,numero_cnj_limpo,tribunal_alias,carteira_id,responsavel_id')
+      .select('id,numero_cnj,numero_cnj_limpo,tribunal_alias,carteira_id,responsavel_id,tipo_acompanhamento')
       .eq('status', 'ativo')
       .not('tribunal_alias', 'is', null)
 
@@ -971,6 +995,9 @@ export async function syncGkitJurDataJudBatch(options: {
     numero_cnj: text(row.numero_cnj),
     numero_cnj_limpo: text(row.numero_cnj_limpo),
     responsavel_id: text(row.responsavel_id) || null,
+    ...(Object.prototype.hasOwnProperty.call(row, 'tipo_acompanhamento')
+      ? { tipo_acompanhamento: text(row.tipo_acompanhamento) || null }
+      : {}),
     tribunal_alias: text(row.tribunal_alias),
   })).filter((row) => row.id && row.numero_cnj_limpo && row.tribunal_alias)
 

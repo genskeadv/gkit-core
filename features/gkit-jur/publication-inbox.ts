@@ -62,6 +62,21 @@ function missingTable(error: unknown) {
   return ['42P01', 'PGRST205'].includes(text(record.code))
 }
 
+async function externalMemoryProcessIds(processoIds: string[]) {
+  const ids = [...new Set(processoIds.map((id) => text(id)).filter(Boolean))]
+  if (!ids.length) return new Set<string>()
+
+  const result = await admin()
+    .schema('gkit_jur')
+    .from('processos')
+    .select('id')
+    .in('id', ids)
+    .eq('tipo_acompanhamento', 'cliente_mensal_outro_escritorio')
+
+  if (result.error) throw new Error(result.error.message)
+  return new Set(((result.data ?? []) as Array<Record<string, unknown>>).map((row) => text(row.id)).filter(Boolean))
+}
+
 export async function insertPublicationInboxItemsBestEffort(inputs: PublicationInboxInput[]) {
   const rows = inputs
     .map((input) => {
@@ -95,13 +110,17 @@ export async function insertPublicationInboxItemsBestEffort(inputs: PublicationI
     })
     .filter((row): row is NonNullable<typeof row> => Boolean(row))
 
-  if (!rows.length) return { inserted: 0, skipped: 0 }
-
   try {
+    if (!rows.length) return { inserted: 0, skipped: 0 }
+
+    const externalProcessIds = await externalMemoryProcessIds(rows.map((row) => text(row.processo_id)))
+    const allowedRows = rows.filter((row) => !externalProcessIds.has(text(row.processo_id)))
+    if (!allowedRows.length) return { inserted: 0, skipped: rows.length }
+
     let inserted = 0
-    let skipped = 0
-    const groups = new Map<string, typeof rows>()
-    for (const row of rows) {
+    let skipped = rows.length - allowedRows.length
+    const groups = new Map<string, typeof allowedRows>()
+    for (const row of allowedRows) {
       const key = row.fonte
       const group = groups.get(key) ?? []
       group.push(row)
@@ -154,8 +173,12 @@ export async function linkPublicationInboxProcessesBestEffort(inputs: Array<{ fo
   if (!rows.length) return { updated: 0, skipped: 0 }
 
   try {
+    const externalProcessIds = await externalMemoryProcessIds(rows.map((row) => row.processoId))
+    const allowedRows = rows.filter((row) => !externalProcessIds.has(row.processoId))
+    if (!allowedRows.length) return { updated: 0, skipped: rows.length }
+
     let updated = 0
-    for (const row of rows) {
+    for (const row of allowedRows) {
       const result = await admin()
         .schema('gkit_jur')
         .from('publicacoes_monitoradas')
@@ -172,7 +195,7 @@ export async function linkPublicationInboxProcessesBestEffort(inputs: Array<{ fo
       updated += result.data?.length ?? 0
     }
 
-    return { updated, skipped: 0 }
+    return { updated, skipped: rows.length - allowedRows.length }
   } catch {
     return { updated: 0, skipped: rows.length }
   }

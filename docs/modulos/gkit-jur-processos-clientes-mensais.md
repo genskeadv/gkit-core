@@ -135,18 +135,20 @@ Regras adicionais:
 - Para `cliente_mensal_outro_escritorio`, exigir `acompanhamento_autorizado_em` antes de monitoramento automatico.
 - Se nao houver autorizacao, gravar `status_monitoramento = 'nao_monitorar'`.
 - Processos em `somente_ciencia` podem ser monitorados, mas nao devem gerar tarefa automatica sem regra explicita.
-- Movimentacoes relevantes devem gerar item de inbox como "ciencia/revisao", nao como providencia processual direta.
+- Movimentacoes relevantes podem gerar item consultivo/de revisao quando houver regra explicita, mas nao devem abrir fluxo de publicacao/intimacao.
 
 ## Publicacoes e intimacoes
 
-Publicacoes vinculadas a processo de outro escritorio devem entrar na caixa de publicacoes, mas com tratamento diferente.
+Publicacoes vinculadas a processo de outro escritorio nao devem entrar na caixa de publicacoes por padrao.
+
+Motivo: o volume de publicacoes pode ser alto e criar uma fila operacional que parece obrigacao direta do Genske, mesmo quando outro escritorio conduz o processo.
 
 Regras:
 
-- Mostrar marcador "Outro escritorio".
-- Sugerir a decisao `registrar_ciencia` como padrao.
-- Permitir `gerar_tarefa` apenas para acompanhamento interno, contato com cliente ou registro no relatorio.
-- Evitar linguagem de peticionamento ou prazo processual como obrigacao direta do Genske, salvo alteracao manual.
+- Nao inserir publicacoes DataJud/AASP na `publicacoes_monitoradas` quando o processo tiver `tipo_acompanhamento = 'cliente_mensal_outro_escritorio'`.
+- Nao vincular publicacoes sem processo a processos de memoria processual externa pelo CNJ.
+- Nao gerar tarefa automatica de tipo `publicacao` para esses processos.
+- Permitir registro manual de ciencia, contato com cliente ou anotacao de relatorio quando houver necessidade.
 
 ## Inbox e tarefas
 
@@ -461,4 +463,3 @@ Mitigacao:
 - Usar `ciclo.clientes.tipo_cliente` como fonte da verdade.
 - Preferir tarefas de ciencia/revisao para processos externos.
 - Manter RLS por carteira e permissao.
-
