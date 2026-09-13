@@ -96,6 +96,7 @@ import type {
 const PAGE_SIZE = 20
 const INBOX_ITEMS_LIMIT = 20
 const DEFAULT_PROCESS_STATUS = 'ativo'
+const EXTERNAL_OFFICE_PROCESS_TYPE = 'cliente_mensal_outro_escritorio'
 const OPEN_TASK_STATUSES = ['aberta', 'em_andamento', 'aguardando_terceiro']
 const GKIT_JUR_CRON_SCHEDULE = '0 6 * * *'
 const GKIT_JUR_CRON_TIMEZONE = 'America/Sao_Paulo'
@@ -113,6 +114,18 @@ const EVENTO_SELECT = 'id,processo_id,carteira_id,responsavel_id,tipo,titulo,des
 
 function admin() {
   return createSupabaseAdminClient() as any
+}
+
+function excludeExternalOfficeProcesses(query: any) {
+  return query.neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
+}
+
+function onlyExternalOfficeProcesses(query: any) {
+  return query.eq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
+}
+
+function isExternalOfficeSaneamento(value: string) {
+  return ['sem_escritorio_externo', 'sem_autorizacao_monitoramento'].includes(value)
 }
 
 export async function requireGkitJurContext(target = '/modulos/gkit-jur') {
@@ -857,7 +870,7 @@ async function getFilterOptions(): Promise<GkitJurProcessFilterOptions> {
   const [carteirasResult, responsaveisResult, tribunaisResult, etiquetas] = await Promise.all([
     admin().schema('core').from('carteiras').select('id,nome').eq('status', 'ativo').order('nome', { ascending: true }),
     admin().schema('security').from('usuarios').select('id,nome,email').eq('status', 'ativo').order('nome', { ascending: true }),
-    admin().schema('gkit_jur').from('processos').select('tribunal_sigla').eq('status', DEFAULT_PROCESS_STATUS).not('tribunal_sigla', 'is', null).limit(5000),
+    excludeExternalOfficeProcesses(admin().schema('gkit_jur').from('processos').select('tribunal_sigla').eq('status', DEFAULT_PROCESS_STATUS).not('tribunal_sigla', 'is', null)).limit(5000),
     listGkitJurEtiquetas(true),
   ])
 
@@ -933,6 +946,7 @@ async function getSuggestionSources() {
       .from('processos')
       .select('cliente_nome,cliente_id,carteira_id')
       .eq('status', DEFAULT_PROCESS_STATUS)
+      .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
       .not('carteira_id', 'is', null)
       .limit(5000),
   ])
@@ -1139,6 +1153,7 @@ export async function getGkitJurSaneamentoSuggestions(limit = 8) {
       .from('processos')
       .select(`${PROCESS_LIST_SELECT},metadata_datajud,updated_at`)
       .eq('status', DEFAULT_PROCESS_STATUS)
+      .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
       .or('cliente_id.is.null,carteira_id.is.null,responsavel_id.is.null')
       .order('updated_at', { ascending: false })
       .limit(1500),
@@ -1170,30 +1185,33 @@ export async function getGkitJurDashboardMetrics(): Promise<GkitJurDashboardMetr
   since.setDate(since.getDate() - 7)
   const memoriaSince = dateDaysAgo(30)
 
-  const [ativos, monitorados, movimentacoes, erros, semCliente, semCarteira, semResponsavel, memoria, memoriaSemAutorizacao, memoriaSemEscritorio] = await Promise.all([
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS),
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).eq('status_monitoramento', 'monitorando'),
-    admin().schema('gkit_jur').from('movimentacoes').select('id', { count: 'exact', head: true }).gte('created_at', since.toISOString()),
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).eq('status_monitoramento', 'erro'),
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).is('cliente_id', null),
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).is('carteira_id', null),
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).is('responsavel_id', null),
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact' }).eq('status', DEFAULT_PROCESS_STATUS).eq('tipo_acompanhamento', 'cliente_mensal_outro_escritorio').limit(5000),
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).eq('tipo_acompanhamento', 'cliente_mensal_outro_escritorio').is('acompanhamento_autorizado_em', null),
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).eq('tipo_acompanhamento', 'cliente_mensal_outro_escritorio').is('escritorio_responsavel_nome', null),
+  const [ativos, monitorados, erros, semCliente, semCarteira, semResponsavel, memoria, memoriaSemAutorizacao, memoriaSemEscritorio] = await Promise.all([
+    excludeExternalOfficeProcesses(admin().schema('gkit_jur').from('processos').select('id', { count: 'exact' }).eq('status', DEFAULT_PROCESS_STATUS)).limit(5000),
+    excludeExternalOfficeProcesses(admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).eq('status_monitoramento', 'monitorando')),
+    excludeExternalOfficeProcesses(admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).eq('status_monitoramento', 'erro')),
+    excludeExternalOfficeProcesses(admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).is('cliente_id', null)),
+    excludeExternalOfficeProcesses(admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).is('carteira_id', null)),
+    excludeExternalOfficeProcesses(admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).is('responsavel_id', null)),
+    onlyExternalOfficeProcesses(admin().schema('gkit_jur').from('processos').select('id', { count: 'exact' }).eq('status', DEFAULT_PROCESS_STATUS)).limit(5000),
+    onlyExternalOfficeProcesses(admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS)).is('acompanhamento_autorizado_em', null),
+    onlyExternalOfficeProcesses(admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS)).is('escritorio_responsavel_nome', null),
   ])
 
-  for (const result of [ativos, monitorados, movimentacoes, erros, semCliente, semCarteira, semResponsavel, memoria, memoriaSemAutorizacao, memoriaSemEscritorio]) {
+  for (const result of [ativos, monitorados, erros, semCliente, semCarteira, semResponsavel, memoria, memoriaSemAutorizacao, memoriaSemEscritorio]) {
     if (result.error) throw new Error(result.error.message)
   }
 
+  const activeProcessIds = ((ativos.data ?? []) as Array<Record<string, unknown>>).map((row) => text(row.id)).filter(Boolean)
   const memoriaProcessIds = ((memoria.data ?? []) as Array<Record<string, unknown>>).map((row) => text(row.id)).filter(Boolean)
-  const memoriaMovimentacoes30Dias = await countMovimentacoesForProcessIds(memoriaProcessIds, memoriaSince)
+  const [movimentacoesUltimos7Dias, memoriaMovimentacoes30Dias] = await Promise.all([
+    countMovimentacoesForProcessIds(activeProcessIds, since.toISOString()),
+    countMovimentacoesForProcessIds(memoriaProcessIds, memoriaSince),
+  ])
 
   return {
     processosAtivos: ativos.count ?? 0,
     processosMonitorados: monitorados.count ?? 0,
-    movimentacoesUltimos7Dias: movimentacoes.count ?? 0,
+    movimentacoesUltimos7Dias,
     processosComErro: erros.count ?? 0,
     semCliente: semCliente.count ?? 0,
     semCarteira: semCarteira.count ?? 0,
@@ -1227,6 +1245,7 @@ function applyProcessFilters(query: any, filters: GkitJurProcessFilters) {
 
   next = next.eq('status', filters.status || DEFAULT_PROCESS_STATUS)
   if (filters.tipoAcompanhamento) next = next.eq('tipo_acompanhamento', filters.tipoAcompanhamento)
+  else if (!isExternalOfficeSaneamento(filters.saneamento)) next = excludeExternalOfficeProcesses(next)
   if (filters.monitoramento) next = next.eq('status_monitoramento', filters.monitoramento)
   if (filters.natureza) next = filters.natureza === 'nao_classificado'
     ? next.or('natureza_operacional.is.null,natureza_operacional.eq.nao_classificado')
@@ -1239,10 +1258,10 @@ function applyProcessFilters(query: any, filters: GkitJurProcessFilters) {
   if (filters.saneamento === 'sem_responsavel') next = next.is('responsavel_id', null)
   if (filters.saneamento === 'sem_tribunal') next = next.is('tribunal_sigla', null)
   if (filters.saneamento === 'sem_escritorio_externo') {
-    next = next.eq('tipo_acompanhamento', 'cliente_mensal_outro_escritorio').is('escritorio_responsavel_nome', null)
+    next = onlyExternalOfficeProcesses(next).is('escritorio_responsavel_nome', null)
   }
   if (filters.saneamento === 'sem_autorizacao_monitoramento') {
-    next = next.eq('tipo_acompanhamento', 'cliente_mensal_outro_escritorio').is('acompanhamento_autorizado_em', null)
+    next = onlyExternalOfficeProcesses(next).is('acompanhamento_autorizado_em', null)
   }
   if (filters.saneamento === 'sem_mov_data') next = next.is('ultima_movimentacao_em', null)
   if (['sem_mov_30', 'sem_mov_60', 'sem_mov_90'].includes(filters.saneamento)) {
@@ -1445,6 +1464,7 @@ export async function getGkitJurProcessCockpitData(): Promise<GkitJurProcessList
       .from('processos')
       .select(`${PROCESS_LIST_SELECT},updated_at,data_ajuizamento`, { count: 'exact' })
       .eq('status', DEFAULT_PROCESS_STATUS)
+      .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
       .order('updated_at', { ascending: false })
       .limit(1200),
   ])
@@ -1509,6 +1529,7 @@ export async function searchGkitJurGlobal(query: string): Promise<GkitJurGlobalS
     .from('processos')
     .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,updated_at')
     .eq('status', DEFAULT_PROCESS_STATUS)
+    .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
     .or(processClauses.join(','))
     .order('updated_at', { ascending: false, nullsFirst: false })
     .limit(8)
@@ -1550,6 +1571,7 @@ export async function searchGkitJurGlobal(query: string): Promise<GkitJurGlobalS
       .from('processos')
       .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento')
       .eq('status', DEFAULT_PROCESS_STATUS)
+      .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
       .in('id', relatedProcessIds)
     : { data: [], error: null }
 
@@ -1866,6 +1888,8 @@ async function hydrateAcordosJudiciais(
         .schema('gkit_jur')
         .from('processos')
         .select(PROCESS_LIST_SELECT)
+        .eq('status', DEFAULT_PROCESS_STATUS)
+        .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
         .in('id', processoIds.filter((id) => !knownProcessos.has(id)))
       : Promise.resolve({ data: [], error: null }),
   ])
@@ -2306,7 +2330,7 @@ export async function getGkitJurAcordosData(filters = buildGkitJurAcordosFilters
     .in('status', ['ativo', 'quebrado', 'cumprido'])
     .order('updated_at', { ascending: false }))
 
-  const allAcordos = await hydrateAcordosJudiciais(result.rows)
+  const allAcordos = (await hydrateAcordosJudiciais(result.rows)).filter((acordo) => acordo.numeroCnj !== '-')
   const acordos = allAcordos.filter((acordo) => matchesAcordoFilters(acordo, filters))
   const ativos = acordos.filter((acordo) => acordo.status === 'ativo')
   const atrasados = acordos.filter((acordo) => acordo.status === 'ativo' && acordo.parcelasAtrasadas > 0)
@@ -2386,6 +2410,8 @@ export async function getGkitJurEmailsData(): Promise<GkitJurEmailsData> {
       .schema('gkit_jur')
       .from('processos')
       .select('id,numero_cnj,titulo,cliente_nome')
+      .eq('status', DEFAULT_PROCESS_STATUS)
+      .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
       .in('id', processoIds)
     : { data: [], error: null }
 
@@ -2396,6 +2422,7 @@ export async function getGkitJurEmailsData(): Promise<GkitJurEmailsData> {
     const acordoId = text(row.acordo_id)
     const processoId = acordoProcessoIds.get(acordoId) ?? ''
     const processo = processos.get(processoId)
+    if (processoId && !processo) return null
     const numeroCnj = text(processo?.numero_cnj)
     const clienteNome = text(processo?.cliente_nome)
     const titulo = text(processo?.titulo)
@@ -2413,7 +2440,7 @@ export async function getGkitJurEmailsData(): Promise<GkitJurEmailsData> {
       href: processoId ? `/modulos/gkit-jur/processos/${processoId}` : '/modulos/gkit-jur/acordos/lista',
       erroMensagem: text(row.erro_mensagem) || null,
     }
-  })
+  }).filter(Boolean) as GkitJurEmailMonitorItem[]
 
   const preItems = ((preJuridicosResult.data ?? []) as Array<Record<string, unknown>>).flatMap((row): GkitJurEmailMonitorItem[] => {
     const titulo = text(row.titulo, 'Pre-juridico')
@@ -2581,16 +2608,31 @@ async function loadRowsByChunks(values: string[], buildQuery: (chunk: string[]) 
   return rows
 }
 
-async function loadProcessRowsByIds(ids: string[]) {
-  const uniqueIds = [...new Set(ids.filter(Boolean))]
-  if (!uniqueIds.length) return []
-  return loadRowsByChunks(uniqueIds, (chunk) => admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('id', chunk))
+type ProcessRowLookupOptions = {
+  activeOnly?: boolean
+  includeExternalOffice?: boolean
 }
 
-async function loadProcessRowsByCnjs(cnjs: string[]) {
+async function loadProcessRowsByIds(ids: string[], options: ProcessRowLookupOptions = {}) {
+  const uniqueIds = [...new Set(ids.filter(Boolean))]
+  if (!uniqueIds.length) return []
+  return loadRowsByChunks(uniqueIds, (chunk) => {
+    let query = admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('id', chunk)
+    if (options.activeOnly !== false) query = query.eq('status', DEFAULT_PROCESS_STATUS)
+    if (!options.includeExternalOffice) query = excludeExternalOfficeProcesses(query)
+    return query
+  })
+}
+
+async function loadProcessRowsByCnjs(cnjs: string[], options: ProcessRowLookupOptions = {}) {
   const uniqueCnjs = [...new Set(cnjs.filter(Boolean))]
   if (!uniqueCnjs.length) return []
-  return loadRowsByChunks(uniqueCnjs, (chunk) => admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('numero_cnj_limpo', chunk))
+  return loadRowsByChunks(uniqueCnjs, (chunk) => {
+    let query = admin().schema('gkit_jur').from('processos').select(PROCESS_LIST_SELECT).in('numero_cnj_limpo', chunk)
+    if (options.activeOnly !== false) query = query.eq('status', DEFAULT_PROCESS_STATUS)
+    if (!options.includeExternalOffice) query = excludeExternalOfficeProcesses(query)
+    return query
+  })
 }
 
 async function loadGkitJurCockpitProcessRows() {
@@ -2599,6 +2641,7 @@ async function loadGkitJurCockpitProcessRows() {
     .from('processos')
     .select(`${PROCESS_LIST_SELECT},updated_at`, { count: 'exact' })
     .eq('status', DEFAULT_PROCESS_STATUS)
+    .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
     .order('ultima_movimentacao_em', { ascending: false, nullsFirst: false })
     .order('updated_at', { ascending: false }))
 }
@@ -3331,7 +3374,7 @@ async function getGkitJurCockpitMemoriaProcessualArea(): Promise<GkitJurCockpitA
       .from('processos')
       .select(`${PROCESS_LIST_SELECT},updated_at`, { count: 'exact' })
       .eq('status', DEFAULT_PROCESS_STATUS)
-      .eq('tipo_acompanhamento', 'cliente_mensal_outro_escritorio')
+      .eq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
       .order('ultima_movimentacao_em', { ascending: false, nullsFirst: false })
       .order('updated_at', { ascending: false })),
     getGkitJurDashboardMetrics().then((metrics) => metrics.memoriaMovimentacoes30Dias),
@@ -3445,7 +3488,7 @@ async function getGkitJurCockpitPreJuridicoArea(): Promise<GkitJurCockpitAreaDat
 }
 
 async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
-  const [rowsResult, completedRowsResult, criticaCount, altaCount, mediaCount, baixaCount] = await Promise.all([
+  const [rowsResult, completedRowsResult] = await Promise.all([
     loadCockpitRows(() => admin()
       .schema('gkit_jur')
       .from('tarefas')
@@ -3461,10 +3504,6 @@ async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
       .gte('concluded_at', dateDaysAgo(30))
       .order('concluded_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })),
-    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'critica')),
-    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'alta')),
-    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'media')),
-    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', OPEN_TASK_STATUSES).eq('prioridade', 'baixa')),
   ])
 
   const rows = rowsResult.rows
@@ -3474,7 +3513,8 @@ async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
   const processoMaps = await lookupMaps(processoRows)
   const processoMap = new Map(processoRows.map((row) => [String(row.id), mapProcesso(row, processoMaps)]))
   const tarefaMaps = await lookupTarefaMaps(rows)
-  const tarefas = rows.map((row) => {
+  const activeRows = rows.filter((row) => processoMap.has(text(row.processo_id)))
+  const tarefas = activeRows.map((row) => {
     const processo = processoMap.get(text(row.processo_id))
     return mapTarefa(row, tarefaMaps, {
       carteiraId: processo?.carteiraId ?? null,
@@ -3483,7 +3523,7 @@ async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
     })
   })
   const completedTarefaMaps = await lookupTarefaMaps(completedRowsResult.rows)
-  const completedTasks = completedRowsResult.rows.map((row) => {
+  const completedTasks = completedRowsResult.rows.filter((row) => processoMap.has(text(row.processo_id))).map((row) => {
     const processo = processoMap.get(text(row.processo_id))
     return mapTarefa(row, completedTarefaMaps, {
       carteiraId: processo?.carteiraId ?? null,
@@ -3491,7 +3531,11 @@ async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
       responsavelNome: processo?.responsavelNome ?? null,
     })
   })
-  const total = rowsResult.count
+  const total = tarefas.length
+  const criticaCount = tarefas.filter((tarefa) => tarefa.prioridade === 'critica').length
+  const altaCount = tarefas.filter((tarefa) => tarefa.prioridade === 'alta').length
+  const mediaCount = tarefas.filter((tarefa) => tarefa.prioridade === 'media').length
+  const baixaCount = tarefas.filter((tarefa) => tarefa.prioridade === 'baixa').length
 
   return {
     action: 'Providências abertas',
@@ -3507,7 +3551,7 @@ async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
     dashboardInsights: buildCockpitTarefaDashboardInsights(tarefas, completedTasks),
     trend: cockpitTrend([baixaCount, mediaCount, altaCount, criticaCount, total]),
     rows: tarefas.map((tarefa, index) => {
-      const row = rows[index] ?? {}
+      const row = activeRows[index] ?? {}
       const processo = processoMap.get(tarefa.processoId)
       return {
         id: tarefa.id,
@@ -3529,7 +3573,7 @@ async function getGkitJurCockpitTarefasArea(): Promise<GkitJurCockpitAreaData> {
 
 async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaData> {
   const actionableStatuses = ['pendente', 'triada_ia', 'em_tratamento']
-  const [rowsResult, dashboardRowsResult, pendentesCount, triadasCount, emTratamentoCount, tratadasCount] = await Promise.all([
+  const [rowsResult, dashboardRowsResult] = await Promise.all([
     loadCockpitRows(() => admin()
       .schema('gkit_jur')
       .from('publicacoes_monitoradas')
@@ -3543,10 +3587,6 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
       .select(PUBLICACAO_SELECT, { count: 'exact' })
       .order('data_disponibilizacao', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false }), { missingAsEmpty: true }),
-    countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'pendente'), true),
-    countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'triada_ia'), true),
-    countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'em_tratamento'), true),
-    countRows(admin().schema('gkit_jur').from('publicacoes_monitoradas').select('id', { count: 'exact', head: true }).eq('status', 'tratada'), true),
   ])
 
   if (!rowsResult.count && !dashboardRowsResult.count) {
@@ -3590,9 +3630,17 @@ async function getGkitJurCockpitPublicacoesArea(): Promise<GkitJurCockpitAreaDat
     if (cnj) processoCnjMap.set(cnj, processo)
   })
 
-  const publicacoes = rows.map((row) => mapPublicacao(row, processoMap, processoCnjMap, maps))
-  const dashboardPublicacoes = dashboardRows.map((row) => mapPublicacao(row, processoMap, processoCnjMap, maps))
-  const total = rowsResult.count
+  const publicacoes = rows
+    .map((row) => mapPublicacao(row, processoMap, processoCnjMap, maps))
+    .filter((item) => Boolean(item.processoBaseId))
+  const dashboardPublicacoes = dashboardRows
+    .map((row) => mapPublicacao(row, processoMap, processoCnjMap, maps))
+    .filter((item) => Boolean(item.processoBaseId))
+  const total = publicacoes.length
+  const pendentesCount = dashboardPublicacoes.filter((item) => item.status === 'pendente').length
+  const triadasCount = dashboardPublicacoes.filter((item) => item.status === 'triada_ia').length
+  const emTratamentoCount = dashboardPublicacoes.filter((item) => item.status === 'em_tratamento').length
+  const tratadasCount = dashboardPublicacoes.filter((item) => item.status === 'tratada').length
 
   return {
     action: 'Inbox de publicações',
@@ -3674,7 +3722,7 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
   const agendaYearStart = `${ACORDO_DASHBOARD_YEAR}-01-01T00:00:00.000Z`
   const agendaYearEnd = `${ACORDO_DASHBOARD_YEAR + 1}-01-01T00:00:00.000Z`
 
-  const [eventRowsResult, dashboardEventRowsResult, taskRowsResult, eventosCount, audienciasCount, tarefasVencidasCount, tarefasHojeCount, tarefasSemanaCount] = await Promise.all([
+  const [eventRowsResult, dashboardEventRowsResult, taskRowsResult] = await Promise.all([
     loadCockpitRows(() => admin()
       .schema('gkit_jur')
       .from('eventos_processo')
@@ -3697,11 +3745,6 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
       .in('status', ['aberta', 'em_andamento'])
       .not('prazo_at', 'is', null)
       .order('prazo_at', { ascending: true, nullsFirst: false })),
-    countRows(admin().schema('gkit_jur').from('eventos_processo').select('id', { count: 'exact', head: true }).gte('data_evento', todayIso), true),
-    countRows(admin().schema('gkit_jur').from('eventos_processo').select('id', { count: 'exact', head: true }).gte('data_evento', todayIso).eq('tipo', 'audiencia'), true),
-    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', ['aberta', 'em_andamento']).lt('prazo_at', todayIso)),
-    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', ['aberta', 'em_andamento']).gte('prazo_at', todayIso).lt('prazo_at', tomorrowIso)),
-    countRows(admin().schema('gkit_jur').from('tarefas').select('id', { count: 'exact', head: true }).in('status', ['aberta', 'em_andamento']).gte('prazo_at', todayIso).lt('prazo_at', weekIso)),
   ])
 
   const eventRows = eventRowsResult.rows
@@ -3712,7 +3755,10 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
   const processoMaps = await lookupMaps(processoRows)
   const processoMap = new Map(processoRows.map((row) => [String(row.id), mapProcesso(row, processoMaps)]))
   const agendaMaps = await lookupTarefaMaps([...eventRows, ...dashboardEventRows, ...taskRows])
-  const eventos = eventRows.map((row) => {
+  const activeEventRows = eventRows.filter((row) => processoMap.has(text(row.processo_id)))
+  const activeDashboardEventRows = dashboardEventRows.filter((row) => processoMap.has(text(row.processo_id)))
+  const activeTaskRows = taskRows.filter((row) => processoMap.has(text(row.processo_id)))
+  const eventos = activeEventRows.map((row) => {
     const processo = processoMap.get(text(row.processo_id))
     return mapEventoProcesso(row, agendaMaps, {
       carteiraId: processo?.carteiraId ?? null,
@@ -3721,7 +3767,7 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
       responsavelNome: processo?.responsavelNome ?? null,
     })
   })
-  const dashboardEventos = dashboardEventRows.map((row) => {
+  const dashboardEventos = activeDashboardEventRows.map((row) => {
     const processo = processoMap.get(text(row.processo_id))
     return mapEventoProcesso(row, agendaMaps, {
       carteiraId: processo?.carteiraId ?? null,
@@ -3730,14 +3776,19 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
       responsavelNome: processo?.responsavelNome ?? null,
     })
   })
-  const tarefas = taskRows.map((row) => {
+  const tarefas = activeTaskRows.map((row) => {
     const processo = processoMap.get(text(row.processo_id))
     return mapTarefa(row, agendaMaps, {
       carteiraNome: processo?.carteiraNome ?? null,
       responsavelNome: processo?.responsavelNome ?? null,
     })
   })
-  const total = (taskRowsResult.count ?? taskRows.length) + eventosCount
+  const tarefasVencidasCount = tarefas.filter((tarefa) => tarefa.prazoAt && tarefa.prazoAt < todayIso).length
+  const tarefasHojeCount = tarefas.filter((tarefa) => tarefa.prazoAt && tarefa.prazoAt >= todayIso && tarefa.prazoAt < tomorrowIso).length
+  const tarefasSemanaCount = tarefas.filter((tarefa) => tarefa.prazoAt && tarefa.prazoAt >= todayIso && tarefa.prazoAt < weekIso).length
+  const eventosCount = eventos.length
+  const audienciasCount = eventos.filter((evento) => evento.tipo === 'audiencia').length
+  const total = tarefas.length + eventosCount
   const agendaRows = [
     ...tarefas.map((tarefa) => {
       const processo = processoMap.get(tarefa.processoId)
@@ -3819,6 +3870,7 @@ async function pendingGroup(title: string, description: string, href: string, co
     .from('processos')
     .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,updated_at', { count: 'exact' })
     .eq('status', DEFAULT_PROCESS_STATUS)
+    .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
     .is(column, null)
     .order('updated_at', { ascending: false })
     .limit(5)
@@ -3888,6 +3940,7 @@ async function resolveMovementProcessScope(filters: GkitJurMovimentacaoFilters) 
     .from('processos')
     .select(PROCESS_LIST_SELECT)
     .eq('status', DEFAULT_PROCESS_STATUS)
+    .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
 
   if (filters.carteiraId) query = query.eq('carteira_id', filters.carteiraId)
   if (filters.responsavelId) query = query.eq('responsavel_id', filters.responsavelId)
@@ -3954,6 +4007,7 @@ export async function listGkitJurMovimentacoes(filters: GkitJurMovimentacaoFilte
         .from('processos')
         .select(PROCESS_LIST_SELECT)
         .eq('status', DEFAULT_PROCESS_STATUS)
+        .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
         .in('id', missingProcessIds)
       : { data: [], error: null }
 
@@ -4041,6 +4095,8 @@ async function resolvePublicationProcessScope(filters: GkitJurPublicacaoFilters)
     .schema('gkit_jur')
     .from('processos')
     .select(PROCESS_LIST_SELECT)
+    .eq('status', DEFAULT_PROCESS_STATUS)
+    .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
 
   if (filters.carteiraId && filters.carteiraId !== 'sem_carteira') query = query.eq('carteira_id', filters.carteiraId)
   if (filters.carteiraId === 'sem_carteira') query = query.is('carteira_id', null)
@@ -4277,6 +4333,7 @@ export async function listGkitJurPublicacoes(filters: GkitJurPublicacaoFilters =
     .map((row) => mapPublicacao(row, processoMap, processoCnjMap, maps))
     .filter((row) => {
       const raw = row.processoId ? rawProcessRows.get(row.processoId) : null
+      if (row.processoId && !raw) return false
       if (filters.carteiraId === 'sem_carteira' && row.carteiraId) return false
       if (filters.carteiraId && filters.carteiraId !== 'sem_carteira' && row.carteiraId !== filters.carteiraId) return false
       if (filters.responsavelId && (!raw || text(raw.responsavel_id) !== filters.responsavelId)) return false
@@ -4332,7 +4389,7 @@ export async function listGkitJurPublicacoes(filters: GkitJurPublicacaoFilters =
 
 export async function getGkitJurAuditoria(): Promise<GkitJurAuditoriaData> {
   const [importadosResult, sincronizacoesResult] = await Promise.all([
-    admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).not('importado_de', 'is', null),
+    excludeExternalOfficeProcesses(admin().schema('gkit_jur').from('processos').select('id', { count: 'exact', head: true }).eq('status', DEFAULT_PROCESS_STATUS).not('importado_de', 'is', null)),
     admin()
       .schema('gkit_jur')
       .from('sincronizacoes')
@@ -4529,6 +4586,7 @@ async function listInboxTarefaItems(filters: GkitJurInboxFilters): Promise<GkitJ
     .from('processos')
     .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento')
     .eq('status', DEFAULT_PROCESS_STATUS)
+    .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
     .in('id', processoIds)
 
   if (processosResult.error) throw new Error(processosResult.error.message)
@@ -4557,6 +4615,7 @@ async function listInboxProcessItems(): Promise<GkitJurInboxItem[]> {
     .from('processos')
     .select('id,numero_cnj,numero_cnj_limpo,titulo,pasta,cliente_id,cliente_nome,carteira_id,responsavel_id,tribunal_sigla,classe_nome,orgao_julgador_nome,ultima_movimentacao_em,ultima_sincronizacao_em,status,status_monitoramento,updated_at')
     .eq('status', DEFAULT_PROCESS_STATUS)
+    .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
     .order('updated_at', { ascending: false })
     .limit(500)
 
@@ -4631,7 +4690,7 @@ async function listInboxPendenciaItems(): Promise<GkitJurInboxItem[]> {
       ? admin().schema('security').from('usuarios').select('id,nome,email').in('id', responsavelIds)
       : Promise.resolve({ data: [], error: null }),
     processoIds.length
-      ? admin().schema('gkit_jur').from('processos').select('id,cliente_nome,titulo').eq('status', DEFAULT_PROCESS_STATUS).in('id', processoIds)
+      ? admin().schema('gkit_jur').from('processos').select('id,cliente_nome,titulo').eq('status', DEFAULT_PROCESS_STATUS).neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE).in('id', processoIds)
       : Promise.resolve({ data: [], error: null }),
   ])
 
@@ -4926,36 +4985,44 @@ function emptyReadinessCounts(): Record<GkitJurNivelProntidao, number> {
   }
 }
 
-async function getGkitJurLabReadiness() {
-  const result = await admin()
+async function listInternalActiveProcessIds() {
+  const result = await excludeExternalOfficeProcesses(admin()
     .schema('gkit_jur')
-    .from('processos_resumos')
-    .select('nivel_prontidao')
+    .from('processos')
+    .select('id')
+    .eq('status', DEFAULT_PROCESS_STATUS))
     .limit(5000)
 
   if (result.error) throw new Error(result.error.message)
+  return ((result.data ?? []) as Array<Record<string, unknown>>).map((row) => text(row.id)).filter(Boolean)
+}
 
+async function loadInternalActiveResumoRows(select: string) {
+  const processIds = await listInternalActiveProcessIds()
+  if (!processIds.length) return []
+  return loadRowsByChunks(processIds, (chunk) => admin()
+    .schema('gkit_jur')
+    .from('processos_resumos')
+    .select(select)
+    .in('processo_id', chunk))
+}
+
+async function getGkitJurLabReadiness() {
+  const rows = await loadInternalActiveResumoRows('nivel_prontidao')
   const counts = emptyReadinessCounts()
-  for (const row of (result.data ?? []) as Array<Record<string, unknown>>) {
+  for (const row of rows) {
     counts[nivelProntidao(row.nivel_prontidao)] += 1
   }
   return counts
 }
 
 async function getGkitJurLabSmartSummary(totalAtivos: number): Promise<GkitJurLabData['smartSummary']> {
-  const result = await admin()
-    .schema('gkit_jur')
-    .from('processos_resumos')
-    .select('metadata,updated_at')
-    .limit(5000)
-
-  if (result.error) throw new Error(result.error.message)
-
+  const rows = await loadInternalActiveResumoRows('metadata,updated_at')
   let resumosInteligentes = 0
   let precisaRevisaoHumana = 0
   let ultimaGeracaoEm: string | null = null
 
-  for (const row of (result.data ?? []) as Array<Record<string, unknown>>) {
+  for (const row of rows) {
     const metadata = recordValue(row.metadata)
     const inteligente = recordValue(metadata.resumoInteligente)
     const updatedAt = text(row.updated_at) || null
@@ -4999,6 +5066,8 @@ async function listGkitJurLabBriefings(): Promise<GkitJurLabData['briefings']> {
     .schema('gkit_jur')
     .from('processos')
     .select('id,numero_cnj,numero_cnj_limpo,cliente_nome,titulo')
+    .eq('status', DEFAULT_PROCESS_STATUS)
+    .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
     .in('id', processoIds)
 
   if (processosResult.error) throw new Error(processosResult.error.message)
@@ -5008,6 +5077,7 @@ async function listGkitJurLabBriefings(): Promise<GkitJurLabData['briefings']> {
   return resumoRows.map((row) => {
     const processoId = text(row.processo_id)
     const processo = processoMap.get(processoId)
+    if (!processo) return null
     return {
       processoId,
       numeroCnj: formatCnj(text(processo?.numero_cnj, text(processo?.numero_cnj_limpo))),
@@ -5019,7 +5089,7 @@ async function listGkitJurLabBriefings(): Promise<GkitJurLabData['briefings']> {
       proximasAcoesSugeridas: stringList(row.proximas_acoes_sugeridas).slice(0, 3),
       updatedAt: text(row.updated_at) || null,
     }
-  })
+  }).filter(Boolean) as GkitJurLabData['briefings']
 }
 
 export async function getGkitJurLab(): Promise<GkitJurLabData> {
@@ -5054,6 +5124,7 @@ async function getGkitJurAgenteMonitoramento() {
     .from('processos')
     .select('id,numero_cnj,numero_cnj_limpo,titulo,cliente_nome,updated_at')
     .eq('status', DEFAULT_PROCESS_STATUS)
+    .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
     .order('updated_at', { ascending: false })
     .limit(2000)
 
@@ -5268,6 +5339,7 @@ async function fetchAllActiveProcessMonitoringRows() {
       .from('processos')
       .select('id,tribunal_sigla,tribunal_alias,status_monitoramento,ultima_sincronizacao_em,ultima_tentativa_sincronizacao_em,ultima_sincronizacao_com_resultado_em,ultimo_status_sincronizacao,proxima_tentativa_sincronizacao_em,carteira_id,responsavel_id')
       .eq('status', DEFAULT_PROCESS_STATUS)
+      .neq('tipo_acompanhamento', EXTERNAL_OFFICE_PROCESS_TYPE)
       .range(from, from + pageSize - 1)
 
     if (result.error) throw new Error(result.error.message)
