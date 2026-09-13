@@ -1095,7 +1095,8 @@ function buildSuggestion(row: Record<string, unknown>, maps: Awaited<ReturnType<
   const clienteMatch = clienteIdAtual ? null : findClienteSuggestion(row, sources)
   const clienteSuggestion = clienteMatch?.source ?? null
   const clienteId = clienteIdAtual ?? clienteSuggestion?.id ?? null
-  const carteiraFromCliente = (clienteId ? sources.carteiraByClienteId.get(clienteId) ?? null : null)
+  const carteiraByClienteId = clienteId ? sources.carteiraByClienteId.get(clienteId) : undefined
+  const carteiraFromCliente = carteiraByClienteId
     ?? clienteSuggestion?.carteiraId
     ?? sources.carteiraByClienteName.get(clienteNameKey)
     ?? null
@@ -2611,6 +2612,15 @@ function cockpitProcessListHref(params: Record<string, string | number | null | 
   return query ? `/modulos/gkit-jur/processos/lista?${query}` : '/modulos/gkit-jur/processos/lista'
 }
 
+function cockpitMemoriaProcessualHref(params: Record<string, string | number | null | undefined>) {
+  const search = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') search.set(key, String(value))
+  })
+  const query = search.toString()
+  return query ? `/modulos/gkit-jur/memoria-processual?${query}` : '/modulos/gkit-jur/memoria-processual'
+}
+
 function cockpitPreJuridicoListHref(params: Record<string, string | number | null | undefined>) {
   const search = new URLSearchParams()
   Object.entries(params).forEach(([key, value]) => {
@@ -2767,6 +2777,93 @@ function buildCockpitProcessDashboardInsights(processos: GkitJurProcessListItem[
       }
       }, total),
       title: 'Processos por carteira',
+    },
+  ]
+}
+
+function memoriaProcessualTone(processo: GkitJurProcessListItem): GkitJurCockpitRow['tone'] {
+  if (processo.statusMonitoramento === 'erro') return 'critical'
+  if (!processo.acompanhamentoAutorizadoEm || !processo.escritorioResponsavelNome) return 'medium'
+  return cockpitTone('', processo.statusMonitoramento)
+}
+
+function memoriaProcessualStatus(processo: GkitJurProcessListItem) {
+  if (!processo.acompanhamentoAutorizadoEm) return 'Sem autorização'
+  if (!processo.escritorioResponsavelNome) return 'Sem escritório'
+  return processo.statusMonitoramento
+}
+
+function buildCockpitMemoriaDashboardInsights(processos: GkitJurProcessListItem[], total: number): GkitJurCockpitInsightSection[] {
+  const autorizados = processos.filter((processo) => processo.acompanhamentoAutorizadoEm)
+  const semAutorizacao = processos.filter((processo) => !processo.acompanhamentoAutorizadoEm)
+  const semEscritorio = processos.filter((processo) => !processo.escritorioResponsavelNome)
+
+  const semMovimentacao = [30, 60, 90].map((days) => {
+    const count = processos.filter((processo) => {
+      const idleDays = daysSince(processo.ultimaMovimentacaoEm)
+      return idleDays === null || idleDays >= days
+    }).length
+
+    return createCockpitInsightItem({
+      href: cockpitMemoriaProcessualHref({
+        dir: 'asc',
+        saneamento: `sem_mov_${days}`,
+        sort: 'ultima_movimentacao_em',
+      }),
+      hint: 'processos em memória',
+      label: `${days}+ dias`,
+      tone: days >= 90 ? 'red' : days >= 60 ? 'yellow' : 'blue',
+      total,
+      value: count,
+    })
+  })
+
+  return [
+    {
+      emptyLabel: 'Nenhum processo de memória processual localizado.',
+      items: [
+        createCockpitInsightItem({
+          href: cockpitMemoriaProcessualHref({}),
+          label: 'Autorizados',
+          tone: 'green',
+          total,
+          value: autorizados.length,
+        }),
+        createCockpitInsightItem({
+          href: cockpitMemoriaProcessualHref({ saneamento: 'sem_autorizacao_monitoramento' }),
+          label: 'Sem autorização',
+          tone: 'yellow',
+          total,
+          value: semAutorizacao.length,
+        }),
+        createCockpitInsightItem({
+          href: cockpitMemoriaProcessualHref({ saneamento: 'sem_escritorio_externo' }),
+          label: 'Sem escritório',
+          tone: 'red',
+          total,
+          value: semEscritorio.length,
+        }),
+      ],
+      title: 'Governança',
+    },
+    {
+      emptyLabel: 'Nenhum escritório externo localizado.',
+      items: topCockpitGroups(processos, (processo) => {
+        const label = processo.escritorioResponsavelNome || 'Sem escritório'
+        return {
+          href: processo.escritorioResponsavelNome
+            ? cockpitMemoriaProcessualHref({ q: processo.escritorioResponsavelNome })
+            : cockpitMemoriaProcessualHref({ saneamento: 'sem_escritorio_externo' }),
+          key: processo.escritorioResponsavelNome || 'sem_escritorio',
+          label,
+        }
+      }, total),
+      title: 'Escritório externo',
+    },
+    {
+      emptyLabel: 'Nenhum processo sem movimentação nesse recorte.',
+      items: semMovimentacao,
+      title: 'Sem movimentação',
     },
   ]
 }
@@ -3227,6 +3324,72 @@ async function getGkitJurCockpitProcessosArea(): Promise<GkitJurCockpitAreaData>
   }
 }
 
+async function getGkitJurCockpitMemoriaProcessualArea(): Promise<GkitJurCockpitAreaData> {
+  const [rowsResult, movimentacoes30Dias] = await Promise.all([
+    loadCockpitRows(() => admin()
+      .schema('gkit_jur')
+      .from('processos')
+      .select(`${PROCESS_LIST_SELECT},updated_at`, { count: 'exact' })
+      .eq('status', DEFAULT_PROCESS_STATUS)
+      .eq('tipo_acompanhamento', 'cliente_mensal_outro_escritorio')
+      .order('ultima_movimentacao_em', { ascending: false, nullsFirst: false })
+      .order('updated_at', { ascending: false })),
+    getGkitJurDashboardMetrics().then((metrics) => metrics.memoriaMovimentacoes30Dias),
+  ])
+
+  const rows = rowsResult.rows
+  const maps = await lookupMaps(rows)
+  const processos = rows.map((row) => mapProcesso(row, maps))
+  const total = rowsResult.count
+  const autorizados = processos.filter((processo) => processo.acompanhamentoAutorizadoEm).length
+  const semAutorizacao = processos.filter((processo) => !processo.acompanhamentoAutorizadoEm).length
+  const semEscritorio = processos.filter((processo) => !processo.escritorioResponsavelNome).length
+
+  return {
+    action: 'Ciência e relatório',
+    count: total,
+    description: 'Processos de clientes mensais conduzidos por outro escritório, monitorados para ciência, risco e relatório.',
+    filters: ['Autorizados', 'Sem autorização', 'Sem escritório', 'Movimentação'],
+    filterOptions: {
+      carteiras: uniqueSorted(processos.map((processo) => processo.carteiraNome)),
+      clientes: uniqueSorted(processos.map((processo) => processo.clienteNome || processo.titulo || processo.pasta)),
+    },
+    bars: cockpitBars([
+      { label: 'Autorizado', count: autorizados, tone: 'green' },
+      { label: 'Sem autorização', count: semAutorizacao, tone: 'yellow' },
+      { label: 'Sem escritório', count: semEscritorio, tone: 'red' },
+      { label: 'Mov. 30d', count: movimentacoes30Dias, tone: 'blue' },
+    ]),
+    dashboardInsights: buildCockpitMemoriaDashboardInsights(processos, total),
+    trend: cockpitTrend([semEscritorio, semAutorizacao, movimentacoes30Dias, autorizados, total]),
+    rows: processos.map((processo, index) => {
+      const raw = rows[index] ?? {}
+      const context = [
+        processo.escritorioResponsavelNome ? `Escritório: ${processo.escritorioResponsavelNome}` : null,
+        processo.acompanhamentoObservacoes,
+        processo.classeNome,
+        processo.tribunalSigla,
+      ].filter(Boolean).join(' | ')
+
+      return {
+        id: processo.numeroCnj,
+        title: processo.clienteNome || processo.titulo || processo.pasta || 'Processo sem cliente identificado',
+        subtitle: context || 'Memória processual sem observações complementares',
+        owner: cockpitOwner(processo.escritorioResponsavelNome, processo.responsavelNome, processo.carteiraNome),
+        status: memoriaProcessualStatus(processo),
+        due: cockpitDate(processo.ultimaMovimentacaoEm || text(raw.updated_at) || processo.ultimaSincronizacaoEm),
+        tone: memoriaProcessualTone(processo),
+        href: `/modulos/gkit-jur/processos/${processo.id}`,
+        meta: {
+          carteiraNome: processo.carteiraNome,
+          clienteNome: processo.clienteNome || processo.titulo || processo.pasta,
+          ultimaMovimentacaoEm: processo.ultimaMovimentacaoEm,
+        },
+      }
+    }),
+  }
+}
+
 async function getGkitJurCockpitPreJuridicoArea(): Promise<GkitJurCockpitAreaData> {
   const [rowsResult, dashboardRowsResult, metrics] = await Promise.all([
     loadCockpitRows(() => admin()
@@ -3637,16 +3800,17 @@ async function getGkitJurCockpitAgendaArea(): Promise<GkitJurCockpitAreaData> {
 }
 
 export async function getGkitJurCockpitUnicoData(): Promise<GkitJurCockpitUnicoData> {
-  const [processos, preJuridico, tarefas, publicacoes, acordos, agenda] = await Promise.all([
+  const [processos, preJuridico, tarefas, publicacoes, acordos, memoriaProcessual, agenda] = await Promise.all([
     getGkitJurCockpitProcessosArea(),
     getGkitJurCockpitPreJuridicoArea(),
     getGkitJurCockpitTarefasArea(),
     getGkitJurCockpitPublicacoesArea(),
     getGkitJurCockpitAcordosArea(),
+    getGkitJurCockpitMemoriaProcessualArea(),
     getGkitJurCockpitAgendaArea(),
   ])
 
-  return { processos, pre_juridico: preJuridico, tarefas, publicacoes, acordos, agenda }
+  return { processos, pre_juridico: preJuridico, tarefas, publicacoes, acordos, memoria_processual: memoriaProcessual, agenda }
 }
 
 async function pendingGroup(title: string, description: string, href: string, column: string) {

@@ -38,10 +38,11 @@ const areaLabels: Record<GkitJurCockpitArea, string> = {
   tarefas: 'Tarefas',
   publicacoes: 'Publicações',
   acordos: 'Acordos',
+  memoria_processual: 'Memória processual',
   agenda: 'Agenda',
 }
 
-const areaOrder: GkitJurCockpitArea[] = ['processos', 'pre_juridico', 'tarefas', 'publicacoes', 'acordos', 'agenda']
+const areaOrder: GkitJurCockpitArea[] = ['processos', 'pre_juridico', 'tarefas', 'publicacoes', 'acordos', 'memoria_processual', 'agenda']
 
 const areaEntryHref: Record<GkitJurCockpitArea, string> = {
   processos: '/modulos/gkit-jur/processos',
@@ -49,6 +50,7 @@ const areaEntryHref: Record<GkitJurCockpitArea, string> = {
   tarefas: '/modulos/gkit-jur/inbox?fila=tarefas',
   publicacoes: '/modulos/gkit-jur/publicacoes',
   acordos: '/modulos/gkit-jur/acordos',
+  memoria_processual: '/modulos/gkit-jur/memoria-processual',
   agenda: '/modulos/gkit-jur/novo-jur?area=agenda',
 }
 
@@ -58,6 +60,7 @@ const areaEmptyLabel: Record<GkitJurCockpitArea, string> = {
   tarefas: 'Nenhuma tarefa apareceu neste recorte.',
   publicacoes: 'Nenhuma publicação apareceu neste recorte.',
   acordos: 'Nenhum acordo apareceu neste recorte.',
+  memoria_processual: 'Nenhum processo de memória processual apareceu neste recorte.',
   agenda: 'Nenhum vencimento, prazo jurídico ou compromisso apareceu neste recorte.',
 }
 
@@ -67,6 +70,7 @@ const areaOrderLabel: Record<GkitJurCockpitArea, string> = {
   tarefas: 'Prazo',
   publicacoes: 'Publicação',
   acordos: 'Vencimento',
+  memoria_processual: 'Movimentação',
   agenda: 'Vencimento',
 }
 
@@ -95,6 +99,11 @@ const areaOrderOptions: Record<GkitJurCockpitArea, Record<ListOrder, string>> = 
     recentes: 'Vencimento mais recente',
     antigas: 'Vencimento mais antigo',
     sem_data: 'Sem vencimento primeiro',
+  },
+  memoria_processual: {
+    recentes: 'Última movimentação recente',
+    antigas: 'Última movimentação antiga',
+    sem_data: 'Sem movimentação primeiro',
   },
   agenda: {
     recentes: 'Vencimento mais recente',
@@ -157,6 +166,17 @@ const manualCreateConfig: Record<GkitJurCockpitArea, ManualCreateConfig> = {
       { label: 'Processo ou cliente', name: 'referencia', placeholder: 'Digite uma referência' },
       { label: 'Valor', name: 'valor', placeholder: '0,00' },
       { label: 'Primeiro vencimento', name: 'vencimento', placeholder: 'Selecione a data', type: 'date' },
+    ],
+  },
+  memoria_processual: {
+    eyebrow: 'Memória processual',
+    title: 'Inserção manual de memória processual',
+    description: 'Abra um processo de cliente mensal acompanhado por outro escritório para registrar ciência, risco e relatório.',
+    href: '/modulos/gkit-jur/memoria-processual',
+    fields: [
+      { label: 'Número CNJ', name: 'numero_cnj', placeholder: 'Digite o número do processo' },
+      { label: 'Cliente', name: 'cliente', placeholder: 'Digite o cliente mensal' },
+      { label: 'Escritório externo', name: 'escritorio_responsavel_nome', placeholder: 'Digite o escritório responsável' },
     ],
   },
   agenda: {

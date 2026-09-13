@@ -858,7 +858,7 @@ export type GkitJurLabData = {
   briefings: GkitJurLabBriefing[];
 };
 
-export type GkitJurCockpitArea = 'processos' | 'pre_juridico' | 'tarefas' | 'publicacoes' | 'acordos' | 'agenda';
+export type GkitJurCockpitArea = 'processos' | 'pre_juridico' | 'tarefas' | 'publicacoes' | 'acordos' | 'memoria_processual' | 'agenda';
 
 export type GkitJurCockpitBar = {
   label: string;
