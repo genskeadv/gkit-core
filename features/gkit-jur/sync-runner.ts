@@ -18,6 +18,8 @@ export type GkitJurSyncRunResult = {
 }
 
 export type GkitJurSyncRunOptions = {
+  dailySince?: string
+  dataJudConcurrency?: number
   aaspData?: string
   aaspDiferencial?: boolean
   dataJudBatchLimit?: number
@@ -103,6 +105,8 @@ export async function runGkitJurSync(options: GkitJurSyncRunOptions = {}): Promi
       }
 
       const dataJudResult = await syncGkitJurDataJudBatch({
+        dailySince: options.dailySince,
+        concurrency: options.dataJudConcurrency,
         excludeProcessIds: Array.from(attemptedDataJudProcessIds),
         limit: dataJudBatchLimit,
         maxTransientErrors: dataJudMaxTransientErrors,

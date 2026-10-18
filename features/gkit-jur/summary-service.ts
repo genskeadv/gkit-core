@@ -252,6 +252,7 @@ async function generateOpenAiResumoInteligente(input: {
   }
 
   const response = await fetch(OPENAI_RESPONSES_URL, {
+    signal: AbortSignal.timeout(20_000),
     body: JSON.stringify(body),
     headers: {
       authorization: `Bearer ${apiKey}`,

@@ -3,6 +3,8 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { insertPublicationInboxItemsBestEffort } from './publication-inbox'
 import { classifyGkitJurProcessNature } from './process-nature'
 import { refreshGkitJurProcessSummary } from './summary-service'
+import { loadDailySyncQueue } from './daily-sync-queue'
+import { runBoundedSyncWorkers } from './sync-workers'
 
 export type GkitJurSyncProcessRow = {
   carteira_id: string | null
@@ -571,12 +573,19 @@ export async function generateTasksFromMovements(
     .filter((group) => group.publicationBucket)
     .map((group) => group.rule.id))]
   const [existingResult, openPublicationResult] = await Promise.all([
-    admin()
-      .schema('gkit_jur')
-      .from('tarefas')
-      .select('id,origem,origem_hash,payload,status')
-      .in('origem', [INTEGRATION_TASK_ORIGIN, ...LEGACY_TASK_ORIGINS])
-      .in('origem_hash', hashes),
+    (async () => {
+      const data: Array<Record<string, unknown>> = []
+      // Initial catch-up may contain years of history. Keep filters below URL limits.
+      for (let offset = 0; offset < hashes.length; offset += MOVEMENT_LOOKUP_CHUNK_SIZE) {
+        const chunk = await admin().schema('gkit_jur').from('tarefas')
+          .select('id,origem,origem_hash,payload,status')
+          .in('origem', [INTEGRATION_TASK_ORIGIN, ...LEGACY_TASK_ORIGINS])
+          .in('origem_hash', hashes.slice(offset, offset + MOVEMENT_LOOKUP_CHUNK_SIZE))
+        if (chunk.error) throw new Error(`Falha ao localizar tarefas: ${chunk.error.message}`)
+        data.push(...(chunk.data ?? []))
+      }
+      return { data, error: null }
+    })(),
     publicationRuleIds.length
       ? admin()
         .schema('gkit_jur')
@@ -588,7 +597,6 @@ export async function generateTasksFromMovements(
         .in('status', ['aberta', 'em_andamento', 'aguardando_terceiro'])
       : Promise.resolve({ data: [], error: null }),
   ])
-  if (existingResult.error) throw new Error(existingResult.error.message)
   if (openPublicationResult.error) throw new Error(openPublicationResult.error.message)
 
   const existingTasks = new Map(((existingResult.data ?? []) as Array<Record<string, unknown>>).map((item) => [text(item.origem_hash), item]))
@@ -676,8 +684,10 @@ export async function generateTasksFromMovements(
   }
 
   if (newTasks.length) {
-    const insertResult = await admin().schema('gkit_jur').from('tarefas').insert(newTasks)
-    if (insertResult.error) throw new Error(insertResult.error.message)
+    for (let offset = 0; offset < newTasks.length; offset += MOVEMENT_INSERT_CHUNK_SIZE) {
+      const insertResult = await admin().schema('gkit_jur').from('tarefas').insert(newTasks.slice(offset, offset + MOVEMENT_INSERT_CHUNK_SIZE))
+      if (insertResult.error) throw new Error(`Falha ao criar tarefas: ${insertResult.error.message}`)
+    }
   }
 
   const updateResults = await Promise.all(updates)
@@ -688,15 +698,15 @@ export async function generateTasksFromMovements(
   const relevantHashes = [...new Set([...taskGroups.values()]
     .flatMap((group) => group.movimentos.map((movimento) => text(movimento.hash_movimento)))
     .filter(Boolean))]
-  if (relevantHashes.length) {
+  for (let offset = 0; offset < relevantHashes.length; offset += MOVEMENT_LOOKUP_CHUNK_SIZE) {
     const updateResult = await admin()
       .schema('gkit_jur')
       .from('movimentacoes')
       .update({ alerta_gerado: true, gera_alerta: true, relevante: true })
       .eq('processo_id', row.id)
-      .in('hash_movimento', relevantHashes)
+      .in('hash_movimento', relevantHashes.slice(offset, offset + MOVEMENT_LOOKUP_CHUNK_SIZE))
 
-    if (updateResult.error) throw new Error(updateResult.error.message)
+    if (updateResult.error) throw new Error(`Falha ao marcar alertas: ${updateResult.error.message}`)
   }
 
   return newTasks.length
@@ -805,7 +815,7 @@ async function insertSyncLog(input: {
   if (error) throw new Error(error.message)
 }
 
-async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult> {
+async function syncOneProcess(row: GkitJurSyncProcessRow, keepMonitoring = false): Promise<SyncOneResult> {
   const startedAt = new Date().toISOString()
   let requestPayload: Record<string, any> = dataJudSearchPayload(row.numero_cnj_limpo)
 
@@ -905,7 +915,7 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
       falhas_transientes_consecutivas: transientFailures,
       proxima_tentativa_sincronizacao_em: isTransient ? addHours(current, transientBackoffHours(transientFailures)) : null,
       sem_resultado_consecutivos: 0,
-      status_monitoramento: isTransient ? 'monitorando' : 'erro',
+      status_monitoramento: isTransient || keepMonitoring ? 'monitorando' : 'erro',
       ultima_tentativa_sincronizacao_em: finishedAt,
       ultimo_status_sincronizacao: httpStatus === 408 || isTransient ? 'timeout' : 'erro',
       updated_at: finishedAt,
@@ -937,6 +947,8 @@ async function syncOneProcess(row: GkitJurSyncProcessRow): Promise<SyncOneResult
 }
 
 export async function syncGkitJurDataJudBatch(options: {
+  dailySince?: string
+  concurrency?: number
   excludeProcessIds?: string[]
   limit: number
   maxTransientErrors?: number
@@ -947,7 +959,12 @@ export async function syncGkitJurDataJudBatch(options: {
 }): Promise<SyncBatchResult> {
   const limit = Math.max(1, Math.min(options.limit, 25))
   const maxTransientErrors = Math.max(1, Math.min(options.maxTransientErrors ?? 4, 10))
-  let candidateResult = await admin()
+  let candidateResult = options.dailySince && !options.processoId
+    ? { data: (await loadDailySyncQueue(options.dailySince)).ready
+      .filter((row) => !options.excludeProcessIds?.includes(row.id))
+      .filter((row) => !options.tribunal || row.tribunal_sigla === options.tribunal)
+      .slice(0, limit), error: null }
+    : await admin()
     .schema('gkit_jur')
     .rpc('proximos_processos_sync', {
       p_exclude_ids: options.excludeProcessIds ?? [],
@@ -1007,7 +1024,7 @@ export async function syncGkitJurDataJudBatch(options: {
     tarefasGeradas: 0,
     movimentosNovos: 0,
     movimentosRecebidos: 0,
-    processoIds: rows.map((row) => row.id),
+    processoIds: [],
     processos: 0,
     selecionados: rows.length,
     semResultado: 0,
@@ -1015,29 +1032,24 @@ export async function syncGkitJurDataJudBatch(options: {
   }
 
   let transientErrors = 0
-  for (const row of rows) {
-    if (options.shouldContinue && !options.shouldContinue()) {
-      result.finalizado = false
-      break
-    }
-
-    const sync = await syncOneProcess(row)
-    result.processos += 1
-    if (sync.status === 'sucesso') result.sucesso += 1
-    if (sync.status === 'sem_resultado') result.semResultado += 1
-    if (sync.status === 'erro') result.erro += 1
-    if (sync.transient) {
-      transientErrors += 1
-    }
-    result.tarefasGeradas += sync.tarefasGeradas
-    result.movimentosRecebidos += sync.movimentosRecebidos
-    result.movimentosNovos += sync.movimentosNovos
-
-    if (transientErrors >= maxTransientErrors) {
-      result.finalizado = false
-      break
-    }
-  }
+  const workers = await runBoundedSyncWorkers({
+    items: rows,
+    concurrency: options.concurrency,
+    shouldContinue: () => transientErrors < maxTransientErrors && (!options.shouldContinue || options.shouldContinue()),
+    run: async (row) => {
+      const sync = await syncOneProcess(row, Boolean(options.dailySince))
+      result.processos += 1
+      if (sync.status === 'sucesso') result.sucesso += 1
+      if (sync.status === 'sem_resultado') result.semResultado += 1
+      if (sync.status === 'erro') result.erro += 1
+      if (sync.transient) transientErrors += 1
+      result.tarefasGeradas += sync.tarefasGeradas
+      result.movimentosRecebidos += sync.movimentosRecebidos
+      result.movimentosNovos += sync.movimentosNovos
+    },
+  })
+  result.processoIds = workers.attempted.map((row) => row.id)
+  result.finalizado = workers.finalizado && transientErrors < maxTransientErrors
 
   return result
 }

@@ -5,6 +5,9 @@ export type DataJudTribunal = {
 };
 
 export const DATAJUD_TRIBUNAIS: DataJudTribunal[] = [
+  { sigla: 'TJAP', nome: 'Tribunal de Justiça do Amapá', alias: 'api_publica_tjap' },
+  { sigla: 'TJSC', nome: 'Tribunal de Justiça de Santa Catarina', alias: 'api_publica_tjsc' },
+  { sigla: 'TRT1', nome: 'Tribunal Regional do Trabalho da 1ª Região', alias: 'api_publica_trt1' },
   { sigla: 'TJSP', nome: 'Tribunal de Justiça de São Paulo', alias: 'api_publica_tjsp' },
   { sigla: 'TJRJ', nome: 'Tribunal de Justiça do Rio de Janeiro', alias: 'api_publica_tjrj' },
   { sigla: 'TJMG', nome: 'Tribunal de Justiça de Minas Gerais', alias: 'api_publica_tjmg' },

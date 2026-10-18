@@ -8,7 +8,8 @@
     "start": "next start -p 3005",
     "ciclo:drive-sync": "tsx scripts/sync-ciclo-drive-catalog.ts",
     "jur:backfill-nature": "tsx scripts/backfill-gkit-jur-process-nature.ts",
-    "test": "tsx --test tests/**/*.test.ts"
+    "test": "tsx --test tests/**/*.test.ts",
+    "jur:catchup-daily": "tsx scripts/catchup-gkit-jur-daily.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.0",

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { runGkitJurSync, type GkitJurSyncRunResult } from '@/features/gkit-jur/sync-runner'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { dailySyncCutoff, loadDailySyncQueue } from '@/features/gkit-jur/daily-sync-queue'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -9,7 +10,7 @@ export const maxDuration = 300
 
 const JOB_KEY = 'gkit_jur_datajud_catchup'
 const LOCK_TTL_MS = 30 * 60 * 1000
-const DEFAULT_CATCHUP_LIMIT = 3
+const DEFAULT_CATCHUP_LIMIT = 25
 const DEFAULT_CATCHUP_TIME_BUDGET_MS = 240_000
 
 function admin() {
@@ -20,11 +21,6 @@ function positiveInt(value: unknown, fallback: number, max: number) {
   const parsed = Number.parseInt(String(value ?? ''), 10)
   if (!Number.isFinite(parsed) || parsed < 1) return fallback
   return Math.min(parsed, max)
-}
-
-function syncedBeforeCutoff() {
-  const hours = positiveInt(process.env.GKIT_JUR_CATCHUP_SYNCED_BEFORE_HOURS, 48, 720)
-  return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
 }
 
 function isAuthorized(request: NextRequest) {
@@ -113,7 +109,7 @@ export async function GET(request: NextRequest) {
     if (!acquired) {
       return NextResponse.json(
         {
-          message: 'Catch-up DataJud do GKIT Jur já está em andamento.',
+          message: 'Sincronização diária DataJud já está em andamento.',
           status: 'running',
           success: false,
         },
@@ -121,24 +117,34 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const since = dailySyncCutoff()
     const result = await runGkitJurSync({
-      dataJudBatchLimit: positiveInt(process.env.GKIT_JUR_CATCHUP_DATAJUD_LIMIT, DEFAULT_CATCHUP_LIMIT, 10),
-      dataJudMaxTransientErrors: positiveInt(process.env.GKIT_JUR_CATCHUP_MAX_TRANSIENT_ERRORS, 2, 10),
+      dailySince: since,
+      dataJudConcurrency: 3,
+      dataJudBatchLimit: positiveInt(process.env.GKIT_JUR_CATCHUP_DATAJUD_LIMIT, DEFAULT_CATCHUP_LIMIT, 25),
+      dataJudMaxTransientErrors: positiveInt(process.env.GKIT_JUR_CATCHUP_MAX_TRANSIENT_ERRORS, 10, 10),
       maxDataJudBatches: positiveInt(process.env.GKIT_JUR_CATCHUP_DATAJUD_BATCHES, 20, 100),
       provider: 'datajud',
-      syncedBefore: syncedBeforeCutoff(),
       timeBudgetMs: positiveInt(process.env.GKIT_JUR_CATCHUP_TIME_BUDGET_MS, DEFAULT_CATCHUP_TIME_BUDGET_MS, 260_000),
     })
 
-    await releaseLock(token, result)
+    const coverage = (await loadDailySyncQueue(since)).summary
+    const dailyResult = {
+      ...result,
+      coberturaDiaria: coverage,
+      desde: since,
+      finalizado: coverage.pendentesHoje === 0 && coverage.semTribunalOuCnj === 0 && coverage.semAutorizacao === 0,
+    }
+    await releaseLock(token, dailyResult)
 
     return NextResponse.json({
-      result,
+      result: dailyResult,
+      coverage,
       schedule,
       success: true,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erro inesperado no catch-up DataJud.'
+    const message = error instanceof Error ? error.message : 'Erro inesperado na sincronização diária DataJud.'
 
     try {
       await releaseLock(token, null, message)
