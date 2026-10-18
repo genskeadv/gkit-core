@@ -25,8 +25,9 @@ depois que todos os workers em andamento terminam.
 Nos lotes diários, CNJs do mesmo tribunal são consultados juntos com filtro exato
 `terms`, até 25 processos por lote. Cada processo recebe apenas os próprios
 resultados e o log individual não inclui os CNJs dos demais processos. Consultas
-agrupadas e as consultas individuais da rotina diária têm limite de 45 segundos
-(preservando um timeout individual explicitamente configurado no ambiente). Respostas incompletas, truncadas, vazias ou
+agrupadas têm limite de 90 segundos. As consultas individuais da rotina diária
+têm limite de 45 segundos (preservando um timeout individual explicitamente
+configurado no ambiente). Respostas incompletas, truncadas, vazias ou
 com falha voltam à consulta individual, sem concluir casos por uma resposta parcial.
 
 O resultado persistido em `gkit_jur.cron_locks.metadata.result` inclui

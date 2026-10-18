@@ -55,6 +55,8 @@ type MovementTaskRule = {
 const DEFAULT_DATAJUD_BASE_URL = 'https://api-publica.datajud.cnj.jus.br'
 const DEFAULT_DATAJUD_REQUEST_TIMEOUT_MS = 22_000
 const MAX_DATAJUD_REQUEST_TIMEOUT_MS = 45_000
+// 260s run budget - 70s reserve + 90s prefetch stays below the 300s function limit.
+const DAILY_DATAJUD_BULK_TIMEOUT_MS = 90_000
 const INTEGRATION_TASK_ORIGIN = 'integracao_movimentacao'
 const LEGACY_TASK_ORIGINS = ['datajud_movimentacao', 'aasp_movimentacao']
 const MOVEMENT_INSERT_CHUNK_SIZE = 25
@@ -1052,7 +1054,7 @@ export async function syncGkitJurDataJudBatch(options: {
       method: 'POST',
       headers: { Authorization: `APIKey ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(requestPayload),
-      signal: AbortSignal.timeout(MAX_DATAJUD_REQUEST_TIMEOUT_MS),
+      signal: AbortSignal.timeout(DAILY_DATAJUD_BULK_TIMEOUT_MS),
     })
     const responseBody = await response.json().catch(() => null)
     return { requestPayload, response, responseBody }
