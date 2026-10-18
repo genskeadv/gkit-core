@@ -158,7 +158,7 @@ function dataJudSearchPayload(numeroCnjLimpo: string) {
         ],
       },
     },
-    size: 1,
+    size: 5,
   }
 }
 
@@ -185,8 +185,18 @@ function hitTotal(responseBody: Record<string, any> | null) {
   return Number(total?.value ?? 0)
 }
 
-function firstHit(responseBody: Record<string, any> | null) {
-  return responseBody?.hits?.hits?.[0] ?? null
+function onlyDigits(value: unknown) {
+  return String(value ?? '').replace(/\D/g, '')
+}
+
+export function bestHit(responseBody: Record<string, any> | null, numeroCnjLimpo: string) {
+  const hits = Array.isArray(responseBody?.hits?.hits) ? responseBody?.hits?.hits as Array<Record<string, any>> : []
+  if (!hits.length) return null
+
+  const exactHits = hits.filter((hit) => onlyDigits(hit?._source?.numeroProcesso) === numeroCnjLimpo)
+  return exactHits.find((hit) => text(hit?._source?.grau).toUpperCase() === 'G1')
+    ?? exactHits[0]
+    ?? null
 }
 
 function dataJudErrorMessage(responseBody: Record<string, any> | null, fallback: string) {
@@ -713,13 +723,14 @@ export async function generateTasksFromMovements(
   return newTasks.length
 }
 
-function processUpdatePayload(hit: Record<string, any>, movimentos: Array<{ data_hora: string | null }>) {
+export function processUpdatePayload(hit: Record<string, any>, movimentos: Array<{ data_hora: string | null }>) {
   const source = hit._source ?? {}
   const classe = source.classe ?? {}
   const sistema = source.sistema ?? {}
   const formato = source.formato ?? {}
   const orgao = source.orgaoJulgador ?? {}
   const assuntos = Array.isArray(source.assuntos) ? source.assuntos : []
+  const dataAjuizamento = dateOrNull(source.dataAjuizamento)
   const natureza = classifyGkitJurProcessNature({
     assuntos,
     classeCodigo: classe.codigo,
@@ -737,7 +748,6 @@ function processUpdatePayload(hit: Record<string, any>, movimentos: Array<{ data
     assuntos,
     classe_codigo: numberOrNull(classe.codigo),
     classe_nome: text(classe.nome) || null,
-    data_ajuizamento: dateOrNull(source.dataAjuizamento),
     data_hora_ultima_atualizacao_datajud: dateOrNull(source.dataHoraUltimaAtualizacao),
     datajud_id: text(hit._id, text(source.id)) || null,
     datajud_index: text(hit._index) || null,
@@ -775,6 +785,7 @@ function processUpdatePayload(hit: Record<string, any>, movimentos: Array<{ data
     updated_at: now,
   }
 
+  if (dataAjuizamento) payload.data_ajuizamento = dataAjuizamento
   if (ultimaMovimentacao) payload.ultima_movimentacao_em = ultimaMovimentacao
 
   return payload
@@ -824,7 +835,7 @@ async function syncOneProcess(row: GkitJurSyncProcessRow, dailySync = false, pre
     const { requestPayload: payload, response, responseBody } = prefetched ?? await fetchDataJudProcess(row, dailySync)
     requestPayload = payload
     const totalResultados = hitTotal(responseBody)
-    const hit = firstHit(responseBody)
+    const hit = bestHit(responseBody, row.numero_cnj_limpo)
 
     if (!response.ok) {
       const message = dataJudErrorMessage(responseBody, response.statusText)
