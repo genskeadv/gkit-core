@@ -3,7 +3,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { insertPublicationInboxItemsBestEffort } from './publication-inbox'
 import { classifyGkitJurProcessNature } from './process-nature'
 import { refreshGkitJurProcessSummary } from './summary-service'
-import { loadDailySyncQueue } from './daily-sync-queue'
+import { loadDailySyncQueue, nextDailySyncAttempt } from './daily-sync-queue'
 import { runBoundedSyncWorkers } from './sync-workers'
 import { prefetchDailyDataJud, type DataJudSearchResult } from './datajud-prefetch'
 
@@ -837,7 +837,7 @@ async function syncOneProcess(row: GkitJurSyncProcessRow, dailySync = false, pre
       const counters = await getSyncCounters(row.id)
       await admin().schema('gkit_jur').from('processos').update({
         falhas_transientes_consecutivas: 0,
-        proxima_tentativa_sincronizacao_em: addDays(current, SEM_RESULTADO_RETRY_DAYS),
+        proxima_tentativa_sincronizacao_em: dailySync ? nextDailySyncAttempt(current) : addDays(current, SEM_RESULTADO_RETRY_DAYS),
         sem_resultado_consecutivos: counters.semResultado + 1,
         status_monitoramento: 'monitorando',
         ultima_tentativa_sincronizacao_em: now,
@@ -874,7 +874,9 @@ async function syncOneProcess(row: GkitJurSyncProcessRow, dailySync = false, pre
 
     const tarefasGeradas = await generateTasksFromMovements(row, novos)
 
-    const updateResult = await admin().schema('gkit_jur').from('processos').update(processUpdatePayload(hit, movimentos)).eq('id', row.id)
+    const updatePayload = processUpdatePayload(hit, movimentos)
+    if (dailySync) updatePayload.proxima_tentativa_sincronizacao_em = nextDailySyncAttempt()
+    const updateResult = await admin().schema('gkit_jur').from('processos').update(updatePayload).eq('id', row.id)
     if (updateResult.error) throw new Error(updateResult.error.message)
 
     const finishedAt = new Date().toISOString()
@@ -914,7 +916,7 @@ async function syncOneProcess(row: GkitJurSyncProcessRow, dailySync = false, pre
 
     await admin().schema('gkit_jur').from('processos').update({
       falhas_transientes_consecutivas: transientFailures,
-      proxima_tentativa_sincronizacao_em: isTransient ? addHours(current, transientBackoffHours(transientFailures)) : null,
+      proxima_tentativa_sincronizacao_em: dailySync ? nextDailySyncAttempt(current, true) : isTransient ? addHours(current, transientBackoffHours(transientFailures)) : null,
       sem_resultado_consecutivos: 0,
       status_monitoramento: isTransient || dailySync ? 'monitorando' : 'erro',
       ultima_tentativa_sincronizacao_em: finishedAt,

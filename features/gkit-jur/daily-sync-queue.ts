@@ -26,6 +26,11 @@ export function dailySyncCutoff(now = new Date()) {
   return `${date}T03:00:00.000Z`
 }
 
+export function nextDailySyncAttempt(now = new Date(), failed = false) {
+  const tomorrow = Date.parse(dailySyncCutoff(now)) + 24 * 60 * 60 * 1000
+  return new Date(failed ? Math.min(tomorrow, now.getTime() + 60 * 60 * 1000) : tomorrow).toISOString()
+}
+
 export function buildDailySyncQueue(processes: DailySyncProcess[], attempts: DailySyncAttempt[], now = new Date()) {
   const completed = new Set<string>()
   const latest = new Map<string, DailySyncAttempt>()

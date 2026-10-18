@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFileSync } from 'node:fs'
-import { buildDailySyncQueue, dailySyncCutoff, type DailySyncProcess, type DailySyncAttempt } from '../features/gkit-jur/daily-sync-queue'
+import { buildDailySyncQueue, dailySyncCutoff, nextDailySyncAttempt, type DailySyncProcess, type DailySyncAttempt } from '../features/gkit-jur/daily-sync-queue'
 
 const now = new Date('2026-10-17T15:00:00Z')
 function processRow(id: string, patch: Partial<DailySyncProcess> = {}): DailySyncProcess {
@@ -15,6 +15,12 @@ function attempt(processo_id: string, status: string, started_at = '2026-10-17T1
 test('daily cutoff follows the Brazil date on both sides of midnight', () => {
   assert.equal(dailySyncCutoff(new Date('2026-10-17T02:59:59Z')), '2026-10-16T03:00:00.000Z')
   assert.equal(dailySyncCutoff(new Date('2026-10-17T03:00:00Z')), '2026-10-17T03:00:00.000Z')
+})
+
+test('persisted next attempt matches daily completion and hourly retries, including midnight', () => {
+  assert.equal(nextDailySyncAttempt(now), '2026-10-18T03:00:00.000Z')
+  assert.equal(nextDailySyncAttempt(now, true), '2026-10-17T16:00:00.000Z')
+  assert.equal(nextDailySyncAttempt(new Date('2026-10-18T02:30:00Z'), true), '2026-10-18T03:00:00.000Z')
 })
 
 test('success and no-result leave the daily queue; a later failure does not undo completion', () => {
