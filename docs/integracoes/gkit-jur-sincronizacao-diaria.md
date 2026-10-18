@@ -22,6 +22,12 @@ da função acaba, a próxima execução continua pelos registros persistidos. U
 execução sem pendências encerra sem consultar o DataJud. A trava só é liberada
 depois que todos os workers em andamento terminam.
 
+Nos lotes diários, CNJs do mesmo tribunal são consultados juntos com filtro exato
+`terms`, até 25 processos por lote. Cada processo recebe apenas os próprios
+resultados e o log individual não inclui os CNJs dos demais processos. Consultas
+agrupadas têm limite de 45 segundos. Respostas incompletas, truncadas, vazias ou
+com falha voltam à consulta individual, sem concluir casos por uma resposta parcial.
+
 O resultado persistido em `gkit_jur.cron_locks.metadata.result` inclui
 `coberturaDiaria`: total ativo monitorado, consultas concluídas no dia, pendências,
 falhas aguardando nova tentativa e bloqueios de cadastro/autorização. O marcador

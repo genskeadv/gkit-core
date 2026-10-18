@@ -5,6 +5,7 @@ import { classifyGkitJurProcessNature } from './process-nature'
 import { refreshGkitJurProcessSummary } from './summary-service'
 import { loadDailySyncQueue } from './daily-sync-queue'
 import { runBoundedSyncWorkers } from './sync-workers'
+import { prefetchDailyDataJud, type DataJudSearchResult } from './datajud-prefetch'
 
 export type GkitJurSyncProcessRow = {
   carteira_id: string | null
@@ -815,12 +816,12 @@ async function insertSyncLog(input: {
   if (error) throw new Error(error.message)
 }
 
-async function syncOneProcess(row: GkitJurSyncProcessRow, keepMonitoring = false): Promise<SyncOneResult> {
+async function syncOneProcess(row: GkitJurSyncProcessRow, keepMonitoring = false, prefetched?: DataJudSearchResult): Promise<SyncOneResult> {
   const startedAt = new Date().toISOString()
   let requestPayload: Record<string, any> = dataJudSearchPayload(row.numero_cnj_limpo)
 
   try {
-    const { requestPayload: payload, response, responseBody } = await fetchDataJudProcess(row)
+    const { requestPayload: payload, response, responseBody } = prefetched ?? await fetchDataJudProcess(row)
     requestPayload = payload
     const totalResultados = hitTotal(responseBody)
     const hit = firstHit(responseBody)
@@ -1031,13 +1032,25 @@ export async function syncGkitJurDataJudBatch(options: {
     sucesso: 0,
   }
 
+  const prefetched = options.dailySince ? await prefetchDailyDataJud(rows, async (alias, numbers) => {
+    const { apiKey, baseUrl } = dataJudConfig()
+    const requestPayload = { size: 1000, query: { terms: { numeroProcesso: numbers } } }
+    const response = await fetch(`${baseUrl}/${alias}/_search`, {
+      method: 'POST',
+      headers: { Authorization: `APIKey ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestPayload),
+      signal: AbortSignal.timeout(MAX_DATAJUD_REQUEST_TIMEOUT_MS),
+    })
+    const responseBody = await response.json().catch(() => null)
+    return { requestPayload, response, responseBody }
+  }) : new Map<string, DataJudSearchResult>()
   let transientErrors = 0
   const workers = await runBoundedSyncWorkers({
     items: rows,
     concurrency: options.concurrency,
     shouldContinue: () => transientErrors < maxTransientErrors && (!options.shouldContinue || options.shouldContinue()),
     run: async (row) => {
-      const sync = await syncOneProcess(row, Boolean(options.dailySince))
+      const sync = await syncOneProcess(row, Boolean(options.dailySince), prefetched.get(row.id))
       result.processos += 1
       if (sync.status === 'sucesso') result.sucesso += 1
       if (sync.status === 'sem_resultado') result.semResultado += 1
