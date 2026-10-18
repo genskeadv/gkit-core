@@ -133,12 +133,12 @@ function normalizeForMatch(value: unknown) {
     .toLowerCase()
 }
 
-function dataJudConfig() {
+function dataJudConfig(defaultTimeoutMs = DEFAULT_DATAJUD_REQUEST_TIMEOUT_MS) {
   const baseUrl = text(process.env.DATAJUD_BASE_URL, DEFAULT_DATAJUD_BASE_URL).replace(/\/+$/, '')
   const apiKey = text(process.env.DATAJUD_API_KEY)
   const requestTimeoutMs = positiveInt(
     process.env.GKIT_JUR_DATAJUD_REQUEST_TIMEOUT_MS ?? process.env.DATAJUD_REQUEST_TIMEOUT_MS,
-    DEFAULT_DATAJUD_REQUEST_TIMEOUT_MS,
+    defaultTimeoutMs,
     MAX_DATAJUD_REQUEST_TIMEOUT_MS,
   )
   if (!apiKey) {
@@ -162,8 +162,8 @@ function dataJudSearchPayload(numeroCnjLimpo: string) {
   }
 }
 
-async function fetchDataJudProcess(row: GkitJurSyncProcessRow) {
-  const { apiKey, baseUrl, requestTimeoutMs } = dataJudConfig()
+async function fetchDataJudProcess(row: GkitJurSyncProcessRow, dailySync = false) {
+  const { apiKey, baseUrl, requestTimeoutMs } = dataJudConfig(dailySync ? MAX_DATAJUD_REQUEST_TIMEOUT_MS : DEFAULT_DATAJUD_REQUEST_TIMEOUT_MS)
   const requestPayload = dataJudSearchPayload(row.numero_cnj_limpo)
   const response = await fetch(`${baseUrl}/${row.tribunal_alias}/_search`, {
     body: JSON.stringify(requestPayload),
@@ -816,12 +816,12 @@ async function insertSyncLog(input: {
   if (error) throw new Error(error.message)
 }
 
-async function syncOneProcess(row: GkitJurSyncProcessRow, keepMonitoring = false, prefetched?: DataJudSearchResult): Promise<SyncOneResult> {
+async function syncOneProcess(row: GkitJurSyncProcessRow, dailySync = false, prefetched?: DataJudSearchResult): Promise<SyncOneResult> {
   const startedAt = new Date().toISOString()
   let requestPayload: Record<string, any> = dataJudSearchPayload(row.numero_cnj_limpo)
 
   try {
-    const { requestPayload: payload, response, responseBody } = prefetched ?? await fetchDataJudProcess(row)
+    const { requestPayload: payload, response, responseBody } = prefetched ?? await fetchDataJudProcess(row, dailySync)
     requestPayload = payload
     const totalResultados = hitTotal(responseBody)
     const hit = firstHit(responseBody)
@@ -916,7 +916,7 @@ async function syncOneProcess(row: GkitJurSyncProcessRow, keepMonitoring = false
       falhas_transientes_consecutivas: transientFailures,
       proxima_tentativa_sincronizacao_em: isTransient ? addHours(current, transientBackoffHours(transientFailures)) : null,
       sem_resultado_consecutivos: 0,
-      status_monitoramento: isTransient || keepMonitoring ? 'monitorando' : 'erro',
+      status_monitoramento: isTransient || dailySync ? 'monitorando' : 'erro',
       ultima_tentativa_sincronizacao_em: finishedAt,
       ultimo_status_sincronizacao: httpStatus === 408 || isTransient ? 'timeout' : 'erro',
       updated_at: finishedAt,
